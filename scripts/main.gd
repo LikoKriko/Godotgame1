@@ -157,7 +157,7 @@ func _process(delta: float) -> void:
 	var direction := Vector2(
 		float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
-	if direction != Vector2.ZERO:
+	if direction != Vector2.ZERO and working:
 		cancel_work()
 	if not working:
 		move_player(direction, delta)
@@ -170,6 +170,8 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func cancel_work() -> void:
+	if not working:
+		return
 	working = false
 	work_elapsed = 0.0
 	character.speed_scale = 1.0

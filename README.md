@@ -28,6 +28,7 @@ Patio procedural pequeño de 32 × 24 casillas (2048 × 1536 px), con suelo cont
 godot --headless --path . --editor --import --quit
 godot --headless --path . --script res://tests/smoke.gd
 godot --headless --path . --script res://tests/movement.gd
+godot --headless --fixed-fps 60 --path . --script res://tests/walk_cycle.gd
 godot --headless --path . --script res://tests/world.gd
 godot --headless --path . --quit-after 120
 ```
