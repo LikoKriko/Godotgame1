@@ -7,11 +7,13 @@ const TYPES := {
 	2: {"name": "Árbol seco", "material": "madera", "hits": 3, "yield": 4, "branch": 0}
 }
 var world
+var bag
 var nodes: Dictionary = {}
 var inventory := {"madera": 0, "mineral": 0, "chatarra": 0}
 
-func configure(map) -> void:
+func configure(map, inventory_model = null) -> void:
 	world = map
+	bag = inventory_model
 	nodes.clear()
 	inventory = {"madera": 0, "mineral": 0, "chatarra": 0}
 	for cell in world.props:
@@ -63,11 +65,17 @@ func hit(cell: Vector2i, player: Vector2, bonus: int = 0) -> Dictionary:
 	if not can_reach(cell, player):
 		return {}
 	var node: Dictionary = nodes[cell]
+	if bag != null and not bag.can_harvest(node["material"]):
+		return {"reason": "herramienta"}
+	var amount: int = node["yield"] + bonus
+	var material: String = node["material"]
+	if node["remaining"] == 1 and bag != null and not bag.can_add(StringName(material), amount):
+		return {"reason": "mochila_llena"}
 	node["remaining"] -= 1
 	if node["remaining"] > 0:
 		return {"depleted": false}
-	var amount: int = node["yield"] + bonus
-	var material: String = node["material"]
+	if bag != null:
+		bag.add(StringName(material), amount)
 	inventory[material] += amount
 	var footprint: Rect2i = node["footprint"]
 	for y in range(footprint.position.y, footprint.end.y):

@@ -2,6 +2,7 @@ extends RefCounted
 ## Atlas regions are aligned to a common foot baseline without modifying the source.
 const SHEET = preload("res://assets/characters/survivor_walk.png")
 const HARVEST_SHEET = preload("res://assets/characters/survivor_harvest.png")
+const PICKAXE_SHEET = preload("res://assets/characters/survivor_pickaxe.png")
 const DIRECTIONS := [&"down", &"left", &"right", &"up"]
 
 static func build() -> SpriteFrames:
@@ -44,5 +45,22 @@ static func build() -> SpriteFrames:
 			atlas.region = Rect2(cell.position + used.position, used.size)
 			# Keep the atlas cell's horizontal anchor: tool reach must not shift the torso.
 			atlas.margin = Rect2(Vector2(used.position.x - (cell_size.x - 260) / 2.0, 310 - used.size.y), Vector2(260, 320) - Vector2(used.size))
+			frames.add_frame(action, atlas)
+	var pick_image := PICKAXE_SHEET.get_image()
+	var cuts := [0, 342, 637, 959, pick_image.get_width()]
+	var row_cuts := [0, 318, 634, 948, pick_image.get_height()]
+	var anchors := [156, 484, 798, 1112]
+	for row in 4:
+		var action := StringName("mine_" + DIRECTIONS[row])
+		frames.add_animation(action)
+		frames.set_animation_speed(action, 4.0 / 0.6)
+		frames.set_animation_loop(action, false)
+		for column in 4:
+			var cell := Rect2i(cuts[column], row_cuts[row], cuts[column + 1] - cuts[column], row_cuts[row + 1] - row_cuts[row])
+			var used := pick_image.get_region(cell).get_used_rect()
+			var atlas := AtlasTexture.new()
+			atlas.atlas = PICKAXE_SHEET
+			atlas.region = Rect2(cell.position + used.position, used.size)
+			atlas.margin = Rect2(Vector2(cell.position.x + used.position.x - anchors[column] + 130, 310 - used.size.y), Vector2(260, 320) - Vector2(used.size))
 			frames.add_frame(action, atlas)
 	return frames

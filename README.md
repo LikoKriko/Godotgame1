@@ -1,22 +1,40 @@
 # Godotgame1 · Exploración y recolección 2D
 
-Prototipo con Godot 4.6.3 estándar y GDScript. Esta versión se centra en el personaje y la recolección: los enemigos, las oleadas y el combate están retirados temporalmente.
+Prototipo con Godot 4.6.3 estándar y GDScript. Esta versión se centra en el personaje, la recolección y el inventario. No hay enemigos ni oleadas; la espada y el arco permiten probar sus acciones.
 
 ## Jugar
 
 Importa `project.godot` en Godot 4.6.3 y pulsa F5.
 
 - WASD o flechas: movimiento.
-- Mantén E cerca de un árbol, roca o máquina para trabajar con la multiherramienta.
+- 1: espada; 2: arco; 3: pico; 4: hacha; 0: dejar las manos libres.
+- Mantén E cerca de un árbol con el hacha, de una roca con el pico o de una máquina con las manos libres.
+- Clic izquierdo o Espacio: utilizar la espada o disparar el arco, apuntando al ratón.
+- I: inventario; I, Esc o ×: cerrar. El inventario pausa el juego y los proyectiles.
 - Tab: abrir/cerrar el panel de habilidades; pausa el juego.
-- R: reiniciar la prueba con la misma semilla. Restaura los recursos y vacía el inventario.
-- F2: generar otro mapa y reiniciar la prueba, también vaciando el inventario.
+- R: reiniciar la prueba con la misma semilla. Restaura los recursos, herramientas y ropa inicial, y vacía los materiales.
+- F2: generar otro mapa y reiniciar la prueba.
 
 El recurso al alcance se resalta y muestra cuántos golpes faltan. Árboles → madera; rocas → mineral; maquinaria abandonada → chatarra. Las balizas son decorativas. Una roca grande requiere seis golpes; los otros recursos, tres. Los materiales se añaden al inventario al agotar el objeto, que desaparece y libera su colisión. No se puede recolectar desde lejos ni a través de otro obstáculo.
 
-El golpe tiene cuatro fotogramas por dirección: preparación, herramienta levantada, impacto y recuperación. El personaje se orienta al recurso y se queda quieto durante la acción. Moverse cancela el trabajo pendiente; un golpe que ya impactó se conserva. Mantener E repite el ciclo; soltarla permite terminar el golpe actual. El movimiento conserva sus cuatro animaciones, reposo por dirección y giros con frenada proporcional al ángulo.
+El hacha y el pico tienen animaciones de cuatro fotogramas por dirección: preparación, herramienta levantada, impacto y recuperación. La chatarra se recoge con una pequeña acción de manos libres. El personaje se orienta al recurso y se queda quieto durante la acción. Moverse cancela el trabajo pendiente; un golpe que ya impactó se conserva. Mantener E repite el ciclo; soltarla permite terminar el golpe actual. El movimiento conserva sus cuatro animaciones, reposo por dirección y giros con frenada proporcional al ángulo.
 
-La recolección da experiencia y puntos de habilidad. Hay seis ramas de cinco rangos: Silvicultura (+1 madera por árbol), Minería (+1 mineral por roca), Agilidad (+22 velocidad), Reciclaje (+1 chatarra por máquina), Ritmo (+12% velocidad de trabajo) y Sabiduría (+20% experiencia). No hay guardado persistente, fabricación, herramientas diferenciadas ni equipo todavía.
+La recolección da experiencia y puntos de habilidad. Hay seis ramas de cinco rangos: Silvicultura (+1 madera por árbol), Minería (+1 mineral por roca), Agilidad (+22 velocidad), Reciclaje (+1 chatarra por máquina), Ritmo (+12% velocidad de trabajo) y Sabiduría (+20% experiencia).
+
+## Inventario y objetos
+
+Panel cuadrado centrado, con un área aproximada del 60% de la pantalla. En ventanas muy alargadas se limita al 95% del lado menor para permanecer visible. Muestra el personaje con cinco espacios fijos alrededor: cabeza, torso, piernas, manos y pies. Debajo hay 32 espacios de mochila. Selecciona un objeto y pulsa **Equipar**, o selecciona una pieza equipada y pulsa **Quitar equipo**. Las herramientas y armas ocupan Manos; la ropa ocupa su espacio correspondiente. Los materiales se apilan hasta 99 unidades por espacio.
+
+| Objeto básico | Uso permitido | Usos iniciales |
+| --- | --- | --- |
+| Espada | Ataque cuerpo a cuerpo | 40 |
+| Arco | Disparar flechas | 60 |
+| Pico | Extraer mineral de rocas | 30 |
+| Hacha | Cortar árboles | 30 |
+
+Cada impacto válido con una herramienta, ataque de espada o disparo consume un uso. Un intento con la herramienta incorrecta o una cancelación antes del impacto no consume usos. El objeto conserva su desgaste al guardarlo o equiparlo. A cero usos queda roto y no funciona. Por ahora solo existe rareza Básico; los valores están en las definiciones de objetos. El arco no requiere munición separada en esta versión.
+
+Si no cabe la recompensa en la mochila, el último golpe no destruye el recurso ni consume un uso. El intercambio de equipo tampoco pierde objetos cuando la mochila está llena. No hay guardado persistente, fabricación ni reparación todavía. La ropa puede equiparse y retirarse del inventario; por ahora el sprite del personaje conserva su aspecto original.
 
 ## Mapa
 
@@ -27,6 +45,7 @@ Patio procedural pequeño de 32 × 24 casillas (2048 × 1536 px), con suelo cont
 ```sh
 godot --headless --path . --editor --import --quit
 godot --headless --path . --script res://tests/smoke.gd
+godot --headless --path . --script res://tests/inventory.gd
 godot --headless --path . --script res://tests/movement.gd
 godot --headless --fixed-fps 60 --path . --script res://tests/walk_cycle.gd
 godot --headless --path . --script res://tests/world.gd
@@ -37,7 +56,10 @@ En cloud, usa los directorios XDG escribibles indicados en las instrucciones del
 
 ## Archivos
 
-- `scripts/main.gd`: personaje, acciones, inventario visible y habilidades.
+- `scripts/main.gd`: personaje, acciones, selección de herramientas y habilidades.
+- `scripts/inventory.gd`: 32 espacios, cinco piezas de equipo, apilado y usos.
+- `scripts/inventory_panel.gd`: panel de inventario y selección de equipo.
+- `scripts/item_icons.gd`: iconos de las cuatro herramientas; `scripts/arrow.gd`: proyectiles del arco.
 - `scripts/harvesting.gd`: alcance, recursos, golpes, inventario y agotamiento.
 - `scripts/test_world.gd`: generación y colisiones.
 - `scripts/world_view.gd`: suelo y decorados; `scripts/world_minimap.gd`: minimapa.
@@ -45,4 +67,4 @@ En cloud, usa los directorios XDG escribibles indicados en las instrucciones del
 - `scripts/survivor_frames.gd`: animaciones desde los atlas de caminar y recolectar. Las diagonales usan la vista cardinal más cercana.
 - `shaders/quarantine_ground.gdshader`: suelo uniforme continuo; `shaders/atmosphere.gdshader`: sombreado de bordes.
 
-Los atlas están en `assets/`; `.godot/` contiene cachés locales excluidas de Git. El atlas antiguo de suelos se conserva como recurso sin uso. Los materiales son contadores de inventario provisional, no objetos soltados en el suelo. Las comprobaciones automáticas validan lógica y carga; la sensación del movimiento y las animaciones requiere también jugar en el editor.
+Los atlas están en `assets/`; `.godot/` contiene cachés locales excluidas de Git. El atlas antiguo de suelos se conserva como recurso sin uso. Los materiales se almacenan en la mochila; no se sueltan en el suelo. Las comprobaciones automáticas validan lógica y carga; la sensación del movimiento y las animaciones requiere también jugar en el editor.

@@ -9,6 +9,11 @@ func check(condition: bool, message: String) -> void:
 		quit(1)
 		assert(condition, message)
 func work(game, cell: Vector2i) -> void:
+	var material: String = game.resources.nodes[cell]["material"]
+	if material == "chatarra":
+		game.bag.unequip(&"hands")
+	else:
+		game.bag.select_tool(&"axe" if material == "madera" else &"pickaxe")
 	var footprint: Rect2 = game.resources.bounds(cell)
 	game.player = footprint.position + Vector2(-24, footprint.size.y / 2)
 	check(game.world.walkable(game.player), "Test approach is reachable")
