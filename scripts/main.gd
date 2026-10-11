@@ -29,6 +29,7 @@ var dead := false
 var skills_open := false
 var kills := 0
 var camera: Camera2D
+var character: Sprite2D
 var hud: Label
 var skill_panel: PanelContainer
 var skill_buttons: Array[Button] = []
@@ -36,6 +37,12 @@ var skill_buttons: Array[Button] = []
 func _ready() -> void:
 	terrain.seed = WORLD_SEED
 	terrain.frequency = 0.018
+	character = Sprite2D.new()
+	character.texture = preload("res://assets/characters/survivor.png")
+	character.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	character.scale = Vector2(0.055, 0.055)
+	character.position = player + Vector2(0, -14)
+	add_child(character)
 	camera = Camera2D.new()
 	add_child(camera)
 	var canvas := CanvasLayer.new()
@@ -81,6 +88,7 @@ func restart() -> void:
 	dead = false
 	skills_open = false
 	camera.position = player
+	character.position = player + Vector2(0, -14)
 	update_hud()
 	queue_redraw()
 
@@ -150,6 +158,7 @@ func _process(delta: float) -> void:
 	if walkable(player + Vector2(0, motion.y)):
 		player.y += motion.y
 	camera.position = player
+	character.position = player + Vector2(0, -14)
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE):
 		attack(get_global_mouse_position())
 	spawn_timer -= delta
@@ -235,5 +244,10 @@ func _draw() -> void:
 		draw_circle(shot["position"], 5, Color("ffe29a"))
 	if flash_timer > 0:
 		draw_arc(player, WEAPONS[weapon_index]["range"], 0, TAU, 32, Color("ffe29a"), 2)
-	draw_circle(player, 15, Color("6be5cb"))
+	draw_ellipse_shadow()
 	draw_line(player, player + player.direction_to(get_global_mouse_position()) * 25, Color.WHITE, 3)
+
+func draw_ellipse_shadow() -> void:
+	draw_set_transform(player + Vector2(0, 17), 0, Vector2(1, 0.4))
+	draw_circle(Vector2.ZERO, 19, Color(0, 0, 0, 0.35))
+	draw_set_transform(Vector2.ZERO)

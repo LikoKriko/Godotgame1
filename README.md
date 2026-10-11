@@ -35,4 +35,4 @@ En el entorno cloud se usan directorios XDG escribibles bajo `/workspace/shared`
 
 `scenes/main.tscn` contiene la escena inicial. `scripts/main.gd` contiene generación, combate, progresión y presentación del prototipo. El siguiente paso es separar estos sistemas y definir los nodos del árbol y el catálogo de armas como recursos de datos.
 
-Los gráficos se dibujan por código. `.godot/` contiene cachés locales y se excluye de Git. Las comprobaciones headless validan carga y lógica; el aspecto visual y los controles requieren prueba manual en el editor.
+El protagonista usa un sprite estático en pixel art con traje y casco gris oscuro y detalles amarillos, creado a partir de la referencia visual del proyecto. Todavía no incluye animaciones ni vistas en otras direcciones. El mundo y los enemigos se dibujan por código. `.godot/` contiene cachés locales y se excluye de Git. Las comprobaciones headless validan carga y lógica; el aspecto visual y los controles requieren prueba manual en el editor.
