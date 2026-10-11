@@ -27,6 +27,7 @@ Importa `project.godot` en Godot 4.6.3 y pulsa F5.
 godot --headless --path . --editor --import --quit
 godot --headless --path . --quit-after 120
 godot --headless --path . --script res://tests/smoke.gd
+godot --headless --path . --script res://tests/movement.gd
 ```
 
 En el entorno cloud se usan directorios XDG escribibles bajo `/workspace/shared` (ver instrucciones de inicio del entorno). No se necesitan servicios ni credenciales para ejecutar el juego.
@@ -35,4 +36,6 @@ En el entorno cloud se usan directorios XDG escribibles bajo `/workspace/shared`
 
 `scenes/main.tscn` contiene la escena inicial. `scripts/main.gd` contiene generación, combate, progresión y presentación del prototipo. El siguiente paso es separar estos sistemas y definir los nodos del árbol y el catálogo de armas como recursos de datos.
 
-El protagonista usa un sprite estático en pixel art con traje y casco gris oscuro y detalles amarillos, creado a partir de la referencia visual del proyecto. Todavía no incluye animaciones ni vistas en otras direcciones. El mundo y los enemigos se dibujan por código. `.godot/` contiene cachés locales y se excluye de Git. Las comprobaciones headless validan carga y lógica; el aspecto visual y los controles requieren prueba manual en el editor.
+El protagonista usa un sprite estático en pixel art con traje y casco gris oscuro y detalles amarillos, creado a partir de la referencia visual del proyecto. Tiene ciclos de caminar de cuatro fotogramas para izquierda, derecha, arriba y abajo, y una pose de reposo por dirección. El ciclo se detiene al chocar o dejar de moverse. Los giros interpolan la orientación en hasta 0.28 segundos: la frenada máxima es del 35% para 180°, 8.75% para 90° y 2.19% para 45°. Al terminar, se recupera la velocidad máxima (incluyendo Agilidad); las diagonales no aumentan la velocidad. Un cambio de dirección durante el giro parte de la orientación actual. El mundo y los enemigos se dibujan por código. `.godot/` contiene cachés locales y se excluye de Git. Las comprobaciones headless validan carga y lógica; el aspecto visual y los controles requieren prueba manual en el editor.
+
+El movimiento se configura en `scripts/turn_motion.gd` (`MAX_TURN_TIME` y `MAX_SLOWDOWN`). Las animaciones se construyen desde `assets/characters/survivor_walk.png` en `scripts/survivor_frames.gd`, con alineación de pies para evitar saltos entre fotogramas. Las diagonales usan la vista cardinal más cercana. El personaje cambia de vista durante el giro sin rotar el sprite completo en el plano del suelo.

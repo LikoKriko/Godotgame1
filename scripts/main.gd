@@ -29,7 +29,8 @@ var dead := false
 var skills_open := false
 var kills := 0
 var camera: Camera2D
-var character: Sprite2D
+var character: AnimatedSprite2D
+var movement = preload("res://scripts/turn_motion.gd").new()
 var hud: Label
 var skill_panel: PanelContainer
 var skill_buttons: Array[Button] = []
@@ -37,10 +38,10 @@ var skill_buttons: Array[Button] = []
 func _ready() -> void:
 	terrain.seed = WORLD_SEED
 	terrain.frequency = 0.018
-	character = Sprite2D.new()
-	character.texture = preload("res://assets/characters/survivor.png")
+	character = AnimatedSprite2D.new()
+	character.sprite_frames = preload("res://scripts/survivor_frames.gd").build()
 	character.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	character.scale = Vector2(0.055, 0.055)
+	character.scale = Vector2(0.215, 0.215)
 	character.position = player + Vector2(0, -14)
 	add_child(character)
 	camera = Camera2D.new()
@@ -72,6 +73,8 @@ func _ready() -> void:
 
 func restart() -> void:
 	player = Vector2.ZERO
+	movement.reset()
+	character.play(&"idle_down")
 	health = 100.0
 	experience = 0
 	level = 1
@@ -144,6 +147,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func _process(delta: float) -> void:
 	if dead or skills_open:
+		character.pause()
 		return
 	survival_time += delta
 	attack_timer = maxf(attack_timer - delta, 0.0)
@@ -152,15 +156,27 @@ func _process(delta: float) -> void:
 	var direction := Vector2(
 		float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
-	var motion := direction.limit_length() * (220.0 + ranks[2] * 22.0) * delta
+	move_player(direction, delta)
+	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE):
+		attack(get_global_mouse_position())
+	update_world(delta)
+
+func move_player(direction: Vector2, delta: float) -> void:
+	var previous := player
+	var velocity: Vector2 = movement.step(direction, delta, 220.0 + ranks[2] * 22.0)
+	var motion := velocity * delta
 	if walkable(player + Vector2(motion.x, 0)):
 		player.x += motion.x
 	if walkable(player + Vector2(0, motion.y)):
 		player.y += motion.y
 	camera.position = player
 	character.position = player + Vector2(0, -14)
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE):
-		attack(get_global_mouse_position())
+	var moving := player.distance_squared_to(previous) > 0.00001
+	var animation := StringName(("walk_" if moving else "idle_") + movement.facing())
+	character.speed_scale = movement.speed_factor if moving else 1.0
+	character.play(animation)
+
+func update_world(delta: float) -> void:
 	spawn_timer -= delta
 	if spawn_timer <= 0.0 and enemies.size() < 80:
 		spawn_enemy()
