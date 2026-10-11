@@ -30,8 +30,7 @@ func configure(map, inventory_model = null) -> void:
 		nodes[cell] = data
 
 func bounds(cell: Vector2i) -> Rect2:
-	var footprint: Rect2i = nodes[cell]["footprint"]
-	return Rect2(Vector2(footprint.position * world.TILE), Vector2(footprint.size * world.TILE))
+	return world.prop_collisions[cell]
 
 func can_reach(cell: Vector2i, player: Vector2) -> bool:
 	if not nodes.has(cell):
@@ -83,7 +82,6 @@ func hit(cell: Vector2i, player: Vector2, bonus: int = 0) -> Dictionary:
 			var released := Vector2i(x, y)
 			world.cells[released]["blocked"] = false
 			world.reachable.append(released)
-	world.props.erase(cell)
-	world.large_rocks.erase(cell)
+	world.release_prop(cell)
 	nodes.erase(cell)
 	return {"depleted": true, "material": material, "amount": amount}

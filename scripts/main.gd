@@ -157,6 +157,7 @@ func restart() -> void:
 	skills_open = false
 	camera.position = player
 	character.position = player + Vector2(0, -14)
+	world_view.update_trees(player, 1.0)
 	update_hud()
 	queue_redraw()
 
@@ -233,6 +234,7 @@ func _process(delta: float) -> void:
 		advance_work(delta)
 	elif Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE):
 		use_weapon(get_global_mouse_position())
+	world_view.update_trees(player, delta)
 	update_hud()
 	queue_redraw()
 

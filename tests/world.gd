@@ -21,13 +21,13 @@ func run_checks() -> void:
 		require(map.walkable(Vector2.ZERO), "Safe spawn")
 		require(map.large_rocks.size() == 10, "Ten large rocks per expanded map")
 		for anchor in map.large_rocks:
-			for y in 2:
-				for x in 2:
-					require(not map.walkable(map.center(anchor + Vector2i(x, y))), "Large-rock collision covers its entire footprint")
+			require(not map.walkable(map.prop_collisions[anchor].get_center()), "Large-rock body has collision")
 		require(map.props[Vector2i(-4, -3)] == 2, "Tree near starting area")
 		var snapshot: Dictionary = map.cells.duplicate(true)
+		var variant_snapshot: Dictionary = map.prop_variants.duplicate()
 		map.generate(seed_value)
 		require(snapshot == map.cells, "Repeatable seed")
+		require(variant_snapshot == map.prop_variants, "Nature variants repeat with the same seed")
 		var reachable_set := {}
 		for cell in map.reachable:
 			reachable_set[cell] = true

@@ -5,11 +5,15 @@ const SIZE := Vector2i(48, 32)
 const FIRST := Vector2i(-24, -16)
 const PLAYER_RADIUS := 15.0
 const DIRECTIONS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
+const Nature = preload("res://scripts/nature_variants.gd")
 var seed_value := 73129
 var terrain := FastNoiseLite.new()
 var cells: Dictionary = {}
 var props: Dictionary = {}
 var large_rocks: Dictionary = {}
+var prop_variants: Dictionary = {}
+var prop_collisions: Dictionary = {}
+var collision_cells: Dictionary = {}
 var reachable: Array[Vector2i] = []
 var bounds := Rect2(Vector2(FIRST * TILE), Vector2(SIZE * TILE))
 
@@ -22,6 +26,9 @@ func generate(new_seed: int) -> void:
 	cells.clear()
 	props.clear()
 	large_rocks.clear()
+	prop_variants.clear()
+	prop_collisions.clear()
+	collision_cells.clear()
 	reachable.clear()
 	for y in range(FIRST.y, FIRST.y + SIZE.y):
 		for x in range(FIRST.x, FIRST.x + SIZE.x):
@@ -65,6 +72,7 @@ func generate(new_seed: int) -> void:
 	for cell in [Vector2i(-5, -5)]:
 		props[cell] = 3
 		cells[cell]["blocked"] = true
+	ensure_nature_variety()
 	var visited := {Vector2i.ZERO: true}
 	var queue: Array[Vector2i] = [Vector2i.ZERO]
 	var index := 0
@@ -82,6 +90,77 @@ func generate(new_seed: int) -> void:
 		if not cells[cell]["blocked"] and not visited.has(cell):
 			cells[cell]["blocked"] = true
 			props[cell] = 1
+	assign_variants(rng)
+	index_collisions()
+
+func ensure_nature_variety() -> void:
+	var normal_rocks := 0
+	for cell in props:
+		if props[cell] == 1 and not large_rocks.has(cell):
+			normal_rocks += 1
+	for cell in cells:
+		if normal_rocks >= 24:
+			break
+		if not cells[cell]["blocked"] and not cells[cell]["road"] and posmod(cell.x, 3) == 1 and posmod(cell.y, 3) == 1:
+			props[cell] = 1
+			cells[cell]["blocked"] = true
+			normal_rocks += 1
+
+func assign_variants(rng: RandomNumberGenerator) -> void:
+	var tree_ids: Array[int] = []
+	var rock_ids: Array[int] = []
+	# Balanced seeded pools expose the catalogue without unrelated random flicker.
+	for i in Nature.COUNT:
+		tree_ids.append(i)
+		if i < 24:
+			rock_ids.append(i)
+	shuffle_ids(tree_ids, rng)
+	shuffle_ids(rock_ids, rng)
+	var counts := {1: 0, 2: 0}
+	var big_count := 0
+	for cell in props:
+		var kind: int = props[cell]
+		if kind not in [1, 2]:
+			prop_collisions[cell] = Rect2(Vector2(cell * TILE), Vector2(TILE, TILE))
+			continue
+		var id: int
+		if large_rocks.has(cell):
+			id = 24 + big_count % 6
+			big_count += 1
+		else:
+			var ids := tree_ids if kind == 2 else rock_ids
+			id = ids[counts[kind] % ids.size()]
+			counts[kind] += 1
+		prop_variants[cell] = id
+		var position := center(cell) + (Vector2(32, 32) if large_rocks.has(cell) else Vector2.ZERO)
+		prop_collisions[cell] = Nature.collision(position, kind, id, large_rocks.has(cell))
+
+func shuffle_ids(ids: Array[int], rng: RandomNumberGenerator) -> void:
+	for i in range(ids.size() - 1, 0, -1):
+		var other := rng.randi_range(0, i)
+		var value := ids[i]
+		ids[i] = ids[other]
+		ids[other] = value
+
+func index_collisions() -> void:
+	collision_cells.clear()
+	for anchor in prop_collisions:
+		var rect: Rect2 = prop_collisions[anchor]
+		var first := cell_at(rect.position)
+		var last := cell_at(rect.end)
+		for y in range(first.y, last.y + 1):
+			for x in range(first.x, last.x + 1):
+				var cell := Vector2i(x, y)
+				if not collision_cells.has(cell):
+					collision_cells[cell] = []
+				collision_cells[cell].append(anchor)
+
+func release_prop(cell: Vector2i) -> void:
+	props.erase(cell)
+	large_rocks.erase(cell)
+	prop_variants.erase(cell)
+	prop_collisions.erase(cell)
+	index_collisions()
 
 func biome_at(cell: Vector2i) -> int:
 	var value := terrain.get_noise_2d(cell.x, cell.y)
@@ -101,10 +180,15 @@ func walkable(point: Vector2, radius: float = PLAYER_RADIUS) -> bool:
 	for y in range(first.y, last.y + 1):
 		for x in range(first.x, last.x + 1):
 			var cell := Vector2i(x, y)
-			if not cells.has(cell) or cells[cell]["blocked"]:
+			var border := cell.x == FIRST.x or cell.x == FIRST.x + SIZE.x - 1 or cell.y == FIRST.y or cell.y == FIRST.y + SIZE.y - 1
+			if not cells.has(cell) or border:
 				var rect := Rect2(Vector2(cell * TILE), Vector2(TILE, TILE))
 				var nearest := point.clamp(rect.position, rect.end)
 				if nearest.distance_squared_to(point) < radius * radius:
+					return false
+			for anchor in collision_cells.get(cell, []):
+				var rect: Rect2 = prop_collisions[anchor]
+				if point.distance_squared_to(point.clamp(rect.position, rect.end)) < radius * radius:
 					return false
 	return true
 
