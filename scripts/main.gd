@@ -11,7 +11,13 @@ const WEAPONS := [
 	{"name": "Dagas", "damage": 12.0, "range": 75.0, "cooldown": 0.22, "ranged": false}
 ]
 const BRANCHES := ["Vitalidad", "Fuerza", "Agilidad", "Recuperación", "Cadencia", "Sabiduría"]
-var terrain := FastNoiseLite.new()
+var world = preload("res://scripts/test_world.gd").new()
+var terrain = world.terrain
+var world_view: Node2D
+var minimap: Control
+var spawn_rng := RandomNumberGenerator.new()
+var enemy_flow: Dictionary = {}
+var flow_cell := Vector2i(99999, 99999)
 var player := Vector2.ZERO
 var health := 100.0
 var experience := 0
@@ -36,8 +42,11 @@ var skill_panel: PanelContainer
 var skill_buttons: Array[Button] = []
 
 func _ready() -> void:
-	terrain.seed = WORLD_SEED
-	terrain.frequency = 0.018
+	world.generate(WORLD_SEED)
+	spawn_rng.randomize()
+	world_view = preload("res://scripts/world_view.gd").new()
+	world_view.configure(world)
+	add_child(world_view)
 	character = AnimatedSprite2D.new()
 	character.sprite_frames = preload("res://scripts/survivor_frames.gd").build()
 	character.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -45,13 +54,29 @@ func _ready() -> void:
 	character.position = player + Vector2(0, -14)
 	add_child(character)
 	camera = Camera2D.new()
+	camera.limit_left = int(world.bounds.position.x)
+	camera.limit_top = int(world.bounds.position.y)
+	camera.limit_right = int(world.bounds.end.x)
+	camera.limit_bottom = int(world.bounds.end.y)
 	add_child(camera)
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
+	var atmosphere := ColorRect.new()
+	atmosphere.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	atmosphere.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var atmosphere_material := ShaderMaterial.new()
+	atmosphere_material.shader = preload("res://shaders/atmosphere.gdshader")
+	atmosphere.material = atmosphere_material
+	canvas.add_child(atmosphere)
 	hud = Label.new()
 	hud.position = Vector2(18, 12)
 	hud.add_theme_font_size_override("font_size", 18)
 	canvas.add_child(hud)
+	minimap = preload("res://scripts/world_minimap.gd").new()
+	minimap.world = world
+	minimap.position = Vector2(744, 476)
+	minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	canvas.add_child(minimap)
 	skill_panel = PanelContainer.new()
 	skill_panel.position = Vector2(230, 170)
 	skill_panel.size = Vector2(500, 350)
@@ -82,6 +107,7 @@ func restart() -> void:
 	ranks = [0, 0, 0, 0, 0, 0]
 	weapon_index = 0
 	enemies.clear()
+	flow_cell = Vector2i(99999, 99999)
 	projectiles.clear()
 	survival_time = 0.0
 	spawn_timer = 1.0
@@ -115,30 +141,20 @@ func gain_experience(amount: int) -> void:
 		skill_points += 1
 
 func biome_at(cell: Vector2i) -> int:
-	var value := terrain.get_noise_2d(cell.x, cell.y)
-	if value < -0.25:
-		return 0
-	if value > 0.25:
-		return 2
-	return 1
-
-func tree_at(cell: Vector2i) -> bool:
-	if Vector2(cell).length() < 3.0:
-		return false
-	var value := absi(cell.x * 73856093 ^ cell.y * 19349663 ^ WORLD_SEED)
-	return value % 13 == 0 and biome_at(cell) != 0
+	return world.biome_at(cell)
 
 func walkable(point: Vector2) -> bool:
-	var cell := Vector2i(floori(point.x / TILE), floori(point.y / TILE))
-	if not tree_at(cell):
-		return true
-	return point.distance_to(Vector2(cell) * TILE + Vector2(32, 32)) > 30.0
+	return world.walkable(point)
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo():
 		return
 	if event.keycode == KEY_TAB and not dead:
 		skills_open = not skills_open
+	if event.keycode == KEY_F2:
+		world.generate(world.seed_value + 1)
+		world_view.queue_redraw()
+		restart()
 	if event.keycode == KEY_R and dead:
 		restart()
 	if event.keycode >= KEY_1 and event.keycode <= KEY_6:
@@ -165,10 +181,7 @@ func move_player(direction: Vector2, delta: float) -> void:
 	var previous := player
 	var velocity: Vector2 = movement.step(direction, delta, 220.0 + ranks[2] * 22.0)
 	var motion := velocity * delta
-	if walkable(player + Vector2(motion.x, 0)):
-		player.x += motion.x
-	if walkable(player + Vector2(0, motion.y)):
-		player.y += motion.y
+	player = world.move_actor(player, motion)
 	camera.position = player
 	character.position = player + Vector2(0, -14)
 	var moving := player.distance_squared_to(previous) > 0.00001
@@ -177,18 +190,36 @@ func move_player(direction: Vector2, delta: float) -> void:
 	character.play(animation)
 
 func update_world(delta: float) -> void:
+	var current_cell: Vector2i = world.cell_at(player)
+	if current_cell != flow_cell:
+		enemy_flow = world.flow_to(player)
+		flow_cell = current_cell
 	spawn_timer -= delta
 	if spawn_timer <= 0.0 and enemies.size() < 80:
 		spawn_enemy()
 		spawn_timer = maxf(0.35, 2.0 - survival_time / 120.0)
 	for enemy in enemies:
 		var speed: float = 65.0 if enemy["kind"] == 0 else 110.0
-		enemy["position"] = enemy["position"].move_toward(player, speed * delta)
+		var enemy_cell: Vector2i = world.cell_at(enemy["position"])
+		var target := player
+		if enemy_cell != current_cell:
+			var step: Vector2i = enemy_flow.get(enemy_cell, Vector2i.ZERO)
+			target = world.center(enemy_cell + step)
+			# Center the perpendicular axis before entering the next corridor.
+			var cell_center: Vector2 = world.center(enemy_cell)
+			if step.x != 0 and absf(enemy["position"].y - cell_center.y) > 3:
+				target = cell_center
+			elif step.y != 0 and absf(enemy["position"].x - cell_center.x) > 3:
+				target = cell_center
+		var displacement: Vector2 = enemy["position"].direction_to(target) * minf(speed * delta, enemy["position"].distance_to(target))
+		enemy["position"] = world.move_actor(enemy["position"], displacement, 14.0)
 		if enemy["position"].distance_to(player) < 26.0:
 			health -= (12.0 if enemy["kind"] == 0 else 8.0) * delta
 	for shot in projectiles:
 		shot["position"] += shot["velocity"] * delta
 		shot["life"] -= delta
+		if not world.walkable(shot["position"], 4.0):
+			shot["life"] = 0.0
 		for enemy in enemies:
 			if shot["life"] > 0.0 and shot["position"].distance_to(enemy["position"]) < 22.0:
 				enemy["health"] -= shot["damage"]
@@ -202,8 +233,7 @@ func update_world(delta: float) -> void:
 	queue_redraw()
 
 func spawn_enemy() -> void:
-	var angle := randf() * TAU
-	var position := player + Vector2.from_angle(angle) * 580.0
+	var position: Vector2 = world.spawn_position(player, spawn_rng)
 	var kind := randi_range(0, 1)
 	enemies.append({"position": position, "health": 45.0 if kind == 0 else 28.0, "kind": kind})
 
@@ -234,6 +264,9 @@ func resolve_kills() -> void:
 
 func update_hud() -> void:
 	hud.text = "VIDA %d / %d   NIVEL %d   EXP %d / %d   PUNTOS %d\n%s   |   Tiempo %ds   Bajas %d\nWASD/flechas · Clic/espacio: atacar hacia el cursor · 1–6: armas · Tab: habilidades" % [health, max_health(), level, experience, level * 20, skill_points, WEAPONS[weapon_index]["name"], survival_time, kills]
+	hud.text += "\nZona de cuarentena · Semilla %d · F2: nuevo mapa" % world.seed_value
+	minimap.player = player
+	minimap.queue_redraw()
 	if dead:
 		hud.text += "\nHAS CAÍDO · Pulsa R para empezar otra partida"
 	skill_panel.visible = skills_open
@@ -243,17 +276,6 @@ func update_hud() -> void:
 		skill_buttons[i].disabled = skill_points <= 0 or ranks[i] >= 5
 
 func _draw() -> void:
-	var center := Vector2i(floori(player.x / TILE), floori(player.y / TILE))
-	var colors := [Color("806c45"), Color("23483c"), Color("33495f")]
-	for y in range(center.y - 7, center.y + 8):
-		for x in range(center.x - 9, center.x + 10):
-			var cell := Vector2i(x, y)
-			var origin := Vector2(cell) * TILE
-			draw_rect(Rect2(origin, Vector2(TILE, TILE)), colors[biome_at(cell)])
-			draw_rect(Rect2(origin, Vector2(TILE, TILE)), Color(0, 0, 0, 0.08), false)
-			if tree_at(cell):
-				draw_circle(origin + Vector2(32, 36), 20, Color("102c24"))
-				draw_circle(origin + Vector2(32, 28), 19, Color("39764e"))
 	for enemy in enemies:
 		draw_circle(enemy["position"], 16 if enemy["kind"] == 0 else 12, Color("d95763") if enemy["kind"] == 0 else Color("eaa759"))
 	for shot in projectiles:
