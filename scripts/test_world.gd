@@ -1,5 +1,5 @@
 extends RefCounted
-## Compact quarantine yard. Obstacles occupy separated slots, preserving corridors.
+## Compact woodland clearing. Obstacles occupy separated slots, preserving corridors.
 const TILE := 64
 const SIZE := Vector2i(32, 24)
 const FIRST := Vector2i(-16, -12)
@@ -32,7 +32,7 @@ func generate(new_seed: int) -> void:
 			var blocked := border
 			if not road and not border and posmod(x, 3) == 1 and posmod(y, 3) == 1 and rng.randf() < 0.5:
 				blocked = true
-				props[cell] = zone
+				props[cell] = 2 if rng.randf() < 0.65 else 1
 			cells[cell] = {"zone": zone, "blocked": blocked, "road": road, "variant": rng.randi_range(0, 7)}
 	# Several large rocks, each with a matching 2x2 collision footprint.
 	var rock_anchors: Array[Vector2i] = [Vector2i(3, -4)]
@@ -48,12 +48,15 @@ func generate(new_seed: int) -> void:
 				props.erase(occupied)
 				cells[occupied]["blocked"] = true
 		props[anchor] = 1
-	# Visible dead trees close enough to inspect from the starting area.
+	# Common trees close enough to inspect from the starting area.
 	for cell in [Vector2i(-4, -3), Vector2i(-6, 3), Vector2i(4, 4)]:
 		props[cell] = 2
 		cells[cell]["blocked"] = true
-	# Warning beacons are collision props away from the safe central pad.
-	for cell in [Vector2i(-5, -5), Vector2i(5, -5), Vector2i(-5, 5), Vector2i(5, 5)]:
+	# A small trace of abandoned equipment preserves scrap gathering in the woods.
+	for cell in [Vector2i(-8, -5), Vector2i(7, 4)]:
+		props[cell] = 0
+		cells[cell]["blocked"] = true
+	for cell in [Vector2i(-5, -5)]:
 		props[cell] = 3
 		cells[cell]["blocked"] = true
 	var visited := {Vector2i.ZERO: true}

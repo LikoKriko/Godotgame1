@@ -6,6 +6,8 @@ Prototipo con Godot 4.6.3 estándar y GDScript. Esta versión se centra en el pe
 
 Importa `project.godot` en Godot 4.6.3 y pulsa F5.
 
+La ventana y la resolución base son **1920 × 1080**. La cámara tiene un zoom de 1.5 para mantener legibles el personaje y los decorados; la interfaz se adapta al tamaño de la ventana. El detalle del suelo se calcula en coordenadas del mundo a resolución de un píxel, con pequeñas briznas de hierba, hojas, piedrecitas y sombras suaves de relieve. Los senderos tienen curvas y bordes irregulares; la paleta permanece reducida para facilitar la lectura. El relieve es visual y no cambia el movimiento.
+
 - WASD o flechas: movimiento.
 - 1: espada; 2: arco; 3: pico; 4: hacha; 0: dejar las manos libres.
 - Mantén E cerca de un árbol con el hacha, de una roca con el pico o de una máquina con las manos libres.
@@ -38,7 +40,7 @@ Si no cabe la recompensa en la mochila, el último golpe no destruye el recurso 
 
 ## Mapa
 
-Patio procedural pequeño de 32 × 24 casillas (2048 × 1536 px), con suelo continuo gris carbón sin cuadrícula visible, decorados oscuros, árboles secos y cinco rocas grandes. La semilla inicial es 73129. F2 la incrementa; la misma semilla reproduce la distribución. Los caminos y la zona inicial están despejados. Las rocas grandes tienen colisión de 2 × 2 casillas, que se libera completamente al agotarlas. La cuadrícula es interna para navegación y colisión.
+Primer bioma: bosque sencillo con un claro central, pequeño y procedural, de 32 × 24 casillas (2048 × 1536 px). Árboles comunes de tronco marrón y hojas verdes apagadas; rocas grises redondeadas con algo de musgo. Cada uno tiene dos variantes visuales. El suelo mezcla suavemente tierra y hierba con senderos continuos, sin cuadrícula visible, y una viñeta ligera conserva el ambiente sombrío. Hay cinco rocas grandes, dos máquinas abandonadas para obtener chatarra y una baliza. La semilla inicial es 73129. F2 la incrementa; la misma semilla reproduce la distribución. Los caminos y la zona inicial están despejados. Las rocas grandes tienen colisión de 2 × 2 casillas, que se libera completamente al agotarlas. La cuadrícula es interna para navegación y colisión.
 
 ## Comprobaciones
 
@@ -65,6 +67,7 @@ En cloud, usa los directorios XDG escribibles indicados en las instrucciones del
 - `scripts/world_view.gd`: suelo y decorados; `scripts/world_minimap.gd`: minimapa.
 - `scripts/turn_motion.gd`: giros (hasta 0.28 s; frenada máxima 35% en 180°, 8.75% en 90° y 2.19% en 45°).
 - `scripts/survivor_frames.gd`: animaciones desde los atlas de caminar y recolectar. Las diagonales usan la vista cardinal más cercana.
-- `shaders/quarantine_ground.gdshader`: suelo uniforme continuo; `shaders/atmosphere.gdshader`: sombreado de bordes.
+- `assets/environment/basic_forest_props.png`: árboles y rocas del primer bioma.
+- `shaders/quarantine_ground.gdshader`: suelo natural continuo; `shaders/atmosphere.gdshader`: sombreado ligero de bordes.
 
-Los atlas están en `assets/`; `.godot/` contiene cachés locales excluidas de Git. El atlas antiguo de suelos se conserva como recurso sin uso. Los materiales se almacenan en la mochila; no se sueltan en el suelo. Las comprobaciones automáticas validan lógica y carga; la sensación del movimiento y las animaciones requiere también jugar en el editor.
+Los atlas están en `assets/`; `.godot/` contiene cachés locales excluidas de Git. El atlas antiguo de suelos se conserva como recurso sin uso; del atlas original de decorados solo se usan la maquinaria y la baliza. Los materiales se almacenan en la mochila; no se sueltan en el suelo. Las comprobaciones automáticas validan lógica y carga; la sensación del movimiento y las animaciones requiere también jugar en el editor.

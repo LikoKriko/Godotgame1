@@ -4,7 +4,7 @@ const NONE := Vector2i(99999, 99999)
 const TYPES := {
 	0: {"name": "Maquinaria", "material": "chatarra", "hits": 3, "yield": 3, "branch": 3},
 	1: {"name": "Roca", "material": "mineral", "hits": 3, "yield": 4, "branch": 1},
-	2: {"name": "Árbol seco", "material": "madera", "hits": 3, "yield": 4, "branch": 0}
+	2: {"name": "Árbol", "material": "madera", "hits": 3, "yield": 4, "branch": 0}
 }
 var world
 var bag

@@ -113,7 +113,8 @@ func run_checks() -> void:
 	var side: Vector2 = game.inventory_panel.panel.size
 	require(is_equal_approx(side.x, side.y), "Inventory is square")
 	var viewport_size := root.get_visible_rect().size
-	require(absf(side.x * side.y / (viewport_size.x * viewport_size.y) - 0.6) < 0.01, "Inventory uses approximately 60 percent of screen area")
+	var expected_side := minf(sqrt(viewport_size.x * viewport_size.y * 0.6), minf(viewport_size.x, viewport_size.y) * 0.95)
+	require(is_equal_approx(side.x, expected_side), "Inventory follows 60-percent target while fitting widescreen viewport")
 	var center: Vector2 = game.inventory_panel.panel.position + side / 2
 	require(center.is_equal_approx(viewport_size / 2), "Inventory is centered")
 	var sword_index := -1

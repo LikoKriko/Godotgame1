@@ -36,6 +36,7 @@ var camera: Camera2D
 var character: AnimatedSprite2D
 var movement = preload("res://scripts/turn_motion.gd").new()
 var hud: Label
+var hud_backdrop: Panel
 var skill_panel: PanelContainer
 var skill_buttons: Array[Button] = []
 
@@ -51,6 +52,7 @@ func _ready() -> void:
 	character.position = player + Vector2(0, -14)
 	add_child(character)
 	camera = Camera2D.new()
+	camera.zoom = Vector2(1.5, 1.5)
 	camera.limit_left = int(world.bounds.position.x)
 	camera.limit_top = int(world.bounds.position.y)
 	camera.limit_right = int(world.bounds.end.x)
@@ -65,17 +67,24 @@ func _ready() -> void:
 	atmosphere_material.shader = preload("res://shaders/atmosphere.gdshader")
 	atmosphere.material = atmosphere_material
 	canvas.add_child(atmosphere)
+	hud_backdrop = Panel.new()
+	hud_backdrop.position = Vector2(6, 4)
+	hud_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hud_style := StyleBoxFlat.new()
+	hud_style.bg_color = Color(0.09, 0.115, 0.09, 0.90)
+	hud_style.set_corner_radius_all(4)
+	hud_backdrop.add_theme_stylebox_override("panel", hud_style)
+	canvas.add_child(hud_backdrop)
 	hud = Label.new()
 	hud.position = Vector2(18, 12)
-	hud.add_theme_font_size_override("font_size", 18)
+	hud.add_theme_font_size_override("font_size", 24)
 	canvas.add_child(hud)
 	interaction = Label.new()
-	interaction.position = Vector2(18, 568)
-	interaction.add_theme_font_size_override("font_size", 18)
+	interaction.add_theme_font_size_override("font_size", 22)
 	canvas.add_child(interaction)
 	minimap = preload("res://scripts/world_minimap.gd").new()
 	minimap.world = world
-	minimap.position = Vector2(744, 476)
+	minimap.scale = Vector2(1.25, 1.25)
 	minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(minimap)
 	inventory_panel = preload("res://scripts/inventory_panel.gd").new()
@@ -84,23 +93,41 @@ func _ready() -> void:
 	inventory_panel.configure(bag)
 	inventory_panel.equipment_changed.connect(func(): cancel_work(); update_hud())
 	skill_panel = PanelContainer.new()
-	skill_panel.position = Vector2(230, 170)
-	skill_panel.size = Vector2(500, 350)
+	var skill_style := StyleBoxFlat.new()
+	skill_style.bg_color = Color("252b23")
+	skill_style.content_margin_left = 16
+	skill_style.content_margin_right = 16
+	skill_style.content_margin_top = 12
+	skill_style.content_margin_bottom = 12
+	skill_panel.add_theme_stylebox_override("panel", skill_style)
+	skill_panel.size = Vector2(700, 440)
 	canvas.add_child(skill_panel)
 	var box := VBoxContainer.new()
 	skill_panel.add_child(box)
 	var title := Label.new()
 	title.text = "HABILIDADES · 6 ramas × 5 rangos\nCada rango requiere el anterior y un punto."
+	title.add_theme_font_size_override("font_size", 22)
 	box.add_child(title)
 	for i in BRANCHES.size():
 		var button := Button.new()
+		button.add_theme_font_size_override("font_size", 22)
 		button.pressed.connect(upgrade.bind(i))
 		box.add_child(button)
 		skill_buttons.append(button)
 	var hint := Label.new()
 	hint.text = "Pulsa Tab para volver al mundo."
+	hint.add_theme_font_size_override("font_size", 20)
 	box.add_child(hint)
+	get_viewport().size_changed.connect(fit_hud)
+	skill_panel.resized.connect(fit_hud)
+	fit_hud()
 	restart()
+
+func fit_hud() -> void:
+	var viewport_size := get_viewport_rect().size
+	interaction.position = Vector2(24, viewport_size.y - 84)
+	minimap.position = viewport_size - Vector2(264, 208)
+	skill_panel.position = (viewport_size - skill_panel.size) / 2
 
 func restart() -> void:
 	world.generate(world.seed_value)
@@ -321,6 +348,7 @@ func update_hud() -> void:
 	hud.text = "EXPLORACIÓN · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d   Mineral %d   Chatarra %d\nWASD: moverse · E: recolectar · I: inventario · Tab: habilidades\nR: reiniciar prueba · F2: otro mapa" % [level, experience, level * 20, skill_points, resources.inventory["madera"], resources.inventory["mineral"], resources.inventory["chatarra"]]
 	var held: Dictionary = bag.equipment[&"hands"]
 	hud.text += "\nManos: %s · 1 Espada / 2 Arco / 3 Pico / 4 Hacha / 0 Vaciar" % ("Libres" if held.is_empty() else "%s [%d usos]" % [bag.DEFINITIONS[held["id"]]["name"], held["uses"]])
+	hud_backdrop.size = hud.get_combined_minimum_size() + Vector2(24, 18)
 	interaction.text = "Acércate a un árbol, roca o máquina y mantén E."
 	if resources.nodes.has(focused):
 		var node: Dictionary = resources.nodes[focused]
