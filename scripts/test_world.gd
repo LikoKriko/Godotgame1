@@ -1,8 +1,8 @@
 extends RefCounted
 ## Compact woodland clearing. Obstacles occupy separated slots, preserving corridors.
 const TILE := 64
-const SIZE := Vector2i(32, 24)
-const FIRST := Vector2i(-16, -12)
+const SIZE := Vector2i(48, 32)
+const FIRST := Vector2i(-24, -16)
 const PLAYER_RADIUS := 15.0
 const DIRECTIONS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
 var seed_value := 73129
@@ -39,6 +39,12 @@ func generate(new_seed: int) -> void:
 	for quadrant in [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]:
 		var x := rng.randi_range(-13, -8) if quadrant.x < 0 else rng.randi_range(7, 11)
 		var y := rng.randi_range(-9, -7) if quadrant.y < 0 else rng.randi_range(6, 8)
+		rock_anchors.append(Vector2i(x, y))
+	# Five additional rocks occupy the expanded outer woodland.
+	rock_anchors.append(Vector2i(3, 10))
+	for quadrant in [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]:
+		var x := rng.randi_range(FIRST.x + 3, FIRST.x + 8) if quadrant.x < 0 else rng.randi_range(FIRST.x + SIZE.x - 11, FIRST.x + SIZE.x - 4)
+		var y := rng.randi_range(FIRST.y + 3, FIRST.y + 5) if quadrant.y < 0 else rng.randi_range(FIRST.y + SIZE.y - 6, FIRST.y + SIZE.y - 4)
 		rock_anchors.append(Vector2i(x, y))
 	for anchor in rock_anchors:
 		large_rocks[anchor] = true

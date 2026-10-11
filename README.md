@@ -40,7 +40,7 @@ Si no cabe la recompensa en la mochila, el último golpe no destruye el recurso 
 
 ## Mapa
 
-Primer bioma: bosque sencillo con un claro central, pequeño y procedural, de 32 × 24 casillas (2048 × 1536 px). Árboles comunes de tronco marrón y hojas verdes apagadas; rocas grises redondeadas con algo de musgo. Cada uno tiene dos variantes visuales. El suelo mezcla suavemente tierra y hierba con senderos continuos, sin cuadrícula visible, y una viñeta ligera conserva el ambiente sombrío. Hay cinco rocas grandes, dos máquinas abandonadas para obtener chatarra y una baliza. La semilla inicial es 73129. F2 la incrementa; la misma semilla reproduce la distribución. Los caminos y la zona inicial están despejados. Las rocas grandes tienen colisión de 2 × 2 casillas, que se libera completamente al agotarlas. La cuadrícula es interna para navegación y colisión.
+Primer bioma: bosque sencillo con un claro central, pequeño y procedural, de 48 × 32 casillas (3072 × 2048 px), con el doble de superficie que la versión inicial. Árboles comunes de tronco marrón y hojas verdes apagadas; rocas grises redondeadas con algo de musgo. Cada uno tiene dos variantes visuales. El suelo mezcla suavemente tierra y hierba con senderos continuos, sin cuadrícula visible, y una viñeta ligera conserva el ambiente sombrío. Hay diez rocas grandes, dos máquinas abandonadas para obtener chatarra y una baliza. La semilla inicial es 73129. F2 la incrementa; la misma semilla reproduce la distribución. Los caminos y la zona inicial están despejados. Las rocas grandes tienen colisión de 2 × 2 casillas, que se libera completamente al agotarlas. La cuadrícula es interna para navegación y colisión.
 
 ## Comprobaciones
 

@@ -52,7 +52,7 @@ func refresh_ground() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = world.seed_value
 	scuffs.clear()
-	for i in 32:
+	for i in world.SIZE.x * world.SIZE.y / 24:
 		var start := Vector2(rng.randf_range(world.bounds.position.x + 100, world.bounds.end.x - 100), rng.randf_range(world.bounds.position.y + 100, world.bounds.end.y - 100)).snapped(Vector2(3, 3))
 		if start.length() < 100:
 			continue
