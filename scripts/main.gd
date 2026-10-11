@@ -7,6 +7,8 @@ const HARVEST_TIME := 0.6
 var bag = preload("res://scripts/inventory.gd").new()
 var inventory_panel: Control
 var work_item_uid := -1
+var work_aim := Vector2.ZERO
+var arm_rig: Node2D
 var weapon_timer := 0.0
 var combat_aim := Vector2.RIGHT
 var resources = preload("res://scripts/harvesting.gd").new()
@@ -50,6 +52,8 @@ func _ready() -> void:
 	add_child(character)
 	character.frame_changed.connect(sync_character)
 	character.animation_changed.connect(sync_character)
+	arm_rig = preload("res://scripts/arm_rig.gd").new()
+	add_child(arm_rig)
 	camera = Camera2D.new()
 	camera.zoom = Vector2(1.5, 1.5)
 	camera.limit_left = int(world.bounds.position.x)
@@ -120,6 +124,9 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(fit_hud)
 	skill_panel.resized.connect(fit_hud)
 	fit_hud()
+	var cursor := preload("res://scripts/aim_cursor.gd").new()
+	cursor.game = self
+	canvas.add_child(cursor)
 	restart()
 
 func fit_hud() -> void:
@@ -132,7 +139,7 @@ func restart() -> void:
 	world.generate(world.seed_value)
 	world_view.refresh_ground()
 	bag.reset()
-	resources.configure(world, bag)
+	resources.configure(world, bag, world_view.hit_meshes)
 	inventory_panel.refresh()
 	inventory_panel.hide()
 	for arrow in get_tree().get_nodes_in_group("player_arrows"):
@@ -147,6 +154,7 @@ func restart() -> void:
 	skill_points = 0
 	ranks = [0, 0, 0, 0, 0, 0]
 	working = false
+	arm_rig.hide()
 	work_elapsed = 0.0
 	focused = resources.NONE
 	feedback = ""
@@ -224,13 +232,13 @@ func _process(delta: float) -> void:
 		cancel_work()
 	if not working:
 		move_player(direction, delta)
-	focused = resources.nearest(player)
-	if direction == Vector2.ZERO and not working and Input.is_physical_key_pressed(KEY_E):
-		start_work(focused)
+	var aim := get_global_mouse_position()
+	focused = resources.target_at(aim)
+	var pressed := Input.is_physical_key_pressed(KEY_E) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE)
+	if direction == Vector2.ZERO and not working and pressed:
+		start_work(aim)
 	if working:
-		advance_work(delta)
-	elif Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE):
-		use_weapon(get_global_mouse_position())
+		advance_work(delta, aim)
 	world_view.update_trees(player, delta)
 	update_hud()
 	queue_redraw()
@@ -239,63 +247,96 @@ func cancel_work() -> void:
 	if not working:
 		return
 	working = false
+	arm_rig.hide()
 	work_elapsed = 0.0
 	character.speed_scale = 1.0
 	character.rotation = 0
 	character.play(StringName("idle_" + movement.facing()))
 
-func start_work(target: Vector2i) -> bool:
-	if skills_open or inventory_panel.visible or working or not resources.can_reach(target, player):
+func start_work(aim: Vector2) -> bool:
+	if skills_open or inventory_panel.visible or working:
 		return false
-	if not bag.can_harvest(resources.nodes[target]["material"]):
-		feedback = "Usa hacha para árboles, pico para rocas y manos libres para chatarra."
-		feedback_time = 2.0
+	var item: StringName = bag.held_id()
+	if item != &"" and not bag.usable():
+		feedback = "La herramienta está rota."
+		feedback_time = 2
+		return false
+	if item in [&"sword", &"bow"] and weapon_timer > 0:
 		return false
 	work_item_uid = bag.equipment[&"hands"].get("uid", -1)
-	work_target = target
+	work_aim = aim
+	work_target = resources.target_at(aim)
 	working = true
 	work_elapsed = 0.0
 	hit_applied = false
 	work_duration = HARVEST_TIME / (1.0 + ranks[4] * 0.12)
-	var aim: Vector2 = resources.bounds(target).get_center() - player
-	movement.heading = aim.angle()
+	movement.heading = (aim - player).angle()
 	movement.target_direction = Vector2.ZERO
 	character.speed_scale = 1.0
-	character.play(StringName("idle_" + movement.facing()))
+	character.play(StringName("work_" + movement.facing()))
 	character.frame = 0
+	arm_rig.animate(player, aim, item, 0)
 	return true
 
-func advance_work(delta: float) -> void:
+func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 	if not working:
 		return
+	if bag.equipment[&"hands"].get("uid", -1) != work_item_uid:
+		cancel_work()
+		return
+	if is_finite(aim.x) and is_finite(aim.y):
+		work_aim = aim
 	work_elapsed += delta
+	movement.heading = (work_aim - player).angle()
+	character.play(StringName("work_" + movement.facing()))
+	var item: StringName = bag.held_id()
+	var pose: Dictionary = arm_rig.animate(player, work_aim, item, clampf(work_elapsed / work_duration, 0, 1))
 	if not hit_applied and work_elapsed >= work_duration * 0.5:
 		hit_applied = true
-		if resources.can_reach(work_target, player) and bag.equipment[&"hands"].get("uid", -1) == work_item_uid:
-			var branch: int = resources.nodes[work_target]["branch"]
-			impact_position = resources.bounds(work_target).get_center()
-			impact_time = 0.18
-			var result: Dictionary = resources.hit(work_target, player, ranks[branch])
-			if result.has("reason"):
-				feedback = "La mochila está llena." if result["reason"] == "mochila_llena" else "Herramienta incorrecta o rota."
-				feedback_time = 2
-			elif not result.is_empty() and bag.held_id() != &"":
-				bag.consume_use()
-			if result.get("depleted", false):
-				feedback = "+%d %s" % [result["amount"], result["material"]]
-				feedback_time = 2.0
-				gain_experience(10)
-				world_view.queue_redraw()
-				focused = resources.NONE
+		# Resolve the contact pose even when a long frame crosses the impact moment.
+		pose = arm_rig.animate(player, work_aim, item, 0.5)
+		if item in [&"sword", &"bow"]:
+			use_weapon(work_aim, true, pose)
+		else:
+			work_target = resources.target_at(work_aim)
+			var bonus := 0
+			if resources.nodes.has(work_target):
+				bonus = ranks[resources.nodes[work_target]["branch"]]
+			var result: Dictionary = resources.hit_at(work_aim, pose["tip"], pose["shoulder"], player, bonus)
+			if result.get("miss", false):
+				feedback = "Golpe al aire." if not result.get("blocked", false) else "Hay un obstáculo delante."
+				feedback_time = 1
+			elif result.has("cell"):
+				var material := "madera"
+				if resources.nodes.has(result["cell"]):
+					material = resources.nodes[result["cell"]]["material"]
+				else:
+					material = result.get("material", "madera")
+				impact_position = work_aim
+				impact_time = 0.18
+				world_view.register_impact(result["cell"], work_aim, pose["direction"], material, 0.3 if result.has("reason") else 1.0)
+				if result.has("reason"):
+					feedback = "La mochila está llena." if result["reason"] == "mochila_llena" else "Usa manos para fibra/chatarra, hacha para madera y pico para mineral."
+					feedback_time = 2
+				elif result.has("depleted") and item != &"":
+					bag.consume_use()
+				if result.get("depleted", false):
+					feedback = "+%d %s" % [result["amount"], result["material"]]
+					feedback_time = 2
+					gain_experience(10)
+					focused = resources.NONE
+					world_view.queue_redraw()
 	if work_elapsed >= work_duration:
 		cancel_work()
 
-func use_weapon(target: Vector2) -> bool:
-	if working or skills_open or inventory_panel.visible or weapon_timer > 0 or not bag.usable():
+func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {}) -> bool:
+	if (working and not from_strike) or skills_open or inventory_panel.visible or weapon_timer > 0 or not bag.usable():
 		return false
 	var id: StringName = bag.held_id()
 	if id not in [&"sword", &"bow"]:
 		return false
+	if pose.is_empty():
+		pose = preload("res://scripts/arm_rig.gd").contact(player, target, id)
 	combat_aim = player.direction_to(target)
 	if combat_aim == Vector2.ZERO:
 		combat_aim = Vector2.from_angle(movement.heading)
@@ -304,15 +345,16 @@ func use_weapon(target: Vector2) -> bool:
 	if id == &"sword":
 		for victim in get_tree().get_nodes_in_group("damageable"):
 			if victim is Node2D and victim.has_method("take_damage"):
-				var offset: Vector2 = victim.global_position - player
-				if offset.length() <= 85 and offset.normalized().dot(combat_aim) >= 0.3 and clear_combat_path(victim.global_position):
+				if pose["reachable"] and victim.global_position.distance_to(target) <= 18 and clear_combat_path(victim.global_position):
 					victim.take_damage(24.0)
 	else:
 		var arrow := preload("res://scripts/arrow.gd").new()
 		arrow.world = world
 		arrow.game = self
-		arrow.position = player + combat_aim * 20
-		arrow.velocity = combat_aim * 650
+		arrow.position = pose["tip"]
+		arrow.velocity = arrow.position.direction_to(target) * 650
+		if arrow.velocity == Vector2.ZERO:
+			arrow.velocity = combat_aim * 650
 		add_child(arrow)
 		arrow.add_to_group("player_arrows")
 	update_hud()
@@ -357,14 +399,14 @@ func sync_character() -> void:
 	character.position = player + Vector2(0, 17 - (frame_data.BASELINE - frame_data.CANVAS.y / 2) * factor)
 
 func update_hud() -> void:
-	hud.text = "EXPLORACIÓN · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d   Mineral %d   Chatarra %d\nWASD: moverse · E: recolectar · I: inventario · Tab: habilidades\nR: reiniciar prueba · F2: otro mapa" % [level, experience, level * 20, skill_points, resources.inventory["madera"], resources.inventory["mineral"], resources.inventory["chatarra"]]
+	hud.text = "EXPLORACIÓN · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d   Mineral %d   Chatarra %d   Fibra %d\nWASD: moverse · Clic/E: golpear · I: inventario · Tab: habilidades\nR: reiniciar prueba · F2: otro mapa" % [level, experience, level * 20, skill_points, resources.inventory["madera"], resources.inventory["mineral"], resources.inventory["chatarra"], resources.inventory["fibra"]]
 	var held: Dictionary = bag.equipment[&"hands"]
 	hud.text += "\nManos: %s · 1 Espada / 2 Arco / 3 Pico / 4 Hacha / 0 Vaciar" % ("Libres" if held.is_empty() else "%s [%d usos]" % [bag.DEFINITIONS[held["id"]]["name"], held["uses"]])
 	hud_backdrop.size = hud.get_combined_minimum_size() + Vector2(24, 18)
-	interaction.text = "Acércate a un árbol, roca o máquina y mantén E."
+	interaction.text = "Apunta al objeto con el punto y pulsa Clic o E. 0: manos libres."
 	if resources.nodes.has(focused):
 		var node: Dictionary = resources.nodes[focused]
-		interaction.text = "%s · Golpes restantes %d/%d · Mantén E" % [node["name"], node["remaining"], node["hits"]]
+		interaction.text = "%s · Golpes restantes %d/%d · Clic / E" % [node["name"], node["remaining"], node["hits"]]
 	if feedback_time > 0:
 		interaction.text += "\n" + feedback
 	minimap.player = player
@@ -376,13 +418,6 @@ func update_hud() -> void:
 		skill_buttons[i].disabled = skill_points <= 0 or ranks[i] >= 5
 
 func _draw() -> void:
-	if resources.nodes.has(focused):
-		var rect: Rect2 = resources.bounds(focused).grow(3)
-		draw_rect(rect, Color(0.65, 0.58, 0.30, 0.55), false, 2)
-	if impact_time > 0:
-		for i in 5:
-			var offset := Vector2.from_angle(i * TAU / 5) * (0.18 - impact_time) * 150
-			draw_rect(Rect2(impact_position + offset, Vector2(3, 3)), Color("bcb39b"))
 	draw_ellipse_shadow()
 
 func draw_ellipse_shadow() -> void:

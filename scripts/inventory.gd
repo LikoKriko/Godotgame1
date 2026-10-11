@@ -9,6 +9,7 @@ const DEFINITIONS := {
 	&"madera": {"name": "Madera", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"mineral": {"name": "Mineral", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"chatarra": {"name": "Chatarra", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
+	&"fibra": {"name": "Fibra vegetal", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de arbolitos jóvenes; recolectar con las manos"},
 	&"helmet": {"name": "Casco", "slot": &"head", "uses": -1, "stack": 1, "purpose": "Equipo de cabeza"},
 	&"suit": {"name": "Traje", "slot": &"torso", "uses": -1, "stack": 1, "purpose": "Equipo de torso"},
 	&"trousers": {"name": "Pantalón corto", "slot": &"legs", "uses": -1, "stack": 1, "purpose": "Equipo de piernas"},
@@ -117,6 +118,6 @@ func consume_use() -> bool:
 	return true
 
 func can_harvest(material: String) -> bool:
-	if material == "chatarra":
+	if material in ["chatarra", "fibra"]:
 		return held_id() == &""
 	return usable() and held_id() == (&"axe" if material == "madera" else &"pickaxe")

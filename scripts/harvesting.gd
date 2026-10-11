@@ -1,21 +1,25 @@
 extends RefCounted
+const Rig = preload("res://scripts/arm_rig.gd")
 const REACH := 76.0
 const NONE := Vector2i(99999, 99999)
 const TYPES := {
 	0: {"name": "Maquinaria", "material": "chatarra", "hits": 3, "yield": 3, "branch": 3},
 	1: {"name": "Roca", "material": "mineral", "hits": 3, "yield": 4, "branch": 1},
-	2: {"name": "Árbol", "material": "madera", "hits": 3, "yield": 4, "branch": 0}
+	2: {"name": "Árbol", "material": "madera", "hits": 3, "yield": 4, "branch": 0},
+	4: {"name": "Arbolito joven", "material": "fibra", "hits": 2, "yield": 3, "branch": 0}
 }
 var world
 var bag
+var meshes
 var nodes: Dictionary = {}
-var inventory := {"madera": 0, "mineral": 0, "chatarra": 0}
+var inventory := {"madera": 0, "mineral": 0, "chatarra": 0, "fibra": 0}
 
-func configure(map, inventory_model = null) -> void:
+func configure(map, inventory_model = null, hit_meshes = null) -> void:
 	world = map
 	bag = inventory_model
+	meshes = hit_meshes
 	nodes.clear()
-	inventory = {"madera": 0, "mineral": 0, "chatarra": 0}
+	inventory = {"madera": 0, "mineral": 0, "chatarra": 0, "fibra": 0}
 	for cell in world.props:
 		var kind: int = world.props[cell]
 		if not TYPES.has(kind):
@@ -31,6 +35,33 @@ func configure(map, inventory_model = null) -> void:
 
 func bounds(cell: Vector2i) -> Rect2:
 	return world.prop_collisions[cell]
+
+func target_at(point: Vector2) -> Vector2i:
+	if meshes == null:
+		return NONE
+	var cell: Vector2i = meshes.target_at(point)
+	return cell if nodes.has(cell) else NONE
+
+func hit_at(aim: Vector2, tip: Vector2, shoulder: Vector2, player: Vector2, bonus: int = 0) -> Dictionary:
+	var cell := target_at(aim)
+	if cell == NONE or tip.distance_to(aim) > Rig.CONTACT_EPSILON:
+		return {"miss": true}
+	var item: StringName = &"" if bag == null else bag.held_id()
+	if shoulder.distance_to(tip) > Rig.MAX_ARM + Rig.TOOL_LENGTHS.get(item, 0.0) + 0.1:
+		return {"miss": true}
+	# Sample the strike path so a target cannot be harvested through another body.
+	var distance := shoulder.distance_to(aim)
+	for i in range(1, ceili(distance / 2.0)):
+		var point := shoulder.move_toward(aim, i * 2)
+		var blocked: Vector2i = world.cell_at(point)
+		for obstacle in world.collision_cells.get(blocked, []):
+			if obstacle != cell and world.prop_collisions[obstacle].has_point(point):
+				return {"miss": true, "blocked": true}
+	var result := hit(cell, player, bonus, true)
+	if result.is_empty():
+		return {"miss": true}
+	result["cell"] = cell
+	return result
 
 func can_reach(cell: Vector2i, player: Vector2) -> bool:
 	if not nodes.has(cell):
@@ -60,8 +91,8 @@ func nearest(player: Vector2) -> Vector2i:
 				result = cell
 	return result
 
-func hit(cell: Vector2i, player: Vector2, bonus: int = 0) -> Dictionary:
-	if not can_reach(cell, player):
+func hit(cell: Vector2i, player: Vector2, bonus: int = 0, validated_impact: bool = false) -> Dictionary:
+	if not nodes.has(cell) or (not validated_impact and not can_reach(cell, player)):
 		return {}
 	var node: Dictionary = nodes[cell]
 	if bag != null and not bag.can_harvest(node["material"]):
@@ -83,5 +114,7 @@ func hit(cell: Vector2i, player: Vector2, bonus: int = 0) -> Dictionary:
 			world.cells[released]["blocked"] = false
 			world.reachable.append(released)
 	world.release_prop(cell)
+	if meshes != null:
+		meshes.remove(cell)
 	nodes.erase(cell)
 	return {"depleted": true, "material": material, "amount": amount}

@@ -2,6 +2,7 @@ extends RefCounted
 ## Eight views share the same head anchor and foot baseline; source art stays intact.
 const SHEET = preload("res://assets/characters/survivor_walk_8dir.png")
 const IDLE_SHEET = preload("res://assets/characters/survivor_idle_8dir.png")
+const BODY_SHEET = preload("res://assets/characters/survivor_body_8dir.png")
 const Regions = preload("res://assets/characters/survivor_regions.gd")
 const CHARACTER_HEIGHT := 64.0
 const Motion = preload("res://scripts/turn_motion.gd")
@@ -26,6 +27,10 @@ static func build() -> SpriteFrames:
 		for column in 4:
 			frames.add_frame(walk, atlas(SHEET, Regions.WALK[row][column]))
 		frames.add_frame(idle, atlas(IDLE_SHEET, Regions.IDLE[row]))
+		var work := StringName("work_" + DIRECTIONS[row])
+		frames.add_animation(work)
+		frames.set_animation_loop(work, false)
+		frames.add_frame(work, atlas(BODY_SHEET, Regions.BODY[row]))
 	# Turn clips pass through each intermediate 45-degree view along the short arc.
 	for from in 8:
 		for offset in [-4, -3, -2, -1, 1, 2, 3]:

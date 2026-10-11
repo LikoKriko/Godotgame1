@@ -14,6 +14,9 @@ var large_rocks: Dictionary = {}
 var prop_variants: Dictionary = {}
 var prop_collisions: Dictionary = {}
 var collision_cells: Dictionary = {}
+var saplings: Dictionary = {}
+var grass_tufts: Array[Dictionary] = []
+var puddles: Array[Dictionary] = []
 var reachable: Array[Vector2i] = []
 var bounds := Rect2(Vector2(FIRST * TILE), Vector2(SIZE * TILE))
 
@@ -29,6 +32,7 @@ func generate(new_seed: int) -> void:
 	prop_variants.clear()
 	prop_collisions.clear()
 	collision_cells.clear()
+	saplings.clear()
 	reachable.clear()
 	for y in range(FIRST.y, FIRST.y + SIZE.y):
 		for x in range(FIRST.x, FIRST.x + SIZE.x):
@@ -73,6 +77,7 @@ func generate(new_seed: int) -> void:
 		props[cell] = 3
 		cells[cell]["blocked"] = true
 	ensure_nature_variety()
+	add_saplings(rng)
 	var visited := {Vector2i.ZERO: true}
 	var queue: Array[Vector2i] = [Vector2i.ZERO]
 	var index := 0
@@ -92,6 +97,46 @@ func generate(new_seed: int) -> void:
 			props[cell] = 1
 	assign_variants(rng)
 	index_collisions()
+	generate_ground_details()
+
+func add_saplings(rng: RandomNumberGenerator) -> void:
+	var candidates: Array[Vector2i] = [Vector2i(2, 2), Vector2i(-3, 2)]
+	for i in 160:
+		candidates.append(Vector2i(rng.randi_range(FIRST.x + 2, FIRST.x + SIZE.x - 3), rng.randi_range(FIRST.y + 2, FIRST.y + SIZE.y - 3)))
+	for cell in candidates:
+		if saplings.size() >= 20:
+			break
+		if cells[cell]["blocked"] or cells[cell]["road"]:
+			continue
+		props[cell] = 4
+		cells[cell]["blocked"] = true
+		saplings[cell] = {"height": rng.randf_range(34, 50), "tint": Color(0.94, rng.randf_range(0.96, 1.0), 0.92)}
+
+func generate_ground_details() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + 90210
+	grass_tufts.clear()
+	puddles.clear()
+	var inset := bounds.grow(-96)
+	for i in 650:
+		var point := Vector2(rng.randf_range(inset.position.x, inset.end.x), rng.randf_range(inset.position.y, inset.end.y)).snapped(Vector2(2, 2))
+		if (absf(point.x) < 85 or absf(point.y) < 85) and rng.randf() < 0.9:
+			continue
+		if walkable(point, 2):
+			grass_tufts.append({"position": point, "width": rng.randf_range(10, 24), "variant": rng.randi_range(0, 1)})
+	var count := rng.randi_range(3, 5)
+	for i in 100:
+		if puddles.size() >= count:
+			break
+		var point := Vector2(rng.randf_range(inset.position.x, inset.end.x), rng.randf_range(inset.position.y, inset.end.y)).snapped(Vector2(2, 2))
+		if not walkable(point, 32):
+			continue
+		var separated := true
+		for puddle in puddles:
+			if point.distance_to(puddle["position"]) < 600:
+				separated = false
+		if separated:
+			puddles.append({"position": point, "width": rng.randf_range(28, 48)})
 
 func ensure_nature_variety() -> void:
 	var normal_rocks := 0
@@ -120,6 +165,10 @@ func assign_variants(rng: RandomNumberGenerator) -> void:
 	var big_count := 0
 	for cell in props:
 		var kind: int = props[cell]
+		if kind == 4:
+			var height: float = saplings[cell]["height"]
+			prop_collisions[cell] = Rect2(center(cell) + Vector2(-3, 26 - height * 0.14), Vector2(6, height * 0.14))
+			continue
 		if kind not in [1, 2]:
 			prop_collisions[cell] = Rect2(Vector2(cell * TILE), Vector2(TILE, TILE))
 			continue
@@ -160,6 +209,7 @@ func release_prop(cell: Vector2i) -> void:
 	large_rocks.erase(cell)
 	prop_variants.erase(cell)
 	prop_collisions.erase(cell)
+	saplings.erase(cell)
 	index_collisions()
 
 func biome_at(cell: Vector2i) -> int:

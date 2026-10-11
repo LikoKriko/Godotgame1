@@ -3,7 +3,7 @@ signal equipment_changed
 const Model = preload("res://scripts/inventory.gd")
 const Icons = preload("res://scripts/item_icons.gd")
 const LABELS := {&"head": "Cabeza", &"torso": "Torso", &"legs": "Piernas", &"hands": "Manos", &"feet": "Pies"}
-const ABBREV := {&"madera": "MAD", &"mineral": "MIN", &"chatarra": "CHA", &"helmet": "CAS", &"suit": "TRA", &"trousers": "PAN", &"boots": "BOT"}
+const ABBREV := {&"madera": "MAD", &"mineral": "MIN", &"chatarra": "CHA", &"fibra": "FIB", &"helmet": "CAS", &"suit": "TRA", &"trousers": "PAN", &"boots": "BOT"}
 var model
 var panel: Panel
 var content: Control

@@ -1,25 +1,22 @@
 extends SceneTree
+const Aim = preload("res://tests/aim_fixture.gd")
 var checks := 0
+var failures := 0
 func _initialize() -> void:
 	call_deferred("run_checks")
 func check(condition: bool, message: String) -> void:
 	checks += 1
 	if not condition:
 		push_error(message)
-		quit(1)
-		assert(condition, message)
+		failures += 1
 func work(game, cell: Vector2i) -> void:
 	var material: String = game.resources.nodes[cell]["material"]
-	if material == "chatarra":
-		game.bag.unequip(&"hands")
-	else:
-		game.bag.select_tool(&"axe" if material == "madera" else &"pickaxe")
-	var footprint: Rect2 = game.resources.bounds(cell)
-	game.player = footprint.position + Vector2(-24, footprint.size.y / 2)
-	check(game.world.walkable(game.player), "Test approach is reachable")
+	var item: StringName = &"" if material in ["chatarra", "fibra"] else (&"axe" if material == "madera" else &"pickaxe")
+	var aim: Vector2 = Aim.approach(game, cell, item)
+	check(aim.is_finite(), "Reachable test surface")
 	var hits: int = game.resources.nodes[cell]["remaining"]
 	for i in hits:
-		check(game.start_work(cell), "Can begin work")
+		check(game.start_work(aim), "Can begin work")
 		game.advance_work(game.work_duration * 0.49)
 		check(game.resources.nodes[cell]["remaining"] == hits - i, "No drop before strike")
 		game.advance_work(game.work_duration * 0.02)
@@ -31,16 +28,19 @@ func run_checks() -> void:
 	check(not game.has_method("spawn_enemy") and not game.has_method("attack"), "Exploration contains no enemy spawning or combat")
 	for i in 600:
 		game._process(0.1)
-	check(game.resources.inventory == {"madera": 0, "mineral": 0, "chatarra": 0}, "Idle exploration grants no resources")
+	check(game.resources.inventory == {"madera": 0, "mineral": 0, "chatarra": 0, "fibra": 0}, "Idle exploration grants no resources")
 	var tree := Vector2i(-4, -3)
-	check(not game.start_work(tree), "Cannot harvest at distance")
-	game.player = game.resources.bounds(tree).position + Vector2(-24, 32)
-	check(game.start_work(tree), "Tree in reach")
+	var aim: Vector2 = game.resources.bounds(tree).get_center()
+	check(game.start_work(aim), "Distant swing starts")
+	game.advance_work(0.7)
+	check(game.resources.nodes[tree]["remaining"] == 3, "Distant swing cannot gather")
+	aim = Aim.approach(game, tree, &"axe")
+	check(game.start_work(aim), "Tree in reach")
 	game.advance_work(0.1)
 	game.cancel_work()
 	check(game.resources.nodes[tree]["remaining"] == 3, "Cancel before impact causes no damage")
 	game.skills_open = true
-	check(not game.start_work(tree), "Panel blocks collection")
+	check(not game.start_work(aim), "Panel blocks collection")
 	game.skills_open = false
 	work(game, tree)
 	check(game.resources.inventory["madera"] == 4, "Wood enters inventory")
@@ -73,7 +73,7 @@ func run_checks() -> void:
 	Input.parse_input_event(input)
 	Input.flush_buffered_events()
 	game._process(0.01)
-	check(game.working and game.character.animation == StringName("idle_" + game.movement.facing()), "E collects with a directional idle placeholder")
+	check(game.working and str(game.character.animation).begins_with("work_") and game.arm_rig.visible, "E starts a cursor-directed articulated strike")
 	var release: InputEventKey = input.duplicate()
 	release.pressed = false
 	Input.parse_input_event(release)
@@ -82,5 +82,5 @@ func run_checks() -> void:
 	var frames: SpriteFrames = game.character.sprite_frames
 	for direction in preload("res://scripts/turn_motion.gd").FACINGS:
 		check(not frames.has_animation("harvest_" + direction) and not frames.has_animation("mine_" + direction), "Tool animation clips removed")
-	print("PASS: %d exploration checks: wood, minerals, scrap, animation, cancellation, range, inventory, progression, reset" % checks)
-	quit(0)
+	print("%s: %d exploration checks: wood, minerals, scrap, animation, cancellation, range, inventory, progression, reset" % ["PASS" if failures == 0 else "FAIL", checks])
+	quit(0 if failures == 0 else 1)
