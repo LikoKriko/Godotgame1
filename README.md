@@ -1,51 +1,47 @@
-# Godotgame1 · Survival procedural 2D
+# Godotgame1 · Exploración y recolección 2D
 
-Prototipo jugable con Godot 4.6.3 (edición estándar) y GDScript.
+Prototipo con Godot 4.6.3 estándar y GDScript. Esta versión se centra en el personaje y la recolección: los enemigos, las oleadas y el combate están retirados temporalmente.
 
-## Primera versión
-
-- Mapa de prueba procedural de 32 × 24 casillas (2048 × 1536 px): un patio de cuarentena industrial oscuro, con suelo continuo gris carbón, maquinaria abandonada, obsidiana, árboles muertos más visibles, cinco rocas grandes y balizas rojas. Perímetro cerrado, plataforma inicial despejada y caminos conectados. Minimap para orientarse; F2 cambia la semilla y reinicia la partida.
-- Dos tipos de enemigos, oleadas progresivamente más frecuentes, vida, muerte y reinicio.
-- Seis armas seleccionables: espada, hacha, lanza, arco, bastón y dagas. Distintos daños, alcances y cadencias; combate cuerpo a cuerpo y proyectiles.
-- Experiencia y niveles; seis ramas de habilidades con cinco rangos cada una (30 mejoras). Cada rango requiere el anterior. El panel pausa la partida.
-
-Es una base para ampliar: todavía no incluye un árbol enorme de nodos ramificados, inventario, fabricación, recolección, guardado, animaciones de combate ni arte final. Los enemigos siguen rutas por el terreno y respetan los obstáculos; los proyectiles se detienen al impactar con el entorno. La elección de armas está disponible desde el inicio para probarlas.
-
-## Ejecutar
+## Jugar
 
 Importa `project.godot` en Godot 4.6.3 y pulsa F5.
 
 - WASD o flechas: movimiento.
-- Clic izquierdo o espacio: atacar hacia el cursor.
-- Teclas 1–6: cambiar arma.
-- Tab: abrir/cerrar habilidades; pulsa una rama para gastar un punto.
-- R: reiniciar la misma distribución después de morir.
-- F2: generar otro mapa de prueba y reiniciar la partida.
+- Mantén E cerca de un árbol, roca o máquina para trabajar con la multiherramienta.
+- Tab: abrir/cerrar el panel de habilidades; pausa el juego.
+- R: reiniciar la prueba con la misma semilla. Restaura los recursos y vacía el inventario.
+- F2: generar otro mapa y reiniciar la prueba, también vaciando el inventario.
 
-## Terminal
+El recurso al alcance se resalta y muestra cuántos golpes faltan. Árboles → madera; rocas → mineral; maquinaria abandonada → chatarra. Las balizas son decorativas. Una roca grande requiere seis golpes; los otros recursos, tres. Los materiales se añaden al inventario al agotar el objeto, que desaparece y libera su colisión. No se puede recolectar desde lejos ni a través de otro obstáculo.
+
+El golpe tiene cuatro fotogramas por dirección: preparación, herramienta levantada, impacto y recuperación. El personaje se orienta al recurso y se queda quieto durante la acción. Moverse cancela el trabajo pendiente; un golpe que ya impactó se conserva. Mantener E repite el ciclo; soltarla permite terminar el golpe actual. El movimiento conserva sus cuatro animaciones, reposo por dirección y giros con frenada proporcional al ángulo.
+
+La recolección da experiencia y puntos de habilidad. Hay seis ramas de cinco rangos: Silvicultura (+1 madera por árbol), Minería (+1 mineral por roca), Agilidad (+22 velocidad), Reciclaje (+1 chatarra por máquina), Ritmo (+12% velocidad de trabajo) y Sabiduría (+20% experiencia). No hay guardado persistente, fabricación, herramientas diferenciadas ni equipo todavía.
+
+## Mapa
+
+Patio procedural pequeño de 32 × 24 casillas (2048 × 1536 px), con suelo continuo gris carbón sin cuadrícula visible, decorados oscuros, árboles secos y cinco rocas grandes. La semilla inicial es 73129. F2 la incrementa; la misma semilla reproduce la distribución. Los caminos y la zona inicial están despejados. Las rocas grandes tienen colisión de 2 × 2 casillas, que se libera completamente al agotarlas. La cuadrícula es interna para navegación y colisión.
+
+## Comprobaciones
 
 ```sh
 godot --headless --path . --editor --import --quit
-godot --headless --path . --quit-after 120
 godot --headless --path . --script res://tests/smoke.gd
 godot --headless --path . --script res://tests/movement.gd
 godot --headless --path . --script res://tests/world.gd
+godot --headless --path . --quit-after 120
 ```
 
-En el entorno cloud se usan directorios XDG escribibles bajo `/workspace/shared` (ver instrucciones de inicio del entorno). No se necesitan servicios ni credenciales para ejecutar el juego.
+En cloud, usa los directorios XDG escribibles indicados en las instrucciones del entorno bajo `/workspace/shared`. No se necesitan servicios ni credenciales para jugar.
 
-## Estructura
+## Archivos
 
-`scenes/main.tscn` contiene la escena inicial. `scripts/main.gd` coordina combate, progresión y movimiento. `scripts/test_world.gd` genera el mapa, calcula colisiones y rutas. `scripts/world_view.gd` dibuja el suelo y las piezas de entorno de `assets/environment/quarantine_props.png`; `scripts/world_minimap.gd` presenta el minimapa. El siguiente paso es separar estos sistemas y definir los nodos del árbol y el catálogo de armas como recursos de datos.
+- `scripts/main.gd`: personaje, acciones, inventario visible y habilidades.
+- `scripts/harvesting.gd`: alcance, recursos, golpes, inventario y agotamiento.
+- `scripts/test_world.gd`: generación y colisiones.
+- `scripts/world_view.gd`: suelo y decorados; `scripts/world_minimap.gd`: minimapa.
+- `scripts/turn_motion.gd`: giros (hasta 0.28 s; frenada máxima 35% en 180°, 8.75% en 90° y 2.19% en 45°).
+- `scripts/survivor_frames.gd`: animaciones desde los atlas de caminar y recolectar. Las diagonales usan la vista cardinal más cercana.
+- `shaders/quarantine_ground.gdshader`: suelo uniforme continuo; `shaders/atmosphere.gdshader`: sombreado de bordes.
 
-El protagonista usa sprites en pixel art con traje y casco gris oscuro y detalles amarillos, creado a partir de la referencia visual del proyecto. Tiene ciclos de caminar de cuatro fotogramas para izquierda, derecha, arriba y abajo, y una pose de reposo por dirección. El ciclo se detiene al chocar o dejar de moverse. Los giros interpolan la orientación en hasta 0.28 segundos: la frenada máxima es del 35% para 180°, 8.75% para 90° y 2.19% para 45°. Al terminar, se recupera la velocidad máxima (incluyendo Agilidad); las diagonales no aumentan la velocidad. Un cambio de dirección durante el giro parte de la orientación actual. El entorno usa un suelo continuo de grises oscuros, con grano muy sutil y unas pocas marcas de desgaste. El shader `shaders/quarantine_ground.gdshader` trabaja en coordenadas del mundo para evitar juntas y cambios de color por casilla. Los decorados usan un atlas en pixel art, con un sombreado suave en los bordes de pantalla; los enemigos conservan gráficos provisionales. `.godot/` contiene cachés locales y se excluye de Git. Las comprobaciones headless validan carga y lógica; el aspecto visual y los controles requieren prueba manual en el editor.
-
-El movimiento se configura en `scripts/turn_motion.gd` (`MAX_TURN_TIME` y `MAX_SLOWDOWN`). Las animaciones se construyen desde `assets/characters/survivor_walk.png` en `scripts/survivor_frames.gd`, con alineación de pies para evitar saltos entre fotogramas. Las diagonales usan la vista cardinal más cercana. El personaje cambia de vista durante el giro sin rotar el sprite completo en el plano del suelo.
-
-## Mapa de prueba
-
-La semilla inicial es 73129. La misma semilla reproduce el mismo mapa; F2 la incrementa. El ruido distribuye los tres tipos de decorado y una secuencia aleatoria por semilla coloca los obstáculos. Los caminos centrales y la zona inicial permanecen libres, y se comprueba la conectividad al generar. El tamaño está en `SIZE` y el origen en `FIRST` de `scripts/test_world.gd`. El patio tarda unos nueve segundos en cruzarse horizontalmente sin obstáculos a velocidad base. No hay zonas exteriores accesibles.
-
-Los decorados son obstáculos, no recursos recolectables todavía. La atmósfera usa una base uniforme de grises oscuros; el amarillo y el rojo quedan como detalles localizados en los objetos. La cuadrícula se usa internamente para colisiones y rutas, pero no se dibuja en el suelo ni en el perímetro. Los corredores son espacios despejados, sin franjas de otro material. El atlas antiguo de suelos se conserva como recurso sin uso. La generación es deliberadamente pequeña y de un único patio; edificios con interiores y otros biomas quedan para futuras iteraciones.
-
-Las rocas grandes ocupan 2 × 2 casillas de colisión y bloquean el paso de jugadores y enemigos. Se conserva espacio para rodearlas; los árboles secos se distribuyen también cerca del inicio. La densidad de decorados pequeños se ha reducido para que el suelo tenga una lectura más limpia.
+Los atlas están en `assets/`; `.godot/` contiene cachés locales excluidas de Git. El atlas antiguo de suelos se conserva como recurso sin uso. Los materiales son contadores de inventario provisional, no objetos soltados en el suelo. Las comprobaciones automáticas validan lógica y carga; la sensación del movimiento y las animaciones requiere también jugar en el editor.

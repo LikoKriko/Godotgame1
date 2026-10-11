@@ -68,7 +68,7 @@ func generate(new_seed: int) -> void:
 				visited[neighbor] = true
 				queue.append(neighbor)
 	reachable.assign(queue)
-	# Inaccessible pockets become rubble, so enemies always use connected terrain.
+	# Inaccessible pockets become rubble, keeping exploration terrain connected.
 	for cell in cells:
 		if not cells[cell]["blocked"] and not visited.has(cell):
 			cells[cell]["blocked"] = true
@@ -109,33 +109,3 @@ func move_actor(point: Vector2, displacement: Vector2, radius: float = PLAYER_RA
 		if walkable(point + Vector2(0, step.y), radius):
 			point.y += step.y
 	return point
-
-func spawn_position(player: Vector2, rng: RandomNumberGenerator) -> Vector2:
-	var candidates: Array[Vector2i] = []
-	for cell in reachable:
-		var distance := center(cell).distance_to(player)
-		if distance >= 440.0 and distance <= 850.0:
-			candidates.append(cell)
-	if candidates.is_empty():
-		for cell in reachable:
-			if center(cell).distance_to(player) >= 280.0:
-				candidates.append(cell)
-	if candidates.is_empty():
-		return player
-	return center(candidates[rng.randi_range(0, candidates.size() - 1)])
-
-func flow_to(point: Vector2) -> Dictionary:
-	# One shared breadth-first field for all enemies, avoiding scenery and walls.
-	var origin := cell_at(point)
-	var flow := {origin: Vector2i.ZERO}
-	var queue: Array[Vector2i] = [origin]
-	var index := 0
-	while index < queue.size():
-		var current := queue[index]
-		index += 1
-		for step in DIRECTIONS:
-			var neighbor: Vector2i = current + step
-			if cells.has(neighbor) and not cells[neighbor]["blocked"] and not flow.has(neighbor):
-				flow[neighbor] = -step
-				queue.append(neighbor)
-	return flow

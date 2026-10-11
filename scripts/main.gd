@@ -2,38 +2,30 @@ extends Node2D
 
 const TILE := 64
 const WORLD_SEED := 73129
-const WEAPONS := [
-	{"name": "Espada", "damage": 24.0, "range": 100.0, "cooldown": 0.5, "ranged": false},
-	{"name": "Hacha", "damage": 42.0, "range": 85.0, "cooldown": 0.9, "ranged": false},
-	{"name": "Lanza", "damage": 20.0, "range": 160.0, "cooldown": 0.6, "ranged": false},
-	{"name": "Arco", "damage": 18.0, "range": 650.0, "cooldown": 0.45, "ranged": true},
-	{"name": "Bastón", "damage": 32.0, "range": 500.0, "cooldown": 0.75, "ranged": true},
-	{"name": "Dagas", "damage": 12.0, "range": 75.0, "cooldown": 0.22, "ranged": false}
-]
-const BRANCHES := ["Vitalidad", "Fuerza", "Agilidad", "Recuperación", "Cadencia", "Sabiduría"]
+const BRANCHES := ["Silvicultura", "Minería", "Agilidad", "Reciclaje", "Ritmo", "Sabiduría"]
+const HARVEST_TIME := 0.6
+var resources = preload("res://scripts/harvesting.gd").new()
+var focused := Vector2i(99999, 99999)
+var working := false
+var work_target := Vector2i(99999, 99999)
+var work_elapsed := 0.0
+var work_duration := HARVEST_TIME
+var hit_applied := false
+var feedback := ""
+var feedback_time := 0.0
+var impact_position := Vector2.ZERO
+var impact_time := 0.0
+var interaction: Label
 var world = preload("res://scripts/test_world.gd").new()
 var terrain = world.terrain
 var world_view: Node2D
 var minimap: Control
-var spawn_rng := RandomNumberGenerator.new()
-var enemy_flow: Dictionary = {}
-var flow_cell := Vector2i(99999, 99999)
 var player := Vector2.ZERO
-var health := 100.0
 var experience := 0
 var level := 1
 var skill_points := 0
 var ranks: Array[int] = [0, 0, 0, 0, 0, 0]
-var weapon_index := 0
-var enemies: Array[Dictionary] = []
-var projectiles: Array[Dictionary] = []
-var survival_time := 0.0
-var spawn_timer := 1.0
-var attack_timer := 0.0
-var flash_timer := 0.0
-var dead := false
 var skills_open := false
-var kills := 0
 var camera: Camera2D
 var character: AnimatedSprite2D
 var movement = preload("res://scripts/turn_motion.gd").new()
@@ -43,7 +35,6 @@ var skill_buttons: Array[Button] = []
 
 func _ready() -> void:
 	world.generate(WORLD_SEED)
-	spawn_rng.randomize()
 	world_view = preload("res://scripts/world_view.gd").new()
 	world_view.configure(world)
 	add_child(world_view)
@@ -72,6 +63,10 @@ func _ready() -> void:
 	hud.position = Vector2(18, 12)
 	hud.add_theme_font_size_override("font_size", 18)
 	canvas.add_child(hud)
+	interaction = Label.new()
+	interaction.position = Vector2(18, 568)
+	interaction.add_theme_font_size_override("font_size", 18)
+	canvas.add_child(interaction)
 	minimap = preload("res://scripts/world_minimap.gd").new()
 	minimap.world = world
 	minimap.position = Vector2(744, 476)
@@ -97,40 +92,33 @@ func _ready() -> void:
 	restart()
 
 func restart() -> void:
+	world.generate(world.seed_value)
+	world_view.refresh_ground()
+	resources.configure(world)
 	player = Vector2.ZERO
 	movement.reset()
 	character.play(&"idle_down")
-	health = 100.0
 	experience = 0
 	level = 1
 	skill_points = 0
 	ranks = [0, 0, 0, 0, 0, 0]
-	weapon_index = 0
-	enemies.clear()
-	flow_cell = Vector2i(99999, 99999)
-	projectiles.clear()
-	survival_time = 0.0
-	spawn_timer = 1.0
-	attack_timer = 0.0
-	flash_timer = 0.0
-	kills = 0
-	dead = false
+	working = false
+	work_elapsed = 0.0
+	focused = resources.NONE
+	feedback = ""
+	feedback_time = 0.0
+	impact_time = 0.0
 	skills_open = false
 	camera.position = player
 	character.position = player + Vector2(0, -14)
 	update_hud()
 	queue_redraw()
 
-func max_health() -> float:
-	return 100.0 + ranks[0] * 20.0
-
 func upgrade(branch: int) -> void:
-	if skill_points <= 0 or ranks[branch] >= 5:
+	if working or skill_points <= 0 or ranks[branch] >= 5:
 		return
 	skill_points -= 1
 	ranks[branch] += 1
-	if branch == 0:
-		health = minf(health + 20.0, max_health())
 	update_hud()
 
 func gain_experience(amount: int) -> void:
@@ -149,33 +137,80 @@ func walkable(point: Vector2) -> bool:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo():
 		return
-	if event.keycode == KEY_TAB and not dead:
+	if event.keycode == KEY_TAB:
 		skills_open = not skills_open
+		if skills_open:
+			cancel_work()
 	if event.keycode == KEY_F2:
-		world.generate(world.seed_value + 1)
-		world_view.refresh_ground()
+		world.seed_value += 1
 		restart()
-	if event.keycode == KEY_R and dead:
+	if event.keycode == KEY_R:
 		restart()
-	if event.keycode >= KEY_1 and event.keycode <= KEY_6:
-		weapon_index = event.keycode - KEY_1
 	update_hud()
 
 func _process(delta: float) -> void:
-	if dead or skills_open:
+	if skills_open:
 		character.pause()
 		return
-	survival_time += delta
-	attack_timer = maxf(attack_timer - delta, 0.0)
-	flash_timer = maxf(flash_timer - delta, 0.0)
-	health = minf(health + ranks[3] * 0.4 * delta, max_health())
+	feedback_time = maxf(0, feedback_time - delta)
+	impact_time = maxf(0, impact_time - delta)
 	var direction := Vector2(
 		float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
-	move_player(direction, delta)
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE):
-		attack(get_global_mouse_position())
-	update_world(delta)
+	if direction != Vector2.ZERO:
+		cancel_work()
+	if not working:
+		move_player(direction, delta)
+	focused = resources.nearest(player)
+	if direction == Vector2.ZERO and not working and Input.is_physical_key_pressed(KEY_E):
+		start_work(focused)
+	if working:
+		advance_work(delta)
+	update_hud()
+	queue_redraw()
+
+func cancel_work() -> void:
+	working = false
+	work_elapsed = 0.0
+	character.speed_scale = 1.0
+	character.play(StringName("idle_" + movement.facing()))
+
+func start_work(target: Vector2i) -> bool:
+	if skills_open or working or not resources.can_reach(target, player):
+		return false
+	work_target = target
+	working = true
+	work_elapsed = 0.0
+	hit_applied = false
+	work_duration = HARVEST_TIME / (1.0 + ranks[4] * 0.12)
+	var aim: Vector2 = resources.bounds(target).get_center() - player
+	movement.heading = aim.angle()
+	movement.target_direction = Vector2.ZERO
+	character.speed_scale = HARVEST_TIME / work_duration
+	character.play(StringName("harvest_" + movement.facing()))
+	character.frame = 0
+	return true
+
+func advance_work(delta: float) -> void:
+	if not working:
+		return
+	work_elapsed += delta
+	character.set_frame_and_progress(mini(3, floori(work_elapsed / work_duration * 4)), 0)
+	if not hit_applied and work_elapsed >= work_duration * 0.5:
+		hit_applied = true
+		if resources.can_reach(work_target, player):
+			var branch: int = resources.nodes[work_target]["branch"]
+			impact_position = resources.bounds(work_target).get_center()
+			impact_time = 0.18
+			var result: Dictionary = resources.hit(work_target, player, ranks[branch])
+			if result.get("depleted", false):
+				feedback = "+%d %s" % [result["amount"], result["material"]]
+				feedback_time = 2.0
+				gain_experience(10)
+				world_view.queue_redraw()
+				focused = resources.NONE
+	if work_elapsed >= work_duration:
+		cancel_work()
 
 func move_player(direction: Vector2, delta: float) -> void:
 	var previous := player
@@ -189,101 +224,31 @@ func move_player(direction: Vector2, delta: float) -> void:
 	character.speed_scale = movement.speed_factor if moving else 1.0
 	character.play(animation)
 
-func update_world(delta: float) -> void:
-	var current_cell: Vector2i = world.cell_at(player)
-	if current_cell != flow_cell:
-		enemy_flow = world.flow_to(player)
-		flow_cell = current_cell
-	spawn_timer -= delta
-	if spawn_timer <= 0.0 and enemies.size() < 80:
-		spawn_enemy()
-		spawn_timer = maxf(0.35, 2.0 - survival_time / 120.0)
-	for enemy in enemies:
-		var speed: float = 65.0 if enemy["kind"] == 0 else 110.0
-		var enemy_cell: Vector2i = world.cell_at(enemy["position"])
-		var target := player
-		if enemy_cell != current_cell:
-			var step: Vector2i = enemy_flow.get(enemy_cell, Vector2i.ZERO)
-			target = world.center(enemy_cell + step)
-			# Center the perpendicular axis before entering the next corridor.
-			var cell_center: Vector2 = world.center(enemy_cell)
-			if step.x != 0 and absf(enemy["position"].y - cell_center.y) > 3:
-				target = cell_center
-			elif step.y != 0 and absf(enemy["position"].x - cell_center.x) > 3:
-				target = cell_center
-		var displacement: Vector2 = enemy["position"].direction_to(target) * minf(speed * delta, enemy["position"].distance_to(target))
-		enemy["position"] = world.move_actor(enemy["position"], displacement, 14.0)
-		if enemy["position"].distance_to(player) < 26.0:
-			health -= (12.0 if enemy["kind"] == 0 else 8.0) * delta
-	for shot in projectiles:
-		shot["position"] += shot["velocity"] * delta
-		shot["life"] -= delta
-		if not world.walkable(shot["position"], 4.0):
-			shot["life"] = 0.0
-		for enemy in enemies:
-			if shot["life"] > 0.0 and shot["position"].distance_to(enemy["position"]) < 22.0:
-				enemy["health"] -= shot["damage"]
-				shot["life"] = 0.0
-	projectiles = projectiles.filter(func(shot): return shot["life"] > 0.0)
-	resolve_kills()
-	if health <= 0:
-		health = 0
-		dead = true
-	update_hud()
-	queue_redraw()
-
-func spawn_enemy() -> void:
-	var position: Vector2 = world.spawn_position(player, spawn_rng)
-	var kind := randi_range(0, 1)
-	enemies.append({"position": position, "health": 45.0 if kind == 0 else 28.0, "kind": kind})
-
-func attack(target: Vector2) -> void:
-	if attack_timer > 0.0 or dead or skills_open:
-		return
-	var weapon: Dictionary = WEAPONS[weapon_index]
-	attack_timer = weapon["cooldown"] / (1.0 + ranks[4] * 0.12)
-	var damage: float = weapon["damage"] * (1.0 + ranks[1] * 0.15)
-	var aim := player.direction_to(target)
-	if aim == Vector2.ZERO:
-		aim = Vector2.RIGHT
-	if weapon["ranged"]:
-		projectiles.append({"position": player, "velocity": aim * 650.0, "damage": damage, "life": weapon["range"] / 650.0})
-	else:
-		flash_timer = 0.12
-		for enemy in enemies:
-			var offset: Vector2 = enemy["position"] - player
-			if offset.length() <= weapon["range"] and offset.normalized().dot(aim) >= 0.0:
-				enemy["health"] -= damage
-
-func resolve_kills() -> void:
-	for enemy in enemies:
-		if enemy["health"] <= 0.0:
-			kills += 1
-			gain_experience(10)
-	enemies = enemies.filter(func(enemy): return enemy["health"] > 0.0)
-
 func update_hud() -> void:
-	hud.text = "VIDA %d / %d   NIVEL %d   EXP %d / %d   PUNTOS %d\n%s   |   Tiempo %ds   Bajas %d\nWASD/flechas · Clic/espacio: atacar hacia el cursor · 1–6: armas · Tab: habilidades" % [health, max_health(), level, experience, level * 20, skill_points, WEAPONS[weapon_index]["name"], survival_time, kills]
-	hud.text += "\nZona de cuarentena · Semilla %d · F2: nuevo mapa" % world.seed_value
+	hud.text = "EXPLORACIÓN · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d   Mineral %d   Chatarra %d\nWASD/flechas: moverse · E: recolectar · Tab: habilidades\nR: reiniciar prueba · F2: otro mapa" % [level, experience, level * 20, skill_points, resources.inventory["madera"], resources.inventory["mineral"], resources.inventory["chatarra"]]
+	interaction.text = "Acércate a un árbol, roca o máquina y mantén E."
+	if resources.nodes.has(focused):
+		var node: Dictionary = resources.nodes[focused]
+		interaction.text = "%s · Golpes restantes %d/%d · Mantén E" % [node["name"], node["remaining"], node["hits"]]
+	if feedback_time > 0:
+		interaction.text += "\n" + feedback
 	minimap.player = player
 	minimap.queue_redraw()
-	if dead:
-		hud.text += "\nHAS CAÍDO · Pulsa R para empezar otra partida"
 	skill_panel.visible = skills_open
-	var effects := ["+20 vida", "+15% daño", "+22 velocidad", "+0.4 vida/s", "+12% cadencia", "+20% experiencia"]
+	var effects := ["+1 madera por árbol", "+1 mineral por roca", "+22 velocidad", "+1 chatarra por máquina", "+12% ritmo de trabajo", "+20% experiencia"]
 	for i in skill_buttons.size():
 		skill_buttons[i].text = "%s %d/5 → %s" % [BRANCHES[i], ranks[i], effects[i]]
 		skill_buttons[i].disabled = skill_points <= 0 or ranks[i] >= 5
 
 func _draw() -> void:
-	for enemy in enemies:
-		draw_circle(enemy["position"], 16 if enemy["kind"] == 0 else 12, Color("d95763") if enemy["kind"] == 0 else Color("eaa759"))
-	for shot in projectiles:
-		draw_circle(shot["position"], 5, Color("ffe29a"))
-	if flash_timer > 0:
-		draw_arc(player, WEAPONS[weapon_index]["range"], 0, TAU, 32, Color("ffe29a"), 2)
+	if resources.nodes.has(focused):
+		var rect: Rect2 = resources.bounds(focused).grow(3)
+		draw_rect(rect, Color(0.65, 0.58, 0.30, 0.55), false, 2)
+	if impact_time > 0:
+		for i in 5:
+			var offset := Vector2.from_angle(i * TAU / 5) * (0.18 - impact_time) * 150
+			draw_rect(Rect2(impact_position + offset, Vector2(3, 3)), Color("bcb39b"))
 	draw_ellipse_shadow()
-	draw_line(player, player + player.direction_to(get_global_mouse_position()) * 25, Color.WHITE, 3)
 
 func draw_ellipse_shadow() -> void:
 	draw_set_transform(player + Vector2(0, 17), 0, Vector2(1, 0.4))
