@@ -9,6 +9,7 @@ var seed_value := 73129
 var terrain := FastNoiseLite.new()
 var cells: Dictionary = {}
 var props: Dictionary = {}
+var large_rocks: Dictionary = {}
 var reachable: Array[Vector2i] = []
 var bounds := Rect2(Vector2(FIRST * TILE), Vector2(SIZE * TILE))
 
@@ -20,6 +21,7 @@ func generate(new_seed: int) -> void:
 	rng.seed = new_seed
 	cells.clear()
 	props.clear()
+	large_rocks.clear()
 	reachable.clear()
 	for y in range(FIRST.y, FIRST.y + SIZE.y):
 		for x in range(FIRST.x, FIRST.x + SIZE.x):
@@ -28,10 +30,28 @@ func generate(new_seed: int) -> void:
 			var road := absi(x) <= 1 or absi(y) <= 1
 			var zone := biome_at(cell)
 			var blocked := border
-			if not road and not border and posmod(x, 3) == 1 and posmod(y, 3) == 1 and rng.randf() < 0.8:
+			if not road and not border and posmod(x, 3) == 1 and posmod(y, 3) == 1 and rng.randf() < 0.5:
 				blocked = true
 				props[cell] = zone
 			cells[cell] = {"zone": zone, "blocked": blocked, "road": road, "variant": rng.randi_range(0, 7)}
+	# Several large rocks, each with a matching 2x2 collision footprint.
+	var rock_anchors: Array[Vector2i] = [Vector2i(3, -4)]
+	for quadrant in [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]:
+		var x := rng.randi_range(-13, -8) if quadrant.x < 0 else rng.randi_range(7, 11)
+		var y := rng.randi_range(-9, -7) if quadrant.y < 0 else rng.randi_range(6, 8)
+		rock_anchors.append(Vector2i(x, y))
+	for anchor in rock_anchors:
+		large_rocks[anchor] = true
+		for y in 2:
+			for x in 2:
+				var occupied := anchor + Vector2i(x, y)
+				props.erase(occupied)
+				cells[occupied]["blocked"] = true
+		props[anchor] = 1
+	# Visible dead trees close enough to inspect from the starting area.
+	for cell in [Vector2i(-4, -3), Vector2i(-6, 3), Vector2i(4, 4)]:
+		props[cell] = 2
+		cells[cell]["blocked"] = true
 	# Warning beacons are collision props away from the safe central pad.
 	for cell in [Vector2i(-5, -5), Vector2i(5, -5), Vector2i(-5, 5), Vector2i(5, 5)]:
 		props[cell] = 3

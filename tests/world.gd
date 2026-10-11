@@ -20,6 +20,12 @@ func run_checks() -> void:
 		map.generate(seed_value)
 		require(map.cells.size() == 32 * 24, "Finite 32x24 map")
 		require(map.walkable(Vector2.ZERO), "Safe spawn")
+		require(map.large_rocks.size() == 5, "Five large rocks per map")
+		for anchor in map.large_rocks:
+			for y in 2:
+				for x in 2:
+					require(not map.walkable(map.center(anchor + Vector2i(x, y))), "Large-rock collision covers its entire footprint")
+		require(map.props[Vector2i(-4, -3)] == 2, "Tree near starting area")
 		var snapshot: Dictionary = map.cells.duplicate(true)
 		map.generate(seed_value)
 		require(snapshot == map.cells, "Repeatable seed")
@@ -64,5 +70,6 @@ func run_checks() -> void:
 	game._unhandled_key_input(input)
 	require(game.world.seed_value == 73130 and game.player == Vector2.ZERO, "F2 generates and resets run")
 	require(game.minimap.world == game.world, "Minimap uses active map")
+	require(game.world_view.ground_material.get_shader_parameter("map_seed") == 73130.0, "Ground follows regenerated seed")
 	print("PASS: %d world checks across 20 seeds, connectivity, boundaries, enemy routes, regeneration" % checks)
 	quit(0)

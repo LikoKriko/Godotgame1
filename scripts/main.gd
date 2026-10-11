@@ -153,7 +153,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		skills_open = not skills_open
 	if event.keycode == KEY_F2:
 		world.generate(world.seed_value + 1)
-		world_view.queue_redraw()
+		world_view.refresh_ground()
 		restart()
 	if event.keycode == KEY_R and dead:
 		restart()

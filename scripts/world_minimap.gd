@@ -11,7 +11,7 @@ func _draw() -> void:
 		var data: Dictionary = world.cells[cell]
 		var color := Color("5a5c69") if data["blocked"] else Color("292c37")
 		if data["road"] and not data["blocked"]:
-			color = Color("81744c")
-		draw_rect(Rect2(Vector2(cell - world.FIRST) * 6, Vector2(5, 5)), color)
+			color = Color("41464f")
+		draw_rect(Rect2(Vector2(cell - world.FIRST) * 6, Vector2(6, 6)), color)
 	var point: Vector2 = (player - world.bounds.position) / world.TILE * 6
 	draw_rect(Rect2(point - Vector2(2, 2), Vector2(5, 5)), Color("ffe078"))
