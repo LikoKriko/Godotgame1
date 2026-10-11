@@ -42,13 +42,13 @@ func run_checks() -> void:
 	require(motion.facing() == &"down", "Interrupted turn reaches new target")
 	require(motion.step(Vector2.ZERO, 0.1, 220.0) == Vector2.ZERO, "Release stops immediately")
 	var frames = preload("res://scripts/survivor_frames.gd").build()
-	for direction in [&"down", &"left", &"right", &"up"]:
+	for direction in Motion.FACINGS:
 		require(frames.get_frame_count("walk_" + direction) == 4, "Four walking frames")
 		require(frames.get_frame_count("idle_" + direction) == 1, "Directional idle frame")
 		for frame in 4:
 			var texture: AtlasTexture = frames.get_frame_texture("walk_" + direction, frame)
-			require(texture.get_size() == Vector2(260, 320), "Frames share canvas and baseline")
-			require(texture.region.size.x > 80 and texture.region.size.y > 200, "Nonempty full-body frame")
+			require(texture.get_size() == Vector2(640, 640), "Frames share canvas and baseline")
+			require(texture.region.size.x > 50 and texture.region.size.y > 150, "Nonempty full-body frame")
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_process(false)

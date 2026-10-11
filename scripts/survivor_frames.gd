@@ -1,17 +1,21 @@
 extends RefCounted
-## Atlas regions are aligned to a common foot baseline without modifying the source.
-const SHEET = preload("res://assets/characters/survivor_walk.png")
-const HARVEST_SHEET = preload("res://assets/characters/survivor_harvest.png")
-const PICKAXE_SHEET = preload("res://assets/characters/survivor_pickaxe.png")
-const DIRECTIONS := [&"down", &"left", &"right", &"up"]
+## Eight views share the same head anchor and foot baseline; source art stays intact.
+const SHEET = preload("res://assets/characters/survivor_walk_8dir.png")
+const IDLE_SHEET = preload("res://assets/characters/survivor_idle_8dir.png")
+const Regions = preload("res://assets/characters/survivor_regions.gd")
+const CHARACTER_HEIGHT := 64.0
+const Motion = preload("res://scripts/turn_motion.gd")
+const DIRECTIONS := [&"down", &"down_right", &"right", &"up_right", &"up", &"up_left", &"left", &"down_left"]
+const CANVAS := Vector2(640, 640)
+const BASELINE := 620.0
+static var cache: SpriteFrames
 
 static func build() -> SpriteFrames:
+	if cache != null:
+		return cache
 	var frames := SpriteFrames.new()
 	frames.remove_animation(&"default")
-	var image := SHEET.get_image()
-	var columns := [70, 375, 655, 940]
-	var rows := [0, 315, 627, 933]
-	for row in 4:
+	for row in DIRECTIONS.size():
 		var walk := StringName("walk_" + DIRECTIONS[row])
 		var idle := StringName("idle_" + DIRECTIONS[row])
 		frames.add_animation(walk)
@@ -20,47 +24,25 @@ static func build() -> SpriteFrames:
 		frames.add_animation(idle)
 		frames.set_animation_loop(idle, false)
 		for column in 4:
-			var height := mini(315, image.get_height() - rows[row])
-			var cell := Rect2i(columns[column], rows[row], 260, height)
-			var used := image.get_region(cell).get_used_rect()
-			var atlas := AtlasTexture.new()
-			atlas.atlas = SHEET
-			atlas.region = Rect2(cell.position + used.position, used.size)
-			atlas.margin = Rect2(Vector2((260 - used.size.x) / 2.0, 310 - used.size.y), Vector2(260, 320) - Vector2(used.size))
-			frames.add_frame(walk, atlas)
-			if column == 1:
-				frames.add_frame(idle, atlas)
-	var harvest_image := HARVEST_SHEET.get_image()
-	var cell_size := Vector2i(harvest_image.get_width() / 4, harvest_image.get_height() / 4)
-	for row in 4:
-		var action := StringName("harvest_" + DIRECTIONS[row])
-		frames.add_animation(action)
-		frames.set_animation_speed(action, 4.0 / 0.6)
-		frames.set_animation_loop(action, false)
-		for column in 4:
-			var cell := Rect2i(Vector2i(column, row) * cell_size, cell_size)
-			var used := harvest_image.get_region(cell).get_used_rect()
-			var atlas := AtlasTexture.new()
-			atlas.atlas = HARVEST_SHEET
-			atlas.region = Rect2(cell.position + used.position, used.size)
-			# Keep the atlas cell's horizontal anchor: tool reach must not shift the torso.
-			atlas.margin = Rect2(Vector2(used.position.x - (cell_size.x - 260) / 2.0, 310 - used.size.y), Vector2(260, 320) - Vector2(used.size))
-			frames.add_frame(action, atlas)
-	var pick_image := PICKAXE_SHEET.get_image()
-	var cuts := [0, 342, 637, 959, pick_image.get_width()]
-	var row_cuts := [0, 318, 634, 948, pick_image.get_height()]
-	var anchors := [156, 484, 798, 1112]
-	for row in 4:
-		var action := StringName("mine_" + DIRECTIONS[row])
-		frames.add_animation(action)
-		frames.set_animation_speed(action, 4.0 / 0.6)
-		frames.set_animation_loop(action, false)
-		for column in 4:
-			var cell := Rect2i(cuts[column], row_cuts[row], cuts[column + 1] - cuts[column], row_cuts[row + 1] - row_cuts[row])
-			var used := pick_image.get_region(cell).get_used_rect()
-			var atlas := AtlasTexture.new()
-			atlas.atlas = PICKAXE_SHEET
-			atlas.region = Rect2(cell.position + used.position, used.size)
-			atlas.margin = Rect2(Vector2(cell.position.x + used.position.x - anchors[column] + 130, 310 - used.size.y), Vector2(260, 320) - Vector2(used.size))
-			frames.add_frame(action, atlas)
+			frames.add_frame(walk, atlas(SHEET, Regions.WALK[row][column]))
+		frames.add_frame(idle, atlas(IDLE_SHEET, Regions.IDLE[row]))
+	# Turn clips pass through each intermediate 45-degree view along the short arc.
+	for from in 8:
+		for offset in [-4, -3, -2, -1, 1, 2, 3]:
+			var to := posmod(from + offset, 8)
+			var name := StringName("turn_%s_%s" % [Motion.FACINGS[from], Motion.FACINGS[to]])
+			frames.add_animation(name)
+			frames.set_animation_loop(name, false)
+			frames.set_animation_speed(name, (absi(offset) + 1) / (Motion.MAX_TURN_TIME * absi(offset) / 4.0))
+			for step in absi(offset) + 1:
+				var facing: StringName = Motion.FACINGS[posmod(from + step * signi(offset), 8)]
+				frames.add_frame(name, frames.get_frame_texture("idle_" + facing, 0))
+	cache = frames
 	return frames
+
+static func atlas(sheet: Texture2D, data: Array) -> AtlasTexture:
+	var texture := AtlasTexture.new()
+	texture.atlas = sheet
+	texture.region = Rect2(data[0], data[1], data[2], data[3])
+	texture.margin = Rect2(Vector2(data[0] - data[4] + CANVAS.x / 2, BASELINE - data[3]), CANVAS - Vector2(data[2], data[3]))
+	return texture

@@ -41,7 +41,9 @@ func configure(inventory) -> void:
 	content.add_child(close)
 	label("PERSONAJE", Vector2(16, 48), 13)
 	var portrait := TextureRect.new()
-	portrait.texture = preload("res://assets/characters/survivor.png")
+	var portrait_texture: AtlasTexture = preload("res://scripts/survivor_frames.gd").build().get_frame_texture(&"idle_down", 0).duplicate()
+	portrait_texture.margin = Rect2()
+	portrait.texture = portrait_texture
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

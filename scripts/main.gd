@@ -8,7 +8,6 @@ var bag = preload("res://scripts/inventory.gd").new()
 var inventory_panel: Control
 var work_item_uid := -1
 var weapon_timer := 0.0
-var sword_flash := 0.0
 var combat_aim := Vector2.RIGHT
 var resources = preload("res://scripts/harvesting.gd").new()
 var focused := Vector2i(99999, 99999)
@@ -48,9 +47,9 @@ func _ready() -> void:
 	character = AnimatedSprite2D.new()
 	character.sprite_frames = preload("res://scripts/survivor_frames.gd").build()
 	character.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	character.scale = Vector2(0.215, 0.215)
-	character.position = player + Vector2(0, -14)
 	add_child(character)
+	character.frame_changed.connect(sync_character)
+	character.animation_changed.connect(sync_character)
 	camera = Camera2D.new()
 	camera.zoom = Vector2(1.5, 1.5)
 	camera.limit_left = int(world.bounds.position.x)
@@ -139,7 +138,6 @@ func restart() -> void:
 	for arrow in get_tree().get_nodes_in_group("player_arrows"):
 		arrow.queue_free()
 	weapon_timer = 0.0
-	sword_flash = 0.0
 	character.rotation = 0
 	player = Vector2.ZERO
 	movement.reset()
@@ -156,7 +154,7 @@ func restart() -> void:
 	impact_time = 0.0
 	skills_open = false
 	camera.position = player
-	character.position = player + Vector2(0, -14)
+	sync_character()
 	world_view.update_trees(player, 1.0)
 	update_hud()
 	queue_redraw()
@@ -217,7 +215,6 @@ func _process(delta: float) -> void:
 		character.pause()
 		return
 	weapon_timer = maxf(0, weapon_timer - delta)
-	sword_flash = maxf(0, sword_flash - delta)
 	feedback_time = maxf(0, feedback_time - delta)
 	impact_time = maxf(0, impact_time - delta)
 	var direction := Vector2(
@@ -263,9 +260,8 @@ func start_work(target: Vector2i) -> bool:
 	var aim: Vector2 = resources.bounds(target).get_center() - player
 	movement.heading = aim.angle()
 	movement.target_direction = Vector2.ZERO
-	character.speed_scale = HARVEST_TIME / work_duration
-	var action := "mine_" if bag.held_id() == &"pickaxe" else ("harvest_" if bag.held_id() == &"axe" else "idle_")
-	character.play(StringName(action + movement.facing()))
+	character.speed_scale = 1.0
+	character.play(StringName("idle_" + movement.facing()))
 	character.frame = 0
 	return true
 
@@ -273,10 +269,6 @@ func advance_work(delta: float) -> void:
 	if not working:
 		return
 	work_elapsed += delta
-	if bag.held_id() == &"":
-		character.rotation = sin(work_elapsed / work_duration * PI) * 0.06
-	else:
-		character.set_frame_and_progress(mini(3, floori(work_elapsed / work_duration * 4)), 0)
 	if not hit_applied and work_elapsed >= work_duration * 0.5:
 		hit_applied = true
 		if resources.can_reach(work_target, player) and bag.equipment[&"hands"].get("uid", -1) == work_item_uid:
@@ -310,7 +302,6 @@ func use_weapon(target: Vector2) -> bool:
 	bag.consume_use()
 	weapon_timer = 0.45 if id == &"sword" else 0.65
 	if id == &"sword":
-		sword_flash = 0.18
 		for victim in get_tree().get_nodes_in_group("damageable"):
 			if victim is Node2D and victim.has_method("take_damage"):
 				var offset: Vector2 = victim.global_position - player
@@ -340,11 +331,30 @@ func move_player(direction: Vector2, delta: float) -> void:
 	var motion := velocity * delta
 	player = world.move_actor(player, motion)
 	camera.position = player
-	character.position = player + Vector2(0, -14)
 	var moving := player.distance_squared_to(previous) > 0.00001
+	var turn: StringName = movement.turn_animation()
+	if moving and movement.is_turning() and character.sprite_frames.has_animation(turn):
+		character.speed_scale = 1.0
+		character.play(turn)
+		var count := character.sprite_frames.get_frame_count(turn)
+		character.set_frame_and_progress(roundi(movement.turn_progress() * (count - 1)), 0)
+		character.pause()
+		sync_character()
+		return
 	var animation := StringName(("walk_" if moving else "idle_") + movement.facing())
 	character.speed_scale = movement.speed_factor if moving else 1.0
 	character.play(animation)
+	sync_character()
+
+func sync_character() -> void:
+	if character == null or not character.sprite_frames.has_animation(character.animation):
+		return
+	var frames := character.sprite_frames
+	var texture: AtlasTexture = frames.get_frame_texture(character.animation, mini(character.frame, frames.get_frame_count(character.animation) - 1))
+	var frame_data = preload("res://scripts/survivor_frames.gd")
+	var factor: float = frame_data.CHARACTER_HEIGHT / texture.region.size.y
+	character.scale = Vector2.ONE * factor
+	character.position = player + Vector2(0, 17 - (frame_data.BASELINE - frame_data.CANVAS.y / 2) * factor)
 
 func update_hud() -> void:
 	hud.text = "EXPLORACIÓN · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d   Mineral %d   Chatarra %d\nWASD: moverse · E: recolectar · I: inventario · Tab: habilidades\nR: reiniciar prueba · F2: otro mapa" % [level, experience, level * 20, skill_points, resources.inventory["madera"], resources.inventory["mineral"], resources.inventory["chatarra"]]
@@ -373,13 +383,6 @@ func _draw() -> void:
 		for i in 5:
 			var offset := Vector2.from_angle(i * TAU / 5) * (0.18 - impact_time) * 150
 			draw_rect(Rect2(impact_position + offset, Vector2(3, 3)), Color("bcb39b"))
-	if sword_flash > 0:
-		draw_arc(player, 72, combat_aim.angle() - 0.7, combat_aim.angle() + 0.7, 12, Color("ddd3ad"), 3)
-	var id: StringName = bag.held_id()
-	if id != &"" and not working:
-		var icon: Texture2D = preload("res://scripts/item_icons.gd").get_icon(id)
-		if icon != null:
-			draw_texture_rect(icon, Rect2(player + Vector2(11, -10), Vector2(23, 23)), false)
 	draw_ellipse_shadow()
 
 func draw_ellipse_shadow() -> void:

@@ -11,7 +11,7 @@ const DEFINITIONS := {
 	&"chatarra": {"name": "Chatarra", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"helmet": {"name": "Casco", "slot": &"head", "uses": -1, "stack": 1, "purpose": "Equipo de cabeza"},
 	&"suit": {"name": "Traje", "slot": &"torso", "uses": -1, "stack": 1, "purpose": "Equipo de torso"},
-	&"trousers": {"name": "Pantalón", "slot": &"legs", "uses": -1, "stack": 1, "purpose": "Equipo de piernas"},
+	&"trousers": {"name": "Pantalón corto", "slot": &"legs", "uses": -1, "stack": 1, "purpose": "Equipo de piernas"},
 	&"boots": {"name": "Botas", "slot": &"feet", "uses": -1, "stack": 1, "purpose": "Equipo de pies"}
 }
 var slots: Array[Dictionary] = []
@@ -28,9 +28,8 @@ func reset() -> void:
 	next_uid = 1
 	for id in [&"sword", &"bow", &"pickaxe", &"axe"]:
 		add(id, 1)
-	# Starter clothing fills the matching slots; hands are reserved for tools.
-	for id in [&"helmet", &"suit", &"trousers", &"boots"]:
-		equipment[DEFINITIONS[id]["slot"]] = make_item(id, 1)
+	# The new survivor starts shirtless and barefoot, wearing only shorts.
+	equipment[&"legs"] = make_item(&"trousers", 1)
 	equip(3, &"hands")
 
 func make_item(id: StringName, quantity: int) -> Dictionary:

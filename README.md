@@ -19,7 +19,11 @@ La ventana y la resolución base son **1920 × 1080**. La cámara tiene un zoom 
 
 El recurso al alcance se resalta y muestra cuántos golpes faltan. Árboles → madera; rocas → mineral; maquinaria abandonada → chatarra. Las balizas son decorativas. Una roca grande requiere seis golpes; los otros recursos, tres. Los materiales se añaden al inventario al agotar el objeto, que desaparece y libera su colisión. No se puede recolectar desde lejos ni a través de otro obstáculo.
 
-El hacha y el pico tienen animaciones de cuatro fotogramas por dirección: preparación, herramienta levantada, impacto y recuperación. La chatarra se recoge con una pequeña acción de manos libres. El personaje se orienta al recurso y se queda quieto durante la acción. Moverse cancela el trabajo pendiente; un golpe que ya impactó se conserva. Mantener E repite el ciclo; soltarla permite terminar el golpe actual. El movimiento conserva sus cuatro animaciones, reposo por dirección y giros con frenada proporcional al ángulo.
+El personaje sigue la nueva referencia: humano sin camiseta, con barba, marca azul grisácea junto al ojo, pantalón corto marrón y pies descalzos. Tiene el pelo castaño corto, tomando aproximadamente 6 cm arriba y 2 cm a los lados como guía real. Hay ocho vistas de reposo y caminata, incluidas las diagonales, con cuatro fotogramas de caminar por dirección. Los giros pasan por las vistas intermedias de 45°; hay transiciones de 45°, 90° y 180° en ambos sentidos. La duración y frenada dependen del ángulo, y al completar el giro vuelve la velocidad máxima. La altura visible es de 64 px en el mundo y los pies mantienen su apoyo durante las transiciones. El inventario muestra el mismo personaje.
+
+Las animaciones antiguas de armas y herramientas, sus atlas y los efectos visuales de ataque del personaje se han retirado para rehacerlos después. La recolección sigue funcionando con el personaje en reposo, orientado al recurso. Moverse cancela el trabajo pendiente; un golpe que ya impactó se conserva. Mantener E repite el ciclo; soltarla permite terminar la acción actual. Se conservan las restricciones de cada herramienta, los usos, los materiales y las acciones básicas de espada/arco.
+
+El sombreado de pantalla es muy leve: ocupa solo el último 2% de cada borde, con una transición suave hasta un 18% de opacidad en el extremo. A 1920 × 1080 equivale aproximadamente a 38 px a izquierda/derecha y 22 px arriba/abajo. El centro y la interfaz permanecen despejados.
 
 La recolección da experiencia y puntos de habilidad. Hay seis ramas de cinco rangos: Silvicultura (+1 madera por árbol), Minería (+1 mineral por roca), Agilidad (+22 velocidad), Reciclaje (+1 chatarra por máquina), Ritmo (+12% velocidad de trabajo) y Sabiduría (+20% experiencia).
 
@@ -53,6 +57,7 @@ godot --headless --path . --editor --import --quit
 godot --headless --path . --script res://tests/smoke.gd
 godot --headless --path . --script res://tests/inventory.gd
 godot --headless --path . --script res://tests/movement.gd
+godot --headless --path . --script res://tests/turns.gd
 godot --headless --fixed-fps 60 --path . --script res://tests/walk_cycle.gd
 godot --headless --path . --script res://tests/world.gd
 godot --headless --path . --script res://tests/nature.gd
@@ -72,7 +77,8 @@ En cloud, usa los directorios XDG escribibles indicados en las instrucciones del
 - `scripts/nature_variants.gd`: catálogo de tamaños, tonos y bases de colisión de árboles y rocas.
 - `scripts/world_view.gd`: suelo y decorados; `scripts/world_minimap.gd`: minimapa.
 - `scripts/turn_motion.gd`: giros (hasta 0.28 s; frenada máxima 35% en 180°, 8.75% en 90° y 2.19% en 45°).
-- `scripts/survivor_frames.gd`: animaciones desde los atlas de caminar y recolectar. Las diagonales usan la vista cardinal más cercana.
+- `scripts/survivor_frames.gd`: ocho vistas desde los atlas de caminar y reposo; giros mediante vistas intermedias.
+- `assets/characters/survivor_regions.gd`: recortes y anclajes anatómicos de los fotogramas del nuevo personaje.
 - `assets/environment/basic_forest_props.png`: árboles y rocas del primer bioma.
 - `shaders/quarantine_ground.gdshader`: suelo natural continuo; `shaders/atmosphere.gdshader`: sombreado ligero de bordes.
 

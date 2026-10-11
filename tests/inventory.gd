@@ -65,7 +65,7 @@ func run_checks() -> void:
 	game.bag.select_tool(&"axe")
 	require(not game.start_work(rock), "Axe does not mine rocks")
 	game.bag.select_tool(&"pickaxe")
-	require(game.start_work(rock) and str(game.character.animation).begins_with("mine_"), "Pickaxe has its own mining animation")
+	require(game.start_work(rock) and str(game.character.animation).begins_with("idle_"), "Mining works without a tool animation")
 	game.advance_work(0.7)
 	require(game.bag.equipment[&"hands"]["uses"] == 29, "Mining consumes a pickaxe use")
 	for i in 5:

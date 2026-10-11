@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c5fpnonnwpx22"
-path="res://.godot/imported/survivor_harvest.png-71eb9f9e81f3fe78c413fa51341e20ab.ctex"
+uid="uid://yfuciwbjx0rv"
+path="res://.godot/imported/survivor_idle_8dir.png-cbcf60754cbe6e5a27e28bcd8f28ef44.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/survivor_harvest.png"
-dest_files=["res://.godot/imported/survivor_harvest.png-71eb9f9e81f3fe78c413fa51341e20ab.ctex"]
+source_file="res://assets/characters/survivor_idle_8dir.png"
+dest_files=["res://.godot/imported/survivor_idle_8dir.png-cbcf60754cbe6e5a27e28bcd8f28ef44.ctex"]
 
 [params]
 

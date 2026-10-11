@@ -90,7 +90,7 @@ func rebuild_trees() -> void:
 		tree_sprites[cell] = sprite
 
 func update_trees(player: Vector2, delta: float) -> void:
-	var character_rect := Rect2(player + Vector2(-28, -49), Vector2(56, 70))
+	var character_rect := Rect2(player + Vector2(-28, -53), Vector2(56, 76))
 	for cell in tree_sprites.keys():
 		var sprite: Sprite2D = tree_sprites[cell]
 		if not world.props.has(cell):

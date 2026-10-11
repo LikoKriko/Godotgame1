@@ -24,14 +24,15 @@ func run_checks() -> void:
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	game.character.animation_looped.connect(func(): loops += 1)
-	var directions := [Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT, Vector2.UP]
-	var keys := [KEY_S, KEY_A, KEY_D, KEY_W]
-	var names := [&"down", &"left", &"right", &"up"]
-	for i in 4:
+	var directions := [Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2(1, 1).normalized(), Vector2(1, -1).normalized(), Vector2(-1, -1).normalized(), Vector2(-1, 1).normalized()]
+	var keys := [[KEY_S], [KEY_A], [KEY_D], [KEY_W], [KEY_S, KEY_D], [KEY_W, KEY_D], [KEY_W, KEY_A], [KEY_S, KEY_A]]
+	var names := [&"down", &"left", &"right", &"up", &"down_right", &"up_right", &"up_left", &"down_left"]
+	for i in 8:
 		game.restart()
 		game.movement.step(directions[i], 1.0, 220.0)
 		loops = 0
-		key(keys[i], true)
+		for code in keys[i]:
+			key(code, true)
 		var seen := {}
 		for frame in 90:
 			await process_frame
@@ -39,7 +40,8 @@ func run_checks() -> void:
 		require(seen.size() == 4, "Holding %s must advance all four walk frames; saw %s" % [names[i], seen.keys()])
 		require(loops >= 2, "Holding direction must loop the walk cycle")
 		require(game.player.length() > 200.0, "Player actually moved")
-		key(keys[i], false)
+		for code in keys[i]:
+			key(code, false)
 		for frame in 3:
 			await process_frame
 		require(game.character.animation == StringName("idle_" + names[i]), "Release stops walking and retains direction")
@@ -61,5 +63,5 @@ func run_checks() -> void:
 		await process_frame
 	require(not game.working, "Moving still cancels harvesting")
 	key(KEY_D, false)
-	print("PASS: %d sustained-walk checks: four directions, repeated cycles, release, collision and harvest cancellation" % checks)
+	print("PASS: %d sustained-walk checks: eight directions, repeated cycles, release, collision and harvest cancellation" % checks)
 	quit(0)

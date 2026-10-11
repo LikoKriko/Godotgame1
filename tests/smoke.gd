@@ -73,14 +73,14 @@ func run_checks() -> void:
 	Input.parse_input_event(input)
 	Input.flush_buffered_events()
 	game._process(0.01)
-	check(game.working and game.character.animation == &"harvest_right", "E starts directional harvesting")
+	check(game.working and game.character.animation == StringName("idle_" + game.movement.facing()), "E collects with a directional idle placeholder")
 	var release: InputEventKey = input.duplicate()
 	release.pressed = false
 	Input.parse_input_event(release)
 	Input.flush_buffered_events()
 	game.cancel_work()
 	var frames: SpriteFrames = game.character.sprite_frames
-	for direction in [&"down", &"left", &"right", &"up"]:
-		check(frames.get_frame_count("harvest_" + direction) == 4, "Four harvesting frames per direction")
+	for direction in preload("res://scripts/turn_motion.gd").FACINGS:
+		check(not frames.has_animation("harvest_" + direction) and not frames.has_animation("mine_" + direction), "Tool animation clips removed")
 	print("PASS: %d exploration checks: wood, minerals, scrap, animation, cancellation, range, inventory, progression, reset" % checks)
 	quit(0)
