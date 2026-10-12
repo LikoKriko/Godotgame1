@@ -7,7 +7,7 @@ const FOREARM := 9.0
 const CONTACT_EPSILON := 0.05
 const HAND_DEPTH := 6.0
 const MAX_ARM := 17.95
-const TOOL_LENGTHS := {&"": 0.0, &"axe": 25.0, &"pickaxe": 28.0, &"sword": 30.0, &"bow": 12.0}
+static var TOOL_LENGTHS := Tools.reach_lengths()
 const ANCHORS := {
 	&"down": [Vector2(-8,-20.5),Vector2(8,-20.5)],
 	&"down_right": [Vector2(-6.9,-20.5),Vector2(6.9,-20.5)],
@@ -267,4 +267,19 @@ func equip(player: Vector2, facing: StringName, item: StringName, phase: float, 
 			request = blend_hand(shoulder,belt,lifted,smoothstep(0,0.5,phase)) if phase < 0.5 else blend_hand(shoulder,lifted,held,smoothstep(0.5,1,phase))
 			rotation = (1.5 if item == &"axe" else 2.1)*(1-sweep)*(1 if active == 1 else -1)
 		set_limb(i,shoulder,request,player,item if i == active else &"",forward.rotated(rotation),i == active)
+	show()
+
+func gait(player: Vector2, facing: StringName, item: StringName, phase: float, amplitude: float) -> void:
+	if item in [&"axe",&"pickaxe"]:
+		ready_pose(player,facing,item)
+		return
+	position = player
+	state = {"facing": facing}
+	var active := 0 if facing in [&"left",&"up_left",&"down_left"] else 1
+	var direction := Vector2.from_angle(preload("res://scripts/turn_motion.gd").FACINGS.find(facing)*PI/4)
+	for i in 2:
+		var root: Vector2 = player+ANCHORS[facing][i]
+		var swing := cos(phase*TAU+(PI if i == 1 else 0))*amplitude
+		var target := root+Vector2(-2.5 if i == 0 else 2.5,16.0)-Vector2(direction.x,direction.y*0.5)*swing*4.5
+		set_limb(i,root,target,player,item if i == active else &"",rest_direction(facing,item),i == active or facing in [&"down",&"down_right",&"down_left",&"left",&"right"])
 	show()

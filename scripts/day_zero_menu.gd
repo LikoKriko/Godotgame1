@@ -17,18 +17,13 @@ func configure(model) -> void:
 	var background := TextureRect.new()
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var gradient := Gradient.new()
-	gradient.colors = PackedColorArray([Color("101713"),Color("253126"),Color("111813")])
-	gradient.offsets = PackedFloat32Array([0,0.65,1])
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.fill_from = Vector2.ZERO
-	texture.fill_to = Vector2(1,0.5)
-	background.texture = texture
+	background.texture = preload("res://assets/ui/day_zero_menu.png")
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	add_child(background)
 	options = VBoxContainer.new()
-	options.add_theme_constant_override("separation",24)
+	options.add_theme_constant_override("separation",20)
 	add_child(options)
 	play_button = button("Jugar",func(): play_requested.emit())
 	settings_button = button("Configuración",open_settings)
@@ -40,6 +35,7 @@ func configure(model) -> void:
 	add_child(title_area)
 	title = Label.new()
 	title.text = "DAY\nZERO"
+	title.hide()
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title.add_theme_color_override("font_color",Color("cbbf8b"))
@@ -54,8 +50,19 @@ func configure(model) -> void:
 func button(text: String, callback: Callable) -> Button:
 	var node := Button.new()
 	node.text = text
-	node.custom_minimum_size.y = 64
-	node.add_theme_font_size_override("font_size",28)
+	node.custom_minimum_size.y = 72
+	node.add_theme_font_size_override("font_size",32)
+	for state in ["normal","hover","pressed","focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.02,0.027,0.023,0.88) if state == "normal" else Color(0.065,0.082,0.062,0.94)
+		style.border_color = Color("4b4b32") if state == "normal" else Color("8b8655")
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(4)
+		style.content_margin_left = 20
+		style.shadow_color = Color(0,0,0,0.7)
+		style.shadow_size = 3
+		node.add_theme_stylebox_override(state,style)
+	node.add_theme_color_override("font_color",Color("deddd6"))
 	node.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	node.pressed.connect(callback)
 	options.add_child(node)
@@ -67,8 +74,13 @@ func set_resume(active: bool) -> void:
 	return_button.visible = active
 
 func fit() -> void:
-	options.position = Vector2(size.x*0.065,size.y*0.38)
-	options.size.x = size.x*0.27
+	options.position = Vector2(size.x*0.08,size.y*0.363)
+	options.size.x = size.x*0.30
+	var factor := minf(size.x/1920,size.y/1080)
+	options.add_theme_constant_override("separation",roundi(20*factor))
+	for node in options.get_children():
+		node.custom_minimum_size.y = 72*factor
+		node.add_theme_font_size_override("font_size",roundi(32*factor))
 	title_area.position = Vector2(size.x*0.4,0)
 	title_area.size = Vector2(size.x*0.6,size.y)
 	title.size = title_area.size

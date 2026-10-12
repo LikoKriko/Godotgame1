@@ -61,7 +61,7 @@ func run_checks() -> void:
 			key(code, false)
 		for frame in 3:
 			await process_frame
-		require(game.character.animation == StringName("idle_" + names[i]), "Release stops walking and retains direction")
+		require(game.character.animation in [StringName("idle_"+names[i]),StringName("work_"+names[i])] and not game.working, "Release stops walking and retains direction")
 	# The animation stops if the player keeps pushing against a wall.
 	game.restart()
 	game.player = Vector2(0, game.world.bounds.end.y - 64 - 15.01)
@@ -69,7 +69,7 @@ func run_checks() -> void:
 	key(KEY_S, true)
 	for frame in 12:
 		await process_frame
-	require(game.character.animation == &"idle_down", "No walking in place against a wall")
+	require(game.character.animation in [&"idle_down",&"work_down"] and not game.working, "No walking in place against a wall")
 	key(KEY_S, false)
 	game.restart()
 	var tree := Vector2i(-4, -3)

@@ -18,6 +18,12 @@ static func get_icon(id: StringName) -> Texture2D:
 			atlas.atlas = SHEET
 			atlas.region = Rect2(cell.position + used.position, used.size)
 			textures[ids[i]] = atlas
+		for i in 4:
+			var atlas := AtlasTexture.new()
+			atlas.atlas = preload("res://assets/items/food.png")
+			var data: Array = preload("res://assets/items/food_regions.gd").REGIONS[i]
+			atlas.region = Rect2(data[0],data[1],data[2],data[3])
+			textures[[&"apple",&"berries",&"ration",&"water"][i]] = atlas
 		var materials := [&"palo",&"cuerda",&"piedra"]
 		for i in materials.size():
 			var atlas := AtlasTexture.new()

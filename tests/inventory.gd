@@ -79,15 +79,15 @@ func run_checks() -> void:
 	game.bag.select_tool(&"sword")
 	game.player = Vector2.ZERO
 	var dummy := Target.new()
-	dummy.position = Vector2(35, 0)
+	dummy.position = Vector2(32, -12)
 	root.add_child(dummy)
 	dummy.add_to_group("damageable")
-	require(game.use_weapon(Vector2(35, 0)), "Sword action")
+	require(game.use_weapon(Vector2(32, -12)), "Sword action")
 	require(dummy.damage_received == 24 and game.bag.equipment[&"hands"]["uses"] == 39, "Sword affects combat targets and uses")
-	require(not game.use_weapon(Vector2(35, 0)), "Weapon cooldown enforced")
+	require(not game.use_weapon(Vector2(32, -12)), "Weapon cooldown enforced")
 	game.bag.select_tool(&"bow")
 	game.weapon_timer = 0
-	require(game.use_weapon(Vector2(35, 0)), "Bow shoots")
+	require(game.use_weapon(Vector2(32, -12)), "Bow shoots")
 	var arrows := get_nodes_in_group("player_arrows")
 	require(arrows.size() == 1 and game.bag.equipment[&"hands"]["uses"] == 59, "One arrow per bow use")
 	var arrow = arrows[0]
@@ -100,15 +100,15 @@ func run_checks() -> void:
 	require(dummy.damage_received == 42, "Arrow hits only combat target")
 	game.bag.select_tool(&"pickaxe")
 	game.weapon_timer = 0
-	require(not game.use_weapon(Vector2(35, 0)), "Pickaxe cannot attack")
+	require(not game.use_weapon(Vector2(32, -12)), "Pickaxe cannot attack")
 	game.bag.select_tool(&"axe")
-	require(not game.use_weapon(Vector2(35, 0)), "Axe cannot attack")
+	require(not game.use_weapon(Vector2(32, -12)), "Axe cannot attack")
 	game.bag.equipment[&"hands"]["uses"] = 0
 	game.player = game.resources.bounds(tree).position + Vector2(-24, 32)
 	require(not game.start_work(aim), "Broken equipped axe cannot start an action")
 	game.bag.select_tool(&"sword")
 	game.bag.equipment[&"hands"]["uses"] = 0
-	require(not game.use_weapon(Vector2(35, 0)), "Broken sword cannot attack")
+	require(not game.use_weapon(Vector2(32, -12)), "Broken sword cannot attack")
 	game.bag.select_tool(&"axe")
 	game.inventory_panel.show()
 	game.inventory_panel.fit_panel()

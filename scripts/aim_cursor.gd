@@ -16,7 +16,6 @@ func _draw() -> void:
 	var point := get_viewport().get_mouse_position()
 	var tint := Color("ebe7d5")
 	if game.resources.nodes.has(game.focused):
-		var pose := preload("res://scripts/arm_rig.gd").contact(game.player, game.get_global_mouse_position(), game.bag.held_id())
-		tint = Color("c6d5a3") if pose["reachable"] else Color("bca092")
+		tint = Color("c6d5a3") if game.resources.can_reach(game.focused,game.player) else Color("bca092")
 	draw_circle(point, 3, Color(0.05, 0.06, 0.05, 0.7))
 	draw_circle(point, 1.7, tint)

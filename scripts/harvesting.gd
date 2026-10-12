@@ -1,6 +1,6 @@
 extends RefCounted
 const Rig = preload("res://scripts/arm_rig.gd")
-const REACH := 76.0
+const REACH := 40.0
 const NONE := Vector2i(99999, 99999)
 const TYPES := {
 	0: {"name": "Maquinaria", "material": "chatarra", "hits": 3, "yield": 3, "branch": 3},
@@ -47,26 +47,33 @@ func target_at(point: Vector2) -> Vector2i:
 	var cell: Vector2i = meshes.target_at(point)
 	return cell if nodes.has(cell) else NONE
 
-func hit_at(aim: Vector2, tip: Vector2, shoulder: Vector2, player: Vector2, bonus: int = 0) -> Dictionary:
+func hit_at(aim: Vector2, _tip: Vector2, _shoulder: Vector2, player: Vector2, bonus: int = 0) -> Dictionary:
+	# Selection uses the whole visible silhouette. Reach uses distance to the
+	# physical base/footprint, independently of where on the sprite we point.
 	var cell := target_at(aim)
-	if cell == NONE or tip.distance_to(aim) > Rig.CONTACT_EPSILON:
+	if cell == NONE or not can_reach(cell,player):
 		return {"miss": true}
-	var item: StringName = &"" if bag == null else bag.held_id()
-	if shoulder.distance_to(tip) > Rig.MAX_ARM + Rig.TOOL_LENGTHS.get(item, 0.0) + 0.1:
-		return {"miss": true}
-	# Sample the strike path so a target cannot be harvested through another body.
-	var distance := shoulder.distance_to(aim)
-	for i in range(1, ceili(distance / 2.0)):
-		var point := shoulder.move_toward(aim, i * 2)
-		var blocked: Vector2i = world.cell_at(point)
-		for obstacle in world.collision_cells.get(blocked, []):
-			if obstacle != cell and world.prop_collisions[obstacle].has_point(point):
-				return {"miss": true, "blocked": true}
-	var result := hit(cell, player, bonus, true)
+	var impact := visual_aim(aim,player)
+	var result := hit(cell,player,bonus,true)
 	if result.is_empty():
 		return {"miss": true}
 	result["cell"] = cell
+	result["impact"] = impact
 	return result
+
+func distance_to(cell: Vector2i, player: Vector2) -> float:
+	if not nodes.has(cell):
+		return INF
+	var rect := bounds(cell)
+	return player.distance_to(player.clamp(rect.position,rect.end))
+
+func visual_aim(cursor: Vector2, player: Vector2) -> Vector2:
+	var cell := target_at(cursor)
+	if cell == NONE or not can_reach(cell,player):
+		return cursor
+	# Aim at a nearby part of the selected object, rather than reaching up to
+	# its canopy. The cursor still chooses which object receives the blow.
+	return meshes.nearest_surface(cell,player+Vector2(0,-15))
 
 func can_reach(cell: Vector2i, player: Vector2) -> bool:
 	if not nodes.has(cell):

@@ -29,7 +29,7 @@ static func approach(game, cell: Vector2i, item: StringName) -> Vector2:
 			if not game.world.walkable(player):
 				continue
 			var pose := Rig.contact(player,aim,item)
-			if not pose["reachable"]:
+			if not game.resources.can_reach(cell,player):
 				continue
 			var clear := true
 			for i in range(1,ceili(pose["shoulder"].distance_to(aim)/2)):

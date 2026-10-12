@@ -12,6 +12,7 @@ var forest_textures: Array[AtlasTexture] = []
 var detail_textures: Array[AtlasTexture] = []
 var grass_textures: Array[AtlasTexture] = []
 var grass_floor: Node2D
+var props_layer: Node2D
 var ground: Polygon2D
 var ground_material: ShaderMaterial
 var scuffs: Array[PackedVector2Array] = []
@@ -56,6 +57,11 @@ func configure(map) -> void:
 	grass_floor.material = foliage_material
 	add_child(grass_floor)
 	grass_floor.draw.connect(draw_floor_grass)
+	props_layer = Node2D.new()
+	props_layer.z_as_relative = false
+	props_layer.z_index = -2
+	add_child(props_layer)
+	props_layer.draw.connect(draw_props)
 
 func presentation(cell: Vector2i) -> Dictionary:
 	var kind: int = world.props[cell]
@@ -83,6 +89,8 @@ func refresh_ground() -> void:
 		ground_material.set_shader_parameter("stone_patch_%d" % i,Vector4(patch.get_center().x,patch.get_center().y,patch.size.x/2,patch.size.y/2))
 	if grass_floor != null:
 		grass_floor.queue_redraw()
+	if props_layer != null:
+		props_layer.queue_redraw()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = world.seed_value
 	scuffs.clear()
@@ -128,6 +136,7 @@ func register_impact(cell: Vector2i, point: Vector2, direction: Vector2, materia
 	for i in 5:
 		particles.append({"position": point, "velocity": Vector2.from_angle(i*TAU/5-PI/2)*22+Vector2(0,-12), "time": 0.25, "tint": tint})
 	queue_redraw()
+	props_layer.queue_redraw()
 
 func impulse_wave(cell: Vector2i) -> float:
 	if not impulses.has(cell):
@@ -182,6 +191,7 @@ func update_trees(player: Vector2, delta: float) -> void:
 			hit_meshes.set_transform(cell,rest.position+offset_for(cell),0,rest.size/record["texture_size"])
 	if had_effects:
 		queue_redraw()
+		props_layer.queue_redraw()
 
 func _draw() -> void:
 	if world == null:
@@ -195,16 +205,6 @@ func _draw() -> void:
 		draw_texture_rect(texture,Rect2(puddle["position"]-size/2,size),false,Color(0.84,0.87,0.85))
 	for scuff in scuffs:
 		draw_polyline(scuff,Color("444637"),2,false)
-	for cell in world.props:
-		var body: Rect2 = world.prop_collisions[cell]
-		draw_set_transform(body.get_center()+Vector2(0,body.size.y*0.2),0,Vector2(1,0.3))
-		draw_circle(Vector2.ZERO,body.size.x*0.65,Color(0.06,0.08,0.04,0.22))
-		draw_set_transform(Vector2.ZERO)
-		if world.props[cell] not in [2,4]:
-			var data := presentation(cell)
-			var rect: Rect2 = data["rect"]
-			rect.position += offset_for(cell)
-			draw_texture_rect(data["texture"],rect,false,data["tint"].lerp(Color.WHITE,absf(impulse_wave(cell))*0.15))
 	for particle in particles:
 		draw_rect(Rect2(particle["position"],Vector2(2,2)),particle["tint"])
 
@@ -213,3 +213,11 @@ func draw_floor_grass() -> void:
 		var texture: Texture2D = grass_textures[tuft["variant"]]
 		var size := Vector2(tuft["width"],tuft["width"]*texture.get_height()/texture.get_width())
 		grass_floor.draw_texture_rect(texture,Rect2(tuft["position"]-Vector2(size.x/2,size.y),size),false,Color.WHITE)
+
+func draw_props() -> void:
+	for cell in world.props:
+		if world.props[cell] not in [2,4]:
+			var data := presentation(cell)
+			var rect: Rect2 = data["rect"]
+			rect.position += offset_for(cell)
+			props_layer.draw_texture_rect(data["texture"],rect,false,data["tint"].lerp(Color.WHITE,absf(impulse_wave(cell))*0.15))

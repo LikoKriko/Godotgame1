@@ -1,6 +1,14 @@
 extends Node2D
 signal menu_requested
 var menu_open := false
+var day_cycle = preload("res://scripts/day_cycle.gd").new()
+var nutrition = preload("res://scripts/nutrition.gd").new()
+var solar_lighting: Node
+var survival_status: Control
+var gait: Node2D
+var original_head: Sprite2D
+var head_mask: ShaderMaterial
+var head_textures: Dictionary = {}
 var equipping := false
 var equip_elapsed := 0.0
 var last_tool_uid := -1
@@ -56,6 +64,13 @@ func _ready() -> void:
 	character.sprite_frames = preload("res://scripts/survivor_frames.gd").build()
 	character.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(character)
+	original_head = Sprite2D.new()
+	original_head.centered = false
+	original_head.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	add_child(original_head)
+	original_head.hide()
+	head_mask = ShaderMaterial.new()
+	head_mask.shader = preload("res://shaders/body_without_head.gdshader")
 	character.frame_changed.connect(sync_character)
 	character.animation_changed.connect(sync_character)
 	arm_rig = preload("res://scripts/arm_rig.gd").new()
@@ -137,10 +152,30 @@ func _ready() -> void:
 	var cursor := preload("res://scripts/aim_cursor.gd").new()
 	cursor.game = self
 	canvas.add_child(cursor)
+	survival_status = preload("res://scripts/survival_status.gd").new()
+	survival_status.configure(self)
+	canvas.add_child(survival_status)
+	inventory_panel.consume_requested.connect(consume_item)
+	gait = preload("res://scripts/walk_presentation.gd").new()
+	add_child(gait)
+	gait.configure(self)
+	solar_lighting = preload("res://scripts/solar_lighting.gd").new()
+	add_child(solar_lighting)
+	solar_lighting.configure(self)
 	restart()
+	fit_hud()
+
+func consume_item(index: int) -> void:
+	var result: Dictionary = nutrition.consume(bag,index)
+	inventory_panel.status.text = result["message"]
+	inventory_panel.refresh()
+	survival_status.update_status()
+	update_hud()
 
 func fit_hud() -> void:
 	var viewport_size := get_viewport_rect().size
+	if survival_status != null:
+		survival_status.position = Vector2(viewport_size.x-350,18)
 	interaction.position = Vector2(24, viewport_size.y - 84)
 	minimap.position = viewport_size - Vector2(264, 208)
 	skill_panel.position = (viewport_size - skill_panel.size) / 2
@@ -149,6 +184,10 @@ func restart() -> void:
 	world.generate(world.seed_value)
 	world_view.refresh_ground()
 	bag.reset()
+	for provision in [[&"apple",4],[&"berries",10],[&"ration",8],[&"water",8]]:
+		bag.add(provision[0],provision[1])
+	day_cycle.reset()
+	nutrition.reset()
 	resources.configure(world, bag, world_view.hit_meshes)
 	inventory_panel.refresh()
 	inventory_panel.hide()
@@ -167,6 +206,8 @@ func restart() -> void:
 	equipping = false
 	last_tool_uid = bag.equipment[&"hands"].get("uid",-1)
 	arm_rig.hide()
+	if gait != null:
+		gait.cancel()
 	work_elapsed = 0.0
 	focused = resources.NONE
 	feedback = ""
@@ -176,6 +217,9 @@ func restart() -> void:
 	camera.position = player
 	sync_character()
 	world_view.update_trees(player, 1.0)
+	if solar_lighting != null:
+		solar_lighting.update_light()
+		survival_status.update_status()
 	update_hud()
 	queue_redraw()
 
@@ -247,6 +291,9 @@ func _process(delta: float) -> void:
 	if is_paused():
 		character.pause()
 		return
+	if day_cycle.advance(delta) > 0:
+		nutrition.new_day()
+	nutrition.advance(delta,day_cycle.day_seconds)
 	weapon_timer = maxf(0, weapon_timer - delta)
 	feedback_time = maxf(0, feedback_time - delta)
 	impact_time = maxf(0, impact_time - delta)
@@ -286,12 +333,16 @@ func _process(delta: float) -> void:
 		advance_work(delta, aim)
 	world_view.update_trees(player, delta)
 	held_tool.update_pose(self)
-	if not working and not equipping and direction == Vector2.ZERO and bag.held_id() in [&"axe",&"pickaxe"]:
-		character.play(StringName("work_"+movement.facing()))
-		arm_rig.ready_pose(player,movement.facing(),bag.held_id())
-		held_tool.hide()
-	elif not working and not equipping:
-		arm_rig.hide()
+	gait.update_pose(delta)
+	if not gait.active() and not working and not equipping:
+		if direction == Vector2.ZERO and bag.held_id() in [&"axe",&"pickaxe"]:
+			character.play(StringName("work_"+movement.facing()))
+			arm_rig.ready_pose(player,movement.facing(),bag.held_id())
+			held_tool.hide()
+		else:
+			arm_rig.hide()
+	solar_lighting.update_light()
+	survival_status.update_status()
 	update_hud()
 	queue_redraw()
 
@@ -322,12 +373,12 @@ func start_work(aim: Vector2) -> bool:
 	work_elapsed = 0.0
 	hit_applied = false
 	work_duration = HARVEST_TIME / (1.0 + ranks[4] * 0.12)
-	movement.heading = (aim - player).angle()
+	movement.heading = (resources.visual_aim(aim,player) - player).angle()
 	movement.target_direction = Vector2.ZERO
 	character.speed_scale = 1.0
 	character.play(StringName("work_" + movement.facing()))
 	character.frame = 0
-	arm_rig.animate(player, aim, item, 0)
+	arm_rig.animate(player, resources.visual_aim(aim,player), item, 0)
 	return true
 
 func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
@@ -339,14 +390,14 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 	if is_finite(aim.x) and is_finite(aim.y):
 		work_aim = aim
 	work_elapsed += delta
-	movement.heading = (work_aim - player).angle()
+	movement.heading = (resources.visual_aim(work_aim,player) - player).angle()
 	character.play(StringName("work_" + movement.facing()))
 	var item: StringName = bag.held_id()
-	var pose: Dictionary = arm_rig.animate(player, work_aim, item, clampf(work_elapsed / work_duration, 0, 1))
+	var pose: Dictionary = arm_rig.animate(player, resources.visual_aim(work_aim,player), item, clampf(work_elapsed / work_duration, 0, 1))
 	if not hit_applied and work_elapsed >= work_duration * 0.5:
 		hit_applied = true
 		# Resolve the contact pose even when a long frame crosses the impact moment.
-		pose = arm_rig.animate(player, work_aim, item, 0.5)
+		pose = arm_rig.animate(player, resources.visual_aim(work_aim,player), item, 0.5)
 		if item in [&"sword", &"bow"]:
 			use_weapon(work_aim, true, pose)
 		else:
@@ -364,9 +415,9 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 					material = resources.nodes[result["cell"]]["material"]
 				else:
 					material = result.get("material", "madera")
-				impact_position = work_aim
+				impact_position = result.get("impact",work_aim)
 				impact_time = 0.18
-				world_view.register_impact(result["cell"], work_aim, pose["direction"], material, 0.3 if result.has("reason") else 1.0)
+				world_view.register_impact(result["cell"], impact_position, pose["direction"], material, 0.3 if result.has("reason") else 1.0)
 				if result.has("reason"):
 					feedback = "La mochila está llena." if result["reason"] == "mochila_llena" else "Usa manos para fibra/chatarra, hacha para madera y pico para piedras (las pequeñas se recogen a mano)."
 					feedback_time = 2
@@ -423,7 +474,7 @@ func clear_combat_path(target: Vector2) -> bool:
 
 func move_player(direction: Vector2, delta: float) -> void:
 	var previous := player
-	var velocity: Vector2 = movement.step(direction, delta, 220.0 + ranks[2] * 22.0)
+	var velocity: Vector2 = movement.step(direction, delta, (220.0 + ranks[2] * 22.0)*nutrition.speed_multiplier())
 	var motion := velocity * delta
 	player = world.move_actor(player, motion)
 	camera.position = player
@@ -438,7 +489,7 @@ func move_player(direction: Vector2, delta: float) -> void:
 		sync_character()
 		return
 	var animation := StringName(("walk_" if moving else "idle_") + movement.facing())
-	character.speed_scale = movement.speed_factor if moving else 1.0
+	character.speed_scale = movement.speed_factor*nutrition.speed_multiplier() if moving else 1.0
 	character.play(animation)
 	sync_character()
 
@@ -451,6 +502,23 @@ func sync_character() -> void:
 	var factor: float = frame_data.CHARACTER_HEIGHT / texture.region.size.y
 	character.scale = Vector2.ONE * factor
 	character.position = player + Vector2(0, 17 - (frame_data.BASELINE - frame_data.CANVAS.y / 2) * factor)
+	var work_view := str(character.animation).begins_with("work_")
+	character.material = head_mask if work_view else null
+	original_head.visible = work_view
+	if work_view:
+		head_mask.set_shader_parameter("head_bottom",player.y-22)
+		var facing: StringName = StringName(str(character.animation).trim_prefix("work_"))
+		var index: int = frame_data.DIRECTIONS.find(facing)
+		var data: Array = preload("res://assets/characters/survivor_regions.gd").IDLE[index]
+		var head_factor: float = 64.0/data[3]
+		if not head_textures.has(facing):
+			var atlas := AtlasTexture.new()
+			atlas.atlas = frame_data.IDLE_SHEET
+			atlas.region = Rect2(data[0],data[1],data[2],ceili(25/head_factor))
+			head_textures[facing] = atlas
+		original_head.texture = head_textures[facing]
+		original_head.scale = Vector2.ONE*head_factor
+		original_head.position = player+Vector2((data[0]-data[4])*head_factor,-47)
 
 func update_hud() -> void:
 	hud.text = "DAY ZERO · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d · Piedras %d · Palos %d · Fibra %d · Cuerda %d m\nWASD: moverse · Clic/E: golpear · I: inventario y fabricar\nEsc: menú · Tab: habilidades · R: reiniciar · F2: otro mapa" % [level, experience, level * 20, skill_points, bag.count(&"madera"), bag.count(&"piedra"), bag.count(&"palo"), bag.count(&"fibra"), bag.count(&"cuerda")]
@@ -470,11 +538,3 @@ func update_hud() -> void:
 	for i in skill_buttons.size():
 		skill_buttons[i].text = "%s %d/5 → %s" % [BRANCHES[i], ranks[i], effects[i]]
 		skill_buttons[i].disabled = skill_points <= 0 or ranks[i] >= 5
-
-func _draw() -> void:
-	draw_ellipse_shadow()
-
-func draw_ellipse_shadow() -> void:
-	draw_set_transform(player + Vector2(0, 17), 0, Vector2(1, 0.4))
-	draw_circle(Vector2.ZERO, 19, Color(0, 0, 0, 0.35))
-	draw_set_transform(Vector2.ZERO)

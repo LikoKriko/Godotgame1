@@ -1,5 +1,6 @@
 extends Control
 signal equipment_changed
+signal consume_requested(index: int)
 const Model = preload("res://scripts/inventory.gd")
 const Icons = preload("res://scripts/item_icons.gd")
 const Workshop = preload("res://scripts/workshop.gd")
@@ -198,7 +199,9 @@ func refresh() -> void:
 		item = model.slots[chosen]
 	elif chosen_gear != &"":
 		item = model.equipment[chosen_gear]
-	equip_button.disabled = chosen < 0 or item.is_empty() or Model.DEFINITIONS[item.get("id", &"madera")]["slot"] == &""
+	var consumable: bool = not item.is_empty() and (Model.DEFINITIONS[item["id"]].has("kcal") or Model.DEFINITIONS[item["id"]].has("water_ml"))
+	equip_button.text = ("Beber" if item.get("id",&"") == &"water" else "Comer") if consumable else "Equipar"
+	equip_button.disabled = chosen < 0 or item.is_empty() or (not consumable and Model.DEFINITIONS[item.get("id", &"madera")]["slot"] == &"")
 	remove_button.disabled = chosen_gear == &"" or item.is_empty()
 	repair_button.disabled = item.is_empty() or not Workshop.REPAIRS.has(item.get("id",&""))
 	details.text = "Selecciona un objeto.\n\nHerramientas y armas: Manos.\nMateriales: Mochila."
@@ -223,7 +226,12 @@ func select_gear(slot: StringName) -> void:
 func equip_selected() -> void:
 	if chosen < 0 or model.slots[chosen].is_empty():
 		return
-	var destination: StringName = Model.DEFINITIONS[model.slots[chosen]["id"]]["slot"]
+	var definition: Dictionary = Model.DEFINITIONS[model.slots[chosen]["id"]]
+	if definition.has("kcal") or definition.has("water_ml"):
+		consume_requested.emit(chosen)
+		refresh()
+		return
+	var destination: StringName = definition["slot"]
 	if model.equip(chosen, destination):
 		status.text = "Objeto equipado."
 		chosen = -1

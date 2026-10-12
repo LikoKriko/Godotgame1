@@ -19,7 +19,12 @@ func add(cell: Vector2i, texture: Texture2D, rect: Rect2, depth: float) -> void:
 		var bitmap := BitMap.new()
 		bitmap.create_from_image_alpha(texture.get_image(), 0.6)
 		var polygons := bitmap.opaque_to_polygons(Rect2i(Vector2i.ZERO, bitmap.get_size()), 3.0)
-		silhouettes[key] = {"bitmap": bitmap, "polygons": polygons}
+		var surface := PackedVector2Array()
+		for y in range(0,bitmap.get_size().y,6):
+			for x in range(0,bitmap.get_size().x,6):
+				if bitmap.get_bitv(Vector2i(x,y)):
+					surface.append(Vector2(x+0.5,y+0.5))
+		silhouettes[key] = {"bitmap": bitmap, "polygons": polygons, "surface": surface}
 	var source: Dictionary = silhouettes[key]
 	var area := Area2D.new()
 	area.collision_layer = 16
@@ -33,7 +38,7 @@ func add(cell: Vector2i, texture: Texture2D, rect: Rect2, depth: float) -> void:
 		shape.polygon = polygon
 		area.add_child(shape)
 	host.add_child(area)
-	targets[cell] = {"area": area, "bitmap": source["bitmap"], "depth": depth, "texture_size": texture.get_size(), "rest": rect}
+	targets[cell] = {"area": area, "bitmap": source["bitmap"], "depth": depth, "texture_size": texture.get_size(), "rest": rect, "surface": source["surface"]}
 	set_transform(cell, rect.position, 0.0, rect.size / texture.get_size())
 
 func set_transform(cell: Vector2i, origin: Vector2, rotation: float, scale: Vector2) -> void:
@@ -65,3 +70,20 @@ func remove(cell: Vector2i) -> void:
 		host.remove_child(targets[cell]["area"])
 		targets[cell]["area"].free()
 		targets.erase(cell)
+
+func nearest_surface(cell: Vector2i, point: Vector2) -> Vector2:
+	if not targets.has(cell):
+		return point
+	if contains(cell,point):
+		return point
+	var record: Dictionary = targets[cell]
+	var transform: Transform2D = record["area"].global_transform
+	var nearest := point
+	var distance := INF
+	for sample in record["surface"]:
+		var world_point: Vector2 = transform*sample
+		var candidate := point.distance_squared_to(world_point)
+		if candidate < distance:
+			distance = candidate
+			nearest = world_point
+	return nearest

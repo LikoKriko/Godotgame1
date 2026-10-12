@@ -1,5 +1,6 @@
 shader_type canvas_item;
 render_mode unshaded;
+uniform vec3 ambient_tint = vec3(1.0);
 
 uniform float map_seed = 73129.0;
 varying vec2 world_position;
@@ -80,5 +81,5 @@ void fragment() {
 	}
 	ground = mix(ground,vec3(0.205,0.237,0.209),edge*coverage*0.46);
 	ground += vec3(0.025,0.032,0.012)*lit*coverage;
-	COLOR = vec4(ground, 1.0);
+	COLOR = vec4(ground*ambient_tint, 1.0);
 }

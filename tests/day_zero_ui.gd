@@ -91,6 +91,23 @@ func run_checks() -> void:
 		await click(inventory.workshop_confirm)
 		require(game.bag.count(&"pickaxe") == 2 and game.bag.count(&"piedra") == 6 and game.bag.count(&"cuerda") == 1,"Mouse crafting creates a separate pickaxe with the exact recipe")
 		inventory.close_workshop()
+		var ration_index := -1
+		var water_index := -1
+		for i in game.bag.CAPACITY:
+			if game.bag.slots[i].get("id") == &"ration":
+				ration_index = i
+			if game.bag.slots[i].get("id") == &"water":
+				water_index = i
+		if ration_index >= 0:
+			await click(inventory.backpack_buttons[ration_index])
+			require(inventory.equip_button.text == "Comer" and inventory.backpack_buttons[ration_index].get_node("ItemIcon").texture != null,"Food shows its icon and eating action")
+			await click(inventory.equip_button)
+			require(game.nutrition.calories_today == 400 and game.bag.count(&"ration") == 7,"Real mouse click eats one ration")
+		if water_index >= 0:
+			game.nutrition.hydration_ml = 1000
+			await click(inventory.backpack_buttons[water_index])
+			await click(inventory.equip_button)
+			require(game.nutrition.hydration_ml == 1500 and game.bag.count(&"water") == 7,"Real mouse click drinks one bottle")
 		inventory.hide()
 		app.show_pause()
 		require(game.is_paused() and app.menu.visible,"Pause menu suspends the game")
