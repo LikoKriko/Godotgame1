@@ -56,7 +56,7 @@ func update_status() -> void:
 		if game.progression.skills[id] > 0:
 			state = "listo" if game.progression.cooldowns[id] <= 0 else "espera %.1f s" % game.progression.cooldowns[id]
 			if game.progression.active[id] > 0: state = "activo %.1f s" % game.progression.active[id]
-		skills_label.text += "%s: %s\n" % ["Z · Impulso" if id == &"speed" else "X · Golpe",state]
+		skills_label.text += "%s: %s\n" % ["Impulso" if id == &"speed" else "Golpe potenciado",state]
 	queue_redraw()
 func _draw() -> void:
 	var state: Dictionary = game.day_cycle.sun_state()

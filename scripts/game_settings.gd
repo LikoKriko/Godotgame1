@@ -1,6 +1,7 @@
 extends RefCounted
+signal changed
 const PATH := "user://day_zero_settings.cfg"
-const DEFAULTS := {"auto_run": false,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "msaa": 0, "window_mode": 0, "resolution": Vector2i(1920,1080)}
+const DEFAULTS := {"auto_run": false,"hud_size": 1,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "msaa": 0, "window_mode": 0, "resolution": Vector2i(1920,1080)}
 var values: Dictionary = DEFAULTS.duplicate()
 
 func load_settings() -> void:
@@ -9,6 +10,7 @@ func load_settings() -> void:
 		for key in DEFAULTS:
 			values[key] = config.get_value("settings",key,DEFAULTS[key])
 	values["auto_run"] = bool(values["auto_run"])
+	values["hud_size"] = clampi(int(values["hud_size"]),1,6)
 	for key in ["master","music","effects"]:
 		values[key] = clampf(float(values[key]),0,1)
 	values["fps"] = int(values["fps"]) if int(values["fps"]) in [0,30,60,120,144] else 60
@@ -23,6 +25,13 @@ func save_settings() -> Error:
 		config.set_value("settings",key,values[key])
 	return config.save(PATH)
 
+static func supports_msaa_2d() -> bool:
+	return RenderingServer.get_current_rendering_method() != "gl_compatibility"
+
+static func hud_scale(level: int) -> float:
+	# Area is width × height. Equal scaling on both axes uses its square root.
+	return sqrt(0.4*(1+0.2*(clampi(level,1,6)-1)))
+
 func apply(viewport: Viewport) -> void:
 	for pair in [["Master","master"],["Music","music"],["Effects","effects"]]:
 		var index := AudioServer.get_bus_index(pair[0])
@@ -35,17 +44,32 @@ func apply(viewport: Viewport) -> void:
 		AudioServer.set_bus_volume_db(index,linear_to_db(maxf(volume,0.0001)))
 		AudioServer.set_bus_mute(index,volume == 0)
 	Engine.max_fps = values["fps"]
+	if not supports_msaa_2d(): values["msaa"] = 0
 	viewport.msaa_2d = values["msaa"]
 	if DisplayServer.get_name() == "headless":
+		changed.emit()
 		return
-	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if values["vsync"] else DisplayServer.VSYNC_DISABLED)
-	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS,values["window_mode"] == 2)
-	DisplayServer.window_set_size(values["resolution"])
+	# Use one explicit render resolution in every screen mode. Fullscreen and
+	# borderless otherwise ignore window_set_size and render at desktop size.
+	var window := viewport.get_window()
+	window.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
+	window.content_scale_size = values["resolution"]
+	window.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
+	window.content_scale_factor = 1.0
+	# Update the Window node as well as the native window. Direct DisplayServer
+	# calls leave its position/size cached, desynchronizing render and UI input.
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if values["vsync"] else DisplayServer.VSYNC_DISABLED,window.get_window_id())
+	window.mode = Window.MODE_WINDOWED
+	window.borderless = values["window_mode"] == 2
+	window.size = values["resolution"]
 	if values["window_mode"] == 1:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		window.size = DisplayServer.screen_get_size(window.current_screen)
+		window.position = DisplayServer.screen_get_position(window.current_screen)
+		window.mode = Window.MODE_FULLSCREEN
 	elif values["window_mode"] == 2:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_MAXIMIZED)
+		window.size = DisplayServer.screen_get_size(window.current_screen)
+		window.position = DisplayServer.screen_get_position(window.current_screen)
 	else:
-		var screen := DisplayServer.screen_get_usable_rect()
-		DisplayServer.window_set_position(screen.position+(screen.size-values["resolution"])/2)
+		var screen := DisplayServer.screen_get_usable_rect(window.current_screen)
+		window.position = screen.position+(screen.size-window.size)/2
+	changed.emit()

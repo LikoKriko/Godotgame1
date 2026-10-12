@@ -255,6 +255,7 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 		var patch: Vector3 = leg["root"].lerp(leg["joint"],0.17)+Vector3(0,0,2.9)
 		ellipsoid(patch,Vector3(1.0,1.1,0.14),Color8(130,86,46))
 	if family == &"bow":
+		surface_tag = 4
 		var string_mid := (bow_ends[0]+bow_ends[1])/2
 		if state == &"action" and phase < 0.5:
 			string_mid = string_mid.lerp(pose["hands"][1],smoothstep(0.2,0.44,phase))
@@ -265,6 +266,7 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 			var arrow_axis := arrow_base.direction_to(pose["hands"][0]+Vector3(0,1,0))
 			tube([arrow_base,arrow_base+arrow_axis*12,arrow_base+arrow_axis*24],0.14,0.14,Color8(128,89,44),false,2)
 			ellipsoid(arrow_base+arrow_axis*24,Vector3(0.35,0.35,0.8),Color8(158,160,151))
+	surface_tag = 0
 	# Cord and small fabric patches remain attached to the pelvis/thigh surfaces.
 	for index in 24:
 		var a := index*TAU/24

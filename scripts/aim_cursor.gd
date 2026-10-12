@@ -13,7 +13,7 @@ func _process(_delta: float) -> void:
 func _draw() -> void:
 	if game.is_paused():
 		return
-	var point := get_viewport().get_mouse_position()
+	var point := preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
 	var tint := Color("ebe7d5")
 	if game.resources.nodes.has(game.focused):
 		tint = Color("c6d5a3") if game.resources.can_reach(game.focused,game.player) else Color("bca092")

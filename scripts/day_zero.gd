@@ -4,6 +4,8 @@ var menu: Control
 var game: Node2D
 
 func _ready() -> void:
+	if get_tree().get_nodes_in_group("pointer_coordinates").is_empty():
+		add_child(preload("res://scripts/pointer_coordinates.gd").new())
 	settings.load_settings()
 	settings.apply(get_viewport())
 	var layer := CanvasLayer.new()

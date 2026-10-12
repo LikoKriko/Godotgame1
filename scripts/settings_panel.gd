@@ -4,6 +4,8 @@ const RESOLUTIONS := [Vector2i(1280,720),Vector2i(1600,900),Vector2i(1920,1080),
 var settings
 var pending: Dictionary
 var volume_sliders: Dictionary = {}
+var hud_slider: HSlider
+var hud_value: Label
 var vsync: CheckButton
 var frame_limit: OptionButton
 var smoothing: OptionButton
@@ -37,6 +39,23 @@ func configure(model) -> void:
 	automatic.button_pressed = pending.get("auto_run",false)
 	automatic.toggled.connect(func(enabled): pending["auto_run"] = enabled)
 	gameplay.add_child(automatic)
+	var hud_row := HBoxContainer.new()
+	gameplay.add_child(hud_row)
+	var hud_label := Label.new()
+	hud_label.text = "Tamaño del HUD"
+	hud_label.custom_minimum_size.x = 230
+	hud_row.add_child(hud_label)
+	hud_slider = HSlider.new()
+	hud_slider.name = "HUDSize"
+	hud_slider.min_value = 1; hud_slider.max_value = 6; hud_slider.step = 1
+	hud_slider.tick_count = 6; hud_slider.ticks_on_borders = true
+	hud_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hud_row.add_child(hud_slider)
+	hud_value = Label.new(); hud_value.custom_minimum_size.x = 104
+	hud_row.add_child(hud_value)
+	hud_slider.value_changed.connect(func(value): pending["hud_size"] = int(value); hud_value.text = "%d · %d%% área" % [value,roundi(40*(1+0.2*(value-1)))])
+	hud_slider.value = pending["hud_size"]
+	hud_value.text = "%d · %d%% área" % [hud_slider.value,roundi(40*(1+0.2*(hud_slider.value-1)))]
 	var graphics := page(tabs,"Gráficos")
 	var sound := page(tabs,"Audio")
 	for pair in [["Volumen general","master"],["Música","music"],["Efectos","effects"]]:
@@ -64,6 +83,11 @@ func configure(model) -> void:
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sound.add_child(note)
 	smoothing = option(graphics,"Suavizado de bordes",["Desactivado (pixel art)","MSAA 2×","MSAA 4×"])
+	if not settings.supports_msaa_2d():
+		pending["msaa"] = 0
+		smoothing.set_item_disabled(1,true)
+		smoothing.set_item_disabled(2,true)
+		smoothing.tooltip_text = "MSAA 2D no está disponible con el renderizador de compatibilidad."
 	smoothing.select(pending["msaa"])
 	smoothing.item_selected.connect(func(index): pending["msaa"] = index)
 	frame_limit = option(graphics,"Límite de fotogramas",["30 FPS","60 FPS","120 FPS","144 FPS","Sin límite"])

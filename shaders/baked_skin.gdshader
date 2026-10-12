@@ -2,11 +2,14 @@ shader_type spatial;
 render_mode unshaded, cull_disabled;
 uniform bool protect_bow_arm = false;
 uniform bool debug_left_arm = false;
+uniform bool debug_right_arm = false;
 uniform sampler2D body_mask : filter_nearest;
 uniform sampler2D head_reference : filter_nearest;
 uniform vec4 reference_rect;
 void fragment() {
-	if (protect_bow_arm && UV.x > 0.5 && UV.x < 1.5 && texture(body_mask,SCREEN_UV).a > 0.5) discard;
+	// Both arms and the procedural cord/arrow belong behind the back in upper views.
+	bool bow_part = (UV.x > 0.5 && UV.x < 2.5) || UV.x > 3.5;
+	if (protect_bow_arm && bow_part && texture(body_mask,SCREEN_UV).a > 0.5) discard;
 	float diffuse = max(dot(normalize(NORMAL), normalize(vec3(-0.25,0.7,0.6))),0.0);
 	float light = 0.80 + floor(diffuse*4.0)/4.0*0.25;
 	vec3 skin = COLOR.rgb;
@@ -20,5 +23,6 @@ void fragment() {
 			skin = COLOR.rgb*shade;
 		}
 	}
-	ALBEDO = debug_left_arm && UV.x > 0.5 && UV.x < 1.5 ? vec3(1,0,1) : skin * light;
+	bool marked = (debug_left_arm && UV.x > 0.5 && UV.x < 1.5) || (debug_right_arm && UV.x > 1.5 && UV.x < 2.5);
+	ALBEDO = marked ? vec3(1,0,1) : skin * light;
 }

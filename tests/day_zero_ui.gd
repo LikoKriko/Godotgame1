@@ -15,7 +15,7 @@ func settle() -> void:
 	await process_frame
 func click(button: Control) -> void:
 	await settle()
-	var point := button.get_global_rect().get_center()
+	var point := root.get_final_transform()*button.get_global_transform_with_canvas()*(button.size/2)
 	Input.warp_mouse(point)
 	for pressed in [true,false]:
 		var event := InputEventMouseButton.new()
@@ -46,12 +46,14 @@ func run_checks() -> void:
 		automatic.button_pressed = false
 		await click(automatic)
 		require(screen.pending["auto_run"],"Real click activates automatic running in Juego")
+		screen.hud_slider.value = 6
+		require(screen.pending["hud_size"] == 6,"Juego offers the HUD size slider")
 		screen.volume_sliders["music"].value = 25
 		screen.pending["fps"] = 120
 		screen.apply_changes()
 		var saved = Settings.new()
 		saved.load_settings()
-		require(saved.values["music"] == 0.25 and saved.values["fps"] == 120 and saved.values["auto_run"],"Sound and graphics preferences survive reload")
+		require(saved.values["music"] == 0.25 and saved.values["fps"] == 120 and saved.values["auto_run"] and saved.values["hud_size"] == 6,"Sound and graphics preferences survive reload")
 		require(is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Music"))),0.25),"Music slider applies to the audio bus")
 		app.menu.close_settings()
 	await click(app.menu.play_button)
@@ -59,6 +61,7 @@ func run_checks() -> void:
 	if is_instance_valid(app.game):
 		var game = app.game
 		require(game.gameplay_settings == app.settings and game.gameplay_settings.values["auto_run"],"Game receives the saved automatic-run preference")
+		require(game.survival_status.scale.is_equal_approx(Vector2.ONE*Settings.hud_scale(6)),"Saved HUD scale applies when gameplay starts")
 		game.set_process(false)
 		game.bag.add(&"piedra",10)
 		game.bag.add(&"palo",10)

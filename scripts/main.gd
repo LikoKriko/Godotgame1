@@ -43,6 +43,7 @@ var world = preload("res://scripts/test_world.gd").new()
 var terrain = world.terrain
 var world_view: Node2D
 var minimap: Control
+var world_map: Control
 var player := Vector2.ZERO
 var experience := 0
 var level := 1
@@ -54,6 +55,8 @@ var hud: Label
 var hud_backdrop: Panel
 
 func _ready() -> void:
+	if get_tree().get_nodes_in_group("pointer_coordinates").is_empty():
+		add_child(preload("res://scripts/pointer_coordinates.gd").new())
 	world.generate(WORLD_SEED)
 	world_view = preload("res://scripts/world_view.gd").new()
 	world_view.configure(world)
@@ -83,19 +86,21 @@ func _ready() -> void:
 	atmosphere.material = atmosphere_material
 	canvas.add_child(atmosphere)
 	hud_backdrop = Panel.new()
-	hud_backdrop.position = Vector2(6, 4)
 	hud_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var hud_style := StyleBoxFlat.new()
 	hud_style.bg_color = Color(0.09, 0.115, 0.09, 0.90)
 	hud_style.set_corner_radius_all(4)
+	hud_style.set_border_width_all(1)
+	hud_style.border_color = Color("676952")
 	hud_backdrop.add_theme_stylebox_override("panel", hud_style)
 	canvas.add_child(hud_backdrop)
 	hud = Label.new()
-	hud.position = Vector2(18, 12)
+	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_theme_font_size_override("font_size", 24)
 	canvas.add_child(hud)
 	interaction = Label.new()
 	interaction.add_theme_font_size_override("font_size", 22)
+	interaction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(interaction)
 	minimap = preload("res://scripts/world_minimap.gd").new()
 	minimap.world = world
@@ -107,6 +112,10 @@ func _ready() -> void:
 	bag.reset()
 	inventory_panel.configure(bag,self)
 	inventory_panel.equipment_changed.connect(func(): cancel_work(); update_hud())
+	world_map = preload("res://scripts/world_map.gd").new()
+	canvas.add_child(world_map)
+	world_map.configure(self)
+	gameplay_settings.changed.connect(fit_hud)
 	get_viewport().size_changed.connect(fit_hud)
 	fit_hud()
 	var cursor := preload("res://scripts/aim_cursor.gd").new()
@@ -141,10 +150,20 @@ func fit_hud() -> void:
 	var viewport_size := get_viewport_rect().size
 	if camera != null:
 		camera.zoom = Vector2.ONE*1.95*minf(viewport_size.x/1920.0,viewport_size.y/1080.0)
+	var factor: float = gameplay_settings.hud_scale(gameplay_settings.values["hud_size"])
 	if survival_status != null:
-		survival_status.position = Vector2(viewport_size.x-350,18)
-	interaction.position = Vector2(24, viewport_size.y - 84)
-	minimap.position = viewport_size - Vector2(264, 208)
+		survival_status.scale = Vector2.ONE*factor
+		survival_status.position = viewport_size-Vector2(18,18)-survival_status.size*factor
+	minimap.scale = Vector2.ONE*1.25*factor
+	minimap.position = Vector2(viewport_size.x-18-200*minimap.scale.x,18+24*minimap.scale.y)
+	hud.scale = Vector2.ONE*factor
+	hud.size = hud.get_combined_minimum_size()
+	hud_backdrop.scale = Vector2.ONE*factor
+	hud_backdrop.size = hud.size+Vector2(24,18)
+	hud_backdrop.position = Vector2((viewport_size.x-hud_backdrop.size.x*factor)/2,viewport_size.y-18-hud_backdrop.size.y*factor)
+	hud.position = hud_backdrop.position+Vector2(12,9)*factor
+	interaction.scale = Vector2.ONE*factor
+	interaction.position = Vector2(24,viewport_size.y-18-110*factor)
 
 func restart() -> void:
 	running = false
@@ -159,6 +178,7 @@ func restart() -> void:
 	resources.configure(world, bag, world_view.hit_meshes)
 	inventory_panel.refresh()
 	inventory_panel.hide()
+	world_map.hide()
 	for arrow in get_tree().get_nodes_in_group("player_arrows"):
 		arrow.queue_free()
 	weapon_timer = 0.0
@@ -237,12 +257,19 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		menu_requested.emit()
 		get_viewport().set_input_as_handled()
 		return
+	if event.keycode == KEY_M:
+		cancel_work()
+		inventory_panel.hide()
+		world_map.open_map()
+		get_viewport().set_input_as_handled()
+		return
 	if event.keycode in [KEY_I,KEY_T,KEY_TAB]:
 		cancel_work()
+		world_map.hide()
 		inventory_panel.open_section(1 if event.keycode == KEY_T else (2 if event.keycode == KEY_TAB else 0))
 		update_hud()
 		return
-	if inventory_panel.visible:
+	if inventory_panel.visible or world_map.visible:
 		return
 	if event.keycode in [KEY_Z,KEY_X]:
 		activate_skill(&"speed" if event.keycode == KEY_Z else &"power")
@@ -269,7 +296,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	update_hud()
 
 func is_paused() -> bool:
-	return menu_open or inventory_panel.visible
+	return menu_open or inventory_panel.visible or world_map.visible
 
 func start_jump() -> bool:
 	if progression.health <= 0 or is_paused() or not locomotion.jump():
@@ -326,7 +353,7 @@ func _process(delta: float) -> void:
 			equipping = false
 			arm_rig.hide()
 			character.play(StringName("idle_"+facing))
-	var aim := get_global_mouse_position()
+	var aim := get_canvas_transform().affine_inverse()*preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
 	focused = resources.target_at(aim)
 	var pressed := Input.is_physical_key_pressed(KEY_E) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	if direction == Vector2.ZERO and not working and not equipping and pressed:
@@ -532,15 +559,11 @@ func sync_character() -> void:
 	character.position = player + Vector2(0, 17 - (frame_data.BASELINE - frame_data.CANVAS.y / 2) * factor)
 
 func update_hud() -> void:
-	hud.text = "DAY ZERO · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d · Piedras %d · Palos %d · Fibra %d · Cuerda %d m\nWASD: moverse · Clic/E: golpear · I: inventario · T: creación\nEsc: menú · Tab: habilidades · Z/X: activar · R: reiniciar · F2: otro mapa" % [level, experience, level * 20, skill_points, bag.count(&"madera"), bag.count(&"piedra"), bag.count(&"palo"), bag.count(&"fibra"), bag.count(&"cuerda")]
-	var held: Dictionary = bag.equipment[&"hands"]
-	hud.text += "\nManos: %s · 1 Espada / 2 Arco / 3 Pico / 4 Hacha / 0 Vaciar" % ("Libres" if held.is_empty() else "%s [%d usos]" % [bag.DEFINITIONS[held["id"]]["name"], held["uses"]])
-	hud_backdrop.size = hud.get_combined_minimum_size() + Vector2(24, 18)
-	interaction.text = "Clic/E: golpear · Shift: correr · Ctrl: agachar / deslizar corriendo · Espacio: saltar"
-	if resources.nodes.has(focused):
-		var node: Dictionary = resources.nodes[focused]
-		interaction.text = "%s · Golpes restantes %d/%d · Clic / E" % [node["name"], node["remaining"], node["hits"]]
-	if feedback_time > 0:
-		interaction.text += "\n" + feedback
+	var text := "Inventario (I) · Crear (T) · Mapa (M)"
+	if hud.text != text:
+		hud.text = text
+		fit_hud()
+	# Feedback remains informational; no extra key instructions are shown.
+	interaction.text = feedback if feedback_time > 0 else ""
 	minimap.player = player
 	minimap.queue_redraw()

@@ -24,8 +24,8 @@
 					"path": "res://assets/characters/complete/axe_crouch.png"
 				},
 				"crouch_walk": {
-					"directions": 8,
-					"frames": 12,
+					"directions": 8.0,
+					"frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/axe_crouch_walk.png"
 				},
@@ -311,8 +311,8 @@
 					"path": "res://assets/characters/complete/bare_crouch.png"
 				},
 				"crouch_walk": {
-					"directions": 8,
-					"frames": 12,
+					"directions": 8.0,
+					"frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bare_crouch_walk.png"
 				},
@@ -587,8 +587,8 @@
 			"category": "bow",
 			"clips": {
 				"action": {
-					"directions": 16.0,
-					"frames": 16.0,
+					"directions": 16,
+					"frames": 16,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_action.png",
 					"release_anchors": [
@@ -659,8 +659,8 @@
 					]
 				},
 				"crouch": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_crouch.png"
 				},
@@ -671,266 +671,266 @@
 					"path": "res://assets/characters/complete/bow_crouch_walk.png"
 				},
 				"equip": {
-					"directions": 16.0,
-					"frames": 6.0,
+					"directions": 16,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_equip.png"
 				},
 				"idle": {
-					"directions": 16.0,
-					"frames": 1.0,
+					"directions": 16,
+					"frames": 1,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_idle.png"
 				},
 				"jump": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_jump.png"
 				},
 				"run": {
-					"directions": 8.0,
-					"frames": 12.0,
+					"directions": 8,
+					"frames": 12,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_run.png"
 				},
 				"slide": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_slide.png"
 				},
 				"start": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_start.png"
 				},
 				"start_run": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_start_run.png"
 				},
 				"stop_00": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_00.png"
 				},
 				"stop_01": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_01.png"
 				},
 				"stop_02": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_02.png"
 				},
 				"stop_03": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_03.png"
 				},
 				"stop_04": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_04.png"
 				},
 				"stop_05": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_05.png"
 				},
 				"stop_06": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_06.png"
 				},
 				"stop_07": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_07.png"
 				},
 				"stop_08": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_08.png"
 				},
 				"stop_09": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_09.png"
 				},
 				"stop_10": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_10.png"
 				},
 				"stop_11": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_11.png"
 				},
 				"stop_run_00": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_00.png"
 				},
 				"stop_run_01": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_01.png"
 				},
 				"stop_run_02": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_02.png"
 				},
 				"stop_run_03": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_03.png"
 				},
 				"stop_run_04": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_04.png"
 				},
 				"stop_run_05": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_05.png"
 				},
 				"stop_run_06": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_06.png"
 				},
 				"stop_run_07": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_07.png"
 				},
 				"stop_run_08": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_08.png"
 				},
 				"stop_run_09": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_09.png"
 				},
 				"stop_run_10": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_10.png"
 				},
 				"stop_run_11": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_11.png"
 				},
 				"stop_run_start_00": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_start_00.png"
 				},
 				"stop_run_start_01": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_start_01.png"
 				},
 				"stop_run_start_02": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_start_02.png"
 				},
 				"stop_run_start_03": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_start_03.png"
 				},
 				"stop_run_start_04": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_start_04.png"
 				},
 				"stop_run_start_05": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_run_start_05.png"
 				},
 				"stop_start_00": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_start_00.png"
 				},
 				"stop_start_01": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_start_01.png"
 				},
 				"stop_start_02": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_start_02.png"
 				},
 				"stop_start_03": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_start_03.png"
 				},
 				"stop_start_04": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_start_04.png"
 				},
 				"stop_start_05": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_stop_start_05.png"
 				},
 				"walk": {
-					"directions": 8.0,
-					"frames": 12.0,
+					"directions": 8,
+					"frames": 12,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bow_walk.png"
 				}
@@ -952,8 +952,8 @@
 					"path": "res://assets/characters/complete/pickaxe_crouch.png"
 				},
 				"crouch_walk": {
-					"directions": 8,
-					"frames": 12,
+					"directions": 8.0,
+					"frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/pickaxe_crouch_walk.png"
 				},
@@ -1239,8 +1239,8 @@
 					"path": "res://assets/characters/complete/sword_crouch.png"
 				},
 				"crouch_walk": {
-					"directions": 8,
-					"frames": 12,
+					"directions": 8.0,
+					"frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/sword_crouch_walk.png"
 				},

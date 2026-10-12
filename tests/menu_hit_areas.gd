@@ -8,22 +8,28 @@ func require(value: bool,message: String) -> void:
 		failures += 1
 		push_error(message)
 func settle() -> void:
-	await process_frame
-	await process_frame
+	# Include native warp delivery and the corrected event dispatched next frame.
+	for i in 4: await process_frame
 func hover(button: Control,local: Vector2) -> bool:
-	var event := InputEventMouseMotion.new()
-	event.position = button.get_global_transform_with_canvas()*local
-	event.global_position = event.position
-	Input.parse_input_event(event)
-	Input.flush_buffered_events()
+	var point := root.get_final_transform()*button.get_global_transform_with_canvas()*local
+	if DisplayServer.get_name() == "X11":
+		# Exercise actual focus, native movement and the engine's GUI dispatch.
+		var screen := point+Vector2(root.position)
+		var arguments := PackedStringArray([ProjectSettings.globalize_path("res://tests/native_pointer.py"),str(DisplayServer.window_get_native_handle(DisplayServer.WINDOW_HANDLE)),str(roundi(screen.x)),str(roundi(screen.y))])
+		require(OS.execute("python3",arguments) == 0,"Native pointer delivery")
+	else:
+		Input.warp_mouse(point)
+		var event := InputEventMouseMotion.new()
+		event.position = point; event.global_position = point
+		Input.parse_input_event(event); Input.flush_buffered_events()
 	await settle()
 	return root.gui_get_hovered_control() == button
 func boundaries(button: Control) -> void:
 	await settle()
 	for point in [Vector2(2,2),Vector2(button.size.x-2,2),button.size-Vector2(2,2),Vector2(2,button.size.y-2),button.size/2]:
-		require(await hover(button,point),"Visible button interior receives hover at "+str(point))
+		require(await hover(button,point),"Visible button interior receives hover: %s size=%s native_size=%s point=%s actual=%s" % [button.get_path(),root.size,button.size,point,root.gui_get_hovered_control()])
 	for point in [Vector2(-2,button.size.y/2),Vector2(button.size.x+2,button.size.y/2),Vector2(button.size.x/2,-2),Vector2(button.size.x/2,button.size.y+2)]:
-		require(not await hover(button,point),"Outside the painted border never receives hover")
+		require(not await hover(button,point),"Outside the painted border never receives hover: %s size=%s point=%s" % [button.get_path(),root.size,point])
 func run() -> void:
 	var app = load("res://scenes/day_zero.tscn").instantiate()
 	root.add_child(app)
