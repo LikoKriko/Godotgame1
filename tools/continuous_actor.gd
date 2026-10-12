@@ -101,9 +101,10 @@ func integrated_head(torso: Transform3D,actor_basis: Basis,direction: int,pose_s
 	var source := Rect2(HEADS[index].x-105,HEADS[index].y,210,130)
 	body_material.set_shader_parameter("head_reference",HAIR_VIEWS)
 	body_material.set_shader_parameter("reference_rect",Vector4(source.position.x/HAIR_VIEWS.get_width(),source.position.y/HAIR_VIEWS.get_height(),source.size.x/HAIR_VIEWS.get_width(),source.size.y/HAIR_VIEWS.get_height()))
-	# Neck joins torso and head. Only 35% of the torso bob reaches the head.
-	var lowered := pose_state in [&"crouch",&"slide",&"jump"]
-	var point := torso*Vector3(0,56.4,0) if lowered else Vector3(0,56.4,0)+torso.origin*0.35
+	# Neck joins torso and head. Only 45% of the torso bob reaches the head.
+	var lowered := pose_state in [&"crouch",&"crouch_walk",&"slide",&"jump"]
+	var head_motion := torso.origin if lowered else torso.origin*0.45
+	var point := torso.basis*Vector3(0,56.4,0)+head_motion
 	var center := actor_basis*point+Vector3(0,0,4.2)
 	head_center = center
 	var inverse := actor_basis.inverse()
@@ -228,7 +229,7 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 		ellipsoid(torso*Vector3(side*1.5,32.8,2.7),Vector3(1.55,1.6,0.4),SKIN,torso.basis)
 		ellipsoid(torso*Vector3(side*3.2,41.0,4.0),Vector3(0.35,0.3,0.18),SKIN.darkened(0.23),torso.basis)
 	ellipsoid(torso*Vector3(0,27.7,0),Vector3(7.2,3.5,3.5),CLOTH,torso.basis)
-	integrated_head(torso,actor_basis,direction,pose["state"])
+	integrated_head(torso,actor_basis,direction,state)
 	surface.generate_normals()
 	core_mesh.mesh = surface.commit()
 	core_mesh.basis = actor_basis

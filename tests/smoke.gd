@@ -39,9 +39,9 @@ func run_checks() -> void:
 	game.advance_work(0.1)
 	game.cancel_work()
 	check(game.resources.nodes[tree]["remaining"] == 3, "Cancel before impact causes no damage")
-	game.skills_open = true
+	game.inventory_panel.open_section(2)
 	check(not game.start_work(aim), "Panel blocks collection")
-	game.skills_open = false
+	game.inventory_panel.hide()
 	work(game, tree)
 	check(game.resources.inventory["madera"] == 4, "Wood enters inventory")
 	check(not game.world.props.has(tree) and game.world.walkable(game.world.center(tree)), "Depleted tree frees passage")
@@ -53,8 +53,8 @@ func run_checks() -> void:
 		for x in 2:
 			check(game.world.walkable(game.world.center(rock + Vector2i(x, y))), "Entire rock footprint released")
 	check(game.level == 2 and game.skill_points == 1, "Gathering earns experience and a skill point")
-	game.upgrade(0)
-	check(game.ranks[0] == 1 and game.skill_points == 0, "Gathering upgrade")
+	game.buy_improvement(&"speed",true)
+	check(game.progression.skills[&"speed"] == 1 and game.skill_points == 0, "Shared level point unlocks an ability")
 	var machine: Vector2i = game.resources.NONE
 	for cell in game.resources.nodes:
 		if game.resources.nodes[cell]["material"] == "chatarra":

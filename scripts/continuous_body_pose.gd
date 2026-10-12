@@ -40,6 +40,8 @@ static func gesture(rest: Vector3, windup: Vector3, impact: Vector3, phase: floa
 
 static func sample(family: StringName, state: StringName, phase: float, stop_phase: float = 0.20, stop_amplitude: float = 1.0) -> Dictionary:
 	phase = clampf(phase,0,1)
+	var crouch_walking := state == &"crouch_walk"
+	if crouch_walking: state = &"walk"
 	var running := state == &"run" or String(state).ends_with("_run")
 	if state == &"run": state = &"walk"
 	elif state == &"start_run": state = &"start"
@@ -49,7 +51,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var walk_phase := phase if state == &"walk" else (stop_phase if state == &"stop" else 0.0)
 	if state == &"stop": amplitude *= stop_amplitude
 	var bounce := -2.2-1.4*cos(walk_phase*TAU*2) if walking else 0.0
-	var compression := phase*6.0 if state == &"crouch" else 0.0
+	var compression := 6.0 if crouch_walking else (phase*6.0 if state == &"crouch" else 0.0)
 	if state == &"slide": compression = 8*sin(phase*PI)
 	if state == &"jump": compression = 1.4*sin(phase*PI)
 	var action := state == &"action"

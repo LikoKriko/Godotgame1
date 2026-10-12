@@ -4,9 +4,11 @@ var clock: Label
 var nutrition_label: Label
 var hydration: ProgressBar
 var hydration_label: Label
+var health_label: Label
+var skills_label: Label
 func configure(owner_game) -> void:
 	game = owner_game
-	custom_minimum_size = Vector2(330,190)
+	custom_minimum_size = Vector2(330,256)
 	size = custom_minimum_size
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var panel := Panel.new()
@@ -32,6 +34,8 @@ func configure(owner_game) -> void:
 	hydration.add_theme_stylebox_override("fill",fill)
 	hydration.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hydration)
+	health_label = make_label(Vector2(14,178),16)
+	skills_label = make_label(Vector2(14,206),14)
 	update_status()
 func make_label(point: Vector2, font_size: int) -> Label:
 	var label := Label.new()
@@ -45,6 +49,14 @@ func update_status() -> void:
 	nutrition_label.text = "60 kg · %d / 1600 kcal hoy\nVelocidad: −%d%%" % [game.nutrition.calories_today,roundi(game.nutrition.speed_penalty()*100)]
 	hydration_label.text = "Hidratación: %d / 2000 ml" % roundi(game.nutrition.hydration_ml)
 	hydration.value = game.nutrition.hydration_ml
+	health_label.text = "Vida: %.0f / %.0f" % [game.progression.health,game.progression.max_health()]
+	skills_label.text = ""
+	for id in game.progression.skills:
+		var state := "sin desbloquear"
+		if game.progression.skills[id] > 0:
+			state = "listo" if game.progression.cooldowns[id] <= 0 else "espera %.1f s" % game.progression.cooldowns[id]
+			if game.progression.active[id] > 0: state = "activo %.1f s" % game.progression.active[id]
+		skills_label.text += "%s: %s\n" % ["Z · Impulso" if id == &"speed" else "X · Golpe",state]
 	queue_redraw()
 func _draw() -> void:
 	var state: Dictionary = game.day_cycle.sun_state()

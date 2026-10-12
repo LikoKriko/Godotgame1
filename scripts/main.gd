@@ -6,6 +6,7 @@ var nutrition = preload("res://scripts/nutrition.gd").new()
 var solar_lighting: Node
 var survival_status: Control
 var gameplay_settings = preload("res://scripts/game_settings.gd").new()
+var progression = preload("res://scripts/progression.gd").new()
 var running := false
 const RUN_MULTIPLIER := 1.6
 var full_avatar: Sprite2D
@@ -17,7 +18,6 @@ var last_tool_uid := -1
 
 const TILE := 64
 const WORLD_SEED := 73129
-const BRANCHES := ["Silvicultura", "Minería", "Agilidad", "Reciclaje", "Ritmo", "Sabiduría"]
 const HARVEST_TIME := 0.6
 var bag = preload("res://scripts/inventory.gd").new()
 var inventory_panel: Control
@@ -47,15 +47,11 @@ var player := Vector2.ZERO
 var experience := 0
 var level := 1
 var skill_points := 0
-var ranks: Array[int] = [0, 0, 0, 0, 0, 0]
-var skills_open := false
 var camera: Camera2D
 var character: AnimatedSprite2D
 var movement = preload("res://scripts/turn_motion.gd").new()
 var hud: Label
 var hud_backdrop: Panel
-var skill_panel: PanelContainer
-var skill_buttons: Array[Button] = []
 
 func _ready() -> void:
 	world.generate(WORLD_SEED)
@@ -109,36 +105,9 @@ func _ready() -> void:
 	inventory_panel = preload("res://scripts/inventory_panel.gd").new()
 	canvas.add_child(inventory_panel)
 	bag.reset()
-	inventory_panel.configure(bag)
+	inventory_panel.configure(bag,self)
 	inventory_panel.equipment_changed.connect(func(): cancel_work(); update_hud())
-	skill_panel = PanelContainer.new()
-	var skill_style := StyleBoxFlat.new()
-	skill_style.bg_color = Color("252b23")
-	skill_style.content_margin_left = 16
-	skill_style.content_margin_right = 16
-	skill_style.content_margin_top = 12
-	skill_style.content_margin_bottom = 12
-	skill_panel.add_theme_stylebox_override("panel", skill_style)
-	skill_panel.size = Vector2(700, 440)
-	canvas.add_child(skill_panel)
-	var box := VBoxContainer.new()
-	skill_panel.add_child(box)
-	var title := Label.new()
-	title.text = "HABILIDADES · 6 ramas × 5 rangos\nCada rango requiere el anterior y un punto."
-	title.add_theme_font_size_override("font_size", 22)
-	box.add_child(title)
-	for i in BRANCHES.size():
-		var button := Button.new()
-		button.add_theme_font_size_override("font_size", 22)
-		button.pressed.connect(upgrade.bind(i))
-		box.add_child(button)
-		skill_buttons.append(button)
-	var hint := Label.new()
-	hint.text = "Pulsa Tab para volver al mundo."
-	hint.add_theme_font_size_override("font_size", 20)
-	box.add_child(hint)
 	get_viewport().size_changed.connect(fit_hud)
-	skill_panel.resized.connect(fit_hud)
 	fit_hud()
 	var cursor := preload("res://scripts/aim_cursor.gd").new()
 	cursor.game = self
@@ -176,7 +145,6 @@ func fit_hud() -> void:
 		survival_status.position = Vector2(viewport_size.x-350,18)
 	interaction.position = Vector2(24, viewport_size.y - 84)
 	minimap.position = viewport_size - Vector2(264, 208)
-	skill_panel.position = (viewport_size - skill_panel.size) / 2
 
 func restart() -> void:
 	running = false
@@ -201,7 +169,7 @@ func restart() -> void:
 	experience = 0
 	level = 1
 	skill_points = 0
-	ranks = [0, 0, 0, 0, 0, 0]
+	progression.reset()
 	working = false
 	equipping = false
 	last_tool_uid = bag.equipment[&"hands"].get("uid",-1)
@@ -213,7 +181,6 @@ func restart() -> void:
 	feedback = ""
 	feedback_time = 0.0
 	impact_time = 0.0
-	skills_open = false
 	camera.position = player
 	sync_character()
 	present_rest_pose()
@@ -226,15 +193,30 @@ func restart() -> void:
 	update_hud()
 	queue_redraw()
 
-func upgrade(branch: int) -> void:
-	if working or skill_points <= 0 or ranks[branch] >= 5:
-		return
-	skill_points -= 1
-	ranks[branch] += 1
+func buy_improvement(id: StringName, ability: bool) -> bool:
+	var spent: int = progression.purchase(id,ability,skill_points)
+	if spent == 0: return false
+	skill_points -= spent
+	if survival_status != null: survival_status.update_status()
 	update_hud()
+	return true
+
+func activate_skill(id: StringName) -> bool:
+	if menu_open or working or equipping: return false
+	var success: bool = progression.activate(id)
+	if success and survival_status != null: survival_status.update_status()
+	return success
+
+func combat_damage(base: float) -> float:
+	return progression.combat_damage(base)
+
+func take_damage(amount: float) -> void:
+	progression.take_damage(amount)
+	if progression.health <= 0: cancel_work(); running = false
+	survival_status.update_status()
 
 func gain_experience(amount: int) -> void:
-	experience += int(amount * (1.0 + ranks[5] * 0.2))
+	experience += amount
 	while experience >= level * 20:
 		experience -= level * 20
 		level += 1
@@ -252,21 +234,18 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo():
 		return
 	if event.keycode == KEY_ESCAPE:
-		if skills_open:
-			skills_open = false
-			update_hud()
-		else:
-			menu_requested.emit()
+		menu_requested.emit()
 		get_viewport().set_input_as_handled()
 		return
-	if event.keycode == KEY_I:
+	if event.keycode in [KEY_I,KEY_T,KEY_TAB]:
 		cancel_work()
-		skills_open = false
-		inventory_panel.refresh()
-		inventory_panel.show()
+		inventory_panel.open_section(1 if event.keycode == KEY_T else (2 if event.keycode == KEY_TAB else 0))
 		update_hud()
 		return
 	if inventory_panel.visible:
+		return
+	if event.keycode in [KEY_Z,KEY_X]:
+		activate_skill(&"speed" if event.keycode == KEY_Z else &"power")
 		return
 	if event.keycode == KEY_SPACE:
 		start_jump()
@@ -282,10 +261,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		if bag.held_id() != &"" and not bag.unequip(&"hands"):
 			feedback = "La mochila está llena."
 			feedback_time = 2
-	if event.keycode == KEY_TAB:
-		skills_open = not skills_open
-		if skills_open:
-			cancel_work()
 	if event.keycode == KEY_F2:
 		world.seed_value += 1
 		restart()
@@ -294,10 +269,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	update_hud()
 
 func is_paused() -> bool:
-	return menu_open or skills_open or inventory_panel.visible
+	return menu_open or inventory_panel.visible
 
 func start_jump() -> bool:
-	if is_paused() or not locomotion.jump():
+	if progression.health <= 0 or is_paused() or not locomotion.jump():
 		return false
 	cancel_work()
 	equipping = false
@@ -309,7 +284,7 @@ func start_slide() -> bool:
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN))-float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 	if input_direction == Vector2.ZERO:
 		input_direction = movement.target_direction
-	if is_paused() or not running or not locomotion.slide(input_direction):
+	if progression.health <= 0 or is_paused() or not running or not locomotion.slide(input_direction):
 		return false
 	cancel_work()
 	equipping = false
@@ -319,6 +294,7 @@ func _process(delta: float) -> void:
 	if is_paused():
 		character.pause()
 		return
+	progression.advance(delta)
 	locomotion.advance(delta,Input.is_physical_key_pressed(KEY_CTRL) and not locomotion.sliding())
 	if day_cycle.advance(delta) > 0:
 		nutrition.new_day()
@@ -337,8 +313,8 @@ func _process(delta: float) -> void:
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 	if direction != Vector2.ZERO and working:
 		cancel_work()
-	running = direction != Vector2.ZERO and not working and not equipping and not locomotion.airborne() and not locomotion.sliding() and locomotion.crouch < 0.01 and (gameplay_settings.values["auto_run"] or Input.is_physical_key_pressed(KEY_SHIFT))
-	if not working and not equipping:
+	running = progression.health > 0 and direction != Vector2.ZERO and not working and not equipping and not locomotion.airborne() and not locomotion.sliding() and locomotion.crouch < 0.01 and (gameplay_settings.values["auto_run"] or Input.is_physical_key_pressed(KEY_SHIFT))
+	if not working and not equipping and progression.health > 0:
 		move_player(direction, delta)
 	if equipping:
 		equip_elapsed += delta
@@ -392,7 +368,7 @@ func cancel_work() -> void:
 	present_rest_pose()
 
 func start_work(aim: Vector2) -> bool:
-	if is_paused() or working or equipping or locomotion.airborne() or locomotion.sliding():
+	if progression.health <= 0 or is_paused() or working or equipping or locomotion.airborne() or locomotion.sliding():
 		return false
 	var item: StringName = bag.held_category()
 	if item != &"" and not bag.usable():
@@ -408,7 +384,7 @@ func start_work(aim: Vector2) -> bool:
 	working = true
 	work_elapsed = 0.0
 	hit_applied = false
-	work_duration = preload("res://scripts/action_motion.gd").DURATION.get(item,HARVEST_TIME) / (1.0 + ranks[4] * 0.12)
+	work_duration = preload("res://scripts/action_motion.gd").DURATION.get(item,HARVEST_TIME)
 	movement.heading = (resources.visual_aim(aim,player) - player).angle()
 	movement.target_direction = Vector2.ZERO
 	character.speed_scale = 1.0
@@ -451,10 +427,7 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 			use_weapon(work_aim, true, pose)
 		else:
 			work_target = resources.target_at(work_aim)
-			var bonus := 0
-			if resources.nodes.has(work_target):
-				bonus = ranks[resources.nodes[work_target]["branch"]]
-			var result: Dictionary = resources.hit_at(work_aim, pose["tip"], pose["shoulder"], player, bonus)
+			var result: Dictionary = resources.hit_at(work_aim, pose["tip"], pose["shoulder"], player, 0)
 			if result.get("miss", false):
 				feedback = "Golpe al aire." if not result.get("blocked", false) else "Hay un obstáculo delante."
 				feedback_time = 1
@@ -487,7 +460,7 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 		cancel_work()
 
 func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {}) -> bool:
-	if (working and not from_strike) or is_paused() or weapon_timer > 0 or not bag.usable():
+	if progression.health <= 0 or (working and not from_strike) or is_paused() or weapon_timer > 0 or not bag.usable():
 		return false
 	var id: StringName = bag.held_category()
 	if id not in [&"sword", &"bow"]:
@@ -503,7 +476,7 @@ func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {
 		for victim in get_tree().get_nodes_in_group("damageable"):
 			if victim is Node2D and victim.has_method("take_damage"):
 				if pose["reachable"] and victim.global_position.distance_to(target) <= 18 and clear_combat_path(victim.global_position):
-					victim.take_damage(24.0)
+					victim.take_damage(combat_damage(24.0))
 	else:
 		var arrow := preload("res://scripts/arrow.gd").new()
 		arrow.world = world
@@ -526,10 +499,10 @@ func clear_combat_path(target: Vector2) -> bool:
 
 func move_player(direction: Vector2, delta: float) -> void:
 	var previous := player
-	var velocity: Vector2 = movement.step(direction, delta, (70.0 + ranks[2] * 7.0)*nutrition.speed_multiplier()*(RUN_MULTIPLIER if running else 1.0))
+	var velocity: Vector2 = movement.step(direction, delta, 70.0*progression.speed_multiplier()*nutrition.speed_multiplier()*(RUN_MULTIPLIER if running else 1.0))
 	if locomotion.sliding():
 		movement.step(locomotion.slide_direction,delta,220)
-	velocity = locomotion.velocity(velocity,nutrition.speed_multiplier())
+	velocity = locomotion.velocity(velocity,nutrition.speed_multiplier()*progression.speed_multiplier())
 	var motion := velocity * delta
 	player = world.move_actor(player, motion)
 	camera.position = player
@@ -559,7 +532,7 @@ func sync_character() -> void:
 	character.position = player + Vector2(0, 17 - (frame_data.BASELINE - frame_data.CANVAS.y / 2) * factor)
 
 func update_hud() -> void:
-	hud.text = "DAY ZERO · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d · Piedras %d · Palos %d · Fibra %d · Cuerda %d m\nWASD: moverse · Clic/E: golpear · I: inventario y fabricar\nEsc: menú · Tab: habilidades · R: reiniciar · F2: otro mapa" % [level, experience, level * 20, skill_points, bag.count(&"madera"), bag.count(&"piedra"), bag.count(&"palo"), bag.count(&"fibra"), bag.count(&"cuerda")]
+	hud.text = "DAY ZERO · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d · Piedras %d · Palos %d · Fibra %d · Cuerda %d m\nWASD: moverse · Clic/E: golpear · I: inventario · T: creación\nEsc: menú · Tab: habilidades · Z/X: activar · R: reiniciar · F2: otro mapa" % [level, experience, level * 20, skill_points, bag.count(&"madera"), bag.count(&"piedra"), bag.count(&"palo"), bag.count(&"fibra"), bag.count(&"cuerda")]
 	var held: Dictionary = bag.equipment[&"hands"]
 	hud.text += "\nManos: %s · 1 Espada / 2 Arco / 3 Pico / 4 Hacha / 0 Vaciar" % ("Libres" if held.is_empty() else "%s [%d usos]" % [bag.DEFINITIONS[held["id"]]["name"], held["uses"]])
 	hud_backdrop.size = hud.get_combined_minimum_size() + Vector2(24, 18)
@@ -571,8 +544,3 @@ func update_hud() -> void:
 		interaction.text += "\n" + feedback
 	minimap.player = player
 	minimap.queue_redraw()
-	skill_panel.visible = skills_open
-	var effects := ["+1 madera por árbol", "+1 piedra por roca", "+22 velocidad", "+1 chatarra por máquina", "+12% ritmo de trabajo", "+20% experiencia"]
-	for i in skill_buttons.size():
-		skill_buttons[i].text = "%s %d/5 → %s" % [BRANCHES[i], ranks[i], effects[i]]
-		skill_buttons[i].disabled = skill_points <= 0 or ranks[i] >= 5

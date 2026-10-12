@@ -6,6 +6,7 @@ var direction := Vector2.RIGHT
 var stretch := 1.0
 var strength := 0.0
 var textures: Dictionary = {}
+var prop_masks: Dictionary = {}
 var mask_viewport: SubViewport
 var mask: Node2D
 var avatar: Node2D
@@ -98,29 +99,61 @@ func standalone(texture: Texture2D) -> Texture2D:
 	# Isolate the crop so soft edges cannot sample neighbouring atlas sprites.
 	var key := texture.get_instance_id()
 	if not textures.has(key):
+		if textures.size() >= 512: textures.clear()
 		var pixels: Image = texture.atlas.get_image().get_region(Rect2i(texture.region)) if texture is AtlasTexture else texture.get_image()
 		textures[key] = ImageTexture.create_from_image(pixels)
 	return textures[key]
 
+# The visible trunk/stone, rather than the collision footprint or padded bitmap,
+# defines the contact row. Cache each raster so this never scans pixels per frame.
+static func contact_row(pixels: Image, kind: int) -> int:
+	var width := pixels.get_width()
+	var height := pixels.get_height()
+	if kind in [1,2,4]:
+		for y in range(height-1,height/2-1,-1):
+			for x in range(int(width*0.25),int(width*0.75)):
+				var color := pixels.get_pixel(x,y)
+				if color.a < 0.8: continue
+				var bright := maxf(color.r,maxf(color.g,color.b))
+				var dark := minf(color.r,minf(color.g,color.b))
+				var body := color.r > color.g*1.05 and color.r > color.b*1.15 if kind in [2,4] else bright-dark < bright*0.28
+				if bright > 0.2 and body: return mini(height-1,y+1)
+	for y in range(height-1,-1,-1):
+		for x in width:
+			if pixels.get_pixel(x,y).a >= 0.8: return y
+	return height-1
+
+func shadow_info(texture: Texture2D, kind: int) -> Dictionary:
+	var key := "%d:%d" % [texture.get_instance_id(),kind]
+	if not prop_masks.has(key):
+		if prop_masks.size() >= 512: prop_masks.clear()
+		var pixels: Image = standalone(texture).get_image()
+		var height := contact_row(pixels,kind)+1
+		var cropped := pixels.get_region(Rect2i(0,0,pixels.get_width(),height))
+		prop_masks[key] = {"texture":ImageTexture.create_from_image(cropped),"fraction":height/float(pixels.get_height())}
+	return prop_masks[key]
+
+func prop_geometry(cell: Vector2i) -> Dictionary:
+	var view: Node2D = game.world_view
+	var data: Dictionary = view.presentation(cell)
+	var info := shadow_info(data["texture"],game.world.props[cell])
+	var texture: Texture2D = info["texture"]
+	var rect: Rect2 = data["rect"]
+	rect.size.y *= info["fraction"]
+	if view.tree_sprites.has(cell):
+		var transform: Transform2D = view.tree_sprites[cell].global_transform
+		var foot := Vector2(texture.get_width()/2.0,texture.get_height())
+		return {"texture":texture,"rect":Rect2(Vector2.ZERO,texture.get_size()),"transform":transform,"base":transform*foot}
+	rect.position += view.offset_for(cell)
+	return {"texture":texture,"rect":rect,"transform":Transform2D.IDENTITY,"base":Vector2(rect.get_center().x,rect.end.y)}
+
 func _draw() -> void:
-	if game == null or strength <= 0.001:
-		return
+	if game == null or strength <= 0.001: return
 	var view: Node2D = game.world_view
 	var viewport_world := Rect2(game.camera.get_screen_center_position()-game.get_viewport_rect().size/game.camera.zoom/2,game.get_viewport_rect().size/game.camera.zoom).grow(850)
 	for cell in game.world.props:
-		var data: Dictionary = view.presentation(cell)
-		var rect: Rect2 = data["rect"]
-		if not viewport_world.intersects(rect):
-			continue
-		var base := Vector2(rect.get_center().x,rect.end.y)
-		var texture: Texture2D = standalone(data["texture"])
-		if view.tree_sprites.has(cell):
-			var sprite: Sprite2D = view.tree_sprites[cell]
-			draw_set_transform_matrix(projection(base)*sprite.global_transform)
-			draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
-		else:
-			var displaced: Rect2 = rect
-			displaced.position += view.offset_for(cell)
-			draw_set_transform_matrix(projection(base))
-			draw_texture_rect(texture,displaced,false)
+		if not viewport_world.intersects(view.presentation(cell)["rect"]): continue
+		var data := prop_geometry(cell)
+		draw_set_transform_matrix(projection(data["base"])*data["transform"])
+		draw_texture_rect(data["texture"],data["rect"],false)
 	draw_set_transform_matrix(Transform2D.IDENTITY)

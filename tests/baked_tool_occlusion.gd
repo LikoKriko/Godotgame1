@@ -86,9 +86,23 @@ func run() -> void:
 			push_error("Bowstring must face the archer, not the target")
 	actor.build(&"",&"",&"idle",0,0)
 	var rest_head: Vector3 = actor.head_center
+	var head_range := 0.0
 	for phase in 12:
 		actor.build(&"",&"",&"walk",phase/12.0,0)
-		if absf(actor.head_center.y-rest_head.y) > 1.3: failures += 1
+		head_range = maxf(head_range,absf(actor.head_center.y-rest_head.y))
+		if absf(actor.head_center.y-rest_head.y) > 1.8: failures += 1
+	if head_range < 0.3:
+		failures += 1
+		push_error("Walking head must have restrained visible motion")
+	for state in [&"run",&"crouch_walk"]:
+		for phase in 12:
+			actor.build(&"",&"",state,phase/12.0,0)
+			var torso: Transform3D = actor.last_pose.body
+			var anchor := torso.basis*Vector3(0,56.4,0)+torso.origin*(1.0 if state == &"crouch_walk" else 0.45)
+			var expected := Basis(Vector3.UP,PI/2)*anchor+Vector3(0,0,4.2)
+			if not actor.head_center.is_equal_approx(expected):
+				failures += 1
+				push_error("Head follows torso inclination without stretching the neck")
 	if actor.get_children().filter(func(node): return node is Sprite3D).size() != 1:
 		failures += 1
 		push_error("Only the tool may remain a Sprite3D: head and body must share a mesh")

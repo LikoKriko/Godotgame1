@@ -54,7 +54,7 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 	for direction in directions:
 		var row := []
 		for frame in count:
-			var phase := frame/float(count) if state in [&"walk",&"run"] else (frame/float(count-1) if count > 1 else 0.0)
+			var phase := frame/float(count) if state in [&"walk",&"run",&"crouch_walk"] else (frame/float(count-1) if count > 1 else 0.0)
 			if state == &"action": phase = frame/16.0 if frame <= 8 else 0.5+(frame-8)/14.0
 			actor.build(item,family,state,phase,direction*(16/directions),0.0 if from_start else (stop_frame/12.0 if stop_frame >= 0 else 0.20),smoothstep(0,1,stop_frame/5.0) if from_start else 1.0)
 			await protect_body(item,direction*(16/directions))
@@ -122,10 +122,10 @@ func run() -> void:
 			var key := "bare" if item == &"" else String(item)
 			clips = manifest["items"][key]["clips"].duplicate(true)
 			for name in selected_clips:
-				if name not in ["jump","crouch","slide"]:
-					push_error("Partial export currently supports jump,crouch,slide only")
+				if name not in ["jump","crouch","slide","crouch_walk"]:
+					push_error("Partial export currently supports jump,crouch,slide,crouch_walk only")
 					quit(1); return
-				clips[name] = await sheet(item,family,StringName(name),6,8)
+				clips[name] = await sheet(item,family,StringName(name),12 if name == "crouch_walk" else 6,8)
 			manifest["items"][key]["clips"] = clips
 			var partial := FileAccess.open(path,FileAccess.WRITE)
 			partial.store_string(JSON.stringify(manifest,"\t"))
@@ -134,6 +134,7 @@ func run() -> void:
 		clips["idle"] = await sheet(item,family,&"idle",1,16)
 		if item == &"": manifest["pixels_per_world"] = clips["idle"]["body_height"]/64.0
 		clips["walk"] = await sheet(item,family,&"walk",12,8)
+		clips["crouch_walk"] = await sheet(item,family,&"crouch_walk",12,8)
 		clips["run"] = await sheet(item,family,&"run",12,8)
 		clips["start_run"] = await sheet(item,family,&"start_run",6,8)
 		for source in 12:

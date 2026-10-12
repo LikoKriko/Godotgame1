@@ -19,7 +19,7 @@ func _process(delta: float) -> void:
 			return
 		for target in get_tree().get_nodes_in_group("damageable"):
 			if target is Node2D and target.has_method("take_damage") and target.global_position.distance_to(global_position) < 18:
-				target.take_damage(damage)
+				target.take_damage(game.combat_damage(damage) if game != null else damage)
 				queue_free()
 				return
 

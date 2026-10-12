@@ -37,6 +37,10 @@ func run() -> void:
 			for source in 6:
 				var stop := Image.load_from_file(ProjectSettings.globalize_path(clips["stop_start_%02d" % source]["path"]))
 				require(same(frame(stop,0,row),frame(start,source,row)),"Early release preserves the partial starting stride")
+		var crouched := Image.load_from_file(ProjectSettings.globalize_path(clips["crouch_walk"]["path"]))
+		require(clips["crouch_walk"]["frames"] == 12 and clips["crouch_walk"]["directions"] == 8,"Crouched walking has twelve full frames in each direction")
+		for row in 8:
+			require(not same(frame(crouched,0,row),frame(crouched,6,row)),"Crouched walking alternates distinct half strides")
 		var run_image := Image.load_from_file(ProjectSettings.globalize_path(clips["run"]["path"]))
 		var run_start := Image.load_from_file(ProjectSettings.globalize_path(clips["start_run"]["path"]))
 		require(clips["run"]["frames"] == 12 and not same(frame(run_image,3,0),frame(walk,3,0)),"Run has twelve distinct running poses, not accelerated walk frames")
@@ -54,6 +58,12 @@ func run() -> void:
 		var pose := Pose.sample(&"",&"walk",i/12.0)
 		for leg in pose["legs"]:
 			require(is_equal_approx(leg["root"].distance_to(leg["joint"]),Pose.THIGH) and is_equal_approx(leg["joint"].distance_to(leg["end"]),Pose.SHIN),"Leg bones retain their lengths throughout the stride")
+	for i in 12:
+		var crouch := Pose.sample(&"",&"crouch_walk",i/12.0)
+		var upright := Pose.sample(&"",&"walk",i/12.0)
+		require(is_equal_approx(upright.body.origin.y-crouch.body.origin.y,6),"Crouched walking stays lowered throughout its gait")
+		for leg in crouch.legs:
+			require(is_equal_approx(leg.root.distance_to(leg.joint),Pose.THIGH) and is_equal_approx(leg.joint.distance_to(leg.end),Pose.SHIN),"Bent legs stay joined and keep their anatomical lengths")
 	var before := Pose.sample(&"",&"walk",0)
 	var after := Pose.sample(&"",&"walk",0.5)
 	require(before["legs"][0]["end"].z > before["legs"][1]["end"].z and after["legs"][0]["end"].z < after["legs"][1]["end"].z,"Legs pass each other instead of translating together")

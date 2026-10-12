@@ -84,8 +84,13 @@ func update_pose(delta: float) -> void:
 		progress = game.locomotion.slide_elapsed/game.locomotion.SLIDE_SECONDS
 		was_moving = false
 	elif game.locomotion.crouch > 0.01:
-		clip = &"crouch"
-		progress = game.locomotion.crouch
+		if moving and game.locomotion.crouch > 0.95:
+			clip = &"crouch_walk"
+			phase = fposmod(phase+delta/WALK_SECONDS*game.locomotion.speed_factor()*game.nutrition.speed_multiplier()*game.progression.speed_multiplier(),1)
+			progress = phase
+		else:
+			clip = &"crouch"
+			progress = game.locomotion.crouch
 		was_moving = false
 	elif moving:
 		if not was_moving:
@@ -99,7 +104,7 @@ func update_pose(delta: float) -> void:
 			progress = clampf(transition_elapsed/START_SECONDS,0,1)
 		else:
 			clip = &"run" if game.running else &"walk"
-			phase = fposmod(phase+delta/(0.45 if game.running else WALK_SECONDS)*game.movement.speed_factor*game.nutrition.speed_multiplier()*(1+game.ranks[2]*0.1),1)
+			phase = fposmod(phase+delta/(0.45 if game.running else WALK_SECONDS)*game.movement.speed_factor*game.nutrition.speed_multiplier()*game.progression.speed_multiplier(),1)
 			progress = phase
 	else:
 		if was_moving:

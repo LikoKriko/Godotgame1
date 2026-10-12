@@ -7,6 +7,12 @@ const Workshop = preload("res://scripts/workshop.gd")
 const LABELS := {&"head": "Cabeza", &"torso": "Torso", &"legs": "Piernas", &"hands": "Manos", &"feet": "Pies"}
 const ABBREV := {&"madera": "MAD", &"mineral": "MIN", &"piedra": "PIE", &"palo": "PAL", &"cuerda": "CUE", &"chatarra": "CHA", &"fibra": "FIB", &"helmet": "CAS", &"suit": "TRA", &"trousers": "PAN", &"boots": "BOT"}
 var model
+var game
+var panel_heading: Label
+var navigation: TabBar
+var inventory_page: Control
+var creation_page: Control
+var sections: Array[Control] = []
 var panel: Panel
 var content: Control
 var backpack_buttons: Array[Button] = []
@@ -26,11 +32,10 @@ var workshop_item: Label
 var workshop_materials: Label
 var workshop_message: Label
 var workshop_confirm: Button
-var workshop_mode := ""
 var repair_uid := -1
-var craft_id: StringName = &"pickaxe"
 
-func configure(inventory) -> void:
+func configure(inventory, owner_game = null) -> void:
+	game = owner_game
 	theme = preload("res://scripts/ui_style.gd").theme()
 	model = inventory
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -49,7 +54,7 @@ func configure(inventory) -> void:
 	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.size = Vector2(600,600)
 	panel.add_child(content)
-	label("INVENTARIO", Vector2(14, 12), 19)
+	panel_heading = label("INVENTARIO", Vector2(14, 12), 19)
 	var close := preload("res://scripts/menu_button.gd").new()
 	close.text = "×"
 	close.position = Vector2(548, 10)
@@ -110,6 +115,7 @@ func configure(inventory) -> void:
 		button.pressed.connect(select_backpack.bind(i))
 		backpack_buttons.append(button)
 	status = label("I / Esc: cerrar · Clic: seleccionar · Equipar: usar en su espacio", Vector2(16, 555), 12)
+	build_sections()
 	resized.connect(fit_panel)
 	fit_panel()
 	refresh()
@@ -216,6 +222,7 @@ func refresh() -> void:
 			details.text += "\n%s: %d / %d%s" % ["Usos" if definition["slot"] == &"hands" else "Durabilidad",item["uses"], definition["uses"], " · ROTO" if item["uses"] == 0 else ""]
 		else:
 			details.text += "\nCantidad: %d" % item["quantity"]
+	if creation_page != null: creation_page.refresh()
 
 func select_backpack(index: int) -> void:
 	chosen = index
@@ -333,39 +340,26 @@ func open_repair() -> void:
 		return
 	repair_uid = item["uid"]
 	create_workshop()
-	workshop_mode = "repair"
 	workshop_title.text = "REPARAR EQUIPO"
 	workshop_confirm.text = "Reparar"
 	update_workshop()
 
 func open_crafting() -> void:
-	create_workshop()
-	workshop_mode = "craft"
-	workshop_title.text = "FABRICACIÓN"
-	workshop_confirm.text = "Fabricar"
-	var selector := OptionButton.new()
-	for id in Workshop.RECIPES:
-		selector.add_item(Model.DEFINITIONS[id]["name"]+(" · 1 metro" if id == &"cuerda" else " · Básico"))
-	selector.select(Workshop.RECIPES.keys().find(craft_id))
-	selector.item_selected.connect(func(index): craft_id = Workshop.RECIPES.keys()[index]; update_workshop())
-	workshop_body.get_node("Object").add_child(selector)
-	update_workshop()
+	open_section(1)
 
 func update_workshop() -> void:
-	var item: Dictionary = model.item_by_uid(repair_uid) if workshop_mode == "repair" else {}
-	var id: StringName = item.get("id",&"") if workshop_mode == "repair" else craft_id
+	var item: Dictionary = model.item_by_uid(repair_uid)
+	var id: StringName = item.get("id",&"")
 	var valid: bool = id != &""
-	var cost: Dictionary = Workshop.REPAIRS.get(id,{}) if workshop_mode == "repair" else Workshop.RECIPES[id]
+	var cost: Dictionary = Workshop.REPAIRS.get(id,{})
 	workshop_item.text = Model.DEFINITIONS[id]["name"] if valid else "Objeto no disponible"
-	if workshop_mode == "repair" and valid:
+	if valid:
 		workshop_item.text += "\n\nEstado: %d / %d\nTras reparar: %d / %d" % [item["uses"],Model.DEFINITIONS[id]["uses"],Model.DEFINITIONS[id]["uses"],Model.DEFINITIONS[id]["uses"]]
-	elif valid:
-		workshop_item.text += "\n\nResultado: 1 metro" if id == &"cuerda" else "\n\nResultado: 1 herramienta básica\nUsos: %d" % Model.DEFINITIONS[id]["uses"]
 	workshop_materials.text = "MATERIALES NECESARIOS\n"
 	for material in cost:
 		var unit := " m" if material == &"cuerda" else ""
 		workshop_materials.text += "\n%s: %d%s\nDisponible: %d%s\n" % [Model.DEFINITIONS[material]["name"],cost[material],unit,model.count(material),unit]
-	var damaged: bool = workshop_mode != "repair" or (valid and item["uses"] < Model.DEFINITIONS[id]["uses"])
+	var damaged: bool = valid and item["uses"] < Model.DEFINITIONS[id]["uses"]
 	workshop_confirm.disabled = not valid or not damaged or not Workshop.affordable(model,cost)
 	workshop_message.text = "" if not workshop_confirm.disabled else ("El objeto está en perfecto estado." if valid and not damaged else "Faltan materiales o el objeto no está disponible.")
 	var existing := workshop_body.get_node("Object").get_node_or_null("Preview")
@@ -383,8 +377,8 @@ func update_workshop() -> void:
 	workshop_body.get_node("Object").add_child(icon)
 
 func confirm_workshop() -> void:
-	var result := Workshop.repair(model,repair_uid) if workshop_mode == "repair" else Workshop.craft(model,craft_id)
-	var text := result if result != "" else ("Objeto reparado." if workshop_mode == "repair" else "Objeto fabricado y guardado en la mochila.")
+	var result := Workshop.repair(model,repair_uid)
+	var text := result if result != "" else "Objeto reparado."
 	refresh()
 	update_workshop()
 	workshop_message.text = text
@@ -401,6 +395,54 @@ func _input(event: InputEvent) -> void:
 	if visible and event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_I, KEY_ESCAPE]:
 		if is_instance_valid(workshop_dialog):
 			close_workshop()
+		elif event.keycode == KEY_I and navigation.current_tab != 0:
+			open_section(0)
 		else:
 			hide()
 		get_viewport().set_input_as_handled()
+
+func build_sections() -> void:
+	inventory_page = Control.new()
+	inventory_page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inventory_page.position = Vector2(42,74)
+	inventory_page.scale = Vector2.ONE*0.86
+	inventory_page.size = Vector2(600,600)
+	var children := content.get_children()
+	content.add_child(inventory_page)
+	# Preserve the heading and close button; move the existing inventory as one
+	# uniformly scaled page so all its icons keep their proportions and hit areas.
+	for index in range(2,children.size()): children[index].reparent(inventory_page,false)
+	sections.append(inventory_page)
+	creation_page = preload("res://scripts/creation_page.gd").new()
+	creation_page.position = Vector2(16,86)
+	content.add_child(creation_page)
+	creation_page.configure(model)
+	creation_page.crafted.connect(func(text): status.text = text; refresh(); equipment_changed.emit())
+	sections.append(creation_page)
+	for is_ability in [true,false]:
+		var page := preload("res://scripts/trait_page.gd").new()
+		page.position = Vector2(16,86)
+		content.add_child(page)
+		page.configure(game,is_ability)
+		sections.append(page)
+	navigation = TabBar.new()
+	navigation.position = Vector2(16,42)
+	navigation.size = Vector2(568,32)
+	navigation.add_theme_font_size_override("font_size",16)
+	for title in ["Inventario","Creación","Habilidades","Perks"]: navigation.add_tab(title)
+	content.add_child(navigation)
+	navigation.tab_changed.connect(select_section)
+	select_section(0)
+
+func select_section(index: int) -> void:
+	panel_heading.text = ["INVENTARIO","CREACIÓN","HABILIDADES","PERKS"][index]
+	close_workshop()
+	for i in sections.size(): sections[i].visible = i == index
+	if index == 1: creation_page.refresh()
+	if index >= 2: sections[index].refresh()
+
+func open_section(index: int) -> void:
+	refresh()
+	navigation.current_tab = index
+	select_section(index)
+	show()

@@ -32,4 +32,5 @@ static func theme() -> Theme:
 		box.content_margin_top = 6
 		box.content_margin_bottom = 6
 		shared.set_stylebox(state,"TabContainer",box)
+		shared.set_stylebox(state,"TabBar",box)
 	return shared

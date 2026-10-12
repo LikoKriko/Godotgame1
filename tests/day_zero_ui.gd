@@ -94,10 +94,23 @@ func run_checks() -> void:
 			require(game.bag.slots[sword_index]["uses"] == 40 and game.bag.count(&"piedra") == 8,"Mouse repair restores the selected weapon and spends its materials")
 			inventory.close_workshop()
 		await click(inventory.craft_button)
-		require(is_instance_valid(inventory.workshop_dialog) and inventory.workshop_mode == "craft","Mouse opens crafting")
-		await click(inventory.workshop_confirm)
+		require(inventory.navigation.current_tab == 1 and inventory.creation_page.visible,"Mouse opens crafting")
+		await click(inventory.creation_page.create_button)
 		require(game.bag.count(&"pickaxe") == 2 and game.bag.count(&"piedra") == 6 and game.bag.count(&"cuerda") == 1,"Mouse crafting creates a separate pickaxe with the exact recipe")
-		inventory.close_workshop()
+		game.skill_points = 2
+		inventory.open_section(3)
+		var perks = inventory.sections[3]
+		await click(perks.entries[&"life"])
+		await click(perks.purchase_button)
+		require(game.skill_points == 0 and game.progression.max_health() == 22,"Real mouse purchase spends two points and unlocks phase one")
+		game.skill_points = 1
+		inventory.open_section(2)
+		var skills = inventory.sections[2]
+		await click(skills.entries[&"speed"])
+		await click(skills.purchase_button)
+		await click(skills.activate_button)
+		require(game.skill_points == 0 and game.progression.active[&"speed"] == 5,"Real mouse ability purchase and activation apply their effect")
+		inventory.open_section(0)
 		var ration_index := -1
 		var water_index := -1
 		for i in game.bag.CAPACITY:

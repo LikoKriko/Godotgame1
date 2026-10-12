@@ -82,6 +82,7 @@ func run_checks() -> void:
 	dummy.position = Vector2(32, -12)
 	root.add_child(dummy)
 	dummy.add_to_group("damageable")
+	game.progression.rng.seed = 42
 	require(game.use_weapon(Vector2(32, -12)), "Sword action")
 	require(dummy.damage_received == 24 and game.bag.equipment[&"hands"]["uses"] == 39, "Sword affects combat targets and uses")
 	require(not game.use_weapon(Vector2(32, -12)), "Weapon cooldown enforced")
