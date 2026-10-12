@@ -1,5 +1,6 @@
 extends Node2D
 signal menu_requested
+signal settings_requested
 var menu_open := false
 var day_cycle = preload("res://scripts/day_cycle.gd").new()
 var nutrition = preload("res://scripts/nutrition.gd").new()
@@ -53,6 +54,8 @@ var character: AnimatedSprite2D
 var movement = preload("res://scripts/turn_motion.gd").new()
 var hud: Label
 var hud_backdrop: Panel
+var quick_items: Array[int] = [-1,-1,-1,-1,-1,-1]
+var styled_hud: Control
 
 func _ready() -> void:
 	if get_tree().get_nodes_in_group("pointer_coordinates").is_empty():
@@ -138,6 +141,18 @@ func _ready() -> void:
 	full_avatar.configure(self)
 	restart()
 	fit_hud()
+	styled_hud = preload("res://scripts/styled_hud.gd").new()
+	canvas.add_child(styled_hud)
+	styled_hud.configure(self)
+	# Keep status models for the inventory and existing consumers, but render
+	# only the new HUD; there is no duplicate set of old controls underneath.
+	hud.hide()
+	hud_backdrop.hide()
+	minimap.hide()
+	survival_status.hide()
+	canvas.move_child(cursor,canvas.get_child_count()-1)
+	canvas.move_child(inventory_panel,canvas.get_child_count()-1)
+	canvas.move_child(world_map,canvas.get_child_count()-1)
 
 func consume_item(index: int) -> void:
 	var result: Dictionary = nutrition.consume(bag,index)
@@ -171,6 +186,7 @@ func restart() -> void:
 	world.generate(world.seed_value)
 	world_view.refresh_ground()
 	bag.reset()
+	quick_items.assign([-1,-1,-1,-1,-1,-1])
 	for provision in [[&"apple",4],[&"berries",10],[&"ration",8],[&"water",8]]:
 		bag.add(provision[0],provision[1])
 	day_cycle.reset()
@@ -280,9 +296,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event.keycode == KEY_CTRL:
 		if running: start_slide()
 		return
-	if event.keycode >= KEY_1 and event.keycode <= KEY_4:
-		cancel_work()
-		bag.select_tool([&"sword", &"bow", &"pickaxe", &"axe"][event.keycode - KEY_1])
+	if event.keycode >= KEY_1 and event.keycode <= KEY_6:
+		use_quick_item(event.keycode-KEY_1)
 	if event.keycode == KEY_0:
 		cancel_work()
 		if bag.held_id() != &"" and not bag.unequip(&"hands"):
@@ -297,6 +312,39 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func is_paused() -> bool:
 	return menu_open or inventory_panel.visible or world_map.visible
+
+func assign_quick_item(index: int, uid: int) -> bool:
+	if index < 0 or index >= 6 or (uid != -1 and bag.item_by_uid(uid).is_empty()): return false
+	# A shortcut follows the specific item through equipment swaps, never a
+	# backpack index that could later contain a different tool or food.
+	for slot in 6:
+		if quick_items[slot] == uid: quick_items[slot] = -1
+	quick_items[index] = uid
+	return true
+
+func use_quick_item(index: int) -> bool:
+	if index < 0 or index >= 6 or is_paused() or working or equipping: return false
+	var uid := quick_items[index]
+	var item: Dictionary = bag.item_by_uid(uid)
+	if item.is_empty():
+		quick_items[index] = -1
+		return false
+	var definition: Dictionary = bag.DEFINITIONS[item.id]
+	for slot in bag.CAPACITY:
+		if bag.slots[slot].get("uid",-1) != uid: continue
+		if definition.has("kcal") or definition.has("water_ml"):
+			consume_item(slot)
+			return true
+		if definition.slot != &"":
+			cancel_work()
+			var equipped: bool = bag.equip(slot,definition.slot)
+			inventory_panel.refresh()
+			update_hud()
+			return equipped
+		inventory_panel.open_section(0)
+		inventory_panel.select_backpack(slot)
+		return true
+	return true # The referenced item is already equipped.
 
 func start_jump() -> bool:
 	if progression.health <= 0 or is_paused() or not locomotion.jump():
@@ -355,7 +403,10 @@ func _process(delta: float) -> void:
 			character.play(StringName("idle_"+facing))
 	var aim := get_canvas_transform().affine_inverse()*preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
 	focused = resources.target_at(aim)
-	var pressed := Input.is_physical_key_pressed(KEY_E) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	var hovered := get_viewport().gui_get_hovered_control()
+	var over_hud: bool = hovered != null and styled_hud != null and styled_hud.is_ancestor_of(hovered)
+	var pressed := Input.is_physical_key_pressed(KEY_E) or (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not over_hud)
+	if over_hud: focused = resources.NONE
 	if direction == Vector2.ZERO and not working and not equipping and pressed:
 		start_work(aim)
 	if working:

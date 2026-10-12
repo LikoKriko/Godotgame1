@@ -33,6 +33,7 @@ var workshop_materials: Label
 var workshop_message: Label
 var workshop_confirm: Button
 var repair_uid := -1
+var quick_selector: OptionButton
 
 func configure(inventory, owner_game = null) -> void:
 	game = owner_game
@@ -109,6 +110,15 @@ func configure(inventory, owner_game = null) -> void:
 	craft_button.size = Vector2(174,34)
 	craft_button.pressed.connect(open_crafting)
 	content.add_child(craft_button)
+	quick_selector = OptionButton.new()
+	quick_selector.position = Vector2(260,294)
+	quick_selector.size = Vector2(314,28)
+	quick_selector.add_theme_font_size_override("font_size",12)
+	quick_selector.add_item("Asignar a acceso rápido…")
+	for i in 6: quick_selector.add_item("Acceso rápido %d" % (i+1))
+	quick_selector.add_item("Quitar de los accesos rápidos")
+	quick_selector.item_selected.connect(assign_selected_quick)
+	content.add_child(quick_selector)
 	label("MOCHILA · 32 ESPACIOS", Vector2(16, 298), 14)
 	for i in Model.CAPACITY:
 		var button := make_button(Vector2(16 + (i % 8) * 71, 326 + (i / 8) * 52), Vector2(66, 47))
@@ -210,6 +220,8 @@ func refresh() -> void:
 	elif chosen_gear != &"":
 		item = model.equipment[chosen_gear]
 	var consumable: bool = not item.is_empty() and (Model.DEFINITIONS[item["id"]].has("kcal") or Model.DEFINITIONS[item["id"]].has("water_ml"))
+	quick_selector.disabled = game == null or item.is_empty()
+	quick_selector.select(0)
 	equip_button.text = ("Beber" if item.get("id",&"") == &"water" else "Comer") if consumable else "Equipar"
 	equip_button.disabled = chosen < 0 or item.is_empty() or (not consumable and Model.DEFINITIONS[item.get("id", &"madera")]["slot"] == &"")
 	remove_button.disabled = chosen_gear == &"" or item.is_empty()
@@ -268,6 +280,18 @@ func selected_item() -> Dictionary:
 	if chosen >= 0:
 		return model.slots[chosen]
 	return model.equipment.get(chosen_gear,{})
+
+func assign_selected_quick(index: int) -> void:
+	var item := selected_item()
+	if game == null or item.is_empty() or index == 0: return
+	if index == 7:
+		for slot in 6:
+			if game.quick_items[slot] == item.uid: game.quick_items[slot] = -1
+		status.text = "Objeto retirado de los accesos rápidos."
+	else:
+		game.assign_quick_item(index-1,item.uid)
+		status.text = "Asignado al acceso rápido %d." % index
+	quick_selector.select(0)
 
 func create_workshop() -> void:
 	close_workshop()

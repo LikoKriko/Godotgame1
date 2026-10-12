@@ -42,7 +42,7 @@ func run() -> void:
 			var bus := AudioServer.get_bus_index(pair[0])
 			require(absf(db_to_linear(AudioServer.get_bus_volume_db(bus))-pair[1]) < 0.001,"Audio sliders apply to their real buses")
 		require(app.game.gameplay_settings.values.auto_run,"Running setting reaches the current game")
-		require(app.game.hud.scale.is_equal_approx(Vector2.ONE*Settings.hud_scale(mode+2)),"HUD resize applies immediately to the paused current game")
+		require(app.game.styled_hud.quick_bar.scale.is_equal_approx(Vector2.ONE*Settings.hud_scale(mode+2)),"HUD resize applies immediately to the paused current game")
 		require(root.get_visible_rect().size == Vector2(1280,720) and root.content_scale_size == Vector2i(1280,720),"Render resolution works in windowed, fullscreen and borderless modes")
 		var actual := DisplayServer.window_get_mode()
 		var no_manager := DisplayServer.get_name() == "X11" and OS.execute("python3",PackedStringArray([ProjectSettings.globalize_path("res://tests/native_pointer.py"),"--has-wm"])) == 2

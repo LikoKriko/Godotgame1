@@ -20,20 +20,24 @@ func run() -> void:
 	root.add_child(game); game.set_process(false)
 	require(game.hud.text == "Inventario (I) · Crear (T) · Mapa (M)","Only the three requested controls remain")
 	require(game.interaction.text == "" and not game.survival_status.skills_label.text.contains("Z ·") and not game.survival_status.skills_label.text.contains("X ·"),"Other lower prompts and skill hotkey hints are gone")
+	var overlay = game.styled_hud
+	require(not game.hud.visible and not game.minimap.visible and not game.survival_status.visible,"Old HUD widgets are replaced rather than duplicated")
 	for dimensions in [Vector2i(1280,720),Vector2i(1920,1080),Vector2i(2560,1440)]:
 		root.size = dimensions
 		for level in range(1,7):
 			game.gameplay_settings.values.hud_size = level
 			game.fit_hud()
-			var status: Rect2 = game.survival_status.get_global_rect()
-			require(is_equal_approx(status.end.x,dimensions.x-18) and is_equal_approx(status.end.y,dimensions.y-18),"Status stays attached to the lower right at every size")
-			var mini := Rect2(game.minimap.position-Vector2(8,24)*game.minimap.scale,Vector2(208,176)*game.minimap.scale)
-			require(is_equal_approx(mini.position.y,18) and is_equal_approx(mini.end.x,dimensions.x-18),"Minimap stays attached to the upper right")
-			var controls: Rect2 = game.hud_backdrop.get_global_rect()
-			require(is_equal_approx(controls.end.y,dimensions.y-18) and controls.position.x > 0,"Controls stay at the bottom and inside the window")
-			require(not status.intersects(controls) and not status.intersects(mini),"HUD widgets never overlap")
+			overlay.fit()
+			var mini: Rect2 = overlay.map_frame.get_global_rect()
+			require(is_equal_approx(mini.position.y,18) and is_equal_approx(mini.end.x,dimensions.x-18),"Minimap stays at the top right")
+			var food: Rect2 = overlay.food.get_global_rect()
+			var water: Rect2 = overlay.water.get_global_rect()
+			require(is_equal_approx(food.end.y,water.position.y) and food.position.x == water.position.x,"Food and hydration remain adjacent at the lower left")
+			var controls: Rect2 = overlay.shortcuts[2].get_global_rect()
+			require(is_equal_approx(controls.end.x,dimensions.x-18) and controls.position.y > dimensions.y/2,"Shortcuts stay at the lower right")
+			require(not water.intersects(overlay.quick_bar.get_global_rect()) and not controls.intersects(overlay.skill_bar.get_global_rect()),"HUD widgets never overlap")
 			var factor: float = Settings.hud_scale(level)
-			require(game.hud.scale.is_equal_approx(Vector2.ONE*factor) and game.survival_status.scale.is_equal_approx(Vector2.ONE*factor),"Labels, backgrounds and widgets share the area scaling")
+			require(overlay.quick_bar.scale.is_equal_approx(Vector2.ONE*factor) and overlay.life.scale.is_equal_approx(Vector2.ONE*factor),"Labels, frames and widgets share area scaling")
 	key(KEY_M)
 	require(game.world_map.visible and game.is_paused() and not game.inventory_panel.visible,"M opens full map and pauses gameplay")
 	var map = game.world_map.drawing

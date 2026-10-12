@@ -127,7 +127,7 @@ func tool_geometry(item: StringName) -> Dictionary:
 	if visual_override.is_empty():
 		var size: Vector2 = data["texture"].get_size()
 		# Actual hilt/central bow grip rather than the former generic bottom-center.
-		if item == &"sword":
+		if item == &"sword" and not Tools.DATA.has(item):
 			data["grip"] = size*Vector2(0.32,0.76)
 			data["contact"] = size*Vector2(0.87,0.16)
 		elif item == &"bow":

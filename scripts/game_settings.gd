@@ -1,7 +1,7 @@
 extends RefCounted
 signal changed
 const PATH := "user://day_zero_settings.cfg"
-const DEFAULTS := {"auto_run": false,"hud_size": 1,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "msaa": 0, "window_mode": 0, "resolution": Vector2i(1920,1080)}
+const DEFAULTS := {"auto_run": false,"hud_size": 1,"muted": false,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "msaa": 0, "window_mode": 0, "resolution": Vector2i(1920,1080)}
 var values: Dictionary = DEFAULTS.duplicate()
 
 func load_settings() -> void:
@@ -10,6 +10,7 @@ func load_settings() -> void:
 		for key in DEFAULTS:
 			values[key] = config.get_value("settings",key,DEFAULTS[key])
 	values["auto_run"] = bool(values["auto_run"])
+	values["muted"] = bool(values["muted"])
 	values["hud_size"] = clampi(int(values["hud_size"]),1,6)
 	for key in ["master","music","effects"]:
 		values[key] = clampf(float(values[key]),0,1)
@@ -42,7 +43,7 @@ func apply(viewport: Viewport) -> void:
 			AudioServer.set_bus_send(index,"Master")
 		var volume: float = values[pair[1]]
 		AudioServer.set_bus_volume_db(index,linear_to_db(maxf(volume,0.0001)))
-		AudioServer.set_bus_mute(index,volume == 0)
+		AudioServer.set_bus_mute(index,volume == 0 or (pair[0] == "Master" and values["muted"]))
 	Engine.max_fps = values["fps"]
 	if not supports_msaa_2d(): values["msaa"] = 0
 	viewport.msaa_2d = values["msaa"]

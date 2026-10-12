@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b2a7t6guhsc6d"
-path="res://.godot/imported/day_zero_menu.png-9028a9d39649c2d5432b10a334fb5127.ctex"
+uid="uid://cl2waw61wwnex"
+path="res://.godot/imported/title_template.png-38514ec1938bc8dce1957627ea29a4ad.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/day_zero_menu.png"
-dest_files=["res://.godot/imported/day_zero_menu.png-9028a9d39649c2d5432b10a334fb5127.ctex"]
+source_file="res://assets/ui/title_template.png"
+dest_files=["res://.godot/imported/title_template.png-38514ec1938bc8dce1957627ea29a4ad.ctex"]
 
 [params]
 
