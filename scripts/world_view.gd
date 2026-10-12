@@ -20,6 +20,7 @@ var tree_sprites: Dictionary = {}
 var hit_meshes = preload("res://scripts/hit_meshes.gd").new()
 var impulses: Dictionary = {}
 var particles: Array[Dictionary] = []
+var presentation_cache: Dictionary = {}
 
 func atlas(sheet: Texture2D, cell: Rect2i, trim: bool = true) -> AtlasTexture:
 	var texture := AtlasTexture.new()
@@ -64,6 +65,8 @@ func configure(map) -> void:
 	props_layer.draw.connect(draw_props)
 
 func presentation(cell: Vector2i) -> Dictionary:
+	if presentation_cache.has(cell):
+		return presentation_cache[cell]
 	var kind: int = world.props[cell]
 	var large: bool = world.large_rocks.has(cell)
 	var center: Vector2 = world.center(cell) + (Vector2(32,32) if large else Vector2.ZERO)
@@ -80,9 +83,12 @@ func presentation(cell: Vector2i) -> Dictionary:
 		var height: float = world.saplings[cell]["height"]
 		dimensions = Vector2(height * texture.get_width() / texture.get_height(), height)
 		tint = world.saplings[cell]["tint"]
-	return {"texture": texture, "size": dimensions, "tint": tint, "rect": Rect2(center + Vector2(-dimensions.x/2, (60 if large else 26)-dimensions.y), dimensions)}
+	var result := {"texture": texture, "size": dimensions, "tint": tint, "rect": Rect2(center + Vector2(-dimensions.x/2, (60 if large else 26)-dimensions.y), dimensions)}
+	presentation_cache[cell] = result
+	return result
 
 func refresh_ground() -> void:
+	presentation_cache.clear()
 	ground_material.set_shader_parameter("map_seed", float(world.seed_value))
 	for i in world.stone_patches.size():
 		var patch: Rect2 = world.stone_patches[i]

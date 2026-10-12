@@ -10,49 +10,52 @@ const CONTACT_EPSILON := 0.05
 const HAND_DEPTH := 6.0
 const MAX_ARM := 17.95
 static var TOOL_LENGTHS := Tools.reach_lengths()
-const ANCHORS := {
-	&"down": [Vector2(-8,-20.5),Vector2(8,-20.5)],
-	&"down_right": [Vector2(-7.66,-20.79),Vector2(7.49,-20.79)],
-	&"right": [Vector2(-3,-21.06),Vector2(-5.22,-21.06)],
-	&"up_right": [Vector2(-8.78,-21),Vector2(6.92,-21)],
-	&"up": [Vector2(-8.3,-20.6),Vector2(8.2,-21)],
-	&"up_left": [Vector2(-3.74,-20.62),Vector2(7.83,-20.62)],
-	&"left": [Vector2(4.09,-20.96),Vector2(2,-20.96)],
-	&"down_left": [Vector2(-8.87,-20.89),Vector2(11.26,-20.89)],
-}
-# These polygons isolate the original arm pixels at runtime; no flat-color skin.
-const SOURCE := [
-	{"shoulder": Vector2(190,215),"elbow": Vector2(178,269),"hand": Vector2(169,319),
-	"upper": [Vector2(178,210),Vector2(190,199),Vector2(200,205),Vector2(203,222),Vector2(196,247),Vector2(191,269),Vector2(171,273),Vector2(170,257),Vector2(177,232)],
-	"lower": [Vector2(171,261),Vector2(190,267),Vector2(187,286),Vector2(184,304),Vector2(188,318),Vector2(178,333),Vector2(159,333),Vector2(151,319),Vector2(156,302),Vector2(161,281)]},
-	{"shoulder": Vector2(292,215),"elbow": Vector2(306,269),"hand": Vector2(313,319),
-	"upper": [Vector2(281,205),Vector2(292,199),Vector2(300,206),Vector2(306,224),Vector2(310,245),Vector2(318,269),Vector2(299,275),Vector2(291,257),Vector2(284,232)],
-	"lower": [Vector2(298,261),Vector2(317,263),Vector2(320,285),Vector2(325,302),Vector2(333,317),Vector2(326,330),Vector2(310,334),Vector2(297,325),Vector2(295,312),Vector2(302,294)]},
+const DIRECTIONS := [&"down",&"down_right",&"right",&"up_right",&"up",&"up_left",&"left",&"down_left"]
+const NATIVE_ARMS := [
+	[[Vector2(190,215),Vector2(170,269),Vector2(153,319)],[Vector2(292,215),Vector2(313,269),Vector2(326,319)]],
+	[[Vector2(636,215),Vector2(611,269),Vector2(592,319)],[Vector2(725,215),Vector2(745,269),Vector2(758,319)]],
+	[[Vector2(1066,215),Vector2(1072,269),Vector2(1094,319)],[Vector2(1066,215),Vector2(1072,269),Vector2(1094,319)]],
+	[[Vector2(1502,215),Vector2(1487,269),Vector2(1474,319)],[Vector2(1595,215),Vector2(1613,269),Vector2(1637,319)]],
+	[[Vector2(188,631),Vector2(170,685),Vector2(153,735)],[Vector2(292,631),Vector2(312,685),Vector2(325,735)]],
+	[[Vector2(646,631),Vector2(618,685),Vector2(603,735)],[Vector2(714,631),Vector2(735,685),Vector2(753,735)]],
+	[[Vector2(1107,631),Vector2(1090,685),Vector2(1087,735)],[Vector2(1107,631),Vector2(1090,685),Vector2(1087,735)]],
+	[[Vector2(1503,631),Vector2(1483,685),Vector2(1475,735)],[Vector2(1621,631),Vector2(1641,685),Vector2(1646,735)]],
 ]
+static var ANCHORS: Dictionary = build_anchors()
+static func build_anchors() -> Dictionary:
+	var result := {}
+	for i in 8:
+		var region: Array = preload("res://assets/characters/survivor_regions.gd").IDLE[i]
+		var factor: float = 64.0/region[3]
+		var roots := []
+		for limb in 2:
+			var source: Vector2 = NATIVE_ARMS[i][limb][0]
+			if i == 2 and limb == 0: source.x += 14
+			if i == 6 and limb == 1: source.x -= 7
+			roots.append(Vector2((source.x-region[4])*factor,-47+(source.y-region[1])*factor))
+		result[DIRECTIONS[i]] = roots
+	return result
 var layers: Array[Node2D] = []
 var state: Dictionary = {}
+static var skin_cache: Dictionary = {}
 
 static func skin_source(facing: StringName, index: int) -> Dictionary:
-	if facing == &"down":
-		return SOURCE[index]
-	# Native shoulder/elbow/wrist coordinates in the corresponding idle view.
-	var joints: Array = {
-		&"down_right": [[Vector2(636,215),Vector2(622,269),Vector2(610,319)],[Vector2(725,215),Vector2(739,269),Vector2(747,319)]],
-		&"right": [[Vector2(1066,215),Vector2(1080,269),Vector2(1102,319)],[Vector2(1066,215),Vector2(1080,269),Vector2(1102,319)]],
-		&"up_right": [[Vector2(1502,215),Vector2(1490,269),Vector2(1482,319)],[Vector2(1595,215),Vector2(1608,269),Vector2(1619,319)]],
-		&"up": [[Vector2(188,631),Vector2(176,685),Vector2(169,735)],[Vector2(292,631),Vector2(306,685),Vector2(313,735)]],
-		&"up_left": [[Vector2(646,631),Vector2(630,685),Vector2(610,735)],[Vector2(714,631),Vector2(730,685),Vector2(741,735)]],
-		&"left": [[Vector2(1107,631),Vector2(1090,685),Vector2(1072,735)],[Vector2(1107,631),Vector2(1090,685),Vector2(1072,735)]],
-		&"down_left": [[Vector2(1503,631),Vector2(1489,685),Vector2(1486,735)],[Vector2(1621,631),Vector2(1632,685),Vector2(1629,735)]],
-	}[facing][index]
+	var key := "%s/%d" % [facing,index]
+	if skin_cache.has(key):
+		return skin_cache[key]
+	var joints: Array = NATIVE_ARMS[DIRECTIONS.find(facing)][index]
 	var shoulder: Vector2 = joints[0]
 	var elbow: Vector2 = joints[1]
 	var hand: Vector2 = joints[2]
 	var a := shoulder.direction_to(elbow).orthogonal()
 	var b := elbow.direction_to(hand).orthogonal()
-	return {"shoulder": shoulder,"elbow": elbow,"hand": hand,
-		"upper": [shoulder-a*11,shoulder-a*9-Vector2(0,7),shoulder+a*10-Vector2(0,7),shoulder+a*12,elbow+a*9,elbow-a*9],
-		"lower": [elbow-b*9,elbow+b*9,hand+b*15,hand+b*10+Vector2(0,13),hand-b*12+Vector2(0,13),hand-b*15]}
+	var upper_axis := shoulder.direction_to(elbow)
+	var lower_axis := elbow.direction_to(hand)
+	var result := {"shoulder": shoulder,"elbow": elbow,"hand": hand,
+		"upper": [shoulder-a*11,shoulder-a*8-upper_axis*6,shoulder-upper_axis*9,shoulder+a*8-upper_axis*6,shoulder+a*11,elbow+a*8,elbow+a*6+upper_axis*3,elbow-a*6+upper_axis*3,elbow-a*8],
+		"lower": [elbow-b*9,elbow+b*9,hand+b*13,hand+b*10+lower_axis*10,hand-b*10+lower_axis*10,hand-b*13]}
+	skin_cache[key] = result
+	return result
 
 class Limb:
 	extends Node2D
@@ -67,7 +70,13 @@ class Limb:
 	var facing: StringName = &"down"
 	var upper: Polygon2D
 	var lower: Polygon2D
+	var tool_layer: Node2D
+	var elbow_patch: Sprite2D
+	var patches: Dictionary = {}
 	func _ready() -> void:
+		tool_layer = Node2D.new()
+		add_child(tool_layer)
+		tool_layer.draw.connect(draw_tool)
 		upper = Polygon2D.new()
 		lower = Polygon2D.new()
 		for part in [upper,lower]:
@@ -75,10 +84,21 @@ class Limb:
 			part.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 			part.z_index = 0
 			add_child(part)
+		elbow_patch = Sprite2D.new()
+		elbow_patch.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		add_child(elbow_patch)
 	func update_skin() -> void:
 		var source: Dictionary = get_parent().skin_source(facing,source_index)
 		map_part(upper,shoulder,elbow,source["shoulder"],source["elbow"],source["upper"])
 		map_part(lower,elbow,hand,source["elbow"],source["hand"],source["lower"])
+		if not patches.has(facing):
+			var patch := AtlasTexture.new()
+			patch.atlas = SKIN
+			patch.region = Rect2(source["elbow"]-Vector2(5,5),Vector2(10,10))
+			patches[facing] = patch
+		elbow_patch.texture = patches[facing]
+		elbow_patch.position = elbow
+		elbow_patch.scale = Vector2.ONE*UPPER/source["shoulder"].distance_to(source["elbow"])
 	func map_part(part: Polygon2D, a: Vector2, b: Vector2, source_a: Vector2, source_b: Vector2, pixels: Array) -> void:
 		var source_direction := source_a.direction_to(source_b)
 		var direction := a.direction_to(b)
@@ -90,9 +110,9 @@ class Limb:
 			vertices.append(a+direction*offset.dot(source_direction)*along_scale+direction.orthogonal()*offset.dot(source_direction.orthogonal())*width_scale)
 		part.polygon = vertices
 		part.uv = PackedVector2Array(pixels)
-	func _draw() -> void:
+	func draw_tool() -> void:
 		if tool != &"":
-			Tools.draw(self,tool,hand,tip,source_index == 0)
+			Tools.draw(tool_layer,tool,hand,tip,source_index == 0)
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -158,9 +178,10 @@ func set_limb(index: int, shoulder: Vector2, request: Vector2, player: Vector2, 
 	limb.hand = joints["hand"]-player
 	limb.tip = limb.hand+tool_direction*TOOL_LENGTHS.get(item,0.0)
 	limb.tool = item
+	limb.tool_layer.z_index = -1 if limb.facing in [&"up",&"up_right",&"up_left"] else 0
 	limb.z_index = 0 if near else -1
 	limb.update_skin()
-	limb.queue_redraw()
+	limb.tool_layer.queue_redraw()
 
 static func rest_direction(facing: StringName, item: StringName) -> Vector2:
 	var direction := Vector2(0.995,0.1).normalized() if item == &"pickaxe" else Vector2(0.8,-0.6)
@@ -169,13 +190,8 @@ static func rest_direction(facing: StringName, item: StringName) -> Vector2:
 	return direction
 
 static func idle_hand(facing: StringName) -> Vector2:
-	var frames = preload("res://scripts/survivor_frames.gd")
-	var regions = preload("res://assets/characters/survivor_regions.gd")
-	var index: int = frames.DIRECTIONS.find(facing)
-	var region: Array = regions.IDLE[index]
-	var point: Array = regions.HAND_IDLE[index]
-	var factor: float = 64.0/region[3]
-	return Vector2((point[0]-region[4])*factor,17+(point[1]-region[1]-region[3])*factor)
+	var active := 0 if facing in [&"left",&"up_left",&"down_left"] else 1
+	return ANCHORS[facing][active]+Vector2(-2.5 if active == 0 else 2.5,16)
 
 static func blend_direction(from: Vector2, to: Vector2, amount: float) -> Vector2:
 	return Vector2.from_angle(from.angle()+wrapf(to.angle()-from.angle(),-PI,PI)*amount)

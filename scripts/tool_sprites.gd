@@ -7,6 +7,7 @@ const DATA := {
 }
 const DISPLAY_SIZES := {&"axe": 32.0, &"pickaxe": 32.0, &"sword": 32.0, &"bow": 28.0}
 static var textures: Dictionary = {}
+static var geometry_cache: Dictionary = {}
 
 static func icon(id: StringName) -> Texture2D:
 	if not DATA.has(id):
@@ -47,6 +48,8 @@ static func support_offset(id: StringName, direction: Vector2, mirrored: bool) -
 	return offset.rotated(direction.angle()-axis.angle())*length/axis.length()
 
 static func geometry(id: StringName) -> Dictionary:
+	if geometry_cache.has(id):
+		return geometry_cache[id]
 	var texture: Texture2D = icon(id)
 	var grip: Vector2
 	var contact: Vector2
@@ -70,7 +73,9 @@ static func geometry(id: StringName) -> Dictionary:
 			return {}
 		grip = texture.get_size()*Vector2(0.5,0.8)
 		contact = texture.get_size()*Vector2(0.5,0.15)
-	return {"texture": texture,"grip": grip,"contact": contact}
+	var result := {"texture": texture,"grip": grip,"contact": contact}
+	geometry_cache[id] = result
+	return result
 
 static func reach_length(id: StringName) -> float:
 	var data := geometry(id)

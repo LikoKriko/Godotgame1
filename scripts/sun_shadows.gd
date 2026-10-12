@@ -9,6 +9,19 @@ var textures: Dictionary = {}
 var mask_viewport: SubViewport
 var mask: Node2D
 var avatar: Node2D
+var colored_avatar: Sprite2D
+var last_direction := Vector2.INF
+var last_stretch := INF
+var last_camera := Vector2.INF
+var last_prop_count := -1
+var had_impulses := false
+var prop_redraws := 0
+
+class AvatarVisual:
+	extends Sprite2D
+	var game
+	func _process(_delta: float) -> void:
+		position = game.player+Vector2(0,17)-Mask.ORIGIN/Mask.SCALE
 
 class AvatarProjection:
 	extends Node2D
@@ -37,6 +50,18 @@ func configure(owner_game) -> void:
 	mask = Mask.new()
 	mask_viewport.add_child(mask)
 	mask.configure(game)
+	# Reuse the silhouette target for a high-resolution colored avatar.
+	# Sources remain available to the rig but are excluded from the main canvas.
+	game.get_viewport().canvas_cull_mask &= ~(1 << 19)
+	for source in [game.character,game.gait,game.arm_rig]:
+		source.visibility_layer = 1 << 19
+	colored_avatar = AvatarVisual.new()
+	colored_avatar.game = game
+	colored_avatar.texture = mask_viewport.get_texture()
+	colored_avatar.centered = false
+	colored_avatar.scale = Vector2.ONE/Mask.SCALE
+	colored_avatar.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	game.add_child(colored_avatar)
 	avatar = AvatarProjection.new()
 	avatar.host = self
 	avatar.material = shadow_material.duplicate()
@@ -52,10 +77,18 @@ func update_sun(state: Dictionary) -> void:
 		shader_material.set_shader_parameter("opacity",strength)
 		shader_material.set_shader_parameter("softness",softness)
 	visible = strength > 0.001
-	mask_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if visible else SubViewport.UPDATE_DISABLED
-	mask.queue_redraw()
+	mask_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	avatar.queue_redraw()
-	queue_redraw()
+	var camera_position: Vector2 = game.camera.get_screen_center_position()
+	var impacts: bool = not game.world_view.impulses.is_empty()
+	if direction.distance_to(last_direction) > 0.00025 or absf(stretch-last_stretch) > 0.001 or camera_position.distance_to(last_camera) > 64 or game.world.props.size() != last_prop_count or impacts or had_impulses:
+		last_direction = direction
+		last_stretch = stretch
+		last_camera = camera_position
+		last_prop_count = game.world.props.size()
+		had_impulses = impacts
+		prop_redraws += 1
+		queue_redraw()
 
 func projection(base: Vector2) -> Transform2D:
 	var vertical := -direction*stretch

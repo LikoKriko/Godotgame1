@@ -1,80 +1,81 @@
 extends Node2D
 ## Compose the visible avatar once; projection then applies one shadow opacity.
 const Tools = preload("res://scripts/tool_sprites.gd")
-const SIZE := Vector2i(256,256)
-const SCALE := 2.0
-const ORIGIN := Vector2(128,180)
+const SIZE := Vector2i(384,384)
+const SCALE := 3.0
+const ORIGIN := Vector2(192,270)
 var game
-var body_textures: Dictionary = {}
+var uv_cache: Dictionary = {}
 var source_transform := Transform2D.IDENTITY
+var initialized := false
 
 func configure(owner_game) -> void:
 	game = owner_game
 	position = ORIGIN
 	scale = Vector2.ONE*SCALE
-	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+
+func _process(_delta: float) -> void:
+	if initialized and game.has_method("is_paused") and game.is_paused():
+		get_viewport().render_target_update_mode = SubViewport.UPDATE_DISABLED
+		return
+	get_viewport().render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	initialized = true
+	queue_redraw()
 
 func draw_sprite(sprite) -> void:
-	var texture: Texture2D
-	if sprite is AnimatedSprite2D:
-		texture = sprite.sprite_frames.get_frame_texture(sprite.animation,sprite.frame)
-	else:
-		texture = sprite.texture
+	var texture: Texture2D = sprite.sprite_frames.get_frame_texture(sprite.animation,sprite.frame) if sprite is AnimatedSprite2D else sprite.texture
 	var rect := Rect2(-texture.get_size()/2 if sprite.centered else Vector2.ZERO,texture.get_size())
 	draw_set_transform_matrix(source_transform*sprite.global_transform)
 	draw_texture_rect(texture,rect,false,Color(1,1,1,sprite.modulate.a))
 
 func draw_part(part: Polygon2D, alpha: float) -> void:
-	var uv := PackedVector2Array()
-	for point in part.uv:
-		uv.append(point/part.texture.get_size())
+	var key := part.get_instance_id()
+	if not uv_cache.has(key) or uv_cache[key]["source"] != part.uv:
+		var uv := PackedVector2Array()
+		for point in part.uv:
+			uv.append(point/part.texture.get_size())
+		uv_cache[key] = {"source":part.uv,"uv":uv}
 	draw_set_transform_matrix(source_transform*part.global_transform)
-	draw_polygon(part.polygon,PackedColorArray([Color(1,1,1,alpha)]),uv,part.texture)
+	draw_polygon(part.polygon,PackedColorArray([Color(1,1,1,alpha)]),uv_cache[key]["uv"],part.texture)
 
-func draw_work_body() -> void:
-	var facing: StringName = StringName(str(game.character.animation).trim_prefix("work_"))
-	var frames = preload("res://scripts/survivor_frames.gd")
-	var data: Array = preload("res://assets/characters/survivor_regions.gd").BODY[frames.DIRECTIONS.find(facing)]
-	var factor: float = 64.0/data[3]
-	var start := floori(25/factor)
-	if not body_textures.has(facing):
-		var texture := AtlasTexture.new()
-		texture.atlas = frames.BODY_SHEET
-		texture.region = Rect2(data[0],data[1]+start,data[2],data[3]-start)
-		body_textures[facing] = texture
-	var origin: Vector2 = game.player+Vector2((data[0]-data[4])*factor,-47+start*factor)
-	draw_set_transform_matrix(source_transform*Transform2D(0,Vector2.ONE*factor,0,origin))
-	var texture: Texture2D = body_textures[facing]
-	draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false,Color(1,1,1,game.character.modulate.a))
+func draw_tool(limb) -> void:
+	Tools.draw(self,limb.tool,limb.hand,limb.tip,limb.source_index == 0,source_transform*limb.global_transform,Color(1,1,1,game.arm_rig.modulate.a))
+
+func draw_arm(limb) -> void:
+	for part in [limb.upper,limb.lower]:
+		draw_part(part,game.arm_rig.modulate.a)
+	draw_sprite(limb.elbow_patch)
 
 func _draw() -> void:
-	if game == null:
-		return
-	source_transform = Transform2D(0,-game.player-Vector2(0,17))
+	if game == null: return
+	source_transform = Transform2D(0,-game.player-Vector2(0,17))*game.global_transform.affine_inverse()
+	if game.arm_rig.visible:
+		for limb in game.arm_rig.layers:
+			if limb.tool != &"" and limb.tool_layer.z_index < 0: draw_tool(limb)
+		for limb in game.arm_rig.layers:
+			if limb.z_index < 0: draw_arm(limb)
 	if game.character.visible:
-		if game.original_head.visible:
-			draw_work_body()
-		else:
-			draw_sprite(game.character)
-	if game.original_head.visible:
-		draw_sprite(game.original_head)
+		draw_sprite(game.character)
 	if game.gait.active():
 		var legs = game.gait.legs
+		var clothes = game.gait.clothing
 		for part in legs.thighs+legs.shins+legs.feet:
-			draw_part(part,game.gait.opacity)
+			if part.z_index < 0: draw_part(part,game.gait.opacity)
+		for part in clothes.trousers:
+			if part.z_index < 0: draw_part(part,game.gait.opacity)
 		draw_part(game.gait.torso,game.gait.opacity)
+		for part in legs.thighs+legs.shins+legs.feet:
+			if part.z_index >= 0: draw_part(part,game.gait.opacity)
+		draw_part(clothes.waist,game.gait.opacity)
+		for part in clothes.trousers:
+			if part.z_index >= 0: draw_part(part,game.gait.opacity)
+		draw_set_transform_matrix(source_transform*clothes.global_transform)
+		clothes.draw_details(self)
 		draw_sprite(game.gait.head)
 	if game.arm_rig.visible:
 		for limb in game.arm_rig.layers:
-			for part in [limb.upper,limb.lower]:
-				draw_part(part,game.arm_rig.modulate.a)
-			if limb.tool != &"":
-				Tools.draw(self,limb.tool,limb.hand,limb.tip,limb.source_index == 0,source_transform*limb.global_transform,Color(1,1,1,game.arm_rig.modulate.a))
-	elif game.held_tool.visible:
-		var held = game.held_tool
-		var transform: Transform2D = source_transform*held.global_transform
-		Tools.draw(self,held.item,held.hand,held.tip,held.mirrored,transform)
-		if held.fist != null:
-			draw_set_transform_matrix(transform)
-			draw_texture_rect(held.fist,Rect2(held.hand-held.fist_size/2,held.fist_size),false)
+			if limb.tool != &"" and limb.tool_layer.z_index >= 0: draw_tool(limb)
+		for limb in game.arm_rig.layers:
+			if limb.z_index >= 0: draw_arm(limb)
 	draw_set_transform_matrix(Transform2D.IDENTITY)

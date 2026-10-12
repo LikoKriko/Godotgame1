@@ -7,13 +7,9 @@ var solar_lighting: Node
 var survival_status: Control
 var gait: Node2D
 var locomotion = preload("res://scripts/locomotion.gd").new()
-var original_head: Sprite2D
-var head_mask: ShaderMaterial
-var head_textures: Dictionary = {}
 var equipping := false
 var equip_elapsed := 0.0
 var last_tool_uid := -1
-var held_tool: Node2D
 
 const TILE := 64
 const WORLD_SEED := 73129
@@ -66,23 +62,12 @@ func _ready() -> void:
 	character.sprite_frames = preload("res://scripts/survivor_frames.gd").build()
 	character.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(character)
-	original_head = Sprite2D.new()
-	original_head.centered = false
-	original_head.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(original_head)
-	original_head.hide()
-	head_mask = ShaderMaterial.new()
-	head_mask.shader = preload("res://shaders/body_without_head.gdshader")
 	character.frame_changed.connect(sync_character)
 	character.animation_changed.connect(sync_character)
 	arm_rig = preload("res://scripts/arm_rig.gd").new()
 	add_child(arm_rig)
-	held_tool = preload("res://scripts/held_tool.gd").new()
-	held_tool.z_index = 0
-	held_tool.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(held_tool)
 	camera = Camera2D.new()
-	camera.zoom = Vector2(1.5, 1.5)
+	camera.zoom = Vector2(1.95, 1.95)
 	camera.limit_left = int(world.bounds.position.x)
 	camera.limit_top = int(world.bounds.position.y)
 	camera.limit_right = int(world.bounds.end.x)
@@ -221,6 +206,7 @@ func restart() -> void:
 	skills_open = false
 	camera.position = player
 	sync_character()
+	present_rest_pose()
 	world_view.update_trees(player, 1.0)
 	if solar_lighting != null:
 		solar_lighting.update_light()
@@ -349,8 +335,7 @@ func _process(delta: float) -> void:
 		var duration := 0.5 if bag.held_id() == &"pickaxe" else 0.42
 		var facing: StringName = movement.facing()
 		character.play(StringName("work_"+facing))
-		var idle: AtlasTexture = character.sprite_frames.get_frame_texture(StringName("idle_"+facing),0)
-		arm_rig.equip(player,facing,bag.held_id(),clampf(equip_elapsed/duration,0,1),held_tool.offset(idle))
+		arm_rig.equip(player,facing,bag.held_id(),clampf(equip_elapsed/duration,0,1),preload("res://scripts/arm_rig.gd").idle_hand(facing))
 		if equip_elapsed >= duration:
 			equipping = false
 			arm_rig.hide()
@@ -363,23 +348,23 @@ func _process(delta: float) -> void:
 	if working:
 		advance_work(delta, aim)
 	world_view.update_trees(player, delta)
-	held_tool.update_pose(self)
 	gait.update_pose(delta)
 	if not gait.active() and not working and not equipping:
-		if direction == Vector2.ZERO and bag.held_id() in [&"axe",&"pickaxe"]:
-			character.play(StringName("work_"+movement.facing()))
-			arm_rig.ready_pose(player,movement.facing(),bag.held_id())
-			held_tool.hide()
-			gait.update_work_pose()
-		else:
-			arm_rig.gait(player,movement.facing(),bag.held_id(),0,0)
-			held_tool.hide()
-			gait.update_work_pose()
+		present_rest_pose()
 	gait.apply_locomotion()
 	solar_lighting.update_light()
 	survival_status.update_status()
 	update_hud()
 	queue_redraw()
+
+func present_rest_pose() -> void:
+	if bag.held_id() in [&"axe",&"pickaxe"]:
+		character.play(StringName("work_"+movement.facing()))
+		arm_rig.ready_pose(player,movement.facing(),bag.held_id())
+	else:
+		character.play(StringName("idle_"+movement.facing()))
+		arm_rig.gait(player,movement.facing(),bag.held_id(),0,0)
+	gait.update_work_pose()
 
 func cancel_work() -> void:
 	if not working:
@@ -393,6 +378,7 @@ func cancel_work() -> void:
 	character.show()
 	character.play(StringName("idle_" + movement.facing()))
 	gait.cancel()
+	present_rest_pose()
 
 func start_work(aim: Vector2) -> bool:
 	if is_paused() or working or equipping or locomotion.airborne() or locomotion.sliding():
@@ -560,23 +546,6 @@ func sync_character() -> void:
 	var factor: float = frame_data.CHARACTER_HEIGHT / texture.region.size.y
 	character.scale = Vector2.ONE * factor
 	character.position = player + Vector2(0, 17 - (frame_data.BASELINE - frame_data.CANVAS.y / 2) * factor)
-	var work_view := str(character.animation).begins_with("work_")
-	character.material = head_mask if work_view else null
-	original_head.visible = work_view
-	if work_view:
-		head_mask.set_shader_parameter("head_bottom",player.y-22)
-		var facing: StringName = StringName(str(character.animation).trim_prefix("work_"))
-		var index: int = frame_data.DIRECTIONS.find(facing)
-		var data: Array = preload("res://assets/characters/survivor_regions.gd").IDLE[index]
-		var head_factor: float = 64.0/data[3]
-		if not head_textures.has(facing):
-			var atlas := AtlasTexture.new()
-			atlas.atlas = frame_data.IDLE_SHEET
-			atlas.region = Rect2(data[0],data[1],data[2],ceili(25/head_factor))
-			head_textures[facing] = atlas
-		original_head.texture = head_textures[facing]
-		original_head.scale = Vector2.ONE*head_factor
-		original_head.position = player+Vector2((data[0]-data[4])*head_factor,-47)
 
 func update_hud() -> void:
 	hud.text = "DAY ZERO · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d · Piedras %d · Palos %d · Fibra %d · Cuerda %d m\nWASD: moverse · Clic/E: golpear · I: inventario y fabricar\nEsc: menú · Tab: habilidades · R: reiniciar · F2: otro mapa" % [level, experience, level * 20, skill_points, bag.count(&"madera"), bag.count(&"piedra"), bag.count(&"palo"), bag.count(&"fibra"), bag.count(&"cuerda")]

@@ -19,7 +19,10 @@ var bob := 0.0
 var facing: StringName = &"down"
 var opacity := 1.0
 var stride_amplitude := 0.0
+var idle_clock := 0.0
+var clothing: Node2D
 var textures: Dictionary = {}
+var torso_meshes: Dictionary = {}
 
 func configure(owner_game) -> void:
 	game = owner_game
@@ -29,6 +32,8 @@ func configure(owner_game) -> void:
 	torso.texture = Frames.BODY_SHEET
 	torso.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(torso)
+	clothing = preload("res://scripts/clothing_rig.gd").new()
+	add_child(clothing)
 	head = Sprite2D.new()
 	for sprite in [head]:
 		sprite.centered = false
@@ -39,12 +44,18 @@ func configure(owner_game) -> void:
 func torso_piece(index: int) -> void:
 	var data: Array = Regions.IDLE[index]
 	var factor: float = 64.0/data[3]
-	var pixels: Array = preload("res://scripts/character_parts.gd").TORSO[index]
-	var vertices := PackedVector2Array()
-	for pixel in pixels:
-		vertices.append(Vector2((pixel.x-data[4])*factor,-47+(pixel.y-data[1])*factor))
-	torso.polygon = vertices
-	torso.uv = PackedVector2Array(pixels)
+	if not torso_meshes.has(index):
+		var body: Array = Regions.BODY[index]
+		var start: int = data[1]+floori(23/factor)
+		var limit := 275.0 if index < 4 else 691.0
+		var pixels := PackedVector2Array([Vector2(body[0],start),Vector2(body[0]+body[2],start),Vector2(body[0]+body[2],limit),Vector2(body[0],limit)])
+		var vertices := PackedVector2Array()
+		for pixel in pixels:
+			vertices.append(Vector2((pixel.x-data[4])*factor,-47+(pixel.y-data[1])*factor))
+		torso_meshes[index] = {"vertices":vertices,"uv":pixels}
+	if torso.uv != torso_meshes[index]["uv"]:
+		torso.polygon = torso_meshes[index]["vertices"]
+		torso.uv = torso_meshes[index]["uv"]
 	torso.position = game.player+Vector2(0,bob)
 	torso.rotation = 0
 
@@ -74,11 +85,10 @@ func cancel() -> void:
 	stopping = false
 	game.character.show()
 	game.character.modulate = Color.WHITE
-	if "original_head" in game:
-		game.original_head.modulate = Color.WHITE
 	game.arm_rig.modulate = Color.WHITE
 
 func update_pose(delta: float) -> void:
+	idle_clock += maxf(0,delta)
 	if game.working:
 		update_work_pose()
 		return
@@ -123,8 +133,8 @@ func update_pose(delta: float) -> void:
 	legs.pose(game.player,facing,phase,amplitude,bob,game.movement.heading)
 	game.arm_rig.gait(game.player+Vector2(0,bob),facing,game.bag.held_id(),phase,amplitude,game.movement.heading)
 	game.arm_rig.modulate = Color.WHITE if game.bag.held_id() in Motion.TOOL_MASS else Color(1,1,1,opacity)
-	game.held_tool.hide()
 	show()
+	clothing.update_pose(game,self)
 
 func update_work_pose() -> void:
 	working_pose = true
@@ -146,10 +156,9 @@ func update_work_pose() -> void:
 	legs.modulate = Color.WHITE
 	legs.pose(game.player,facing,0,0,0,game.movement.heading,transform)
 	game.character.hide()
-	game.original_head.hide()
-	game.held_tool.hide()
 	game.arm_rig.modulate = Color.WHITE
 	show()
+	clothing.update_pose(game,self)
 
 func apply_locomotion() -> void:
 	if not active() or (game.locomotion.crouch == 0 and not game.locomotion.airborne() and not game.locomotion.sliding()):
@@ -169,3 +178,4 @@ func apply_locomotion() -> void:
 	if game.locomotion.sliding() or game.locomotion.airborne():
 		amplitude = 0
 	legs.pose(game.player,facing,phase,amplitude,leg_bob,game.movement.heading,hips,game.locomotion.height())
+	clothing.update_pose(game,self)

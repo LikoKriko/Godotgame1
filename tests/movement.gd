@@ -59,6 +59,6 @@ func run_checks() -> void:
 	game.move_player(Vector2.ZERO, 0.1)
 	require(game.character.animation == &"idle_left", "Idle retains facing")
 	game.restart()
-	require(game.character.animation == &"idle_down" and game.movement.speed_factor == 1.0, "Restart resets motion and sprite")
+	require(game.movement.facing() == &"down" and game.movement.speed_factor == 1.0 and game.gait.clothing.state == &"idle", "Restart resets motion, facing and resting pose")
 	print("PASS: %d movement/animation checks (30, 60, 144 fps)" % checks)
 	quit(0)

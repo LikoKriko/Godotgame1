@@ -1,6 +1,5 @@
 extends RefCounted
 ## Eight views share the same head anchor and foot baseline; source art stays intact.
-const SHEET = preload("res://assets/characters/survivor_walk_8dir.png")
 const IDLE_SHEET = preload("res://assets/characters/survivor_idle_8dir.png")
 const BODY_SHEET = preload("res://assets/characters/survivor_body_8dir.png")
 const Regions = preload("res://assets/characters/survivor_regions.gd")
@@ -24,9 +23,10 @@ static func build() -> SpriteFrames:
 		frames.set_animation_loop(walk, true)
 		frames.add_animation(idle)
 		frames.set_animation_loop(idle, false)
+		var idle_texture := atlas(IDLE_SHEET, Regions.IDLE[row])
 		for column in 4:
-			frames.add_frame(walk, atlas(SHEET, Regions.WALK[row][column]))
-		frames.add_frame(idle, atlas(IDLE_SHEET, Regions.IDLE[row]))
+			frames.add_frame(walk, idle_texture)
+		frames.add_frame(idle, idle_texture)
 		var work := StringName("work_" + DIRECTIONS[row])
 		frames.add_animation(work)
 		frames.set_animation_loop(work, false)

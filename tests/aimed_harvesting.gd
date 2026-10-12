@@ -119,7 +119,7 @@ func run_checks() -> void:
 		game.world_view.update_trees(game.player,0.3)
 	require(game.bag.count(&"fibra") == 3,"Hand-harvesting awards three plant fibers")
 	require(not world.props.has(sapling) and not game.world_view.hit_meshes.targets.has(sapling),"Destroyed sapling removes impact and movement collision")
-	require(not game.arm_rig.visible and str(game.character.animation).begins_with("idle_"),"Strike recovers to ordinary idle")
+	require(not game.working and game.gait.clothing.state == &"idle" and game.arm_rig.layers[0].tool == &"" and game.arm_rig.layers[1].tool == &"","Hand strike recovers to consistent bare-handed rest")
 	var grass: Array = world.grass_tufts.duplicate(true)
 	var puddles: Array = world.puddles.duplicate(true)
 	game.restart()

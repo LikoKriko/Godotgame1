@@ -64,7 +64,7 @@ func run() -> void:
 	require(game.gait.stopping and not game.character.visible,"Stopping with an axe uses the same articulated body without duplicate original arms")
 	require(game.arm_rig.modulate.a == 1 and game.gait.head.modulate.a == 1,"Two-handed grip and head stay opaque during settling")
 	game.gait.update_pose(0.10)
-	require(not game.gait.active() and game.original_head.modulate.a == 1,"Completed stop restores normal head opacity")
+	require(not game.gait.active() and game.gait.head.modulate.a == 1,"Completed stop restores normal head opacity")
 	print("%s: %d motion-polish checks, %d failures: anatomy, inertia, recoil, torso, contact lock, starts and turns" % ["PASS" if failures == 0 else "FAIL",checks,failures])
 	game.free()
 	quit(0 if failures == 0 else 1)
