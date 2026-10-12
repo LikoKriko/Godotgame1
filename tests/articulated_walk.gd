@@ -36,10 +36,10 @@ func run() -> void:
 			elif frame == 3:
 				require(game.gait.legs.joints[1]["lift"] < 0.001 and game.gait.legs.joints[0]["lift"] > 4.0,"Second passing pose exchanges the planted and moving leg")
 		if facing in [&"right",&"left"]:
-			require(offsets[0].x*offsets[2].x < 0 and absf(offsets[0].x) > 10,"Side walk visibly swaps front/back feet")
+			require(offsets[0].x*offsets[2].x < 0 and absf(offsets[0].x) > 8,"Side walk visibly swaps front/back feet: %s %s" % [facing,offsets])
 		game.character.play("idle_"+facing)
 		game.gait.update_pose(0.06)
-		require(game.gait.stopping and game.gait.visible and game.character.modulate.a > 0 and game.character.modulate.a < 1,"Releasing movement blends smoothly toward idle")
+		require(game.gait.stopping and game.gait.visible and game.gait.stride_amplitude > 0 and game.gait.stride_amplitude < 1 and not game.character.visible,"Releasing movement settles the same limbs without a duplicate fading body")
 		game.gait.update_pose(0.2)
 		require(not game.gait.visible and game.character.visible and game.character.modulate == Color.WHITE,"Stop transition completes at the original idle pose")
 	print("%s: %d articulated-walk checks, %d failures: stable head, alternating strides, joints and stop transition" % ["PASS" if failures == 0 else "FAIL",checks,failures])

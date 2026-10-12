@@ -9,7 +9,7 @@ var start_elapsed := 0.0
 var working_pose := false
 var game
 var head: Sprite2D
-var torso: Sprite2D
+var torso: Polygon2D
 var legs: Node2D
 var was_walking := false
 var stopping := false
@@ -18,19 +18,35 @@ var phase := 0.0
 var bob := 0.0
 var facing: StringName = &"down"
 var opacity := 1.0
+var stride_amplitude := 0.0
 var textures: Dictionary = {}
 
 func configure(owner_game) -> void:
 	game = owner_game
 	legs = preload("res://scripts/leg_rig.gd").new()
 	add_child(legs)
-	torso = Sprite2D.new()
+	torso = Polygon2D.new()
+	torso.texture = Frames.BODY_SHEET
+	torso.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	add_child(torso)
 	head = Sprite2D.new()
-	for sprite in [torso,head]:
+	for sprite in [head]:
 		sprite.centered = false
 		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		add_child(sprite)
 	hide()
+
+func torso_piece(index: int) -> void:
+	var data: Array = Regions.IDLE[index]
+	var factor: float = 64.0/data[3]
+	var pixels: Array = preload("res://scripts/character_parts.gd").TORSO[index]
+	var vertices := PackedVector2Array()
+	for pixel in pixels:
+		vertices.append(Vector2((pixel.x-data[4])*factor,-47+(pixel.y-data[1])*factor))
+	torso.polygon = vertices
+	torso.uv = PackedVector2Array(pixels)
+	torso.position = game.player+Vector2(0,bob)
+	torso.rotation = 0
 
 func sprite_piece(sprite: Sprite2D, sheet: Texture2D, data: Array, from_y: float, to_y: float) -> void:
 	var factor: float = 64.0/data[3]
@@ -67,7 +83,7 @@ func update_pose(delta: float) -> void:
 		update_work_pose()
 		return
 	if game.equipping:
-		cancel()
+		update_work_pose()
 		return
 	var walking: bool = game.character.animation.begins_with("walk_") or (game.movement.is_turning() and game.movement.target_direction != Vector2.ZERO)
 	working_pose = false
@@ -87,26 +103,23 @@ func update_pose(delta: float) -> void:
 	elif was_walking:
 		stopping = true
 		stop_elapsed += maxf(0,delta)
-		var blend := smoothstep(0,STOP_SECONDS,stop_elapsed)
-		opacity = 1-blend
-		game.character.show()
-		if game.bag.held_id() in Motion.TOOL_MASS:
-			game.character.play(StringName("work_"+facing))
-			game.original_head.modulate = Color(1,1,1,blend)
-		game.character.modulate = Color(1,1,1,blend)
+		opacity = 1.0
+		game.character.hide()
 		if stop_elapsed >= STOP_SECONDS:
 			cancel()
 			return
 	else:
 		cancel()
 		return
-	bob = -0.65*(1-cos(phase*4*PI))*opacity
+	var stop_factor := 1-smoothstep(0,STOP_SECONDS,stop_elapsed) if stopping else 1.0
+	bob = -0.65*(1-cos(phase*4*PI))*stop_factor
 	var index: int = Frames.DIRECTIONS.find(facing)
 	sprite_piece(head,Frames.IDLE_SHEET,Regions.IDLE[index],-47,-22)
-	sprite_piece(torso,Frames.BODY_SHEET,Regions.BODY[index],-22,1.5)
+	torso_piece(index)
 	for sprite in [head,torso,legs]:
 		sprite.modulate = Color(1,1,1,opacity)
-	var amplitude := opacity*smoothstep(0,START_SECONDS,start_elapsed)
+	var amplitude := stop_factor*smoothstep(0,START_SECONDS,start_elapsed)
+	stride_amplitude = amplitude
 	legs.pose(game.player,facing,phase,amplitude,bob,game.movement.heading)
 	game.arm_rig.gait(game.player+Vector2(0,bob),facing,game.bag.held_id(),phase,amplitude,game.movement.heading)
 	game.arm_rig.modulate = Color.WHITE if game.bag.held_id() in Motion.TOOL_MASS else Color(1,1,1,opacity)
@@ -121,20 +134,38 @@ func update_work_pose() -> void:
 	facing = game.movement.facing()
 	var phase := clampf(game.work_elapsed/game.work_duration,0,1)
 	var item: StringName = game.bag.held_id()
-	var body := Motion.body(phase,item,game.arm_rig.impact_material)
 	var transform := Motion.torso_transform(game.player,facing,phase,item,game.arm_rig.impact_material)
 	bob = 0
 	var index: int = Frames.DIRECTIONS.find(facing)
 	sprite_piece(head,Frames.IDLE_SHEET,Regions.IDLE[index],-47,-22)
-	sprite_piece(torso,Frames.BODY_SHEET,Regions.BODY[index],-22,1.5)
+	torso_piece(index)
 	for sprite in [head,torso]:
 		sprite.position = transform*sprite.position
 		sprite.rotation = transform.get_rotation()
 		sprite.modulate = Color.WHITE
 	legs.modulate = Color.WHITE
-	legs.pose(game.player,facing,0,0,body["crouch"])
+	legs.pose(game.player,facing,0,0,0,game.movement.heading,transform)
 	game.character.hide()
 	game.original_head.hide()
 	game.held_tool.hide()
 	game.arm_rig.modulate = Color.WHITE
 	show()
+
+func apply_locomotion() -> void:
+	if not active() or (game.locomotion.crouch == 0 and not game.locomotion.airborne() and not game.locomotion.sliding()):
+		return
+	var transform: Transform2D = game.locomotion.torso_transform(game.player,facing)
+	for sprite in [head,torso]:
+		sprite.position = transform*sprite.position
+		sprite.rotation += transform.get_rotation()
+	game.arm_rig.position = transform*game.arm_rig.position
+	game.arm_rig.rotation += transform.get_rotation()
+	var hips := transform
+	var amplitude := stride_amplitude if was_walking else 0.0
+	var leg_bob := bob
+	if game.working:
+		hips *= Motion.torso_transform(game.player,facing,clampf(game.work_elapsed/game.work_duration,0,1),game.bag.held_id(),game.arm_rig.impact_material)
+		leg_bob = 0
+	if game.locomotion.sliding() or game.locomotion.airborne():
+		amplitude = 0
+	legs.pose(game.player,facing,phase,amplitude,leg_bob,game.movement.heading,hips,game.locomotion.height())

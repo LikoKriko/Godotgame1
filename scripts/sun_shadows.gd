@@ -65,7 +65,8 @@ func standalone(texture: Texture2D) -> Texture2D:
 	# Isolate the crop so soft edges cannot sample neighbouring atlas sprites.
 	var key := texture.get_instance_id()
 	if not textures.has(key):
-		textures[key] = ImageTexture.create_from_image(texture.get_image())
+		var pixels: Image = texture.atlas.get_image().get_region(Rect2i(texture.region)) if texture is AtlasTexture else texture.get_image()
+		textures[key] = ImageTexture.create_from_image(pixels)
 	return textures[key]
 
 func _draw() -> void:

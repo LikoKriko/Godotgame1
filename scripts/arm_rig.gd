@@ -12,13 +12,13 @@ const MAX_ARM := 17.95
 static var TOOL_LENGTHS := Tools.reach_lengths()
 const ANCHORS := {
 	&"down": [Vector2(-8,-20.5),Vector2(8,-20.5)],
-	&"down_right": [Vector2(-6.9,-20.5),Vector2(6.9,-20.5)],
-	&"right": [Vector2(-3,-21),Vector2(-5.5,-20.7)],
-	&"up_right": [Vector2(-9,-20.5),Vector2(5.5,-21.1)],
+	&"down_right": [Vector2(-7.66,-20.79),Vector2(7.49,-20.79)],
+	&"right": [Vector2(-3,-21.06),Vector2(-5.22,-21.06)],
+	&"up_right": [Vector2(-8.78,-21),Vector2(6.92,-21)],
 	&"up": [Vector2(-8.3,-20.6),Vector2(8.2,-21)],
-	&"up_left": [Vector2(-3.7,-20.4),Vector2(9.5,-21.2)],
-	&"left": [Vector2(5.9,-21.1),Vector2(3,-21)],
-	&"down_left": [Vector2(-7.2,-20.5),Vector2(10,-20.7)],
+	&"up_left": [Vector2(-3.74,-20.62),Vector2(7.83,-20.62)],
+	&"left": [Vector2(4.09,-20.96),Vector2(2,-20.96)],
+	&"down_left": [Vector2(-8.87,-20.89),Vector2(11.26,-20.89)],
 }
 # These polygons isolate the original arm pixels at runtime; no flat-color skin.
 const SOURCE := [
@@ -32,6 +32,28 @@ const SOURCE := [
 var layers: Array[Node2D] = []
 var state: Dictionary = {}
 
+static func skin_source(facing: StringName, index: int) -> Dictionary:
+	if facing == &"down":
+		return SOURCE[index]
+	# Native shoulder/elbow/wrist coordinates in the corresponding idle view.
+	var joints: Array = {
+		&"down_right": [[Vector2(636,215),Vector2(622,269),Vector2(610,319)],[Vector2(725,215),Vector2(739,269),Vector2(747,319)]],
+		&"right": [[Vector2(1066,215),Vector2(1080,269),Vector2(1102,319)],[Vector2(1066,215),Vector2(1080,269),Vector2(1102,319)]],
+		&"up_right": [[Vector2(1502,215),Vector2(1490,269),Vector2(1482,319)],[Vector2(1595,215),Vector2(1608,269),Vector2(1619,319)]],
+		&"up": [[Vector2(188,631),Vector2(176,685),Vector2(169,735)],[Vector2(292,631),Vector2(306,685),Vector2(313,735)]],
+		&"up_left": [[Vector2(646,631),Vector2(630,685),Vector2(610,735)],[Vector2(714,631),Vector2(730,685),Vector2(741,735)]],
+		&"left": [[Vector2(1107,631),Vector2(1090,685),Vector2(1072,735)],[Vector2(1107,631),Vector2(1090,685),Vector2(1072,735)]],
+		&"down_left": [[Vector2(1503,631),Vector2(1489,685),Vector2(1486,735)],[Vector2(1621,631),Vector2(1632,685),Vector2(1629,735)]],
+	}[facing][index]
+	var shoulder: Vector2 = joints[0]
+	var elbow: Vector2 = joints[1]
+	var hand: Vector2 = joints[2]
+	var a := shoulder.direction_to(elbow).orthogonal()
+	var b := elbow.direction_to(hand).orthogonal()
+	return {"shoulder": shoulder,"elbow": elbow,"hand": hand,
+		"upper": [shoulder-a*11,shoulder-a*9-Vector2(0,7),shoulder+a*10-Vector2(0,7),shoulder+a*12,elbow+a*9,elbow-a*9],
+		"lower": [elbow-b*9,elbow+b*9,hand+b*15,hand+b*10+Vector2(0,13),hand-b*12+Vector2(0,13),hand-b*15]}
+
 class Limb:
 	extends Node2D
 	var shoulder := Vector2.ZERO
@@ -42,6 +64,7 @@ class Limb:
 	var source_index := 0
 	var depth := 0.0
 	var hand_depth := 0.0
+	var facing: StringName = &"down"
 	var upper: Polygon2D
 	var lower: Polygon2D
 	func _ready() -> void:
@@ -53,7 +76,7 @@ class Limb:
 			part.z_index = 0
 			add_child(part)
 	func update_skin() -> void:
-		var source: Dictionary = SOURCE[source_index]
+		var source: Dictionary = get_parent().skin_source(facing,source_index)
 		map_part(upper,shoulder,elbow,source["shoulder"],source["elbow"],source["upper"])
 		map_part(lower,elbow,hand,source["elbow"],source["hand"],source["lower"])
 	func map_part(part: Polygon2D, a: Vector2, b: Vector2, source_a: Vector2, source_b: Vector2, pixels: Array) -> void:
@@ -127,6 +150,7 @@ func set_limb(index: int, shoulder: Vector2, request: Vector2, player: Vector2, 
 		pole = 1.0
 	var joints := solve(shoulder,request,pole)
 	var limb = layers[index]
+	limb.facing = state.get("facing",&"down")
 	limb.depth = joints["depth"]
 	limb.hand_depth = joints["hand_depth"]
 	limb.shoulder = joints["shoulder"]-player
@@ -178,7 +202,8 @@ static func constrain_grip(player: Vector2, facing: StringName, active: int, req
 
 static func ready_grip(player: Vector2, facing: StringName, active: int, item: StringName) -> Vector2:
 	var side := -1.0 if active == 0 else 1.0
-	return constrain_grip(player,facing,active,player+Vector2(side*5,-8),rest_direction(facing,item),item)
+	var lateral := facing in [&"right",&"left"]
+	return constrain_grip(player,facing,active,player+Vector2(side*(11 if lateral else 7),-9),rest_direction(facing,item),item)
 
 func two_handed(player: Vector2, facing: StringName, item: StringName, request: Vector2, direction: Vector2) -> void:
 	var active := 0 if facing in [&"left",&"up_left",&"down_left"] else 1

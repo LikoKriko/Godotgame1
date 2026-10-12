@@ -84,6 +84,6 @@ func run_checks() -> void:
 	require(not game.equipping and game.arm_rig.visible and not game.held_tool.visible,"Equip finishes with the sprite visibly held in the hand")
 	game.bag.unequip(&"hands")
 	game._process(0.1)
-	require(not game.held_tool.visible and not game.arm_rig.visible,"Unequipping removes the visible tool")
+	require(not game.held_tool.visible and game.arm_rig.layers[0].tool == &"" and game.arm_rig.layers[1].tool == &"","Unequipping removes the visible tool while preserving bare arms")
 	print("%s: %d character action checks, %d failures: original skin, stable shoulders, smooth elbows, distinct gestures and visible equipment" % ["PASS" if failures == 0 else "FAIL",checks,failures])
 	quit(0 if failures == 0 else 1)

@@ -6,6 +6,7 @@ var nutrition = preload("res://scripts/nutrition.gd").new()
 var solar_lighting: Node
 var survival_status: Control
 var gait: Node2D
+var locomotion = preload("res://scripts/locomotion.gd").new()
 var original_head: Sprite2D
 var head_mask: ShaderMaterial
 var head_textures: Dictionary = {}
@@ -160,6 +161,8 @@ func _ready() -> void:
 	gait = preload("res://scripts/walk_presentation.gd").new()
 	add_child(gait)
 	gait.configure(self)
+	# Near arms must draw after the torso; far arms retain z=-1.
+	move_child(arm_rig,get_child_count()-1)
 	solar_lighting = preload("res://scripts/solar_lighting.gd").new()
 	add_child(solar_lighting)
 	solar_lighting.configure(self)
@@ -182,6 +185,7 @@ func fit_hud() -> void:
 	skill_panel.position = (viewport_size - skill_panel.size) / 2
 
 func restart() -> void:
+	locomotion.reset()
 	world.generate(world.seed_value)
 	world_view.refresh_ground()
 	bag.reset()
@@ -266,6 +270,12 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if inventory_panel.visible:
 		return
+	if event.keycode == KEY_SPACE:
+		start_jump()
+		return
+	if event.keycode == KEY_SHIFT:
+		start_slide()
+		return
 	if event.keycode >= KEY_1 and event.keycode <= KEY_4:
 		cancel_work()
 		bag.select_tool([&"sword", &"bow", &"pickaxe", &"axe"][event.keycode - KEY_1])
@@ -288,10 +298,30 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func is_paused() -> bool:
 	return menu_open or skills_open or inventory_panel.visible
 
+func start_jump() -> bool:
+	if is_paused() or not locomotion.jump():
+		return false
+	cancel_work()
+	equipping = false
+	return true
+
+func start_slide() -> bool:
+	var input_direction := Vector2(
+		float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT))-float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
+		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN))-float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
+	if input_direction == Vector2.ZERO:
+		input_direction = movement.target_direction
+	if is_paused() or not locomotion.slide(input_direction):
+		return false
+	cancel_work()
+	equipping = false
+	return true
+
 func _process(delta: float) -> void:
 	if is_paused():
 		character.pause()
 		return
+	locomotion.advance(delta,Input.is_physical_key_pressed(KEY_CTRL))
 	if day_cycle.advance(delta) > 0:
 		nutrition.new_day()
 	nutrition.advance(delta,day_cycle.day_seconds)
@@ -327,7 +357,7 @@ func _process(delta: float) -> void:
 			character.play(StringName("idle_"+facing))
 	var aim := get_global_mouse_position()
 	focused = resources.target_at(aim)
-	var pressed := Input.is_physical_key_pressed(KEY_E) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE)
+	var pressed := Input.is_physical_key_pressed(KEY_E) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 	if direction == Vector2.ZERO and not working and not equipping and pressed:
 		start_work(aim)
 	if working:
@@ -340,8 +370,12 @@ func _process(delta: float) -> void:
 			character.play(StringName("work_"+movement.facing()))
 			arm_rig.ready_pose(player,movement.facing(),bag.held_id())
 			held_tool.hide()
+			gait.update_work_pose()
 		else:
-			arm_rig.hide()
+			arm_rig.gait(player,movement.facing(),bag.held_id(),0,0)
+			held_tool.hide()
+			gait.update_work_pose()
+	gait.apply_locomotion()
 	solar_lighting.update_light()
 	survival_status.update_status()
 	update_hud()
@@ -361,7 +395,7 @@ func cancel_work() -> void:
 	gait.cancel()
 
 func start_work(aim: Vector2) -> bool:
-	if is_paused() or working or equipping:
+	if is_paused() or working or equipping or locomotion.airborne() or locomotion.sliding():
 		return false
 	var item: StringName = bag.held_id()
 	if item != &"" and not bag.usable():
@@ -496,6 +530,9 @@ func clear_combat_path(target: Vector2) -> bool:
 func move_player(direction: Vector2, delta: float) -> void:
 	var previous := player
 	var velocity: Vector2 = movement.step(direction, delta, (220.0 + ranks[2] * 22.0)*nutrition.speed_multiplier())
+	if locomotion.sliding():
+		movement.step(locomotion.slide_direction,delta,220)
+	velocity = locomotion.velocity(velocity,nutrition.speed_multiplier())
 	var motion := velocity * delta
 	player = world.move_actor(player, motion)
 	camera.position = player
@@ -546,7 +583,7 @@ func update_hud() -> void:
 	var held: Dictionary = bag.equipment[&"hands"]
 	hud.text += "\nManos: %s · 1 Espada / 2 Arco / 3 Pico / 4 Hacha / 0 Vaciar" % ("Libres" if held.is_empty() else "%s [%d usos]" % [bag.DEFINITIONS[held["id"]]["name"], held["uses"]])
 	hud_backdrop.size = hud.get_combined_minimum_size() + Vector2(24, 18)
-	interaction.text = "Apunta al objeto con el punto y pulsa Clic o E. 0: manos libres."
+	interaction.text = "Clic/E: golpear · Ctrl: agacharse · Espacio: saltar · Shift al moverse: deslizarse"
 	if resources.nodes.has(focused):
 		var node: Dictionary = resources.nodes[focused]
 		interaction.text = "%s · Golpes restantes %d/%d · Clic / E" % [node["name"], node["remaining"], node["hits"]]

@@ -62,7 +62,7 @@ func _draw() -> void:
 		var legs = game.gait.legs
 		for part in legs.thighs+legs.shins+legs.feet:
 			draw_part(part,game.gait.opacity)
-		draw_sprite(game.gait.torso)
+		draw_part(game.gait.torso,game.gait.opacity)
 		draw_sprite(game.gait.head)
 	if game.arm_rig.visible:
 		for limb in game.arm_rig.layers:
