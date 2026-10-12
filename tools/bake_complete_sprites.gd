@@ -1,0 +1,127 @@
+extends SceneTree
+const Actor = preload("res://tools/continuous_actor.gd")
+const Inventory = preload("res://scripts/inventory.gd")
+const CELL := Vector2i(192,192)
+const OUTPUT := "res://assets/characters/complete/"
+var viewport: SubViewport
+var camera: Camera3D
+var actor: Node3D
+var failures := 0
+
+func _initialize() -> void: call_deferred("run")
+
+func setup() -> void:
+	viewport = SubViewport.new()
+	viewport.size = CELL
+	viewport.transparent_bg = true
+	viewport.world_3d = World3D.new()
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	root.add_child(viewport)
+	camera = Camera3D.new()
+	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	camera.size = 128
+	camera.position = Vector3(0,78,200)
+	viewport.add_child(camera)
+	camera.look_at(Vector3(0,34,0))
+	actor = Actor.new()
+	viewport.add_child(actor)
+	actor.camera_up = camera.global_basis.y
+
+func frame_ready() -> void:
+	await process_frame
+	await RenderingServer.frame_post_draw
+
+func outlined(picture: Image) -> Image:
+	var result := picture.duplicate()
+	for y in range(1,picture.get_height()-1):
+		for x in range(1,picture.get_width()-1):
+			if picture.get_pixel(x,y).a > 0.01: continue
+			for offset in [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]:
+				if picture.get_pixelv(Vector2i(x,y)+offset).a > 0.8:
+					result.set_pixel(x,y,Color(0.18,0.12,0.075,0.9)); break
+	return result
+
+func sheet(item: StringName,family: StringName,state: StringName,count: int,directions: int,stop_frame: int = -1, from_start: bool = false) -> Dictionary:
+	var result := Image.create(CELL.x*count,CELL.y*directions,false,Image.FORMAT_RGBA8)
+	var grip_error := 0.0
+	var anchors := []
+	for direction in directions:
+		var row := []
+		for frame in count:
+			var phase := frame/float(count) if state == &"walk" else (frame/float(count-1) if count > 1 else 0.0)
+			if state == &"action": phase = frame/16.0 if frame <= 8 else 0.5+(frame-8)/14.0
+			actor.build(item,family,state,phase,direction*(16/directions),0.0 if from_start else (stop_frame/12.0 if stop_frame >= 0 else 0.20),smoothstep(0,1,stop_frame/5.0) if from_start else 1.0)
+			var grip: Vector3 = actor.last_pose["grip"]
+			var yaw := PI/2-direction*(16.0/directions)*TAU/16
+			var basis := Basis(Vector3.UP,yaw)
+			var base: Vector3 = actor.last_pose["hands"][1]
+			var tip := base+base.direction_to(actor.last_pose["hands"][0]+Vector3(0,1,0))*24
+			var point := camera.unproject_position(basis*tip) if family == &"bow" else Vector2.ZERO
+			row.append([point.x,point.y])
+			grip_error = maxf(grip_error,actor.grip_error)
+			await frame_ready()
+			var picture := outlined(viewport.get_texture().get_image())
+			picture.convert(Image.FORMAT_RGBA8)
+			result.blit_rect(picture,Rect2i(Vector2i.ZERO,CELL),Vector2i(frame*CELL.x,direction*CELL.y))
+		anchors.append(row)
+	var id := "bare" if item == &"" else String(item)
+	var suffix := ("_start_%02d" if from_start else "_%02d") % stop_frame if stop_frame >= 0 else ""
+	var path := OUTPUT+id+"_"+String(state)+suffix+".png"
+	var error := result.save_png(path)
+	if error != OK or grip_error > 0.04:
+		failures += 1
+		push_error("Export %s: write=%s, grip_error=%s" % [path,error,grip_error])
+	print("BAKED %s: %d directions × %d frames; grip error %.5f" % [path,directions,count,grip_error])
+	return {"path":path,"frames":count,"directions":directions,"grip_error":grip_error,"anchors":anchors,"body_height":result.get_region(Rect2i(0,4*CELL.y,CELL.x,CELL.y)).get_used_rect().size.y if item == &"" and state == &"idle" else 0}
+
+func run() -> void:
+	setup()
+	await frame_ready()
+	var arguments := OS.get_cmdline_user_args()
+	if "--probe" in arguments:
+		var contact := Image.create(CELL.x*8,CELL.y*4,false,Image.FORMAT_RGBA8)
+		for row in 4:
+			for column in 8:
+				var item: StringName = [&"axe",&"pickaxe",&"sword",&"bow"][row]
+				actor.build(item,item,&"action",0.25 if column%2 == 0 else 0.5,(column/2)*4)
+				await frame_ready()
+				contact.blit_rect(outlined(viewport.get_texture().get_image()),Rect2i(Vector2i.ZERO,CELL),Vector2i(column*CELL.x,row*CELL.y))
+		contact.save_png("/tmp/continuous-body-probe.png")
+		quit(); return
+	var items: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow"]
+	if "--item" in arguments:
+		var index := arguments.find("--item")
+		items = [StringName(arguments[index+1])]
+	var foot := camera.unproject_position(Vector3.ZERO)
+	var manifest := {"version":1,"canvas":[CELL.x,CELL.y],"foot":[foot.x,foot.y],"world_span":128.0,"items":{}}
+	var path := OUTPUT+"manifest.json"
+	if FileAccess.file_exists(path):
+		var previous: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
+		manifest["items"] = previous["items"]
+		manifest["pixels_per_world"] = previous.get("pixels_per_world",1.0)
+	for item in items:
+		var family: StringName = Inventory.DEFINITIONS.get(item,{}).get("category",&"")
+		var clips := {}
+		clips["idle"] = await sheet(item,family,&"idle",1,16)
+		if item == &"": manifest["pixels_per_world"] = clips["idle"]["body_height"]/64.0
+		clips["walk"] = await sheet(item,family,&"walk",12,8)
+		clips["start"] = await sheet(item,family,&"start",6,8)
+		for start_frame in 12:
+			clips["stop_%02d" % start_frame] = await sheet(item,family,&"stop",6,8,start_frame)
+		for start_frame in 6:
+			clips["stop_start_%02d" % start_frame] = await sheet(item,family,&"stop",6,8,start_frame,true)
+		clips["action"] = await sheet(item,family,&"action",16,16)
+		clips["equip"] = await sheet(item,family,&"equip",6,16)
+		for state in [&"jump",&"crouch",&"slide"]:
+			clips[state] = await sheet(item,family,state,6,8)
+		manifest["items"]["bare" if item == &"" else String(item)] = {"category":String(family),"clips":clips}
+		var progress := FileAccess.open(path,FileAccess.WRITE)
+		progress.store_string(JSON.stringify(manifest,"\t"))
+		progress.close()
+	var file := FileAccess.open(path,FileAccess.WRITE)
+	file.store_string(JSON.stringify(manifest,"\t"))
+	file.close()
+	actor.free()
+	viewport.free()
+	print("%s complete sprite export" % ("PASS" if failures == 0 else "FAIL"))
+	quit(1 if failures else 0)

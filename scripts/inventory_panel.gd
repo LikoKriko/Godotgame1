@@ -57,8 +57,11 @@ func configure(inventory) -> void:
 	content.add_child(close)
 	label("PERSONAJE", Vector2(16, 48), 13)
 	var portrait := TextureRect.new()
-	var portrait_texture: AtlasTexture = preload("res://scripts/survivor_frames.gd").build().get_frame_texture(&"idle_down", 0).duplicate()
-	portrait_texture.margin = Rect2()
+	var portrait_texture := AtlasTexture.new()
+	portrait_texture.atlas = load("res://assets/characters/complete/bare_idle.png")
+	var cell := Rect2i(0,4*192,192,192)
+	var used := portrait_texture.atlas.get_image().get_region(cell).get_used_rect()
+	portrait_texture.region = Rect2(used.position+cell.position,used.size)
 	portrait.texture = portrait_texture
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST

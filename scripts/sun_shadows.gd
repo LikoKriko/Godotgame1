@@ -60,7 +60,7 @@ func configure(owner_game) -> void:
 	colored_avatar.texture = mask_viewport.get_texture()
 	colored_avatar.centered = false
 	colored_avatar.scale = Vector2.ONE/Mask.SCALE
-	colored_avatar.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	colored_avatar.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	game.add_child(colored_avatar)
 	avatar = AvatarProjection.new()
 	avatar.host = self

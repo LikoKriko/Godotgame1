@@ -13,7 +13,7 @@ func configure(owner_game) -> void:
 	game = owner_game
 	position = ORIGIN
 	scale = Vector2.ONE*SCALE
-	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 
 func _process(_delta: float) -> void:
 	if initialized and game.has_method("is_paused") and game.is_paused():
@@ -50,6 +50,10 @@ func draw_arm(limb) -> void:
 func _draw() -> void:
 	if game == null: return
 	source_transform = Transform2D(0,-game.player-Vector2(0,17))*game.global_transform.affine_inverse()
+	if game.full_avatar != null and game.full_avatar.visible:
+		draw_sprite(game.full_avatar)
+		draw_set_transform_matrix(Transform2D.IDENTITY)
+		return
 	if game.arm_rig.visible:
 		for limb in game.arm_rig.layers:
 			if limb.tool != &"" and limb.tool_layer.z_index < 0: draw_tool(limb)

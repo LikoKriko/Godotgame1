@@ -5,6 +5,7 @@ var day_cycle = preload("res://scripts/day_cycle.gd").new()
 var nutrition = preload("res://scripts/nutrition.gd").new()
 var solar_lighting: Node
 var survival_status: Control
+var full_avatar: Sprite2D
 var gait: Node2D
 var locomotion = preload("res://scripts/locomotion.gd").new()
 var equipping := false
@@ -146,11 +147,14 @@ func _ready() -> void:
 	gait = preload("res://scripts/walk_presentation.gd").new()
 	add_child(gait)
 	gait.configure(self)
+	full_avatar = preload("res://scripts/full_frame_avatar.gd").new()
+	add_child(full_avatar)
 	# Near arms must draw after the torso; far arms retain z=-1.
 	move_child(arm_rig,get_child_count()-1)
 	solar_lighting = preload("res://scripts/solar_lighting.gd").new()
 	add_child(solar_lighting)
 	solar_lighting.configure(self)
+	full_avatar.configure(self)
 	restart()
 	fit_hud()
 
@@ -208,6 +212,8 @@ func restart() -> void:
 	sync_character()
 	present_rest_pose()
 	world_view.update_trees(player, 1.0)
+	if full_avatar != null:
+		full_avatar.reset()
 	if solar_lighting != null:
 		solar_lighting.update_light()
 		survival_status.update_status()
@@ -325,17 +331,14 @@ func _process(delta: float) -> void:
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 	if direction != Vector2.ZERO and working:
 		cancel_work()
-	if direction != Vector2.ZERO and equipping:
-		equipping = false
-		arm_rig.hide()
 	if not working and not equipping:
 		move_player(direction, delta)
 	if equipping:
 		equip_elapsed += delta
-		var duration := 0.5 if bag.held_id() == &"pickaxe" else 0.42
+		var duration := 0.5 if bag.held_category() == &"pickaxe" else 0.42
 		var facing: StringName = movement.facing()
 		character.play(StringName("work_"+facing))
-		arm_rig.equip(player,facing,bag.held_id(),clampf(equip_elapsed/duration,0,1),preload("res://scripts/arm_rig.gd").idle_hand(facing))
+		arm_rig.equip(player,facing,bag.held_category(),clampf(equip_elapsed/duration,0,1),preload("res://scripts/arm_rig.gd").idle_hand(facing))
 		if equip_elapsed >= duration:
 			equipping = false
 			arm_rig.hide()
@@ -352,18 +355,19 @@ func _process(delta: float) -> void:
 	if not gait.active() and not working and not equipping:
 		present_rest_pose()
 	gait.apply_locomotion()
+	full_avatar.update_pose(delta)
 	solar_lighting.update_light()
 	survival_status.update_status()
 	update_hud()
 	queue_redraw()
 
 func present_rest_pose() -> void:
-	if bag.held_id() in [&"axe",&"pickaxe"]:
+	if bag.held_category() in [&"axe",&"pickaxe"]:
 		character.play(StringName("work_"+movement.facing()))
-		arm_rig.ready_pose(player,movement.facing(),bag.held_id())
+		arm_rig.ready_pose(player,movement.facing(),bag.held_category())
 	else:
 		character.play(StringName("idle_"+movement.facing()))
-		arm_rig.gait(player,movement.facing(),bag.held_id(),0,0)
+		arm_rig.gait(player,movement.facing(),bag.held_category(),0,0)
 	gait.update_work_pose()
 
 func cancel_work() -> void:
@@ -383,7 +387,7 @@ func cancel_work() -> void:
 func start_work(aim: Vector2) -> bool:
 	if is_paused() or working or equipping or locomotion.airborne() or locomotion.sliding():
 		return false
-	var item: StringName = bag.held_id()
+	var item: StringName = bag.held_category()
 	if item != &"" and not bag.usable():
 		feedback = "La herramienta está rota."
 		feedback_time = 2
@@ -408,7 +412,7 @@ func start_work(aim: Vector2) -> bool:
 	return true
 
 func animate_work_rig(phase: float) -> Dictionary:
-	var item: StringName = bag.held_id()
+	var item: StringName = bag.held_category()
 	var transform := preload("res://scripts/action_motion.gd").torso_transform(player,movement.facing(),phase,item,arm_rig.impact_material)
 	var target: Vector2 = work_contact_aim if hit_applied and work_contact_aim.is_finite() else resources.visual_aim(work_aim,player)
 	var aim: Vector2 = transform.affine_inverse()*target
@@ -429,7 +433,7 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 	var target: Vector2 = work_contact_aim if hit_applied and work_contact_aim.is_finite() else resources.visual_aim(work_aim,player)
 	movement.heading = (target-player).angle()
 	character.play(StringName("work_" + movement.facing()))
-	var item: StringName = bag.held_id()
+	var item: StringName = bag.held_category()
 	var pose: Dictionary = animate_work_rig(clampf(work_elapsed / work_duration, 0, 1))
 	if not hit_applied and work_elapsed >= work_duration * 0.5:
 		work_contact_aim = resources.visual_aim(work_aim,player)
@@ -478,7 +482,7 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {}) -> bool:
 	if (working and not from_strike) or is_paused() or weapon_timer > 0 or not bag.usable():
 		return false
-	var id: StringName = bag.held_id()
+	var id: StringName = bag.held_category()
 	if id not in [&"sword", &"bow"]:
 		return false
 	if pose.is_empty():
@@ -497,7 +501,7 @@ func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {
 		var arrow := preload("res://scripts/arrow.gd").new()
 		arrow.world = world
 		arrow.game = self
-		arrow.position = pose["tip"]
+		arrow.position = full_avatar.shot_origin() if full_avatar != null else pose["tip"]
 		arrow.velocity = arrow.position.direction_to(target) * 650
 		if arrow.velocity == Vector2.ZERO:
 			arrow.velocity = combat_aim * 650
@@ -515,7 +519,7 @@ func clear_combat_path(target: Vector2) -> bool:
 
 func move_player(direction: Vector2, delta: float) -> void:
 	var previous := player
-	var velocity: Vector2 = movement.step(direction, delta, (220.0 + ranks[2] * 22.0)*nutrition.speed_multiplier())
+	var velocity: Vector2 = movement.step(direction, delta, (70.0 + ranks[2] * 7.0)*nutrition.speed_multiplier())
 	if locomotion.sliding():
 		movement.step(locomotion.slide_direction,delta,220)
 	velocity = locomotion.velocity(velocity,nutrition.speed_multiplier())

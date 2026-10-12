@@ -2,10 +2,10 @@ extends RefCounted
 const CAPACITY := 32
 const EQUIPMENT_SLOTS := [&"head", &"torso", &"legs", &"hands", &"feet"]
 const DEFINITIONS := {
-	&"sword": {"name": "Espada", "slot": &"hands", "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
-	&"bow": {"name": "Arco", "slot": &"hands", "uses": 60, "stack": 1, "purpose": "Disparar flechas"},
-	&"pickaxe": {"name": "Pico", "slot": &"hands", "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
-	&"axe": {"name": "Hacha", "slot": &"hands", "uses": 30, "stack": 1, "purpose": "Cortar árboles"},
+	&"sword": {"name": "Espada", "slot": &"hands", "category": &"sword", "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
+	&"bow": {"name": "Arco", "slot": &"hands", "category": &"bow", "uses": 60, "stack": 1, "purpose": "Disparar flechas"},
+	&"pickaxe": {"name": "Pico", "slot": &"hands", "category": &"pickaxe", "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
+	&"axe": {"name": "Hacha", "slot": &"hands", "category": &"axe", "uses": 30, "stack": 1, "purpose": "Cortar árboles"},
 	&"madera": {"name": "Madera", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"mineral": {"name": "Mineral", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"chatarra": {"name": "Chatarra", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
@@ -114,6 +114,9 @@ func select_tool(id: StringName) -> bool:
 func held_id() -> StringName:
 	return equipment[&"hands"].get("id", &"")
 
+func held_category() -> StringName:
+	return DEFINITIONS.get(held_id(), {}).get("category", &"")
+
 func fork():
 	var copy = get_script().new()
 	copy.slots = slots.duplicate(true)
@@ -175,4 +178,4 @@ func consume_use() -> bool:
 func can_harvest(material: String) -> bool:
 	if material in ["chatarra", "fibra"]:
 		return held_id() == &""
-	return usable() and held_id() == (&"axe" if material == "madera" else &"pickaxe")
+	return usable() and held_category() == (&"axe" if material == "madera" else &"pickaxe")

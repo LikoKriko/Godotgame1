@@ -67,7 +67,7 @@ func run() -> void:
 	game.player = Vector2.ZERO
 	game.movement.reset()
 	game.move_player(Vector2.DOWN,0.1)
-	require(is_equal_approx(game.player.y,220*0.76*0.1),"24% penalty changes actual gameplay movement")
+	require(is_equal_approx(game.player.y,70*0.76*0.1),"24% penalty changes actual gameplay movement")
 	game.menu_open = true
 	var hour: float = game.day_cycle.hour
 	var water: float = game.nutrition.hydration_ml
