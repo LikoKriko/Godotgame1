@@ -73,7 +73,7 @@ func run_checks() -> void:
 		var hits: int = game.resources.nodes[small]["remaining"]
 		for i in hits:
 			game.resources.hit(small, approach)
-		require(game.bag.count(&"mineral") == 4, "Variable-sized stone still yields mineral")
+		require(game.bag.count(&"piedra") == 1, "Variable-sized stone gives the matching stone yield")
 		require(not map.props.has(small) and not map.prop_variants.has(small) and not map.prop_collisions.has(small), "Harvest removes sprite, variant and collider")
 		require(map.walkable(body.get_center()), "Harvest frees the actual collision body")
 		for entries in map.collision_cells.values():

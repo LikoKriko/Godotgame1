@@ -28,7 +28,7 @@ func run_checks() -> void:
 	check(not game.has_method("spawn_enemy") and not game.has_method("attack"), "Exploration contains no enemy spawning or combat")
 	for i in 600:
 		game._process(0.1)
-	check(game.resources.inventory == {"madera": 0, "mineral": 0, "chatarra": 0, "fibra": 0}, "Idle exploration grants no resources")
+	check(game.resources.inventory == {"madera": 0, "piedra": 0, "chatarra": 0, "fibra": 0, "palo": 0}, "Idle exploration grants no resources")
 	var tree := Vector2i(-4, -3)
 	var aim: Vector2 = game.resources.bounds(tree).get_center()
 	check(game.start_work(aim), "Distant swing starts")
@@ -48,7 +48,7 @@ func run_checks() -> void:
 	check(game.resources.hit(tree, game.player).is_empty(), "Cannot collect depleted tree twice")
 	var rock := Vector2i(3, -4)
 	work(game, rock)
-	check(game.resources.inventory["mineral"] == 12, "Large rock gives minerals")
+	check(game.resources.inventory["piedra"] == 12, "Large rock gives minerals")
 	for y in 2:
 		for x in 2:
 			check(game.world.walkable(game.world.center(rock + Vector2i(x, y))), "Entire rock footprint released")

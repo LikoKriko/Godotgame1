@@ -6,7 +6,7 @@ var distance_left := 680.0
 var damage := 18.0
 
 func _process(delta: float) -> void:
-	if game != null and (game.skills_open or game.inventory_panel.visible):
+	if game != null and game.is_paused():
 		return
 	var displacement := velocity * delta
 	var steps := maxi(1, ceili(displacement.length() / 6.0))

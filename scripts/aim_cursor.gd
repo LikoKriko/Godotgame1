@@ -6,12 +6,12 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _process(_delta: float) -> void:
-	var menu: bool = game.skills_open or game.inventory_panel.visible
+	var menu: bool = game.is_paused()
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if menu else Input.MOUSE_MODE_HIDDEN
 	queue_redraw()
 
 func _draw() -> void:
-	if game.skills_open or game.inventory_panel.visible:
+	if game.is_paused():
 		return
 	var point := get_viewport().get_mouse_position()
 	var tint := Color("ebe7d5")

@@ -1,4 +1,10 @@
 extends Node2D
+signal menu_requested
+var menu_open := false
+var equipping := false
+var equip_elapsed := 0.0
+var last_tool_uid := -1
+var held_tool: Node2D
 
 const TILE := 64
 const WORLD_SEED := 73129
@@ -54,6 +60,10 @@ func _ready() -> void:
 	character.animation_changed.connect(sync_character)
 	arm_rig = preload("res://scripts/arm_rig.gd").new()
 	add_child(arm_rig)
+	held_tool = preload("res://scripts/held_tool.gd").new()
+	held_tool.z_index = 0
+	held_tool.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	add_child(held_tool)
 	camera = Camera2D.new()
 	camera.zoom = Vector2(1.5, 1.5)
 	camera.limit_left = int(world.bounds.position.x)
@@ -154,6 +164,8 @@ func restart() -> void:
 	skill_points = 0
 	ranks = [0, 0, 0, 0, 0, 0]
 	working = false
+	equipping = false
+	last_tool_uid = bag.equipment[&"hands"].get("uid",-1)
 	arm_rig.hide()
 	work_elapsed = 0.0
 	focused = resources.NONE
@@ -188,7 +200,17 @@ func walkable(point: Vector2) -> bool:
 	return world.walkable(point)
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if menu_open:
+		return
 	if not event.is_pressed() or event.is_echo():
+		return
+	if event.keycode == KEY_ESCAPE:
+		if skills_open:
+			skills_open = false
+			update_hud()
+		else:
+			menu_requested.emit()
+		get_viewport().set_input_as_handled()
 		return
 	if event.keycode == KEY_I:
 		cancel_work()
@@ -218,28 +240,52 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		restart()
 	update_hud()
 
+func is_paused() -> bool:
+	return menu_open or skills_open or inventory_panel.visible
+
 func _process(delta: float) -> void:
-	if skills_open or inventory_panel.visible:
+	if is_paused():
 		character.pause()
 		return
 	weapon_timer = maxf(0, weapon_timer - delta)
 	feedback_time = maxf(0, feedback_time - delta)
 	impact_time = maxf(0, impact_time - delta)
+	var uid: int = bag.equipment[&"hands"].get("uid",-1)
+	if uid != last_tool_uid:
+		cancel_work()
+		last_tool_uid = uid
+		equipping = bag.held_id() != &""
+		equip_elapsed = 0
 	var direction := Vector2(
 		float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 	if direction != Vector2.ZERO and working:
 		cancel_work()
-	if not working:
+	if direction != Vector2.ZERO and equipping:
+		equipping = false
+		arm_rig.hide()
+	if not working and not equipping:
 		move_player(direction, delta)
+	if equipping:
+		equip_elapsed += delta
+		var duration := 0.5 if bag.held_id() == &"pickaxe" else 0.42
+		var facing: StringName = movement.facing()
+		character.play(StringName("work_"+facing))
+		var idle: AtlasTexture = character.sprite_frames.get_frame_texture(StringName("idle_"+facing),0)
+		arm_rig.equip(player,facing,bag.held_id(),clampf(equip_elapsed/duration,0,1),held_tool.offset(idle))
+		if equip_elapsed >= duration:
+			equipping = false
+			arm_rig.hide()
+			character.play(StringName("idle_"+facing))
 	var aim := get_global_mouse_position()
 	focused = resources.target_at(aim)
 	var pressed := Input.is_physical_key_pressed(KEY_E) or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) or Input.is_physical_key_pressed(KEY_SPACE)
-	if direction == Vector2.ZERO and not working and pressed:
+	if direction == Vector2.ZERO and not working and not equipping and pressed:
 		start_work(aim)
 	if working:
 		advance_work(delta, aim)
 	world_view.update_trees(player, delta)
+	held_tool.update_pose(self)
 	update_hud()
 	queue_redraw()
 
@@ -254,7 +300,7 @@ func cancel_work() -> void:
 	character.play(StringName("idle_" + movement.facing()))
 
 func start_work(aim: Vector2) -> bool:
-	if skills_open or inventory_panel.visible or working:
+	if is_paused() or working or equipping:
 		return false
 	var item: StringName = bag.held_id()
 	if item != &"" and not bag.usable():
@@ -316,12 +362,14 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 				impact_time = 0.18
 				world_view.register_impact(result["cell"], work_aim, pose["direction"], material, 0.3 if result.has("reason") else 1.0)
 				if result.has("reason"):
-					feedback = "La mochila está llena." if result["reason"] == "mochila_llena" else "Usa manos para fibra/chatarra, hacha para madera y pico para mineral."
+					feedback = "La mochila está llena." if result["reason"] == "mochila_llena" else "Usa manos para fibra/chatarra, hacha para madera y pico para piedras (las pequeñas se recogen a mano)."
 					feedback_time = 2
 				elif result.has("depleted") and item != &"":
 					bag.consume_use()
 				if result.get("depleted", false):
 					feedback = "+%d %s" % [result["amount"], result["material"]]
+					if result["material"] == "fibra":
+						feedback += " · +2 palos"
 					feedback_time = 2
 					gain_experience(10)
 					focused = resources.NONE
@@ -330,7 +378,7 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 		cancel_work()
 
 func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {}) -> bool:
-	if (working and not from_strike) or skills_open or inventory_panel.visible or weapon_timer > 0 or not bag.usable():
+	if (working and not from_strike) or is_paused() or weapon_timer > 0 or not bag.usable():
 		return false
 	var id: StringName = bag.held_id()
 	if id not in [&"sword", &"bow"]:
@@ -399,7 +447,7 @@ func sync_character() -> void:
 	character.position = player + Vector2(0, 17 - (frame_data.BASELINE - frame_data.CANVAS.y / 2) * factor)
 
 func update_hud() -> void:
-	hud.text = "EXPLORACIÓN · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d   Mineral %d   Chatarra %d   Fibra %d\nWASD: moverse · Clic/E: golpear · I: inventario · Tab: habilidades\nR: reiniciar prueba · F2: otro mapa" % [level, experience, level * 20, skill_points, resources.inventory["madera"], resources.inventory["mineral"], resources.inventory["chatarra"], resources.inventory["fibra"]]
+	hud.text = "DAY ZERO · NIVEL %d · EXP %d/%d · PUNTOS %d\nMadera %d · Piedras %d · Palos %d · Fibra %d · Cuerda %d m\nWASD: moverse · Clic/E: golpear · I: inventario y fabricar\nEsc: menú · Tab: habilidades · R: reiniciar · F2: otro mapa" % [level, experience, level * 20, skill_points, bag.count(&"madera"), bag.count(&"piedra"), bag.count(&"palo"), bag.count(&"fibra"), bag.count(&"cuerda")]
 	var held: Dictionary = bag.equipment[&"hands"]
 	hud.text += "\nManos: %s · 1 Espada / 2 Arco / 3 Pico / 4 Hacha / 0 Vaciar" % ("Libres" if held.is_empty() else "%s [%d usos]" % [bag.DEFINITIONS[held["id"]]["name"], held["uses"]])
 	hud_backdrop.size = hud.get_combined_minimum_size() + Vector2(24, 18)
@@ -412,7 +460,7 @@ func update_hud() -> void:
 	minimap.player = player
 	minimap.queue_redraw()
 	skill_panel.visible = skills_open
-	var effects := ["+1 madera por árbol", "+1 mineral por roca", "+22 velocidad", "+1 chatarra por máquina", "+12% ritmo de trabajo", "+20% experiencia"]
+	var effects := ["+1 madera por árbol", "+1 piedra por roca", "+22 velocidad", "+1 chatarra por máquina", "+12% ritmo de trabajo", "+20% experiencia"]
 	for i in skill_buttons.size():
 		skill_buttons[i].text = "%s %d/5 → %s" % [BRANCHES[i], ranks[i], effects[i]]
 		skill_buttons[i].disabled = skill_points <= 0 or ranks[i] >= 5

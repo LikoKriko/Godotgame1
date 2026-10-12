@@ -2,8 +2,9 @@ extends Control
 signal equipment_changed
 const Model = preload("res://scripts/inventory.gd")
 const Icons = preload("res://scripts/item_icons.gd")
+const Workshop = preload("res://scripts/workshop.gd")
 const LABELS := {&"head": "Cabeza", &"torso": "Torso", &"legs": "Piernas", &"hands": "Manos", &"feet": "Pies"}
-const ABBREV := {&"madera": "MAD", &"mineral": "MIN", &"chatarra": "CHA", &"fibra": "FIB", &"helmet": "CAS", &"suit": "TRA", &"trousers": "PAN", &"boots": "BOT"}
+const ABBREV := {&"madera": "MAD", &"mineral": "MIN", &"piedra": "PIE", &"palo": "PAL", &"cuerda": "CUE", &"chatarra": "CHA", &"fibra": "FIB", &"helmet": "CAS", &"suit": "TRA", &"trousers": "PAN", &"boots": "BOT"}
 var model
 var panel: Panel
 var content: Control
@@ -15,6 +16,18 @@ var chosen := -1
 var chosen_gear: StringName = &""
 var equip_button: Button
 var remove_button: Button
+var repair_button: Button
+var craft_button: Button
+var workshop_dialog: Control
+var workshop_body: HBoxContainer
+var workshop_title: Label
+var workshop_item: Label
+var workshop_materials: Label
+var workshop_message: Label
+var workshop_confirm: Button
+var workshop_mode := ""
+var repair_uid := -1
+var craft_id: StringName = &"pickaxe"
 
 func configure(inventory) -> void:
 	model = inventory
@@ -31,6 +44,8 @@ func configure(inventory) -> void:
 	panel.add_theme_stylebox_override("panel", style)
 	add_child(panel)
 	content = Control.new()
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.size = Vector2(600,600)
 	panel.add_child(content)
 	label("INVENTARIO", Vector2(14, 12), 19)
 	var close := Button.new()
@@ -44,6 +59,7 @@ func configure(inventory) -> void:
 	var portrait_texture: AtlasTexture = preload("res://scripts/survivor_frames.gd").build().get_frame_texture(&"idle_down", 0).duplicate()
 	portrait_texture.margin = Rect2()
 	portrait.texture = portrait_texture
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -66,11 +82,23 @@ func configure(inventory) -> void:
 	equip_button.pressed.connect(equip_selected)
 	content.add_child(equip_button)
 	remove_button = Button.new()
-	remove_button.text = "Quitar equipo"
+	remove_button.text = "Desequipar"
 	remove_button.position = Vector2(400, 211)
 	remove_button.size = Vector2(174, 34)
 	remove_button.pressed.connect(remove_selected)
 	content.add_child(remove_button)
+	repair_button = Button.new()
+	repair_button.text = "Reparar"
+	repair_button.position = Vector2(260,254)
+	repair_button.size = Vector2(130,34)
+	repair_button.pressed.connect(open_repair)
+	content.add_child(repair_button)
+	craft_button = Button.new()
+	craft_button.text = "Fabricar"
+	craft_button.position = Vector2(400,254)
+	craft_button.size = Vector2(174,34)
+	craft_button.pressed.connect(open_crafting)
+	content.add_child(craft_button)
 	label("MOCHILA · 32 ESPACIOS", Vector2(16, 298), 14)
 	for i in Model.CAPACITY:
 		var button := make_button(Vector2(16 + (i % 8) * 71, 326 + (i / 8) * 52), Vector2(66, 47))
@@ -80,11 +108,16 @@ func configure(inventory) -> void:
 	resized.connect(fit_panel)
 	fit_panel()
 	refresh()
+	visibility_changed.connect(func():
+		if not visible:
+			close_workshop()
+	)
 	hide()
 
 func label(text: String, position_value: Vector2, font_size: int) -> Label:
 	var node := Label.new()
 	node.text = text
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	node.position = position_value
 	node.add_theme_font_size_override("font_size", font_size)
 	node.add_theme_color_override("font_color", Color("d9d6c9"))
@@ -145,7 +178,7 @@ func show_item(button: Button, item: Dictionary, empty_label: String = "") -> vo
 	var definition: Dictionary = Model.DEFINITIONS[id]
 	icon.texture = Icons.get_icon(id)
 	button.text = "" if icon.texture != null else ABBREV.get(id, "")
-	count.text = str(item["uses"]) if item["uses"] >= 0 else (str(item["quantity"]) if item["quantity"] > 1 else "")
+	count.text = str(item["quantity"])
 	button.tooltip_text = "%s · Básico\n%s" % [definition["name"], definition["purpose"]]
 	if item["uses"] >= 0:
 		button.tooltip_text += "\nUsos: %d / %d" % [item["uses"], definition["uses"]]
@@ -167,12 +200,13 @@ func refresh() -> void:
 		item = model.equipment[chosen_gear]
 	equip_button.disabled = chosen < 0 or item.is_empty() or Model.DEFINITIONS[item.get("id", &"madera")]["slot"] == &""
 	remove_button.disabled = chosen_gear == &"" or item.is_empty()
+	repair_button.disabled = item.is_empty() or not Workshop.REPAIRS.has(item.get("id",&""))
 	details.text = "Selecciona un objeto.\n\nHerramientas y armas: Manos.\nMateriales: Mochila."
 	if not item.is_empty():
 		var definition: Dictionary = Model.DEFINITIONS[item["id"]]
 		details.text = "%s · Básico\n%s" % [definition["name"], definition["purpose"]]
 		if item["uses"] >= 0:
-			details.text += "\nUsos: %d / %d%s" % [item["uses"], definition["uses"], " · ROTO" if item["uses"] == 0 else ""]
+			details.text += "\n%s: %d / %d%s" % ["Usos" if definition["slot"] == &"hands" else "Durabilidad",item["uses"], definition["uses"], " · ROTO" if item["uses"] == 0 else ""]
 		else:
 			details.text += "\nCantidad: %d" % item["quantity"]
 
@@ -192,18 +226,169 @@ func equip_selected() -> void:
 	var destination: StringName = Model.DEFINITIONS[model.slots[chosen]["id"]]["slot"]
 	if model.equip(chosen, destination):
 		status.text = "Objeto equipado."
+		chosen = -1
+		chosen_gear = destination
 		equipment_changed.emit()
 	refresh()
 
 func remove_selected() -> void:
+	var uid: int = model.equipment.get(chosen_gear,{}).get("uid",-1)
 	if model.unequip(chosen_gear):
 		status.text = "Equipo guardado en la mochila."
+		chosen_gear = &""
+		for i in Model.CAPACITY:
+			if model.slots[i].get("uid",-1) == uid:
+				chosen = i
+				break
 		equipment_changed.emit()
 	else:
 		status.text = "La mochila está llena."
 	refresh()
 
+func selected_item() -> Dictionary:
+	if chosen >= 0:
+		return model.slots[chosen]
+	return model.equipment.get(chosen_gear,{})
+
+func create_workshop() -> void:
+	close_workshop()
+	workshop_dialog = Control.new()
+	workshop_dialog.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	workshop_dialog.z_index = 5
+	add_child(workshop_dialog)
+	var veil := ColorRect.new()
+	veil.color = Color(0,0,0,0.78)
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	workshop_dialog.add_child(veil)
+	var window := PanelContainer.new()
+	window.name = "Window"
+	workshop_dialog.add_child(window)
+	var margin := MarginContainer.new()
+	for side in ["left","right","top","bottom"]:
+		margin.add_theme_constant_override("margin_"+side,24)
+	window.add_child(margin)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation",22)
+	margin.add_child(box)
+	workshop_title = Label.new()
+	workshop_title.add_theme_font_size_override("font_size",28)
+	box.add_child(workshop_title)
+	workshop_body = HBoxContainer.new()
+	workshop_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	workshop_body.add_theme_constant_override("separation",40)
+	box.add_child(workshop_body)
+	var left := VBoxContainer.new()
+	left.name = "Object"
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	workshop_body.add_child(left)
+	workshop_item = Label.new()
+	workshop_item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	workshop_item.add_theme_font_size_override("font_size",22)
+	left.add_child(workshop_item)
+	workshop_materials = Label.new()
+	workshop_materials.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	workshop_materials.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	workshop_materials.add_theme_font_size_override("font_size",22)
+	workshop_body.add_child(workshop_materials)
+	workshop_message = Label.new()
+	workshop_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(workshop_message)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	box.add_child(row)
+	var back := Button.new()
+	back.text = "Volver"
+	back.pressed.connect(close_workshop)
+	row.add_child(back)
+	workshop_confirm = Button.new()
+	workshop_confirm.custom_minimum_size = Vector2(160,44)
+	workshop_confirm.pressed.connect(confirm_workshop)
+	row.add_child(workshop_confirm)
+	fit_workshop()
+	workshop_dialog.resized.connect(fit_workshop)
+
+func fit_workshop() -> void:
+	if not is_instance_valid(workshop_dialog):
+		return
+	var window: PanelContainer = workshop_dialog.get_node("Window")
+	var screen := get_viewport_rect().size
+	window.size = Vector2(minf(950,screen.x*0.9),minf(500,screen.y*0.85))
+	window.position = (screen-window.size)/2
+
+func open_repair() -> void:
+	var item := selected_item()
+	if item.is_empty() or not Workshop.REPAIRS.has(item["id"]):
+		return
+	repair_uid = item["uid"]
+	create_workshop()
+	workshop_mode = "repair"
+	workshop_title.text = "REPARAR EQUIPO"
+	workshop_confirm.text = "Reparar"
+	update_workshop()
+
+func open_crafting() -> void:
+	create_workshop()
+	workshop_mode = "craft"
+	workshop_title.text = "FABRICACIÓN"
+	workshop_confirm.text = "Fabricar"
+	var selector := OptionButton.new()
+	for id in Workshop.RECIPES:
+		selector.add_item(Model.DEFINITIONS[id]["name"]+(" · 1 metro" if id == &"cuerda" else " · Básico"))
+	selector.select(Workshop.RECIPES.keys().find(craft_id))
+	selector.item_selected.connect(func(index): craft_id = Workshop.RECIPES.keys()[index]; update_workshop())
+	workshop_body.get_node("Object").add_child(selector)
+	update_workshop()
+
+func update_workshop() -> void:
+	var item: Dictionary = model.item_by_uid(repair_uid) if workshop_mode == "repair" else {}
+	var id: StringName = item.get("id",&"") if workshop_mode == "repair" else craft_id
+	var valid: bool = id != &""
+	var cost: Dictionary = Workshop.REPAIRS.get(id,{}) if workshop_mode == "repair" else Workshop.RECIPES[id]
+	workshop_item.text = Model.DEFINITIONS[id]["name"] if valid else "Objeto no disponible"
+	if workshop_mode == "repair" and valid:
+		workshop_item.text += "\n\nEstado: %d / %d\nTras reparar: %d / %d" % [item["uses"],Model.DEFINITIONS[id]["uses"],Model.DEFINITIONS[id]["uses"],Model.DEFINITIONS[id]["uses"]]
+	elif valid:
+		workshop_item.text += "\n\nResultado: 1 metro" if id == &"cuerda" else "\n\nResultado: 1 herramienta básica\nUsos: %d" % Model.DEFINITIONS[id]["uses"]
+	workshop_materials.text = "MATERIALES NECESARIOS\n"
+	for material in cost:
+		var unit := " m" if material == &"cuerda" else ""
+		workshop_materials.text += "\n%s: %d%s\nDisponible: %d%s\n" % [Model.DEFINITIONS[material]["name"],cost[material],unit,model.count(material),unit]
+	var damaged: bool = workshop_mode != "repair" or (valid and item["uses"] < Model.DEFINITIONS[id]["uses"])
+	workshop_confirm.disabled = not valid or not damaged or not Workshop.affordable(model,cost)
+	workshop_message.text = "" if not workshop_confirm.disabled else ("El objeto está en perfecto estado." if valid and not damaged else "Faltan materiales o el objeto no está disponible.")
+	var existing := workshop_body.get_node("Object").get_node_or_null("Preview")
+	if existing != null:
+		existing.get_parent().remove_child(existing)
+		existing.queue_free()
+	var icon := TextureRect.new()
+	icon.name = "Preview"
+	icon.texture = Icons.get_icon(id)
+	icon.custom_minimum_size = Vector2(140,140)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	workshop_body.get_node("Object").add_child(icon)
+
+func confirm_workshop() -> void:
+	var result := Workshop.repair(model,repair_uid) if workshop_mode == "repair" else Workshop.craft(model,craft_id)
+	var text := result if result != "" else ("Objeto reparado." if workshop_mode == "repair" else "Objeto fabricado y guardado en la mochila.")
+	refresh()
+	update_workshop()
+	workshop_message.text = text
+	status.text = text
+	equipment_changed.emit()
+
+func close_workshop() -> void:
+	if is_instance_valid(workshop_dialog):
+		remove_child(workshop_dialog)
+		workshop_dialog.queue_free()
+	workshop_dialog = null
+
 func _input(event: InputEvent) -> void:
 	if visible and event is InputEventKey and event.pressed and not event.echo and event.keycode in [KEY_I, KEY_ESCAPE]:
-		hide()
+		if is_instance_valid(workshop_dialog):
+			close_workshop()
+		else:
+			hide()
 		get_viewport().set_input_as_handled()

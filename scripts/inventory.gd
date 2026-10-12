@@ -4,16 +4,19 @@ const EQUIPMENT_SLOTS := [&"head", &"torso", &"legs", &"hands", &"feet"]
 const DEFINITIONS := {
 	&"sword": {"name": "Espada", "slot": &"hands", "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
 	&"bow": {"name": "Arco", "slot": &"hands", "uses": 60, "stack": 1, "purpose": "Disparar flechas"},
-	&"pickaxe": {"name": "Pico", "slot": &"hands", "uses": 30, "stack": 1, "purpose": "Extraer mineral de rocas"},
+	&"pickaxe": {"name": "Pico", "slot": &"hands", "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
 	&"axe": {"name": "Hacha", "slot": &"hands", "uses": 30, "stack": 1, "purpose": "Cortar árboles"},
 	&"madera": {"name": "Madera", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"mineral": {"name": "Mineral", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"chatarra": {"name": "Chatarra", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"fibra": {"name": "Fibra vegetal", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de arbolitos jóvenes; recolectar con las manos"},
-	&"helmet": {"name": "Casco", "slot": &"head", "uses": -1, "stack": 1, "purpose": "Equipo de cabeza"},
-	&"suit": {"name": "Traje", "slot": &"torso", "uses": -1, "stack": 1, "purpose": "Equipo de torso"},
-	&"trousers": {"name": "Pantalón corto", "slot": &"legs", "uses": -1, "stack": 1, "purpose": "Equipo de piernas"},
-	&"boots": {"name": "Botas", "slot": &"feet", "uses": -1, "stack": 1, "purpose": "Equipo de pies"}
+	&"piedra": {"name": "Piedra", "slot": &"", "uses": -1, "stack": 99, "purpose": "Cabezas de herramientas y reparaciones"},
+	&"palo": {"name": "Palo", "slot": &"", "uses": -1, "stack": 99, "purpose": "Mangos; se recoge de arbolitos jóvenes"},
+	&"cuerda": {"name": "Cuerda", "slot": &"", "uses": -1, "stack": 99, "purpose": "Cada unidad equivale a 1 metro de cuerda"},
+	&"helmet": {"name": "Casco", "slot": &"head", "uses": 80, "stack": 1, "purpose": "Protección de cabeza"},
+	&"suit": {"name": "Traje", "slot": &"torso", "uses": 100, "stack": 1, "purpose": "Protección de torso"},
+	&"trousers": {"name": "Pantalón corto", "slot": &"legs", "uses": 60, "stack": 1, "purpose": "Equipo de piernas"},
+	&"boots": {"name": "Botas", "slot": &"feet", "uses": 60, "stack": 1, "purpose": "Protección de pies"}
 }
 var slots: Array[Dictionary] = []
 var equipment: Dictionary = {}
@@ -106,6 +109,54 @@ func select_tool(id: StringName) -> bool:
 
 func held_id() -> StringName:
 	return equipment[&"hands"].get("id", &"")
+
+func fork():
+	var copy = get_script().new()
+	copy.slots = slots.duplicate(true)
+	copy.equipment = equipment.duplicate(true)
+	copy.next_uid = next_uid
+	return copy
+
+func remove_amount(id: StringName, quantity: int) -> bool:
+	if quantity < 0 or count(id) < quantity:
+		return false
+	var remaining := quantity
+	for i in CAPACITY:
+		if slots[i].get("id", &"") != id:
+			continue
+		var taken := mini(remaining, slots[i]["quantity"])
+		slots[i]["quantity"] -= taken
+		remaining -= taken
+		if slots[i]["quantity"] == 0:
+			slots[i] = {}
+		if remaining == 0:
+			break
+	return true
+
+func can_add_many(rewards: Dictionary) -> bool:
+	var trial = fork()
+	for id in rewards:
+		if not trial.add(StringName(id), rewards[id]):
+			return false
+	return true
+
+func add_many(rewards: Dictionary) -> bool:
+	var trial = fork()
+	for id in rewards:
+		if not trial.add(StringName(id), rewards[id]):
+			return false
+	slots = trial.slots
+	next_uid = trial.next_uid
+	return true
+
+func item_by_uid(uid: int) -> Dictionary:
+	for item in slots:
+		if item.get("uid", -1) == uid:
+			return item
+	for item in equipment.values():
+		if item.get("uid", -1) == uid:
+			return item
+	return {}
 
 func usable() -> bool:
 	var item: Dictionary = equipment[&"hands"]

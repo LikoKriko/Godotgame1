@@ -108,7 +108,7 @@ func rebuild_trees() -> void:
 
 func register_impact(cell: Vector2i, point: Vector2, direction: Vector2, material: String, strength: float = 1) -> void:
 	impulses[cell] = {"time": 0.20, "direction": direction, "strength": strength}
-	var tint := Color("95968b") if material == "mineral" else (Color("97a568") if material == "fibra" else Color("b5905c"))
+	var tint := Color("95968b") if material in ["mineral", "piedra"] else (Color("97a568") if material == "fibra" else Color("b5905c"))
 	for i in 5:
 		particles.append({"position": point, "velocity": Vector2.from_angle(i*TAU/5-PI/2)*22+Vector2(0,-12), "time": 0.25, "tint": tint})
 	queue_redraw()

@@ -1,8 +1,8 @@
 config_version=5
 
 [application]
-config/name="Godotgame1"
-run/main_scene="res://scenes/main.tscn"
+config/name="Day Zero"
+run/main_scene="res://scenes/day_zero.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [display]

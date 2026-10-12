@@ -4,7 +4,7 @@ const REACH := 76.0
 const NONE := Vector2i(99999, 99999)
 const TYPES := {
 	0: {"name": "Maquinaria", "material": "chatarra", "hits": 3, "yield": 3, "branch": 3},
-	1: {"name": "Roca", "material": "mineral", "hits": 3, "yield": 4, "branch": 1},
+	1: {"name": "Roca", "material": "piedra", "hits": 3, "yield": 4, "branch": 1},
 	2: {"name": "Árbol", "material": "madera", "hits": 3, "yield": 4, "branch": 0},
 	4: {"name": "Arbolito joven", "material": "fibra", "hits": 2, "yield": 3, "branch": 0}
 }
@@ -12,19 +12,24 @@ var world
 var bag
 var meshes
 var nodes: Dictionary = {}
-var inventory := {"madera": 0, "mineral": 0, "chatarra": 0, "fibra": 0}
+var inventory := {"madera": 0, "piedra": 0, "chatarra": 0, "fibra": 0, "palo": 0}
 
 func configure(map, inventory_model = null, hit_meshes = null) -> void:
 	world = map
 	bag = inventory_model
 	meshes = hit_meshes
 	nodes.clear()
-	inventory = {"madera": 0, "mineral": 0, "chatarra": 0, "fibra": 0}
+	inventory = {"madera": 0, "piedra": 0, "chatarra": 0, "fibra": 0, "palo": 0}
 	for cell in world.props:
 		var kind: int = world.props[cell]
 		if not TYPES.has(kind):
 			continue
 		var data: Dictionary = TYPES[kind].duplicate()
+		data["hand_collectable"] = kind == 1 and not world.large_rocks.has(cell) and world.prop_collisions[cell].size.x <= 20
+		if data["hand_collectable"]:
+			data["name"] = "Piedra pequeña"
+			data["hits"] = 2
+			data["yield"] = 1
 		data["footprint"] = Rect2i(cell, Vector2i(2, 2) if world.large_rocks.has(cell) else Vector2i.ONE)
 		if world.large_rocks.has(cell):
 			data["name"] = "Roca grande"
@@ -95,18 +100,23 @@ func hit(cell: Vector2i, player: Vector2, bonus: int = 0, validated_impact: bool
 	if not nodes.has(cell) or (not validated_impact and not can_reach(cell, player)):
 		return {}
 	var node: Dictionary = nodes[cell]
-	if bag != null and not bag.can_harvest(node["material"]):
+	var bare_stone: bool = node["hand_collectable"] and bag != null and bag.held_id() == &""
+	if bag != null and not bare_stone and not bag.can_harvest(node["material"]):
 		return {"reason": "herramienta"}
 	var amount: int = node["yield"] + bonus
 	var material: String = node["material"]
-	if node["remaining"] == 1 and bag != null and not bag.can_add(StringName(material), amount):
+	var rewards := {StringName(material): amount}
+	if material == "fibra":
+		rewards[&"palo"] = 2
+	if node["remaining"] == 1 and bag != null and not bag.can_add_many(rewards):
 		return {"reason": "mochila_llena"}
 	node["remaining"] -= 1
 	if node["remaining"] > 0:
 		return {"depleted": false}
 	if bag != null:
-		bag.add(StringName(material), amount)
-	inventory[material] += amount
+		bag.add_many(rewards)
+	for id in rewards:
+		inventory[String(id)] += rewards[id]
 	var footprint: Rect2i = node["footprint"]
 	for y in range(footprint.position.y, footprint.end.y):
 		for x in range(footprint.position.x, footprint.end.x):
@@ -117,4 +127,4 @@ func hit(cell: Vector2i, player: Vector2, bonus: int = 0, validated_impact: bool
 	if meshes != null:
 		meshes.remove(cell)
 	nodes.erase(cell)
-	return {"depleted": true, "material": material, "amount": amount}
+	return {"depleted": true, "material": material, "amount": amount, "rewards": rewards}

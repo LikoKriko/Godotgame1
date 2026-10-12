@@ -36,7 +36,7 @@ func run_checks() -> void:
 			require(item["quantity"] <= 99, "Stack limit respected")
 	for i in 32:
 		bag.slots[i] = bag.make_item(&"madera", 99)
-	require(not bag.add(&"mineral", 1), "Full bag cannot accept new material")
+	require(not bag.add(&"piedra", 1), "Full bag cannot accept new material")
 	require(not bag.unequip(&"hands") and bag.held_id() == &"axe", "Full bag cannot lose unequipped item")
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
@@ -57,7 +57,7 @@ func run_checks() -> void:
 	require(game.bag.equipment[&"hands"]["uses"] == 29, "Resource impact consumes one use")
 	game.resources.nodes[tree]["remaining"] = 1
 	for i in 32:
-		game.bag.slots[i] = game.bag.make_item(&"mineral", 99)
+		game.bag.slots[i] = game.bag.make_item(&"piedra", 99)
 	game.start_work(aim)
 	game.advance_work(0.7)
 	require(game.resources.nodes[tree]["remaining"] == 1 and game.bag.equipment[&"hands"]["uses"] == 29, "Full inventory preserves resource and last-hit durability")
@@ -74,20 +74,20 @@ func run_checks() -> void:
 	for i in 5:
 		game.start_work(aim)
 		game.advance_work(0.7)
-	require(game.bag.count(&"mineral") == 12 and not game.resources.nodes.has(rock), "Mined material enters backpack and node disappears")
+	require(game.bag.count(&"piedra") == 12 and not game.resources.nodes.has(rock), "Mined material enters backpack and node disappears")
 	game.restart()
 	game.bag.select_tool(&"sword")
 	game.player = Vector2.ZERO
 	var dummy := Target.new()
-	dummy.position = Vector2(50, 0)
+	dummy.position = Vector2(35, 0)
 	root.add_child(dummy)
 	dummy.add_to_group("damageable")
-	require(game.use_weapon(Vector2(50, 0)), "Sword action")
+	require(game.use_weapon(Vector2(35, 0)), "Sword action")
 	require(dummy.damage_received == 24 and game.bag.equipment[&"hands"]["uses"] == 39, "Sword affects combat targets and uses")
-	require(not game.use_weapon(Vector2(50, 0)), "Weapon cooldown enforced")
+	require(not game.use_weapon(Vector2(35, 0)), "Weapon cooldown enforced")
 	game.bag.select_tool(&"bow")
 	game.weapon_timer = 0
-	require(game.use_weapon(Vector2(50, 0)), "Bow shoots")
+	require(game.use_weapon(Vector2(35, 0)), "Bow shoots")
 	var arrows := get_nodes_in_group("player_arrows")
 	require(arrows.size() == 1 and game.bag.equipment[&"hands"]["uses"] == 59, "One arrow per bow use")
 	var arrow = arrows[0]
@@ -100,15 +100,15 @@ func run_checks() -> void:
 	require(dummy.damage_received == 42, "Arrow hits only combat target")
 	game.bag.select_tool(&"pickaxe")
 	game.weapon_timer = 0
-	require(not game.use_weapon(Vector2(50, 0)), "Pickaxe cannot attack")
+	require(not game.use_weapon(Vector2(35, 0)), "Pickaxe cannot attack")
 	game.bag.select_tool(&"axe")
-	require(not game.use_weapon(Vector2(50, 0)), "Axe cannot attack")
+	require(not game.use_weapon(Vector2(35, 0)), "Axe cannot attack")
 	game.bag.equipment[&"hands"]["uses"] = 0
 	game.player = game.resources.bounds(tree).position + Vector2(-24, 32)
 	require(not game.start_work(aim), "Broken equipped axe cannot start an action")
 	game.bag.select_tool(&"sword")
 	game.bag.equipment[&"hands"]["uses"] = 0
-	require(not game.use_weapon(Vector2(50, 0)), "Broken sword cannot attack")
+	require(not game.use_weapon(Vector2(35, 0)), "Broken sword cannot attack")
 	game.bag.select_tool(&"axe")
 	game.inventory_panel.show()
 	game.inventory_panel.fit_panel()
