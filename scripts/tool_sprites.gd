@@ -2,8 +2,8 @@ extends RefCounted
 const BASIC = preload("res://assets/items/basic_tools.png")
 const SHEET = preload("res://assets/items/stone_tools.png")
 const DATA := {
-	&"axe": {"rect": Rect2(108,92,666,754), "grip": Vector2(230,692), "contact": Vector2(744,376)},
-	&"pickaxe": {"rect": Rect2(991,92,710,756), "grip": Vector2(1480,726), "contact": Vector2(1680,320)},
+	&"axe": {"rect": Rect2(108,92,666,754), "grip": Vector2(230,692), "contact": Vector2(744,376), "support": Vector2(342,563)},
+	&"pickaxe": {"rect": Rect2(991,92,710,756), "grip": Vector2(1480,726), "contact": Vector2(1680,320), "support": Vector2(1437,603)},
 }
 static var textures: Dictionary = {}
 
@@ -49,3 +49,15 @@ static func draw(canvas: CanvasItem, id: StringName, hand: Vector2, tip: Vector2
 	canvas.draw_set_transform(hand-grip.rotated(rotation)*factor,rotation,reflection*factor)
 	canvas.draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
 	canvas.draw_set_transform(Vector2.ZERO)
+
+# Both hands are anchored to actual points on the wooden shaft, using the
+# same reflection, rotation and scale as the visible tool.
+static func support_offset(id: StringName, direction: Vector2, mirrored: bool) -> Vector2:
+	if not DATA.has(id):
+		return Vector2.ZERO
+	var data: Dictionary = DATA[id]
+	var reflection := Vector2(-1,1) if mirrored else Vector2.ONE
+	var axis: Vector2 = (data["contact"]-data["grip"])*reflection
+	var offset: Vector2 = (data["support"]-data["grip"])*reflection
+	var length := 25.0 if id == &"axe" else 28.0
+	return offset.rotated(direction.angle()-axis.angle())*length/axis.length()

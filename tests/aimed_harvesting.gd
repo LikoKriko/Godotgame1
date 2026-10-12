@@ -28,7 +28,7 @@ func run_checks() -> void:
 					game.arm_rig.animate(Vector2.ZERO,aim,item,phase)
 					for limb in game.arm_rig.layers:
 						require(is_equal_approx(sqrt(limb.shoulder.distance_squared_to(limb.elbow)+limb.depth*limb.depth),Rig.UPPER),"Upper arm never stretches")
-						require(is_equal_approx(sqrt(limb.elbow.distance_squared_to(limb.hand)+limb.depth*limb.depth),Rig.FOREARM),"Forearm never stretches")
+						require(is_equal_approx(sqrt(limb.elbow.distance_squared_to(limb.hand)+pow(limb.hand_depth-limb.depth,2)),Rig.FOREARM),"Forearm never stretches")
 					if phase == 0.5:
 						require(game.arm_rig.layers[pose["index"]].tip.is_equal_approx(pose["tip"]),"Visible contact and logical tip coincide")
 				if distance == 1000:

@@ -5,7 +5,8 @@ const Tools = preload("res://scripts/tool_sprites.gd")
 const UPPER := 10.0
 const FOREARM := 9.0
 const CONTACT_EPSILON := 0.05
-const MAX_ARM := UPPER+FOREARM-0.05
+const HAND_DEPTH := 6.0
+const MAX_ARM := 17.95
 const TOOL_LENGTHS := {&"": 0.0, &"axe": 25.0, &"pickaxe": 28.0, &"sword": 30.0, &"bow": 12.0}
 const ANCHORS := {
 	&"down": [Vector2(-8,-20.5),Vector2(8,-20.5)],
@@ -38,6 +39,7 @@ class Limb:
 	var tool: StringName = &""
 	var source_index := 0
 	var depth := 0.0
+	var hand_depth := 0.0
 	var upper: Polygon2D
 	var lower: Polygon2D
 	func _ready() -> void:
@@ -78,12 +80,19 @@ func _ready() -> void:
 
 static func solve(shoulder: Vector2, requested: Vector2, bend: float) -> Dictionary:
 	var offset := requested-shoulder
-	var distance := clampf(offset.length(),5.0,MAX_ARM)
-	var direction := offset.normalized() if offset.length() > 0.001 else Vector2.DOWN
-	var hand := shoulder+direction*distance
+	if offset.length() > MAX_ARM:
+		offset = offset.normalized()*MAX_ARM
+	# Solve in 3D: hands work in front of the chest, with elbows pointing
+	# down/outward. This remains continuous even directly over a shoulder.
+	var target := Vector3(offset.x,offset.y,HAND_DEPTH)
+	var distance := target.length()
+	var direction := target/distance
+	var pole := Vector3(bend*0.45,1.0,0.0)
+	var perpendicular := (pole-direction*pole.dot(direction)).normalized()
 	var along := (UPPER*UPPER-FOREARM*FOREARM+distance*distance)/(2*distance)
 	var height := sqrt(maxf(0,UPPER*UPPER-along*along))
-	return {"shoulder": shoulder,"elbow": shoulder+direction*along+direction.orthogonal()*height*bend,"hand": hand,"depth": height*sqrt(maxf(0,1-bend*bend))}
+	var elbow := direction*along+perpendicular*height
+	return {"shoulder": shoulder,"elbow": shoulder+Vector2(elbow.x,elbow.y),"hand": shoulder+offset,"depth": elbow.z,"hand_depth": HAND_DEPTH}
 
 static func contact(player: Vector2, aim: Vector2, item: StringName) -> Dictionary:
 	var facing: StringName = preload("res://scripts/turn_motion.gd").facing_at((aim-player).angle())
@@ -96,16 +105,24 @@ static func contact(player: Vector2, aim: Vector2, item: StringName) -> Dictiona
 	var tool_length: float = TOOL_LENGTHS.get(item,0.0)
 	var distance := clampf(shoulder.distance_to(aim),tool_length+5.0,tool_length+MAX_ARM)
 	var hand := shoulder+direction*(distance-tool_length)
+	if item in [&"axe", &"pickaxe"]:
+		hand = constrain_grip(player,facing,index,hand,direction,item)
 	var tip := hand+direction*tool_length
 	return {"facing": facing,"index": index,"shoulder": shoulder,"hand": hand,"tip": tip,"direction": direction,"length": tool_length,"reachable": tip.distance_to(aim) <= CONTACT_EPSILON}
 
 func set_limb(index: int, shoulder: Vector2, request: Vector2, player: Vector2, item: StringName, tool_direction: Vector2, near: bool) -> void:
-	# A 3D elbow pole moves continuously through depth as the arm lifts,
-	# avoiding a sudden reversal of the elbow at shoulder height.
-	var pole := clampf((request.y-shoulder.y)/MAX_ARM,-1,1)*(1.0 if index == 0 else -1.0)
+	# Anatomical elbow preference remains stable throughout the gesture.
+	# A stable elbow plane preserves an actual bend instead of collapsing
+	# both segments into a line at shoulder height.
+	var pole := -1.0 if index == 0 else 1.0
+	if state.get("facing", &"down") in [&"right", &"up_right"]:
+		pole = -1.0
+	elif state.get("facing", &"down") in [&"left", &"up_left"]:
+		pole = 1.0
 	var joints := solve(shoulder,request,pole)
 	var limb = layers[index]
 	limb.depth = joints["depth"]
+	limb.hand_depth = joints["hand_depth"]
 	limb.shoulder = joints["shoulder"]-player
 	limb.elbow = joints["elbow"]-player
 	limb.hand = joints["hand"]-player
@@ -139,6 +156,39 @@ static func blend_hand(root: Vector2, from: Vector2, to: Vector2, amount: float)
 	var direction := blend_direction(start.normalized(),finish.normalized(),amount)
 	return root+direction*lerpf(start.length(),finish.length(),amount)
 
+static func constrain_grip(player: Vector2, facing: StringName, active: int, requested: Vector2, direction: Vector2, item: StringName) -> Vector2:
+	var anchors: Array = ANCHORS[facing]
+	var support := Tools.support_offset(item,direction,active == 0)
+	# Intersection of the two arms' reach disks: translate the entire rigid
+	# tool, never pull either hand off its handle or stretch a limb.
+	var centers := [player+anchors[active],player+anchors[1-active]-support]
+	var grip := requested
+	for iteration in 32:
+		for center in centers:
+			var offset: Vector2 = grip-center
+			if offset.length() > MAX_ARM-0.25:
+				grip = center+offset.normalized()*(MAX_ARM-0.25)
+	return grip
+
+static func ready_grip(player: Vector2, facing: StringName, active: int, item: StringName) -> Vector2:
+	var side := -1.0 if active == 0 else 1.0
+	return constrain_grip(player,facing,active,player+Vector2(side*5,-8),rest_direction(facing,item),item)
+
+func two_handed(player: Vector2, facing: StringName, item: StringName, request: Vector2, direction: Vector2) -> void:
+	var active := 0 if facing in [&"left",&"up_left",&"down_left"] else 1
+	var grip := constrain_grip(player,facing,active,request,direction,item)
+	var support := Tools.support_offset(item,direction,active == 0)
+	for i in 2:
+		var root: Vector2 = player+ANCHORS[facing][i]
+		set_limb(i,root,grip if i == active else grip+support,player,item if i == active else &"",direction,i == active or facing in [&"down",&"down_right",&"down_left",&"left",&"right"])
+
+func ready_pose(player: Vector2, facing: StringName, item: StringName) -> void:
+	position = player
+	state = {"facing": facing}
+	var active := 0 if facing in [&"left",&"up_left",&"down_left"] else 1
+	two_handed(player,facing,item,ready_grip(player,facing,active,item),rest_direction(facing,item))
+	show()
+
 func animate(player: Vector2, aim: Vector2, item: StringName, phase: float) -> Dictionary:
 	state = contact(player,aim,item)
 	position = player
@@ -146,32 +196,36 @@ func animate(player: Vector2, aim: Vector2, item: StringName, phase: float) -> D
 	var active: int = state["index"]
 	var forward: Vector2 = state["direction"]
 	var shoulder: Vector2 = state["shoulder"]
-	var rest := player+idle_hand(state["facing"])
+	var rest := ready_grip(player,state["facing"],active,item) if item in [&"axe",&"pickaxe"] else player+idle_hand(state["facing"])
 	var windup := shoulder+Vector2(3 if active == 0 else -3,8)
 	var held_direction := rest_direction(state["facing"],item)
 	var windup_direction := forward
 	if item == &"axe":
 		var side := 1.0 if active == 0 else -1.0
-		windup = shoulder+forward.rotated(side*1.05)*12
+		windup = player+Vector2(-side*3,-22)
 		windup_direction = forward.rotated(side*1.35)
 	elif item == &"pickaxe":
 		var lift_x := 8.0 if state["facing"] in [&"right",&"up_right"] else (-8.0 if state["facing"] in [&"left",&"up_left"] else (8.0 if active == 0 else -8.0))
-		windup = shoulder+Vector2(lift_x,-8)
+		windup = player+Vector2(lift_x*0.25,-28)
 		windup_direction = Vector2.UP
 	var request := rest
 	var tool_direction := held_direction
 	if phase < 0.22:
 		var blend := smoothstep(0,0.22,phase)
-		request = blend_hand(shoulder,rest,windup,blend)
+		request = rest.lerp(windup,blend) if item in [&"axe",&"pickaxe"] else blend_hand(shoulder,rest,windup,blend)
 		tool_direction = blend_direction(held_direction,windup_direction,blend)
 	elif phase <= 0.5:
 		var blend := smoothstep(0.22,0.5,phase)
-		request = blend_hand(shoulder,windup,state["hand"],blend)
+		request = windup.lerp(state["hand"],blend) if item in [&"axe",&"pickaxe"] else blend_hand(shoulder,windup,state["hand"],blend)
 		tool_direction = blend_direction(windup_direction,forward,blend)
 	else:
 		var blend := smoothstep(0.5,1,phase)
-		request = blend_hand(shoulder,state["hand"],rest,blend)
+		request = state["hand"].lerp(rest,blend) if item in [&"axe",&"pickaxe"] else blend_hand(shoulder,state["hand"],rest,blend)
 		tool_direction = blend_direction(forward,held_direction,blend)
+	if item in [&"axe",&"pickaxe"]:
+		two_handed(player,state["facing"],item,request,tool_direction)
+		show()
+		return state
 	for i in 2:
 		var root: Vector2 = player+anchors[i]
 		var target := root+Vector2(-3.6 if i == 0 else 3.6,16.8)
@@ -186,8 +240,19 @@ func animate(player: Vector2, aim: Vector2, item: StringName, phase: float) -> D
 
 func equip(player: Vector2, facing: StringName, item: StringName, phase: float, desired_hand: Vector2 = Vector2(INF,INF)) -> void:
 	position = player
+	state = {"facing": facing}
 	var anchors: Array = ANCHORS[facing]
 	var active := 0 if facing in [&"left",&"up_left",&"down_left"] else 1
+	if item in [&"axe",&"pickaxe"]:
+		var shoulder: Vector2 = player+anchors[active]
+		var final_grip := ready_grip(player,facing,active,item)
+		var lift := shoulder+Vector2(-5 if active == 0 else 5,-4 if item == &"pickaxe" else 6)
+		var start := player+Vector2(-5 if active == 0 else 5,-2)
+		var request := blend_hand(shoulder,start,lift,smoothstep(0,0.45,phase)) if phase < 0.45 else blend_hand(shoulder,lift,final_grip,smoothstep(0.45,1,phase))
+		var rotation := (0.85 if item == &"pickaxe" else -0.6)*sin(phase*PI)
+		two_handed(player,facing,item,request,rest_direction(facing,item).rotated(rotation))
+		show()
+		return
 	var sweep := smoothstep(0,1,phase)
 	var forward := rest_direction(facing,item)
 	for i in 2:

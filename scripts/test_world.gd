@@ -17,6 +17,7 @@ var collision_cells: Dictionary = {}
 var saplings: Dictionary = {}
 var grass_tufts: Array[Dictionary] = []
 var puddles: Array[Dictionary] = []
+var stone_patches: Array[Rect2] = []
 var reachable: Array[Vector2i] = []
 var bounds := Rect2(Vector2(FIRST * TILE), Vector2(SIZE * TILE))
 
@@ -118,12 +119,6 @@ func generate_ground_details() -> void:
 	grass_tufts.clear()
 	puddles.clear()
 	var inset := bounds.grow(-96)
-	for i in 650:
-		var point := Vector2(rng.randf_range(inset.position.x, inset.end.x), rng.randf_range(inset.position.y, inset.end.y)).snapped(Vector2(2, 2))
-		if (absf(point.x) < 85 or absf(point.y) < 85) and rng.randf() < 0.9:
-			continue
-		if walkable(point, 2):
-			grass_tufts.append({"position": point, "width": rng.randf_range(10, 24), "variant": rng.randi_range(0, 1)})
 	var count := rng.randi_range(3, 5)
 	for i in 100:
 		if puddles.size() >= count:
@@ -137,6 +132,33 @@ func generate_ground_details() -> void:
 				separated = false
 		if separated:
 			puddles.append({"position": point, "width": rng.randf_range(28, 48)})
+
+	stone_patches.clear()
+	for quadrant in [Vector2(-1,-1),Vector2(1,-1),Vector2(-1,1),Vector2(1,1)]:
+		var center: Vector2 = quadrant*Vector2(rng.randf_range(430,1050),rng.randf_range(300,670))
+		var radius := Vector2(rng.randf_range(85,145),rng.randf_range(65,110))
+		stone_patches.append(Rect2(center-radius,radius*2))
+	# Stratified, jittered cover prevents both empty stretches and a tile grid.
+	for y in range(int(inset.position.y),int(inset.end.y),22):
+		for x in range(int(inset.position.x),int(inset.end.x),24):
+			var point := Vector2(x+rng.randf_range(-9,9),y+rng.randf_range(-8,8))
+			var width := rng.randf_range(25,38)
+			if grass_allowed(point,width*0.55):
+				grass_tufts.append({"position": point,"width": width,"variant": rng.randi_range(0,9)})
+
+func grass_allowed(point: Vector2, padding: float = 0.0) -> bool:
+	var horizontal := 24*sin(point.x/210)+10*sin(point.x/93)
+	var vertical := 24*sin(point.y/245)-10*sin(point.y/110)
+	if minf(absf(point.y-horizontal),absf(point.x-vertical)) < 82+padding:
+		return false
+	for patch in stone_patches:
+		var radius := patch.size/2+Vector2.ONE*(padding+20)
+		if ((point-patch.get_center())/radius).length() < 1.0:
+			return false
+	for puddle in puddles:
+		if point.distance_to(puddle["position"]) < puddle["width"]*0.55+padding:
+			return false
+	return true
 
 func ensure_nature_variety() -> void:
 	var normal_rocks := 0

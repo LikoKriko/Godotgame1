@@ -37,6 +37,14 @@ func run_checks() -> void:
 					require(limb.shoulder.distance_to(limb.elbow) <= Rig.UPPER+0.001 and limb.elbow.distance_to(limb.hand) <= Rig.FOREARM+0.001,"Projected arms never exceed their physical bone lengths")
 					if not previous.is_empty():
 						require(previous[j].distance_to(limb.elbow) < 2.5,"Elbows move continuously: %s %s step=%d limb=%d delta=%.3f" % [facing,item,step,j,previous[j].distance_to(limb.elbow)])
+				if item in [&"axe",&"pickaxe"]:
+					var primary = game.arm_rig.layers[active]
+					var secondary = game.arm_rig.layers[1-active]
+					var direction: Vector2 = primary.hand.direction_to(primary.tip)
+					var support := Tools.support_offset(item,direction,active == 0)
+					require(secondary.hand.distance_to(primary.hand+support) < 0.02,"Both hands remain on their exact shaft grips throughout the swing")
+					if step == 60:
+						require(primary.tip.distance_to(pose["tip"]-origin) < 0.02,"Two-handed visible blade agrees with collision point")
 				if step == 0:
 					first_hand = game.arm_rig.layers[active].hand
 					first_tip = game.arm_rig.layers[active].tip
@@ -58,6 +66,9 @@ func run_checks() -> void:
 		var data: Dictionary = Tools.DATA[id]
 		var pixel: Color = Tools.SHEET.get_image().get_pixelv(data["contact"])
 		require(pixel.a > 0.6 and pixel.r > 0.2,"Tool contact is on its actual stone head, not empty atlas space")
+	for id in [&"axe",&"pickaxe"]:
+		var data: Dictionary = Tools.DATA[id]
+		require(Tools.SHEET.get_image().get_pixelv(data["support"]).a > 0.8,"Supporting hand grip lies on opaque wooden shaft pixels")
 	game.arm_rig.hide()
 	game.restart()
 	game.bag.select_tool(&"pickaxe")
@@ -70,7 +81,7 @@ func run_checks() -> void:
 	game.inventory_panel.hide()
 	for i in 5:
 		game._process(0.1)
-	require(not game.equipping and game.held_tool.visible and not game.arm_rig.visible,"Equip finishes with the sprite visibly held in the hand")
+	require(not game.equipping and game.arm_rig.visible and not game.held_tool.visible,"Equip finishes with the sprite visibly held in the hand")
 	game.bag.unequip(&"hands")
 	game._process(0.1)
 	require(not game.held_tool.visible and not game.arm_rig.visible,"Unequipping removes the visible tool")

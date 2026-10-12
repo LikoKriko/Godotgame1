@@ -286,6 +286,12 @@ func _process(delta: float) -> void:
 		advance_work(delta, aim)
 	world_view.update_trees(player, delta)
 	held_tool.update_pose(self)
+	if not working and not equipping and direction == Vector2.ZERO and bag.held_id() in [&"axe",&"pickaxe"]:
+		character.play(StringName("work_"+movement.facing()))
+		arm_rig.ready_pose(player,movement.facing(),bag.held_id())
+		held_tool.hide()
+	elif not working and not equipping:
+		arm_rig.hide()
 	update_hud()
 	queue_redraw()
 

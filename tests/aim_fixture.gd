@@ -15,10 +15,16 @@ static func approach(game, cell: Vector2i, item: StringName) -> Vector2:
 	for y in range(floori(rect.position.y), ceili(rect.end.y), 3):
 		for x in range(floori(rect.position.x), ceili(rect.end.x), 3):
 			points.append(Vector2(x+0.5,y+0.5))
+	var stances: Array[Vector2] = [Vector2(20,-24), Vector2(-20,-24), Vector2(42,-24), Vector2(-42,-24), Vector2(0,16), Vector2(0,-55)]
+	# A two-handed stance has a smaller joint reach intersection than a single
+	# arm. Search legal nearby approaches instead of assuming six old offsets.
+	for radius in [20.0,30.0,38.0,46.0,54.0]:
+		for angle in 24:
+			stances.append(Vector2.from_angle(angle*TAU/24)*radius)
 	for aim in points:
 		if game.resources.target_at(aim) != cell:
 			continue
-		for offset in [Vector2(20,-24), Vector2(-20,-24), Vector2(42,-24), Vector2(-42,-24), Vector2(0,16), Vector2(0,-55)]:
+		for offset in stances:
 			var player: Vector2 = aim-offset
 			if not game.world.walkable(player):
 				continue

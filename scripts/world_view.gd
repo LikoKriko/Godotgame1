@@ -10,6 +10,8 @@ var world
 var prop_textures: Array[AtlasTexture] = []
 var forest_textures: Array[AtlasTexture] = []
 var detail_textures: Array[AtlasTexture] = []
+var grass_textures: Array[AtlasTexture] = []
+var grass_floor: Node2D
 var ground: Polygon2D
 var ground_material: ShaderMaterial
 var scuffs: Array[PackedVector2Array] = []
@@ -45,6 +47,15 @@ func configure(map) -> void:
 	ground.material = ground_material
 	add_child(ground)
 	refresh_ground()
+	for region in preload("res://assets/environment/grass_regions.gd").REGIONS:
+		grass_textures.append(atlas(preload("res://assets/environment/grass_groups.png"),Rect2i(region[0],region[1],region[2],region[3]),false))
+	grass_floor = Node2D.new()
+	grass_floor.z_index = -1
+	var foliage_material := ShaderMaterial.new()
+	foliage_material.shader = preload("res://shaders/ground_foliage.gdshader")
+	grass_floor.material = foliage_material
+	add_child(grass_floor)
+	grass_floor.draw.connect(draw_floor_grass)
 
 func presentation(cell: Vector2i) -> Dictionary:
 	var kind: int = world.props[cell]
@@ -67,6 +78,11 @@ func presentation(cell: Vector2i) -> Dictionary:
 
 func refresh_ground() -> void:
 	ground_material.set_shader_parameter("map_seed", float(world.seed_value))
+	for i in world.stone_patches.size():
+		var patch: Rect2 = world.stone_patches[i]
+		ground_material.set_shader_parameter("stone_patch_%d" % i,Vector4(patch.get_center().x,patch.get_center().y,patch.size.x/2,patch.size.y/2))
+	if grass_floor != null:
+		grass_floor.queue_redraw()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = world.seed_value
 	scuffs.clear()
@@ -177,10 +193,6 @@ func _draw() -> void:
 		var texture: Texture2D = detail_textures[3]
 		var size := Vector2(puddle["width"],puddle["width"]*texture.get_height()/texture.get_width())
 		draw_texture_rect(texture,Rect2(puddle["position"]-size/2,size),false,Color(0.84,0.87,0.85))
-	for tuft in world.grass_tufts:
-		var texture: Texture2D = detail_textures[0 if tuft["variant"] == 0 else 2]
-		var size := Vector2(tuft["width"],tuft["width"]*texture.get_height()/texture.get_width())
-		draw_texture_rect(texture,Rect2(tuft["position"]-Vector2(size.x/2,size.y),size),false,Color(0.82,0.89,0.80))
 	for scuff in scuffs:
 		draw_polyline(scuff,Color("444637"),2,false)
 	for cell in world.props:
@@ -195,3 +207,9 @@ func _draw() -> void:
 			draw_texture_rect(data["texture"],rect,false,data["tint"].lerp(Color.WHITE,absf(impulse_wave(cell))*0.15))
 	for particle in particles:
 		draw_rect(Rect2(particle["position"],Vector2(2,2)),particle["tint"])
+
+func draw_floor_grass() -> void:
+	for tuft in world.grass_tufts:
+		var texture: Texture2D = grass_textures[tuft["variant"]]
+		var size := Vector2(tuft["width"],tuft["width"]*texture.get_height()/texture.get_width())
+		grass_floor.draw_texture_rect(texture,Rect2(tuft["position"]-Vector2(size.x/2,size.y),size),false,Color.WHITE)
