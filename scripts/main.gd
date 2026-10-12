@@ -22,6 +22,7 @@ var bag = preload("res://scripts/inventory.gd").new()
 var inventory_panel: Control
 var work_item_uid := -1
 var work_aim := Vector2.ZERO
+var work_contact_aim := Vector2(INF,INF)
 var arm_rig: Node2D
 var weapon_timer := 0.0
 var combat_aim := Vector2.RIGHT
@@ -354,7 +355,10 @@ func cancel_work() -> void:
 	work_elapsed = 0.0
 	character.speed_scale = 1.0
 	character.rotation = 0
+	arm_rig.rotation = 0
+	character.show()
 	character.play(StringName("idle_" + movement.facing()))
+	gait.cancel()
 
 func start_work(aim: Vector2) -> bool:
 	if is_paused() or working or equipping:
@@ -368,18 +372,30 @@ func start_work(aim: Vector2) -> bool:
 		return false
 	work_item_uid = bag.equipment[&"hands"].get("uid", -1)
 	work_aim = aim
+	work_contact_aim = Vector2(INF,INF)
 	work_target = resources.target_at(aim)
 	working = true
 	work_elapsed = 0.0
 	hit_applied = false
-	work_duration = HARVEST_TIME / (1.0 + ranks[4] * 0.12)
+	work_duration = preload("res://scripts/action_motion.gd").DURATION.get(item,HARVEST_TIME) / (1.0 + ranks[4] * 0.12)
 	movement.heading = (resources.visual_aim(aim,player) - player).angle()
 	movement.target_direction = Vector2.ZERO
 	character.speed_scale = 1.0
 	character.play(StringName("work_" + movement.facing()))
 	character.frame = 0
-	arm_rig.animate(player, resources.visual_aim(aim,player), item, 0)
+	animate_work_rig(0)
+	gait.update_pose(0)
 	return true
+
+func animate_work_rig(phase: float) -> Dictionary:
+	var item: StringName = bag.held_id()
+	var transform := preload("res://scripts/action_motion.gd").torso_transform(player,movement.facing(),phase,item,arm_rig.impact_material)
+	var target: Vector2 = work_contact_aim if hit_applied and work_contact_aim.is_finite() else resources.visual_aim(work_aim,player)
+	var aim: Vector2 = transform.affine_inverse()*target
+	var pose: Dictionary = arm_rig.animate(player,aim,item,phase,movement.facing())
+	arm_rig.position = transform*player
+	arm_rig.rotation = transform.get_rotation()
+	return pose
 
 func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 	if not working:
@@ -390,14 +406,16 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 	if is_finite(aim.x) and is_finite(aim.y):
 		work_aim = aim
 	work_elapsed += delta
-	movement.heading = (resources.visual_aim(work_aim,player) - player).angle()
+	var target: Vector2 = work_contact_aim if hit_applied and work_contact_aim.is_finite() else resources.visual_aim(work_aim,player)
+	movement.heading = (target-player).angle()
 	character.play(StringName("work_" + movement.facing()))
 	var item: StringName = bag.held_id()
-	var pose: Dictionary = arm_rig.animate(player, resources.visual_aim(work_aim,player), item, clampf(work_elapsed / work_duration, 0, 1))
+	var pose: Dictionary = animate_work_rig(clampf(work_elapsed / work_duration, 0, 1))
 	if not hit_applied and work_elapsed >= work_duration * 0.5:
+		work_contact_aim = resources.visual_aim(work_aim,player)
 		hit_applied = true
 		# Resolve the contact pose even when a long frame crosses the impact moment.
-		pose = arm_rig.animate(player, resources.visual_aim(work_aim,player), item, 0.5)
+		pose = preload("res://scripts/arm_rig.gd").contact(player,resources.visual_aim(work_aim,player),item)
 		if item in [&"sword", &"bow"]:
 			use_weapon(work_aim, true, pose)
 		else:
@@ -417,6 +435,8 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 					material = result.get("material", "madera")
 				impact_position = result.get("impact",work_aim)
 				impact_time = 0.18
+				arm_rig.impact_material = StringName(material)
+				animate_work_rig(clampf(work_elapsed/work_duration,0,1))
 				world_view.register_impact(result["cell"], impact_position, pose["direction"], material, 0.3 if result.has("reason") else 1.0)
 				if result.has("reason"):
 					feedback = "La mochila está llena." if result["reason"] == "mochila_llena" else "Usa manos para fibra/chatarra, hacha para madera y pico para piedras (las pequeñas se recogen a mano)."
@@ -431,6 +451,7 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 					gain_experience(10)
 					focused = resources.NONE
 					world_view.queue_redraw()
+	gait.update_pose(0)
 	if work_elapsed >= work_duration:
 		cancel_work()
 

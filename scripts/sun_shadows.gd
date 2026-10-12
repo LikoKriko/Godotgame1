@@ -1,11 +1,24 @@
 extends Node2D
-const Tools = preload("res://scripts/tool_sprites.gd")
+const Mask = preload("res://scripts/character_shadow_mask.gd")
 var game
 var shadow_material: ShaderMaterial
 var direction := Vector2.RIGHT
 var stretch := 1.0
 var strength := 0.0
-var body_textures: Dictionary = {}
+var textures: Dictionary = {}
+var mask_viewport: SubViewport
+var mask: Node2D
+var avatar: Node2D
+
+class AvatarProjection:
+	extends Node2D
+	var host
+	func _draw() -> void:
+		var feet: Vector2 = host.game.player+Vector2(0,17)
+		draw_set_transform_matrix(host.projection(feet))
+		var rect := Rect2(feet-Mask.ORIGIN/Mask.SCALE,Vector2(Mask.SIZE)/Mask.SCALE)
+		draw_texture_rect(host.mask_viewport.get_texture(),rect,false)
+		draw_set_transform_matrix(Transform2D.IDENTITY)
 
 func configure(owner_game) -> void:
 	game = owner_game
@@ -14,92 +27,66 @@ func configure(owner_game) -> void:
 	shadow_material = ShaderMaterial.new()
 	shadow_material.shader = preload("res://shaders/silhouette_shadow.gdshader")
 	material = shadow_material
+	mask_viewport = SubViewport.new()
+	mask_viewport.size = Mask.SIZE
+	mask_viewport.transparent_bg = true
+	mask_viewport.world_2d = World2D.new()
+	mask_viewport.render_target_clear_mode = SubViewport.CLEAR_MODE_ALWAYS
+	mask_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(mask_viewport)
+	mask = Mask.new()
+	mask_viewport.add_child(mask)
+	mask.configure(game)
+	avatar = AvatarProjection.new()
+	avatar.host = self
+	avatar.material = shadow_material.duplicate()
+	avatar.material.set_shader_parameter("foot_uv_y",Mask.ORIGIN.y/Mask.SIZE.y)
+	add_child(avatar)
 
 func update_sun(state: Dictionary) -> void:
 	direction = state["direction"]
 	stretch = state["stretch"]
 	strength = state["shadow_alpha"]
-	shadow_material.set_shader_parameter("opacity",strength)
+	var softness := lerpf(1.45,0.75,float(state["elevation"]))
+	for shader_material in [shadow_material,avatar.material]:
+		shader_material.set_shader_parameter("opacity",strength)
+		shader_material.set_shader_parameter("softness",softness)
 	visible = strength > 0.001
+	mask_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if visible else SubViewport.UPDATE_DISABLED
+	mask.queue_redraw()
+	avatar.queue_redraw()
 	queue_redraw()
 
 func projection(base: Vector2) -> Transform2D:
-	# Upright sprite height is projected away from the sun onto the ground.
-	# Keep the feet/trunk fixed while the silhouette rotates and changes length.
 	var vertical := -direction*stretch
 	return Transform2D(Vector2(1,0),vertical,base-Vector2(base.x,0)-vertical*base.y)
 
-func draw_sprite(sprite, base: Vector2) -> void:
-	var texture: Texture2D
-	var rect: Rect2
-	if sprite is AnimatedSprite2D:
-		texture = sprite.sprite_frames.get_frame_texture(sprite.animation,sprite.frame)
-		rect = Rect2(-texture.get_size()/2,texture.get_size())
-	else:
-		texture = sprite.texture
-		rect = Rect2(-texture.get_size()/2 if sprite.centered else Vector2.ZERO,texture.get_size())
-	draw_set_transform_matrix(projection(base)*sprite.global_transform)
-	draw_texture_rect(texture,rect,false)
+func standalone(texture: Texture2D) -> Texture2D:
+	# Isolate the crop so soft edges cannot sample neighbouring atlas sprites.
+	var key := texture.get_instance_id()
+	if not textures.has(key):
+		textures[key] = ImageTexture.create_from_image(texture.get_image())
+	return textures[key]
 
 func _draw() -> void:
 	if game == null or strength <= 0.001:
 		return
 	var view: Node2D = game.world_view
-	var viewport_world := Rect2(game.camera.get_screen_center_position()-game.get_viewport_rect().size/game.camera.zoom/2,game.get_viewport_rect().size/game.camera.zoom).grow(600)
+	var viewport_world := Rect2(game.camera.get_screen_center_position()-game.get_viewport_rect().size/game.camera.zoom/2,game.get_viewport_rect().size/game.camera.zoom).grow(850)
 	for cell in game.world.props:
 		var data: Dictionary = view.presentation(cell)
 		var rect: Rect2 = data["rect"]
 		if not viewport_world.intersects(rect):
 			continue
 		var base := Vector2(rect.get_center().x,rect.end.y)
+		var texture: Texture2D = standalone(data["texture"])
 		if view.tree_sprites.has(cell):
-			draw_sprite(view.tree_sprites[cell],base)
+			var sprite: Sprite2D = view.tree_sprites[cell]
+			draw_set_transform_matrix(projection(base)*sprite.global_transform)
+			draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
 		else:
 			var displaced: Rect2 = rect
 			displaced.position += view.offset_for(cell)
 			draw_set_transform_matrix(projection(base))
-			draw_texture_rect(data["texture"],displaced,false)
-	var feet: Vector2 = game.player+Vector2(0,17)
-	if game.gait.active() and game.gait.opacity > 0.5:
-		draw_sprite(game.gait.head,feet)
-		draw_sprite(game.gait.torso,feet)
-		var leg_rig = game.gait.legs
-		for part in leg_rig.thighs+leg_rig.shins+leg_rig.feet:
-			var uv := PackedVector2Array()
-			for point in part.uv:
-				uv.append(point/part.texture.get_size())
-			draw_set_transform_matrix(projection(feet)*part.global_transform)
-			draw_polygon(part.polygon,PackedColorArray([Color.WHITE]),uv,part.texture)
-	elif game.original_head.visible:
-		var facing: StringName = StringName(str(game.character.animation).trim_prefix("work_"))
-		var frames = preload("res://scripts/survivor_frames.gd")
-		var data: Array = preload("res://assets/characters/survivor_regions.gd").BODY[frames.DIRECTIONS.find(facing)]
-		var factor: float = 64.0/data[3]
-		var start := floori(25/factor)
-		if not body_textures.has(facing):
-			var texture := AtlasTexture.new()
-			texture.atlas = frames.BODY_SHEET
-			texture.region = Rect2(data[0],data[1]+start,data[2],data[3]-start)
-			body_textures[facing] = texture
-		var position: Vector2 = game.player+Vector2((data[0]-data[4])*factor,-47+start*factor)
-		draw_set_transform_matrix(projection(feet)*Transform2D(0,Vector2.ONE*factor,0,position))
-		var texture: Texture2D = body_textures[facing]
-		draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
-		draw_sprite(game.original_head,feet)
-	else:
-		draw_sprite(game.character,feet)
-	if game.arm_rig.visible:
-		for limb in game.arm_rig.layers:
-			var transform: Transform2D = projection(feet)*limb.global_transform
-			for part in [limb.upper,limb.lower]:
-				var uv := PackedVector2Array()
-				for point in part.uv:
-					uv.append(point/part.texture.get_size())
-				draw_set_transform_matrix(transform)
-				draw_polygon(part.polygon,PackedColorArray([Color.WHITE]),uv,part.texture)
-			if limb.tool != &"":
-				Tools.draw(self,limb.tool,limb.hand,limb.tip,limb.source_index == 0,transform)
-	elif game.held_tool.visible:
-		var held = game.held_tool
-		Tools.draw(self,held.item,held.hand,held.tip,held.mirrored,projection(feet)*held.global_transform)
+			draw_texture_rect(texture,displaced,false)
 	draw_set_transform_matrix(Transform2D.IDENTITY)

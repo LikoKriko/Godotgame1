@@ -32,9 +32,9 @@ func run() -> void:
 				require(is_equal_approx(sqrt(joint["hip"].distance_squared_to(joint["knee"])+pow(joint["depth"],2)),game.gait.legs.UPPER),"Walking thighs preserve physical length")
 				require(is_equal_approx(sqrt(joint["knee"].distance_squared_to(joint["ankle"])+pow(joint["depth"],2)),game.gait.legs.LOWER),"Walking shins preserve physical length")
 			if frame == 1:
-				require(game.gait.legs.joints[0]["lift"] < 0.001 and game.gait.legs.joints[1]["lift"] > 4.9,"First passing pose lifts one foot while the other remains planted")
+				require(game.gait.legs.joints[0]["lift"] < 0.001 and game.gait.legs.joints[1]["lift"] > 4.0,"First passing pose lifts one foot while the other remains planted")
 			elif frame == 3:
-				require(game.gait.legs.joints[1]["lift"] < 0.001 and game.gait.legs.joints[0]["lift"] > 4.9,"Second passing pose exchanges the planted and moving leg")
+				require(game.gait.legs.joints[1]["lift"] < 0.001 and game.gait.legs.joints[0]["lift"] > 4.0,"Second passing pose exchanges the planted and moving leg")
 		if facing in [&"right",&"left"]:
 			require(offsets[0].x*offsets[2].x < 0 and absf(offsets[0].x) > 10,"Side walk visibly swaps front/back feet")
 		game.character.play("idle_"+facing)

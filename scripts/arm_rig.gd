@@ -1,5 +1,7 @@
 extends Node2D
 ## Skin comes from the character atlas; shoulders match each work pose.
+const Motion = preload("res://scripts/action_motion.gd")
+var impact_material: StringName = &""
 const SKIN = preload("res://assets/characters/survivor_idle_8dir.png")
 const Tools = preload("res://scripts/tool_sprites.gd")
 const UPPER := 10.0
@@ -84,7 +86,9 @@ static func solve(shoulder: Vector2, requested: Vector2, bend: float) -> Diction
 		offset = offset.normalized()*MAX_ARM
 	# Solve in 3D: hands work in front of the chest, with elbows pointing
 	# down/outward. This remains continuous even directly over a shoulder.
-	var target := Vector3(offset.x,offset.y,HAND_DEPTH)
+	var minimum := sqrt(UPPER*UPPER+FOREARM*FOREARM+2*UPPER*FOREARM*cos(deg_to_rad(130)))
+	var hand_depth := maxf(HAND_DEPTH,sqrt(maxf(0,minimum*minimum-offset.length_squared())))
+	var target := Vector3(offset.x,offset.y,hand_depth)
 	var distance := target.length()
 	var direction := target/distance
 	var pole := Vector3(bend*0.45,1.0,0.0)
@@ -92,10 +96,12 @@ static func solve(shoulder: Vector2, requested: Vector2, bend: float) -> Diction
 	var along := (UPPER*UPPER-FOREARM*FOREARM+distance*distance)/(2*distance)
 	var height := sqrt(maxf(0,UPPER*UPPER-along*along))
 	var elbow := direction*along+perpendicular*height
-	return {"shoulder": shoulder,"elbow": shoulder+Vector2(elbow.x,elbow.y),"hand": shoulder+offset,"depth": elbow.z,"hand_depth": HAND_DEPTH}
+	return {"shoulder": shoulder,"elbow": shoulder+Vector2(elbow.x,elbow.y),"hand": shoulder+offset,"depth": elbow.z,"hand_depth": hand_depth}
 
-static func contact(player: Vector2, aim: Vector2, item: StringName) -> Dictionary:
+static func contact(player: Vector2, aim: Vector2, item: StringName, facing_override: StringName = &"") -> Dictionary:
 	var facing: StringName = preload("res://scripts/turn_motion.gd").facing_at((aim-player).angle())
+	if facing_override != &"":
+		facing = facing_override
 	var anchors: Array = ANCHORS[facing]
 	var index := 0 if facing in [&"left",&"up_left",&"down_left"] else 1
 	var shoulder: Vector2 = player+anchors[index]
@@ -183,14 +189,17 @@ func two_handed(player: Vector2, facing: StringName, item: StringName, request: 
 		set_limb(i,root,grip if i == active else grip+support,player,item if i == active else &"",direction,i == active or facing in [&"down",&"down_right",&"down_left",&"left",&"right"])
 
 func ready_pose(player: Vector2, facing: StringName, item: StringName) -> void:
+	rotation = 0
 	position = player
 	state = {"facing": facing}
 	var active := 0 if facing in [&"left",&"up_left",&"down_left"] else 1
 	two_handed(player,facing,item,ready_grip(player,facing,active,item),rest_direction(facing,item))
 	show()
 
-func animate(player: Vector2, aim: Vector2, item: StringName, phase: float) -> Dictionary:
-	state = contact(player,aim,item)
+func animate(player: Vector2, aim: Vector2, item: StringName, phase: float, facing_override: StringName = &"") -> Dictionary:
+	state = contact(player,aim,item,facing_override)
+	if phase <= 0:
+		impact_material = &""
 	position = player
 	var anchors: Array = ANCHORS[state["facing"]]
 	var active: int = state["index"]
@@ -210,18 +219,20 @@ func animate(player: Vector2, aim: Vector2, item: StringName, phase: float) -> D
 		windup_direction = Vector2.UP
 	var request := rest
 	var tool_direction := held_direction
-	if phase < 0.22:
-		var blend := smoothstep(0,0.22,phase)
+	if phase < Motion.WINDUP_END:
+		var blend := Motion.preparation(phase)
 		request = rest.lerp(windup,blend) if item in [&"axe",&"pickaxe"] else blend_hand(shoulder,rest,windup,blend)
 		tool_direction = blend_direction(held_direction,windup_direction,blend)
-	elif phase <= 0.5:
-		var blend := smoothstep(0.22,0.5,phase)
+	elif phase <= Motion.CONTACT:
+		var blend := Motion.acceleration(phase) if item in Motion.TOOL_MASS else smoothstep(Motion.WINDUP_END,Motion.CONTACT,phase)
 		request = windup.lerp(state["hand"],blend) if item in [&"axe",&"pickaxe"] else blend_hand(shoulder,windup,state["hand"],blend)
 		tool_direction = blend_direction(windup_direction,forward,blend)
 	else:
-		var blend := smoothstep(0.5,1,phase)
-		request = state["hand"].lerp(rest,blend) if item in [&"axe",&"pickaxe"] else blend_hand(shoulder,state["hand"],rest,blend)
-		tool_direction = blend_direction(forward,held_direction,blend)
+		var blend := Motion.recovery(phase,impact_material)
+		var recoil := Motion.rebound(phase,item,impact_material)
+		var follow := sin(clampf((phase-0.5)/0.14,0,1)*PI)*2.0 if impact_material == &"" else 0.0
+		request = state["hand"].lerp(rest,blend)+forward*(follow-recoil*12)
+		tool_direction = blend_direction(forward,held_direction,blend).rotated((recoil+follow*0.09)*(1 if active == 1 else -1))
 	if item in [&"axe",&"pickaxe"]:
 		two_handed(player,state["facing"],item,request,tool_direction)
 		show()
@@ -239,6 +250,7 @@ func animate(player: Vector2, aim: Vector2, item: StringName, phase: float) -> D
 	return state
 
 func equip(player: Vector2, facing: StringName, item: StringName, phase: float, desired_hand: Vector2 = Vector2(INF,INF)) -> void:
+	rotation = 0
 	position = player
 	state = {"facing": facing}
 	var anchors: Array = ANCHORS[facing]
@@ -269,14 +281,15 @@ func equip(player: Vector2, facing: StringName, item: StringName, phase: float, 
 		set_limb(i,shoulder,request,player,item if i == active else &"",forward.rotated(rotation),i == active)
 	show()
 
-func gait(player: Vector2, facing: StringName, item: StringName, phase: float, amplitude: float) -> void:
+func gait(player: Vector2, facing: StringName, item: StringName, phase: float, amplitude: float, heading: float = INF) -> void:
 	if item in [&"axe",&"pickaxe"]:
 		ready_pose(player,facing,item)
 		return
+	rotation = 0
 	position = player
 	state = {"facing": facing}
 	var active := 0 if facing in [&"left",&"up_left",&"down_left"] else 1
-	var direction := Vector2.from_angle(preload("res://scripts/turn_motion.gd").FACINGS.find(facing)*PI/4)
+	var direction := Vector2.from_angle(heading if is_finite(heading) else preload("res://scripts/turn_motion.gd").FACINGS.find(facing)*PI/4)
 	for i in 2:
 		var root: Vector2 = player+ANCHORS[facing][i]
 		var swing := cos(phase*TAU+(PI if i == 1 else 0))*amplitude

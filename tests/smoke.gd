@@ -32,7 +32,7 @@ func run_checks() -> void:
 	var tree := Vector2i(-4, -3)
 	var aim: Vector2 = game.resources.bounds(tree).get_center()
 	check(game.start_work(aim), "Distant swing starts")
-	game.advance_work(0.7)
+	game.advance_work(game.work_duration)
 	check(game.resources.nodes[tree]["remaining"] == 3, "Distant swing cannot gather")
 	aim = Aim.approach(game, tree, &"axe")
 	check(game.start_work(aim), "Tree in reach")

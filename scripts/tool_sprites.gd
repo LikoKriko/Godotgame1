@@ -18,7 +18,7 @@ static func icon(id: StringName) -> Texture2D:
 		textures[id] = texture
 	return textures[id]
 
-static func draw(canvas: CanvasItem, id: StringName, hand: Vector2, tip: Vector2, mirrored: bool = false, basis: Transform2D = Transform2D.IDENTITY) -> void:
+static func draw(canvas: CanvasItem, id: StringName, hand: Vector2, tip: Vector2, mirrored: bool = false, basis: Transform2D = Transform2D.IDENTITY, tint: Color = Color.WHITE) -> void:
 	var data := geometry(id)
 	if data.is_empty():
 		return
@@ -31,7 +31,7 @@ static func draw(canvas: CanvasItem, id: StringName, hand: Vector2, tip: Vector2
 	var factor := hand.distance_to(tip)/grip.distance_to(contact)
 	var rotation := (tip-hand).angle()-(contact-grip).angle()
 	canvas.draw_set_transform_matrix(basis*Transform2D(rotation,reflection*factor,0,hand-grip.rotated(rotation)*factor))
-	canvas.draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
+	canvas.draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false,tint)
 	canvas.draw_set_transform_matrix(basis)
 
 # Both hands are anchored to actual points on the wooden shaft, using the

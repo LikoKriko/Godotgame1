@@ -3,6 +3,10 @@ extends Node2D
 const Frames = preload("res://scripts/survivor_frames.gd")
 const Regions = preload("res://assets/characters/survivor_regions.gd")
 const STOP_SECONDS := 0.18
+const START_SECONDS := 0.14
+const Motion = preload("res://scripts/action_motion.gd")
+var start_elapsed := 0.0
+var working_pose := false
 var game
 var head: Sprite2D
 var torso: Sprite2D
@@ -40,6 +44,7 @@ func sprite_piece(sprite: Sprite2D, sheet: Texture2D, data: Array, from_y: float
 		textures[key] = texture
 	sprite.texture = textures[key]
 	sprite.scale = Vector2.ONE*factor
+	sprite.rotation = 0
 	sprite.position = game.player+Vector2((data[0]-data[4])*factor,-47+start*factor+bob)
 
 func active() -> bool:
@@ -48,19 +53,32 @@ func active() -> bool:
 func cancel() -> void:
 	hide()
 	was_walking = false
+	working_pose = false
+	start_elapsed = 0
 	stopping = false
 	game.character.show()
 	game.character.modulate = Color.WHITE
+	if "original_head" in game:
+		game.original_head.modulate = Color.WHITE
 	game.arm_rig.modulate = Color.WHITE
 
 func update_pose(delta: float) -> void:
-	if game.working or game.equipping or game.movement.is_turning():
+	if game.working:
+		update_work_pose()
+		return
+	if game.equipping:
 		cancel()
 		return
-	var walking: bool = game.character.animation.begins_with("walk_")
+	var walking: bool = game.character.animation.begins_with("walk_") or (game.movement.is_turning() and game.movement.target_direction != Vector2.ZERO)
+	working_pose = false
 	if walking:
 		facing = game.movement.facing()
-		phase = (game.character.frame+game.character.frame_progress)/4.0
+		if delta <= 0:
+			phase = (game.character.frame+game.character.frame_progress)/4.0
+			start_elapsed = START_SECONDS
+		else:
+			phase = fposmod(phase+delta*2*game.movement.speed_factor*game.nutrition.speed_multiplier(),1.0)
+			start_elapsed += delta
 		stop_elapsed = 0
 		stopping = false
 		was_walking = true
@@ -72,6 +90,9 @@ func update_pose(delta: float) -> void:
 		var blend := smoothstep(0,STOP_SECONDS,stop_elapsed)
 		opacity = 1-blend
 		game.character.show()
+		if game.bag.held_id() in Motion.TOOL_MASS:
+			game.character.play(StringName("work_"+facing))
+			game.original_head.modulate = Color(1,1,1,blend)
 		game.character.modulate = Color(1,1,1,blend)
 		if stop_elapsed >= STOP_SECONDS:
 			cancel()
@@ -85,8 +106,35 @@ func update_pose(delta: float) -> void:
 	sprite_piece(torso,Frames.BODY_SHEET,Regions.BODY[index],-22,1.5)
 	for sprite in [head,torso,legs]:
 		sprite.modulate = Color(1,1,1,opacity)
-	legs.pose(game.player,facing,phase,opacity,bob)
-	game.arm_rig.gait(game.player+Vector2(0,bob),facing,game.bag.held_id(),phase,opacity)
-	game.arm_rig.modulate = Color(1,1,1,opacity)
+	var amplitude := opacity*smoothstep(0,START_SECONDS,start_elapsed)
+	legs.pose(game.player,facing,phase,amplitude,bob,game.movement.heading)
+	game.arm_rig.gait(game.player+Vector2(0,bob),facing,game.bag.held_id(),phase,amplitude,game.movement.heading)
+	game.arm_rig.modulate = Color.WHITE if game.bag.held_id() in Motion.TOOL_MASS else Color(1,1,1,opacity)
 	game.held_tool.hide()
+	show()
+
+func update_work_pose() -> void:
+	working_pose = true
+	was_walking = false
+	stopping = false
+	opacity = 1.0
+	facing = game.movement.facing()
+	var phase := clampf(game.work_elapsed/game.work_duration,0,1)
+	var item: StringName = game.bag.held_id()
+	var body := Motion.body(phase,item,game.arm_rig.impact_material)
+	var transform := Motion.torso_transform(game.player,facing,phase,item,game.arm_rig.impact_material)
+	bob = 0
+	var index: int = Frames.DIRECTIONS.find(facing)
+	sprite_piece(head,Frames.IDLE_SHEET,Regions.IDLE[index],-47,-22)
+	sprite_piece(torso,Frames.BODY_SHEET,Regions.BODY[index],-22,1.5)
+	for sprite in [head,torso]:
+		sprite.position = transform*sprite.position
+		sprite.rotation = transform.get_rotation()
+		sprite.modulate = Color.WHITE
+	legs.modulate = Color.WHITE
+	legs.pose(game.player,facing,0,0,body["crouch"])
+	game.character.hide()
+	game.original_head.hide()
+	game.held_tool.hide()
+	game.arm_rig.modulate = Color.WHITE
 	show()
