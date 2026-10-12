@@ -15,6 +15,7 @@ var prop_variants: Dictionary = {}
 var prop_collisions: Dictionary = {}
 var collision_cells: Dictionary = {}
 var saplings: Dictionary = {}
+var burdock: Dictionary = {}
 var grass_tufts: Array[Dictionary] = []
 var puddles: Array[Dictionary] = []
 var stone_patches: Array[Rect2] = []
@@ -34,6 +35,7 @@ func generate(new_seed: int) -> void:
 	prop_collisions.clear()
 	collision_cells.clear()
 	saplings.clear()
+	burdock.clear()
 	reachable.clear()
 	for y in range(FIRST.y, FIRST.y + SIZE.y):
 		for x in range(FIRST.x, FIRST.x + SIZE.x):
@@ -99,6 +101,25 @@ func generate(new_seed: int) -> void:
 	assign_variants(rng)
 	index_collisions()
 	generate_ground_details()
+	add_burdock()
+
+func add_burdock() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value ^ 40917
+	for attempt in 10000:
+		if burdock.size() == 24: break
+		var cell: Vector2i = reachable[rng.randi_range(0,reachable.size()-1)]
+		var base := center(cell)+Vector2(0,26)
+		if props.has(cell) or cells[cell].road or not grass_allowed(base,12) or not walkable(base,42): continue
+		var covered := false
+		for anchor in props:
+			if props[anchor] != 2: continue
+			var height: float = Nature.profile(2,prop_variants[anchor]).size
+			if Rect2(center(anchor)+Vector2(-height/2,26-height),Vector2(height,height)).grow(26).has_point(base): covered = true; break
+		if covered: continue
+		props[cell] = 5
+		burdock[cell] = 1+burdock.size()%2
+		prop_collisions[cell] = Rect2(center(cell)+Vector2(-10,22),Vector2(20,4))
 
 func add_saplings(rng: RandomNumberGenerator) -> void:
 	var candidates: Array[Vector2i] = [Vector2i(2, 2), Vector2i(-3, 2)]
@@ -216,6 +237,7 @@ func shuffle_ids(ids: Array[int], rng: RandomNumberGenerator) -> void:
 func index_collisions() -> void:
 	collision_cells.clear()
 	for anchor in prop_collisions:
+		if props.get(anchor) == 5: continue # Visible hit surface, freely walkable.
 		var rect: Rect2 = prop_collisions[anchor]
 		var first := cell_at(rect.position)
 		var last := cell_at(rect.end)
@@ -232,6 +254,7 @@ func release_prop(cell: Vector2i) -> void:
 	prop_variants.erase(cell)
 	prop_collisions.erase(cell)
 	saplings.erase(cell)
+	burdock.erase(cell)
 	index_collisions()
 
 func biome_at(cell: Vector2i) -> int:

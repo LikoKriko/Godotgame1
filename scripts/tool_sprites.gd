@@ -2,10 +2,12 @@ extends RefCounted
 const BASIC = preload("res://assets/items/basic_tools.png")
 const SHEET = preload("res://assets/items/stone_tools.png")
 const SWORD = preload("res://assets/items/basic_sword.png")
+const BOW = preload("res://assets/items/basic_bow.png")
 const DATA := {
 	&"axe": {"rect": Rect2(108,92,666,754), "grip": Vector2(230,692), "contact": Vector2(744,376), "support": Vector2(342,563)},
 	&"pickaxe": {"rect": Rect2(991,92,710,756), "grip": Vector2(1480,726), "contact": Vector2(1680,320), "support": Vector2(1437,603)},
 	&"sword": {"rect": Rect2(350,100,765,1085), "grip": Vector2(567,882), "contact": Vector2(1060,156), "support": Vector2(629,789)},
+	&"bow": {"rect": Rect2(455,65,535,1140), "grip": Vector2(540,727), "contact": Vector2(782,-50), "support": Vector2(540,727), "string_top": Vector2(886,258), "string_bottom": Vector2(644,1035)},
 }
 const DISPLAY_SIZES := {&"axe": 32.0, &"pickaxe": 32.0, &"sword": 32.0, &"bow": 28.0}
 static var textures: Dictionary = {}
@@ -16,7 +18,7 @@ static func icon(id: StringName) -> Texture2D:
 		return null
 	if not textures.has(id):
 		var texture := AtlasTexture.new()
-		texture.atlas = SWORD if id == &"sword" else SHEET
+		texture.atlas = SWORD if id == &"sword" else (BOW if id == &"bow" else SHEET)
 		texture.region = DATA[id]["rect"]
 		textures[id] = texture
 	return textures[id]

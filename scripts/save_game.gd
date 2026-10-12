@@ -2,7 +2,7 @@ extends RefCounted
 ## Versioned data only: never deserialize executable objects. Replace the save
 ## atomically so interruption during writing leaves the last good game intact.
 const PATH := "user://day_zero_save.cfg"
-const VERSION := 1
+const VERSION := 2
 
 static func capture(game) -> Dictionary:
 	var remaining := {}
@@ -20,7 +20,8 @@ static func capture(game) -> Dictionary:
 		"active": game.progression.active.duplicate(), "cooldowns": game.progression.cooldowns.duplicate(),
 		"health": game.progression.health, "day": game.day_cycle.day, "hour": game.day_cycle.hour,
 		"calories": game.nutrition.calories_today, "hydration": game.nutrition.hydration_ml,
-		"water_today": game.nutrition.water_today_ml, "quick_items": quick
+		"water_today": game.nutrition.water_today_ml, "quick_items": quick,
+		"quick_slots": game.bag.quick_slots.duplicate(true), "active_quick_uid": game.bag.active_quick_uid, "plant_layout_version":1
 	}
 
 static func write(game, path: String = PATH) -> Error:
@@ -34,7 +35,32 @@ static func read_state(path: String = PATH) -> Dictionary:
 	var config := ConfigFile.new()
 	if config.load(path) != OK: return {}
 	var data = config.get_value("game", "state", {})
+	if data is Dictionary: data = migrate(data)
 	return data if data is Dictionary and valid(data) else {}
+
+static func migrate(original: Dictionary) -> Dictionary:
+	var data := original.duplicate(true)
+	if data.get("collected") is Dictionary: data.collected["hoja_bardana"] = data.collected.get("hoja_bardana",0)
+	if data.get("version") != 1: return data
+	if not data.get("quick_items") is Array or data.quick_items.size() != 6 or not data.get("slots") is Array or not data.get("equipment") is Dictionary: return {}
+	data.quick_slots = [{},{},{},{},{},{}]
+	data.active_quick_uid = -1
+	for item in data.slots:
+		if not item is Dictionary: return {}
+	for item in data.equipment.values():
+		if not item is Dictionary: return {}
+	var old_held: int = data.equipment.get(&"hands",{}).get("uid",-1)
+	for i in 6:
+		var uid = data.quick_items[i]
+		for index in data.slots.size():
+			if uid != -1 and data.slots[index].get("uid",-1) == uid:
+				data.quick_slots[i] = data.slots[index]; data.slots[index] = {}
+		for gear in data.equipment:
+			if uid != -1 and data.equipment[gear].get("uid",-1) == uid:
+				data.quick_slots[i] = data.equipment[gear]; data.equipment[gear] = {}
+		if uid == old_held and uid != -1: data.active_quick_uid = uid
+	data.version = VERSION
+	return data
 
 static func valid(data: Dictionary) -> bool:
 	for key in ["version", "seed", "player", "heading", "resources", "collected", "slots", "equipment", "next_uid", "experience", "level", "points", "skills", "perks", "active", "cooldowns", "health", "day", "hour", "calories", "hydration", "water_today"]:
@@ -56,6 +82,9 @@ static func valid(data: Dictionary) -> bool:
 		if not data.equipment.has(slot) or not valid_item(data.equipment[slot], uids): return false
 		var item: Dictionary = data.equipment[slot]
 		if not item.is_empty() and Bag.DEFINITIONS[item.id].slot != slot: return false
+	if not data.get("quick_slots") is Array or data.quick_slots.size() != 6: return false
+	for item in data.quick_slots:
+		if not valid_item(item,uids): return false
 	for uid in uids:
 		if uid >= data.next_uid: return false
 	var Progress = preload("res://scripts/progression.gd")
@@ -71,18 +100,26 @@ static func valid(data: Dictionary) -> bool:
 			var limit: float = Progress.SKILLS[id].duration if key == "active" else Progress.SKILLS[id].cooldown
 			if not (time is float or time is int) or not is_finite(float(time)) or time < 0 or time > limit: return false
 	if data.health < 0 or data.health > 20*(1+0.1*data.perks[&"life"]): return false
-	if not data.resources is Dictionary or not data.collected is Dictionary or data.collected.size() != 5: return false
+	if not data.resources is Dictionary or not data.collected is Dictionary or data.collected.size() != 6: return false
 	for cell in data.resources:
 		if not cell is Vector2i or not data.resources[cell] is int or data.resources[cell] < 1 or data.resources[cell] > 6: return false
 	for id in data.collected:
-		if not id in ["madera", "piedra", "chatarra", "fibra", "palo"] or not data.collected[id] is int or data.collected[id] < 0: return false
+		if not id in ["madera", "piedra", "chatarra", "fibra", "palo","hoja_bardana"] or not data.collected[id] is int or data.collected[id] < 0: return false
 	if not data.get("quick_items") is Array or data.quick_items.size() != 6: return false
 	var assigned := {}
-	for uid in data.quick_items:
+	for i in 6:
+		var uid = data.quick_items[i]
+		if uid != data.quick_slots[i].get("uid",-1): return false
 		if not uid is int or (uid != -1 and not uids.has(uid)): return false
 		if uid != -1:
 			if assigned.has(uid): return false
 			assigned[uid] = true
+	if not data.get("active_quick_uid") is int: return false
+	if data.active_quick_uid != -1:
+		var held := false
+		for item in data.quick_slots:
+			if item.get("uid",-1) == data.active_quick_uid and Bag.DEFINITIONS[item.id].slot == &"hands": held = true
+		if not held or not data.equipment[&"hands"].is_empty(): return false
 	return true
 
 static func valid_item(item, uids: Dictionary) -> bool:
@@ -100,6 +137,7 @@ static func valid_item(item, uids: Dictionary) -> bool:
 	return true
 
 static func restore(game, data: Dictionary) -> bool:
+	data = migrate(data)
 	if not valid(data): return false
 	# Validate seed-dependent resource cells before mutating the current game.
 	var trial = preload("res://scripts/test_world.gd").new()
@@ -112,6 +150,7 @@ static func restore(game, data: Dictionary) -> bool:
 	game.world.seed_value = data.seed
 	game.restart()
 	for cell in game.resources.nodes.keys():
+		if game.world.props[cell] == 5 and not data.resources.has(cell) and data.get("plant_layout_version",0) == 0: continue
 		if data.resources.has(cell):
 			game.resources.nodes[cell].remaining = data.resources[cell]
 		else:
@@ -128,7 +167,8 @@ static func restore(game, data: Dictionary) -> bool:
 	game.bag.slots.assign(data.slots.duplicate(true))
 	game.bag.equipment = data.equipment.duplicate(true)
 	game.bag.next_uid = data.next_uid
-	game.quick_items.assign(data.quick_items)
+	game.bag.quick_slots.assign(data.quick_slots.duplicate(true))
+	game.bag.active_quick_uid = data.active_quick_uid
 	game.experience = data.experience
 	game.level = data.level
 	game.skill_points = data.points
@@ -141,7 +181,7 @@ static func restore(game, data: Dictionary) -> bool:
 	game.nutrition.water_today_ml = data.water_today
 	game.player = data.player if game.world.walkable(data.player) else Vector2.ZERO
 	game.movement.heading = data.heading
-	game.last_tool_uid = game.bag.equipment[&"hands"].get("uid", -1)
+	game.last_tool_uid = game.bag.held_item().get("uid", -1)
 	game.camera.position = game.player
 	game.sync_character()
 	game.full_avatar.reset()

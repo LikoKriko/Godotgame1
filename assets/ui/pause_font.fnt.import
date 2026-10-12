@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://b5nrqjak82lg3"
+path="res://.godot/imported/pause_font.fnt-a0dc6256d0c3ed2c413855142c01d48f.fontdata"
+
+[deps]
+
+source_file="res://assets/ui/pause_font.fnt"
+dest_files=["res://.godot/imported/pause_font.fnt-a0dc6256d0c3ed2c413855142c01d48f.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

@@ -34,6 +34,7 @@ func run() -> void:
 	game.bag.add(&"piedra", 10)
 	game.bag.equipment[&"hands"].uses = 18
 	game.assign_quick_item(0,game.bag.equipment[&"hands"].uid)
+	game.bag.activate_quick(0)
 	game.movement.heading = -PI/2
 	var removed: Vector2i = game.resources.nodes.keys()[0]
 	var footprint: Rect2i = game.resources.nodes[removed].footprint
@@ -57,7 +58,13 @@ func run() -> void:
 		for x in range(footprint.position.x, footprint.end.x):
 			require(not loaded.world.cells[Vector2i(x,y)].blocked, "Harvested footprint is freed")
 	require(loaded.resources.nodes[partial].remaining == 1, "Partially worked objects retain remaining hits")
-	require(loaded.bag.equipment[&"hands"].uses == 18 and loaded.progression.perks[&"life"] == 2, "Durability and paid perk phases persist")
+	require(loaded.bag.held_item().uses == 18 and loaded.progression.perks[&"life"] == 2, "Durability and paid perk phases persist")
+	var legacy := state.duplicate(true)
+	legacy.version = 1
+	legacy.equipment[&"hands"] = legacy.quick_slots[0]
+	legacy.erase("quick_slots"); legacy.erase("active_quick_uid")
+	require(Save.restore(loaded,legacy),"Previous alias-based save migrates to physical quick storage")
+	require(loaded.bag.equipment[&"hands"].is_empty() and loaded.bag.quick_slots[0].uid == loaded.bag.held_item().uid,"Migration retains the held tool exactly once")
 	for mutate in [
 		func(d): d.version = 99,
 		func(d): d.slots[0].quantity = 200,

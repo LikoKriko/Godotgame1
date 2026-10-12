@@ -24,6 +24,8 @@ var rects: Dictionary = {}
 var confirmation: ConfirmationDialog
 var message: Label
 var mute_cover: TextureRect
+var pause_faces: Dictionary = {}
+var pause_font: Font = preload("res://assets/ui/pause_font.fnt")
 const TEMPLATE_SIZE := Vector2(1672,941)
 
 func configure(model) -> void:
@@ -88,6 +90,7 @@ func configure(model) -> void:
 
 func button(label: String, area: Rect2, callback: Callable, baked: bool = true) -> Button:
 	var node := preload("res://scripts/menu_button.gd").new()
+	node.clip_text = true
 	node.text = "" if exact_art and baked else label
 	node.tooltip_text = label
 	node.add_theme_font_size_override("font_size",32)
@@ -105,6 +108,21 @@ func button(label: String, area: Rect2, callback: Callable, baked: bool = true) 
 	node.pressed.connect(callback)
 	options.add_child(node)
 	rects[node] = area
+	node.set_meta("caption",label)
+	node.set_meta("baked",baked)
+	if baked and label != "Silenciar":
+		var blank := AtlasTexture.new()
+		blank.atlas = art.texture
+		blank.region = Rect2(173,194,40,35)
+		var cover := TextureRect.new()
+		cover.texture = blank
+		cover.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		cover.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cover.show_behind_parent = true
+		cover.hide()
+		node.add_child(cover)
+		pause_faces[node] = cover
 	if exact_art and not baked:
 		var border_texture := AtlasTexture.new()
 		border_texture.atlas = art.texture
@@ -136,6 +154,13 @@ func set_resume(active: bool) -> void:
 	save_button.visible = active
 	continue_button.disabled = not (active or can_continue)
 	message.text = ""
+	for node in rects:
+		if node == mute_button: continue
+		node.add_theme_font_override("font",pause_font)
+		var baked: bool = node.get_meta("baked")
+		node.text = String(node.get_meta("caption")).to_upper() if active or not baked else ""
+		if pause_faces.has(node): pause_faces[node].visible = active
+	fit()
 
 func set_saved_available(available: bool) -> void:
 	can_continue = available
@@ -169,7 +194,15 @@ func fit() -> void:
 	for node in rects:
 		node.position = rects[node].position*factor
 		node.size = rects[node].size*factor
-		node.add_theme_font_size_override("font_size",maxi(12,roundi(30*factor)))
+		var font_size := maxi(12,roundi((38 if rects[node].size.y > 90 and resumed else 30)*factor))
+		if not node.text.is_empty():
+			var width: float = pause_font.get_string_size(node.text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
+			if width > node.size.x-48*factor: font_size = maxi(12,floori(font_size*(node.size.x-48*factor)/width))
+		node.add_theme_font_size_override("font_size",font_size)
+		if pause_faces.has(node):
+			var cover: TextureRect = pause_faces[node]
+			cover.offset_left = 20*factor; cover.offset_right = -20*factor
+			cover.offset_top = 16*factor; cover.offset_bottom = -16*factor
 	if mute_cover != null:
 		mute_cover.position = Vector2(57,31)*factor
 		mute_cover.size = Vector2(22,32)*factor

@@ -38,7 +38,7 @@ static func gesture(rest: Vector3, windup: Vector3, impact: Vector3, phase: floa
 	var resistance := 0.65 if family == &"pickaxe" else 0.35
 	return impact.lerp(rest,recovery)+Vector3(0,recoil*resistance,-recoil*resistance)
 
-static func sample(family: StringName, state: StringName, phase: float, stop_phase: float = 0.20, stop_amplitude: float = 1.0) -> Dictionary:
+static func sample(family: StringName, state: StringName, phase: float, stop_phase: float = 0.20, stop_amplitude: float = 1.0, direction: int = -1) -> Dictionary:
 	phase = clampf(phase,0,1)
 	var crouch_walking := state == &"crouch_walk"
 	if crouch_walking: state = &"walk"
@@ -83,7 +83,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var active := 1
 	if family == &"bow":
 		active = 0
-		grip = body*Vector3(-3.5,34,7)
+		grip = body*Vector3(-3.5,36,13)
 		shaft = Vector3.UP
 		hands[1] = grip+Vector3(0,1,-6)
 		if action:
@@ -100,14 +100,33 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 			hands[0] = hands[0].lerp(body*Vector3(-5.5,38,5),load)
 	elif family in [&"axe",&"pickaxe"]:
 		if action:
-			var windup := Vector3(0,42,-5) if family == &"axe" else Vector3(1.5,49,4)
+			var windup := Vector3(3,47,0) if family == &"axe" else Vector3(1.5,49,4)
 			var impact := Vector3(4.5,35,13) if family == &"axe" else Vector3(1,31.5,13)
 			grip = body*gesture(Vector3(4,32,6),windup,impact,phase,family)
-			var wind_direction := Vector3(-0.35,0.4,-0.85) if family == &"axe" else Vector3.UP
+			var wind_direction := Vector3(0,0.95,-0.28) if family == &"axe" else Vector3.UP
 			var hit_direction := Vector3(-0.15,0.05,0.98) if family == &"axe" else Vector3(0,-0.55,0.84)
 			shaft = body.basis*gesture(Vector3(0,0.72,0.69),wind_direction,hit_direction,phase,family).normalized()
 	elif action:
 		hands[1] = body*gesture(Vector3(8.5,28.1,1.5),Vector3(7,37,3),Vector3(7,38,16),phase,family)
+	# The overhead camera foreshortens a tool held straight forward in north/
+	# south views. Open the grip and strike plane obliquely in those views,
+	# without stretching limbs or changing timing. Lateral pickaxe/sword poses
+	# retain their existing trajectory.
+	if direction >= 0 and family in [&"axe",&"pickaxe",&"sword"]:
+		var openness := pow(absf(sin(direction*TAU/16)),0.8)
+		var open_grip := Vector3(7.5,34,8)
+		var open_axis := Vector3(0.5,0.7,0.65)
+		if action:
+			var wind := Vector3(9,47,5)
+			var hit := Vector3(8,32,13)
+			var wind_axis := Vector3(0.55,0.82,-0.12)
+			var hit_axis := Vector3(0.6,-0.3,0.72)
+			if family == &"pickaxe": hit_axis = Vector3(0.4,-0.68,0.6)
+			if family == &"sword": wind = Vector3(10,43,1); hit = Vector3(8,37,13); wind_axis = Vector3(0.75,0.6,-0.25)
+			open_grip = gesture(open_grip,wind,hit,phase,family)
+			open_axis = gesture(open_axis,wind_axis,hit_axis,phase,family)
+		grip = grip.lerp(body*open_grip,openness)
+		shaft = shaft.lerp(body.basis*open_axis.normalized(),openness).normalized()
 	if family != &"":
 		if walking: grip += Vector3(0,bounce*0.25*amplitude,sin(walk_phase*TAU)*0.65*amplitude)
 		if state == &"equip":

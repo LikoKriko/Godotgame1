@@ -54,7 +54,11 @@ var character: AnimatedSprite2D
 var movement = preload("res://scripts/turn_motion.gd").new()
 var hud: Label
 var hud_backdrop: Panel
-var quick_items: Array[int] = [-1,-1,-1,-1,-1,-1]
+var quick_items: Array[int]:
+	get:
+		var ids: Array[int] = []
+		for item in bag.quick_slots: ids.append(item.get("uid",-1))
+		return ids
 var styled_hud: Control
 
 func _ready() -> void:
@@ -154,8 +158,8 @@ func _ready() -> void:
 	canvas.move_child(inventory_panel,canvas.get_child_count()-1)
 	canvas.move_child(world_map,canvas.get_child_count()-1)
 
-func consume_item(index: int) -> void:
-	var result: Dictionary = nutrition.consume(bag,index)
+func consume_item(index: int, quick: bool = false) -> void:
+	var result: Dictionary = nutrition.consume(bag,index,quick)
 	inventory_panel.status.text = result["message"]
 	inventory_panel.refresh()
 	survival_status.update_status()
@@ -186,7 +190,6 @@ func restart() -> void:
 	world.generate(world.seed_value)
 	world_view.refresh_ground()
 	bag.reset()
-	quick_items.assign([-1,-1,-1,-1,-1,-1])
 	for provision in [[&"apple",4],[&"berries",10],[&"ration",8],[&"water",8]]:
 		bag.add(provision[0],provision[1])
 	day_cycle.reset()
@@ -208,7 +211,7 @@ func restart() -> void:
 	progression.reset()
 	working = false
 	equipping = false
-	last_tool_uid = bag.equipment[&"hands"].get("uid",-1)
+	last_tool_uid = bag.held_item().get("uid",-1)
 	arm_rig.hide()
 	if gait != null:
 		gait.cancel()
@@ -314,37 +317,28 @@ func is_paused() -> bool:
 	return menu_open or inventory_panel.visible or world_map.visible
 
 func assign_quick_item(index: int, uid: int) -> bool:
-	if index < 0 or index >= 6 or (uid != -1 and bag.item_by_uid(uid).is_empty()): return false
-	# A shortcut follows the specific item through equipment swaps, never a
-	# backpack index that could later contain a different tool or food.
-	for slot in 6:
-		if quick_items[slot] == uid: quick_items[slot] = -1
-	quick_items[index] = uid
-	return true
+	var source: Dictionary = bag.location(uid)
+	return not source.is_empty() and bag.move_item(source.kind,source.index,&"quick",index)
 
 func use_quick_item(index: int) -> bool:
 	if index < 0 or index >= 6 or is_paused() or working or equipping: return false
-	var uid := quick_items[index]
-	var item: Dictionary = bag.item_by_uid(uid)
-	if item.is_empty():
-		quick_items[index] = -1
-		return false
+	var item: Dictionary = bag.quick_slots[index]
+	if item.is_empty(): return false
 	var definition: Dictionary = bag.DEFINITIONS[item.id]
-	for slot in bag.CAPACITY:
-		if bag.slots[slot].get("uid",-1) != uid: continue
-		if definition.has("kcal") or definition.has("water_ml"):
-			consume_item(slot)
-			return true
-		if definition.slot != &"":
-			cancel_work()
-			var equipped: bool = bag.equip(slot,definition.slot)
-			inventory_panel.refresh()
-			update_hud()
-			return equipped
-		inventory_panel.open_section(0)
-		inventory_panel.select_backpack(slot)
+	if definition.has("kcal") or definition.has("water_ml"):
+		consume_item(index,true)
 		return true
-	return true # The referenced item is already equipped.
+	if definition.slot == &"hands":
+		cancel_work()
+		return bag.activate_quick(index)
+	if definition.slot != &"":
+		cancel_work()
+		var equipped: bool = bag.move_item(&"quick",index,&"gear",definition.slot)
+		inventory_panel.refresh()
+		return equipped
+	inventory_panel.open_section(0)
+	inventory_panel.select_quick(index)
+	return true
 
 func start_jump() -> bool:
 	if progression.health <= 0 or is_paused() or not locomotion.jump():
@@ -377,7 +371,7 @@ func _process(delta: float) -> void:
 	weapon_timer = maxf(0, weapon_timer - delta)
 	feedback_time = maxf(0, feedback_time - delta)
 	impact_time = maxf(0, impact_time - delta)
-	var uid: int = bag.equipment[&"hands"].get("uid",-1)
+	var uid: int = bag.held_item().get("uid",-1)
 	if uid != last_tool_uid:
 		cancel_work()
 		last_tool_uid = uid
@@ -455,7 +449,7 @@ func start_work(aim: Vector2) -> bool:
 		return false
 	if item in [&"sword", &"bow"] and weapon_timer > 0:
 		return false
-	work_item_uid = bag.equipment[&"hands"].get("uid", -1)
+	work_item_uid = bag.held_item().get("uid", -1)
 	work_aim = aim
 	work_contact_aim = Vector2(INF,INF)
 	work_target = resources.target_at(aim)
@@ -485,7 +479,7 @@ func animate_work_rig(phase: float) -> Dictionary:
 func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 	if not working:
 		return
-	if bag.equipment[&"hands"].get("uid", -1) != work_item_uid:
+	if bag.held_item().get("uid", -1) != work_item_uid:
 		cancel_work()
 		return
 	if is_finite(aim.x) and is_finite(aim.y):

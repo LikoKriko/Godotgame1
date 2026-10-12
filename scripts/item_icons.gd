@@ -5,9 +5,16 @@ const MaterialRegions = preload("res://assets/items/material_regions.gd")
 const StoneTools = preload("res://scripts/tool_sprites.gd")
 static var textures: Dictionary = {}
 static func get_icon(id: StringName) -> Texture2D:
+	if id in [&"burdock_armor",&"hoja_bardana"]:
+		if not textures.has(id):
+			var atlas := AtlasTexture.new()
+			atlas.atlas = preload("res://assets/items/burdock_armor_guide.png") if id == &"burdock_armor" else preload("res://assets/items/burdock_leaf.png")
+			atlas.region = Rect2(1080,270,368,674) if id == &"burdock_armor" else Rect2(57,156,1142,945)
+			textures[id] = preload("res://scripts/visual_style.gd").normalized(atlas,atlas.get_size()*28/maxf(atlas.get_width(),atlas.get_height()),true,true)
+		return textures[id]
 	if StoneTools.DATA.has(id):
 		return preload("res://scripts/visual_style.gd").icon(StoneTools.icon(id),id)
-	if textures.is_empty():
+	if not textures.has(&"apple"):
 		var image := SHEET.get_image()
 		var half := Vector2i(image.get_width() / 2, image.get_height() / 2)
 		var ids := [&"sword", &"bow", &"pickaxe", &"axe"]

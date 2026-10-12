@@ -3,6 +3,7 @@ const RECIPES := {
 	&"pickaxe": {&"piedra": 2, &"palo": 2, &"cuerda": 1},
 	&"axe": {&"piedra": 1, &"palo": 2, &"cuerda": 1},
 	&"cuerda": {&"fibra": 3},
+	&"burdock_armor": {&"hoja_bardana":15,&"cuerda":3,&"fibra":20},
 }
 const REPAIRS := {
 	&"pickaxe": {&"piedra": 1, &"palo": 1},
@@ -34,6 +35,7 @@ static func craft(bag, id: StringName) -> String:
 	if not trial.add(id,1):
 		return "La mochila está llena."
 	bag.slots = trial.slots
+	bag.quick_slots = trial.quick_slots
 	bag.next_uid = trial.next_uid
 	return ""
 

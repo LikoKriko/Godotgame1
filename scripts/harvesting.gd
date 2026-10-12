@@ -7,6 +7,7 @@ const TYPES := {
 	1: {"name": "Roca", "material": "piedra", "hits": 3, "yield": 4, "branch": 1},
 	2: {"name": "Árbol", "material": "madera", "hits": 3, "yield": 4, "branch": 0},
 	4: {"name": "Arbolito joven", "material": "fibra", "hits": 2, "yield": 3, "branch": 0}
+	,5: {"name":"Bardana","material":"hoja_bardana","hits":1,"yield":5,"branch":0}
 }
 var world
 var bag
@@ -20,11 +21,13 @@ func configure(map, inventory_model = null, hit_meshes = null) -> void:
 	meshes = hit_meshes
 	nodes.clear()
 	inventory = {"madera": 0, "piedra": 0, "chatarra": 0, "fibra": 0, "palo": 0}
+	inventory["hoja_bardana"] = 0
 	for cell in world.props:
 		var kind: int = world.props[cell]
 		if not TYPES.has(kind):
 			continue
 		var data: Dictionary = TYPES[kind].duplicate()
+		if kind == 5: data["yield"] = 5 if world.burdock[cell] == 1 else 3
 		data["hand_collectable"] = kind == 1 and not world.large_rocks.has(cell) and world.prop_collisions[cell].size.x <= 20
 		if data["hand_collectable"]:
 			data["name"] = "Piedra pequeña"

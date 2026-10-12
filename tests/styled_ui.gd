@@ -72,16 +72,16 @@ func run() -> void:
 	await click(hud.shortcuts[0])
 	require(game.inventory_panel.visible,"Inventory HUD button works")
 	game.inventory_panel.select_backpack(0)
-	game.inventory_panel.assign_selected_quick(1)
 	var sword_uid: int = game.bag.slots[0].uid
+	game.assign_quick_item(0,sword_uid)
 	require(game.quick_items[0] == sword_uid,"Assignment references the selected item")
 	game.inventory_panel.hide(); hud.refresh()
 	await click(hud.quick_buttons[0])
-	require(game.bag.equipment[&"hands"].uid == sword_uid,"HUD equips exactly the assigned sword")
-	game.bag.unequip(&"hands")
+	require(game.bag.held_item().get("uid",-1) == sword_uid,"HUD equips exactly the assigned sword")
+	game.bag.active_quick_uid = -1
 	game.equipping = false
 	await key(KEY_1)
-	require(game.bag.equipment[&"hands"].uid == sword_uid,"Keyboard shortcut follows the item after changing slots")
+	require(game.bag.held_item().get("uid",-1) == sword_uid,"Keyboard shortcut follows the item after changing slots")
 	game.equipping = false
 	for i in game.bag.CAPACITY:
 		if game.bag.slots[i].get("id") == &"ration":

@@ -13,7 +13,7 @@ void fragment() {
 	float diffuse = max(dot(normalize(NORMAL), normalize(vec3(-0.25,0.7,0.6))),0.0);
 	float light = 0.80 + floor(diffuse*4.0)/4.0*0.25;
 	vec3 skin = COLOR.rgb;
-	if (UV.x > 2.5) {
+	if (UV.x > 2.5 && UV.x < 3.5) {
 		vec4 paint = texture(head_reference,reference_rect.xy+UV2*reference_rect.zw);
 		if (paint.a < 0.22) discard;
 		skin = paint.rgb;

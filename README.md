@@ -14,7 +14,7 @@ La ventana y la resolución base son **1920 × 1080**. La cámara tiene un zoom 
 - Shift (mantener): correr a 1,6 veces la velocidad de caminar, sin cansancio por ahora.
 - Ctrl mientras corres: deslizarse con frenada progresiva.
 - 1–6: usar/equipar el objeto asignado a cada acceso rápido; 0: dejar las manos libres.
-- Para asignar un acceso, selecciona un objeto en Inventario y elige su espacio en «Asignar a acceso rápido». Los espacios comienzan vacíos; siguen al objeto aunque cambie de posición al equiparlo.
+- La barra rápida añade seis espacios físicos: sus objetos no ocupan la mochila. Arrastra entre mochila, equipo y barra para mover o intercambiar objetos. Shift + clic desde la mochila equipa primero una armadura si su hueco está vacío; si no, la pasa al primer espacio rápido disponible. Desde barra o equipo, Shift + clic devuelve el objeto a la mochila. Los materiales compatibles se apilan sin duplicarse; las herramientas y armaduras siguen ocupando un espacio cada una.
 - Apunta con el punto del cursor y mantén clic izquierdo o E para golpear o disparar.
 - Árbol adulto: hacha; roca: pico; arbolito joven, máquina o piedra pequeña: manos libres (0).
 - I: inventario, fabricación y reparación; I, Esc o ×: cerrar. Esc cierra primero la ventana de fabricación/reparación si está abierta. El inventario pausa el juego y los proyectiles.
@@ -201,3 +201,11 @@ En la pantalla X11 sin gestor de ventanas del entorno, la prueba de Aplicar veri
 Desde pausa pulsa **Guardar partida**. No hay autoguardado: salir sin guardar descarta los cambios posteriores al último guardado. **Continuar** recupera la partida abierta o, después de cerrar el juego, `user://day_zero_save.cfg`. Se conserva una partida con semilla y recursos recogidos o golpeados, posición, inventario, equipo, usos, accesos rápidos, nivel, puntos, habilidades, perks, vida, hora, calorías e hidratación. La escritura sustituye el archivo de forma atómica; los datos incompatibles o inválidos se rechazan.
 
 La espada básica usa `assets/items/basic_sword.png`, procedente del PNG original entregado. Sus iconos y todos los clips completos se regeneran desde el mismo dibujo, con el grosor fino compartido y un tamaño de referencia de 32 unidades. El menú y el HUD toman sus plantillas de `assets/ui/title_template.png` y `assets/ui/hud_template.png`; los valores de vida, comida, agua y mapa son datos reales de la partida, no los valores de ejemplo impresos en la referencia.
+
+## Bardana y primera receta de armadura
+
+Se generan 24 plantas individuales en zonas de césped transitables y despejadas. Las dos imágenes se reparten por el terreno: `bardana1` da exactamente 5 hojas, `bardana2` da 3. Se recolectan con un golpe de manos, apuntando a la superficie y estando cerca. Desaparecen tras recogerlas y su estado se conserva al guardar. Los guardados anteriores reciben las nuevas plantas. El material utiliza el PNG original de la hoja.
+
+**Armadura de hojas:** 15 hojas de bardana + 3 metros de cuerda + 20 de fibra. Por petición del usuario esta primera incorporación configura la receta y su icono terminado; no define todavía estadísticas, reparación ni aspecto equipado. La fabricación puede usar materiales de mochila y barra rápida.
+
+Las barras inferiores se recortan siguiendo la silueta de marco y cabecera para que los píxeles de escenario de la plantilla no se dibujen en las esquinas. Pausa usa una fuente de mapa de bits creada a partir de las letras de sus botones originales, con letras acentuadas y tamaño ajustado al texto. El nuevo arco conserva su PNG, con cuerda, agarre e iconos propios. Hacha, pico y espada abren la trayectoria en vistas de frente, espalda y diagonales sin cambiar el ritmo ni la longitud de los huesos; ambos brazos quedan ocultos detrás de la espalda cuando corresponde.

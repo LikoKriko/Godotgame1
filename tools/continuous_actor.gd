@@ -130,13 +130,16 @@ func tool_geometry(item: StringName) -> Dictionary:
 		if item == &"sword" and not Tools.DATA.has(item):
 			data["grip"] = size*Vector2(0.32,0.76)
 			data["contact"] = size*Vector2(0.87,0.16)
-		elif item == &"bow":
+		elif item == &"bow" and not Tools.DATA.has(item):
 			data["grip"] = Vector2(289,237)
 			data["contact"] = data["grip"]+Vector2(325,-520)*0.4
 			data["string_top"] = Vector2(556,44)
 			data["string_bottom"] = Vector2(231,566)
 			data["clear_black"] = true
-		if Tools.DATA.has(item): data["support"] = Tools.DATA[item]["support"]-Tools.DATA[item]["rect"].position
+		if Tools.DATA.has(item):
+			for anchor in ["support","string_top","string_bottom"]:
+				if Tools.DATA[item].has(anchor): data[anchor] = Tools.DATA[item][anchor]-Tools.DATA[item]["rect"].position
+			if item == &"bow": data["string_width"] = 20.0
 	var original: Texture2D = data["texture"]
 	var span: float = data.get("display_size",Tools.DISPLAY_SIZES.get(item,32.0))
 	var target := original.get_size()*span/maxf(original.get_width(),original.get_height())
@@ -188,8 +191,8 @@ func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis
 	return {"support":actor_basis.inverse()*support,"grip":grip}
 
 func build(item: StringName,family: StringName,state: StringName,phase: float,direction: int,stop_phase: float = 0.20,stop_amplitude: float = 1.0) -> void:
-	var pose := Pose.sample(family,state,phase,stop_phase,stop_amplitude)
-	if state == &"action" and (phase <= 0 or phase >= 1): pose = Pose.sample(family,&"idle",0)
+	var pose := Pose.sample(family,state,phase,stop_phase,stop_amplitude,direction)
+	if state == &"action" and (phase <= 0 or phase >= 1): pose = Pose.sample(family,&"idle",0,0.20,1.0,direction)
 	last_pose = pose
 	var yaw := PI/2-direction*TAU/16
 	var actor_basis := Basis(Vector3.UP,yaw)

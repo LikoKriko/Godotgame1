@@ -35,10 +35,11 @@ func speed_penalty() -> float:
 func speed_multiplier() -> float:
 	return 1.0-speed_penalty()
 
-func consume(inventory, index: int) -> Dictionary:
-	if index < 0 or index >= inventory.CAPACITY or inventory.slots[index].is_empty():
+func consume(inventory, index: int, quick: bool = false) -> Dictionary:
+	var storage: Array = inventory.quick_slots if quick else inventory.slots
+	if index < 0 or index >= storage.size() or storage[index].is_empty():
 		return {"ok": false,"message": "Selecciona un alimento o agua."}
-	var item: Dictionary = inventory.slots[index]
+	var item: Dictionary = storage[index]
 	var definition: Dictionary = inventory.DEFINITIONS[item["id"]]
 	var kcal: int = definition.get("kcal",0)
 	var water: int = definition.get("water_ml",0)
@@ -49,7 +50,7 @@ func consume(inventory, index: int) -> Dictionary:
 	# Consume the selected stack, never a different stack with the same ID.
 	item["quantity"] -= 1
 	if item["quantity"] == 0:
-		inventory.slots[index] = {}
+		storage[index] = {}
 	calories_today += kcal
 	hydration_ml = minf(WATER_CAPACITY_ML,hydration_ml+water)
 	water_today_ml += water

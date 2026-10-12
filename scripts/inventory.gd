@@ -21,12 +21,18 @@ const DEFINITIONS := {
 	&"suit": {"name": "Traje", "slot": &"torso", "uses": 100, "stack": 1, "purpose": "Protección de torso"},
 	&"trousers": {"name": "Pantalón corto", "slot": &"legs", "uses": 60, "stack": 1, "purpose": "Equipo de piernas"},
 	&"boots": {"name": "Botas", "slot": &"feet", "uses": 60, "stack": 1, "purpose": "Protección de pies"}
+	,&"hoja_bardana": {"name":"Hoja de bardana","slot":&"","uses":-1,"stack":99,"purpose":"Material para fabricar la primera armadura"}
+	,&"burdock_armor": {"name":"Armadura de hojas","slot":&"","uses":-1,"stack":1,"purpose":"Armadura tejida con hojas de bardana, fibra vegetal y cuerda."}
 }
 var slots: Array[Dictionary] = []
 var equipment: Dictionary = {}
 var next_uid := 1
+var quick_slots: Array[Dictionary] = [{},{},{},{},{},{}]
+var active_quick_uid := -1
 
 func reset() -> void:
+	quick_slots.assign([{},{},{},{},{},{}])
+	active_quick_uid = -1
 	slots.clear()
 	for i in CAPACITY:
 		slots.append({})
@@ -47,7 +53,7 @@ func make_item(id: StringName, quantity: int) -> Dictionary:
 
 func count(id: StringName) -> int:
 	var amount := 0
-	for item in slots:
+	for item in slots+quick_slots:
 		if item.get("id", &"") == id:
 			amount += item["quantity"]
 	return amount
@@ -91,9 +97,13 @@ func equip(index: int, target: StringName) -> bool:
 	var previous: Dictionary = equipment[target]
 	equipment[target] = slots[index]
 	slots[index] = previous
+	if target == &"hands": active_quick_uid = -1
 	return true
 
 func unequip(target: StringName) -> bool:
+	if target == &"hands" and active_quick_uid != -1:
+		var source := location(active_quick_uid)
+		return transfer_first(source.kind,source.index,&"bag") if not source.is_empty() else false
 	if not equipment.has(target) or equipment[target].is_empty():
 		return false
 	for i in CAPACITY:
@@ -104,15 +114,98 @@ func unequip(target: StringName) -> bool:
 	return false
 
 func select_tool(id: StringName) -> bool:
-	if equipment[&"hands"].get("id", &"") == id:
+	if held_id() == id:
 		return true
+	for i in quick_slots.size():
+		if quick_slots[i].get("id",&"") == id: return activate_quick(i)
 	for i in CAPACITY:
 		if slots[i].get("id", &"") == id:
 			return equip(i, &"hands")
 	return false
 
 func held_id() -> StringName:
-	return equipment[&"hands"].get("id", &"")
+	return held_item().get("id", &"")
+
+func held_item() -> Dictionary:
+	for item in quick_slots:
+		if item.get("uid",-1) == active_quick_uid and active_quick_uid != -1: return item
+	return equipment[&"hands"]
+
+func location(uid: int) -> Dictionary:
+	if uid < 1: return {}
+	for pair in [[&"bag",slots],[&"quick",quick_slots]]:
+		for i in pair[1].size():
+			if pair[1][i].get("uid",-1) == uid: return {"kind":pair[0],"index":i}
+	for slot in equipment:
+		if equipment[slot].get("uid",-1) == uid: return {"kind":&"gear","index":slot}
+	return {}
+
+func at(kind: StringName, index) -> Dictionary:
+	if kind == &"gear": return equipment.get(index,{})
+	var storage: Array = quick_slots if kind == &"quick" else slots
+	return storage[index] if index is int and index >= 0 and index < storage.size() else {}
+
+func put(kind: StringName, index, item: Dictionary) -> void:
+	if kind == &"gear": equipment[index] = item
+	elif kind == &"quick": quick_slots[index] = item
+	else: slots[index] = item
+
+func accepts(kind: StringName, index, item: Dictionary) -> bool:
+	if kind == &"gear": return equipment.has(index) and (item.is_empty() or DEFINITIONS[item.id].slot == index)
+	return kind in [&"bag",&"quick"] and index is int and index >= 0 and index < (6 if kind == &"quick" else CAPACITY)
+
+func can_move(source: StringName, from, destination: StringName, to) -> bool:
+	var item := at(source,from)
+	if item.is_empty() or not accepts(destination,to,item) or (source == destination and from == to): return false
+	var other := at(destination,to)
+	if destination != &"gear" and not other.is_empty() and other.id == item.id and DEFINITIONS[item.id].stack > 1:
+		return other.quantity < DEFINITIONS[item.id].stack
+	return accepts(source,from,other)
+
+func move_item(source: StringName, from, destination: StringName, to) -> bool:
+	if not can_move(source,from,destination,to): return false
+	var item := at(source,from)
+	var other := at(destination,to)
+	if destination != &"gear" and not other.is_empty() and other.id == item.id and DEFINITIONS[item.id].stack > 1:
+		var amount := mini(item.quantity,DEFINITIONS[item.id].stack-other.quantity)
+		other.quantity += amount; item.quantity -= amount
+		if item.quantity == 0: put(source,from,{})
+	else:
+		put(destination,to,item); put(source,from,other)
+	if destination == &"gear" and to == &"hands": active_quick_uid = -1
+	var held := location(active_quick_uid)
+	if held.is_empty() or held.kind != &"quick": active_quick_uid = -1
+	return true
+
+func transfer_first(source: StringName, index, destination: StringName) -> bool:
+	var item := at(source,index)
+	if item.is_empty(): return false
+	var storage: Array = quick_slots if destination == &"quick" else slots
+	var moved := false
+	for pass_index in 2:
+		for i in storage.size():
+			if (pass_index == 0 and not storage[i].is_empty() and storage[i].id == item.id and DEFINITIONS[item.id].stack > 1) or (pass_index == 1 and storage[i].is_empty()):
+				if can_move(source,index,destination,i):
+					move_item(source,index,destination,i)
+					moved = true
+					if at(source,index).is_empty(): return true
+	return moved
+
+func shift_transfer(source: StringName, index) -> bool:
+	var item := at(source,index)
+	if item.is_empty(): return false
+	if source != &"bag": return transfer_first(source,index,&"bag")
+	var gear: StringName = DEFINITIONS[item.id].slot
+	if gear in [&"head",&"torso",&"legs",&"feet"] and equipment[gear].is_empty(): return move_item(source,index,&"gear",gear)
+	return transfer_first(source,index,&"quick")
+
+func activate_quick(index: int) -> bool:
+	var item := at(&"quick",index)
+	if item.is_empty() or DEFINITIONS[item.id].slot != &"hands": return false
+	if not equipment[&"hands"].is_empty() and not transfer_first(&"gear",&"hands",&"bag") and not transfer_first(&"gear",&"hands",&"quick"):
+		return move_item(&"quick",index,&"gear",&"hands")
+	active_quick_uid = item.uid
+	return true
 
 func held_category() -> StringName:
 	return DEFINITIONS.get(held_id(), {}).get("category", &"")
@@ -121,6 +214,8 @@ func fork():
 	var copy = get_script().new()
 	copy.slots = slots.duplicate(true)
 	copy.equipment = equipment.duplicate(true)
+	copy.quick_slots = quick_slots.duplicate(true)
+	copy.active_quick_uid = active_quick_uid
 	copy.next_uid = next_uid
 	return copy
 
@@ -128,16 +223,13 @@ func remove_amount(id: StringName, quantity: int) -> bool:
 	if quantity < 0 or count(id) < quantity:
 		return false
 	var remaining := quantity
-	for i in CAPACITY:
-		if slots[i].get("id", &"") != id:
-			continue
-		var taken := mini(remaining, slots[i]["quantity"])
-		slots[i]["quantity"] -= taken
-		remaining -= taken
-		if slots[i]["quantity"] == 0:
-			slots[i] = {}
-		if remaining == 0:
-			break
+	for storage in [slots,quick_slots]:
+		for i in storage.size():
+			if storage[i].get("id", &"") != id: continue
+			var taken := mini(remaining,storage[i].quantity)
+			storage[i].quantity -= taken; remaining -= taken
+			if storage[i].quantity == 0: storage[i] = {}
+			if remaining == 0: return true
 	return true
 
 func can_add_many(rewards: Dictionary) -> bool:
@@ -153,11 +245,12 @@ func add_many(rewards: Dictionary) -> bool:
 		if not trial.add(StringName(id), rewards[id]):
 			return false
 	slots = trial.slots
+	quick_slots = trial.quick_slots
 	next_uid = trial.next_uid
 	return true
 
 func item_by_uid(uid: int) -> Dictionary:
-	for item in slots:
+	for item in slots+quick_slots:
 		if item.get("uid", -1) == uid:
 			return item
 	for item in equipment.values():
@@ -166,16 +259,16 @@ func item_by_uid(uid: int) -> Dictionary:
 	return {}
 
 func usable() -> bool:
-	var item: Dictionary = equipment[&"hands"]
+	var item: Dictionary = held_item()
 	return not item.is_empty() and item["uses"] > 0
 
 func consume_use() -> bool:
 	if not usable():
 		return false
-	equipment[&"hands"]["uses"] -= 1
+	held_item()["uses"] -= 1
 	return true
 
 func can_harvest(material: String) -> bool:
-	if material in ["chatarra", "fibra"]:
+	if material in ["chatarra", "fibra", "hoja_bardana"]:
 		return held_id() == &""
 	return usable() and held_category() == (&"axe" if material == "madera" else &"pickaxe")

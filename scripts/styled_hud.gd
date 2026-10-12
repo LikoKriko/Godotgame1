@@ -46,11 +46,19 @@ func configure(owner_game) -> void:
 	map_button.pressed.connect(open_map)
 	clock = framed_label(Vector2(195,34))
 	quick_bar = bar("INVENTARIO RÁPIDO",Vector2(420,98),Rect2(554,805,420,98))
+	var quick_layer := CanvasLayer.new()
+	quick_layer.layer = 9
+	add_child(quick_layer)
+	quick_bar.reparent(quick_layer,false)
 	for i in 6:
 		var button := framed_button("",Rect2(),quick_bar,true)
+		button.game = game; button.kind = &"quick"; button.slot = i
 		button.position = Vector2(13+i*67,32)
 		button.size = Vector2(60,58)
-		button.pressed.connect(func(): game.use_quick_item(i))
+		button.pressed.connect(func():
+			if game.inventory_panel.visible: game.inventory_panel.select_quick(i)
+			else: game.use_quick_item(i)
+		)
 		button.add_theme_font_size_override("font_size",14)
 		var key := Label.new()
 		key.text = str(i+1); key.position = Vector2(4,1)
@@ -148,7 +156,7 @@ func frame(node: Control, region: Rect2 = Rect2()) -> void:
 			node.add_child(rim)
 
 func framed_button(text: String, region: Rect2, parent: Node = self, over_art: bool = false) -> Button:
-	var button := preload("res://scripts/menu_button.gd").new()
+	var button := preload("res://scripts/item_slot.gd").new() if parent == quick_bar else preload("res://scripts/menu_button.gd").new()
 	button.text = "" if source != null and region.size != Vector2.ZERO else text
 	parent.add_child(button)
 	if not over_art: frame(button,region)
@@ -200,7 +208,19 @@ func bar(text: String, dimensions: Vector2, region: Rect2) -> Control:
 	var node := Control.new()
 	node.size = dimensions; node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(node)
-	frame(node,region)
+	if source != null:
+		# Follow the frame/header silhouette instead of rendering the rectangle
+		# of scenery surrounding it in the source image.
+		var outline := PackedVector2Array([Vector2(0,24),Vector2(113,24),Vector2(119,7),Vector2(129,0),Vector2(291,0),Vector2(305,20),Vector2(420,24),Vector2(420,98),Vector2(0,98)]) if dimensions.x == 420 else PackedVector2Array([Vector2(0,24),Vector2(49,24),Vector2(53,11),Vector2(60,4),Vector2(179,4),Vector2(189,24),Vector2(238,24),Vector2(238,98),Vector2(0,98)])
+		var mesh := Polygon2D.new()
+		mesh.polygon = outline
+		mesh.texture = source
+		mesh.show_behind_parent = true
+		var uv := PackedVector2Array()
+		for point in outline: uv.append((region.position+point)*source.get_size()/DESIGN)
+		mesh.uv = uv
+		node.add_child(mesh)
+	else: frame(node,region)
 	if source == null:
 		var label := Label.new()
 		label.text = text; label.position = Vector2(0,4); label.size = Vector2(dimensions.x,24)
@@ -261,19 +281,18 @@ func refresh() -> void:
 	weight.text = "60 kg"
 	clock.text = game.day_cycle.clock_text()
 	for i in 6:
-		var item: Dictionary = game.bag.item_by_uid(game.quick_items[i])
+		var item: Dictionary = game.bag.quick_slots[i]
 		var icon: TextureRect = quick_buttons[i].get_node("ItemIcon")
 		var amount: Label = quick_buttons[i].get_node("Amount")
 		if item.is_empty():
-			game.quick_items[i] = -1
 			quick_buttons[i].modulate = Color.WHITE
 			icon.texture = null; amount.text = ""
-			quick_buttons[i].tooltip_text = "Acceso %d sin asignar. Selecciona un objeto en el inventario para asignarlo." % (i+1)
+			quick_buttons[i].tooltip_text = "Espacio rápido %d vacío. Arrastra un objeto desde el inventario." % (i+1)
 		else:
 			icon.texture = Icons.get_icon(item.id)
 			amount.text = str(item.quantity) if item.quantity > 1 else ""
 			quick_buttons[i].tooltip_text = "%s · %d" % [game.bag.DEFINITIONS[item.id].name,i+1]
-			quick_buttons[i].modulate = Color("d6c895") if item.uid == game.bag.equipment[&"hands"].get("uid",-1) else Color.WHITE
+			quick_buttons[i].modulate = Color("d6c895") if item.uid == game.bag.held_item().get("uid",-1) else Color.WHITE
 	for i in 2:
 		var id: StringName = &"speed" if i == 0 else &"power"
 		var remaining: float = game.progression.cooldowns[id]
@@ -283,6 +302,7 @@ func refresh() -> void:
 	map_frame.queue_redraw()
 
 func _process(delta: float) -> void:
+	quick_bar.visible = not game.world_map.visible
 	refresh_elapsed += delta
 	if refresh_elapsed >= 0.1:
 		refresh_elapsed = 0

@@ -12,6 +12,7 @@ var prop_textures: Array[AtlasTexture] = []
 var forest_textures: Array[AtlasTexture] = []
 var detail_textures: Array[AtlasTexture] = []
 var grass_textures: Array[AtlasTexture] = []
+var burdock_textures: Array[AtlasTexture] = []
 var grass_floor: Node2D
 var props_layer: Node2D
 var ground: Polygon2D
@@ -42,6 +43,8 @@ func configure(map) -> void:
 	for region in DetailRegions.REGIONS:
 		detail_textures.append(atlas(DETAILS_SHEET, region, false))
 	hit_meshes.configure(self)
+	burdock_textures.append(atlas(preload("res://assets/environment/burdock1.png"),Rect2i(108,255,1032,710),false))
+	burdock_textures.append(atlas(preload("res://assets/environment/burdock2.png"),Rect2i(140,160,1020,915),false))
 	ground = Polygon2D.new()
 	ground.z_index = -1
 	ground.polygon = PackedVector2Array([world.bounds.position, Vector2(world.bounds.end.x, world.bounds.position.y), world.bounds.end, Vector2(world.bounds.position.x, world.bounds.end.y)])
@@ -71,7 +74,7 @@ func presentation(cell: Vector2i) -> Dictionary:
 	var kind: int = world.props[cell]
 	var large: bool = world.large_rocks.has(cell)
 	var center: Vector2 = world.center(cell) + (Vector2(32,32) if large else Vector2.ZERO)
-	var texture: Texture2D = detail_textures[1] if kind == 4 else prop_textures[kind]
+	var texture: Texture2D = burdock_textures[world.burdock[cell]-1] if kind == 5 else (detail_textures[1] if kind == 4 else prop_textures[kind])
 	var dimensions := Vector2(64, 64 * texture.get_height() / texture.get_width())
 	var tint := Color(0.75,0.75,0.75)
 	if kind in [1,2]:
@@ -84,6 +87,9 @@ func presentation(cell: Vector2i) -> Dictionary:
 		var height: float = world.saplings[cell]["height"]
 		dimensions = Vector2(height * texture.get_width() / texture.get_height(), height)
 		tint = world.saplings[cell]["tint"]
+	elif kind == 5:
+		dimensions = Vector2(32*texture.get_width()/texture.get_height(),32)
+		tint = Color.WHITE
 	texture = Style.normalized(texture,dimensions)
 	var result := {"texture": texture, "size": dimensions, "tint": tint, "rect": Rect2(center + Vector2(-dimensions.x/2, (60 if large else 26)-dimensions.y), dimensions)}
 	presentation_cache[cell] = result

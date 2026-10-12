@@ -43,7 +43,7 @@ func protect_body(item: StringName,direction: int) -> void:
 	var mask := ImageTexture.create_from_image(viewport.get_texture().get_image())
 	actor.restore_full(item)
 	actor.body_material.set_shader_parameter("body_mask",mask)
-	actor.body_material.set_shader_parameter("protect_bow_arm",item == &"bow" and sin(direction*TAU/16) < -0.001)
+	actor.body_material.set_shader_parameter("protect_bow_arm",sin(direction*TAU/16) < -0.001)
 	actor.tool_material.set_shader_parameter("body_mask",mask)
 	actor.tool_material.set_shader_parameter("protect_body",true)
 
@@ -105,6 +105,9 @@ func run() -> void:
 	if "--item" in arguments:
 		var index := arguments.find("--item")
 		items = [StringName(arguments[index+1])]
+	if "--items" in arguments:
+		items.clear()
+		for id in arguments[arguments.find("--items")+1].split(","): items.append(StringName(id))
 	var foot := camera.unproject_position(Vector3.ZERO)
 	var manifest := {"version":2,"canvas":[CELL.x,CELL.y],"foot":[foot.x,foot.y],"world_span":128.0,"items":{}}
 	var path := OUTPUT+"manifest.json"

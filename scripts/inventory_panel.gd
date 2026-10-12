@@ -33,7 +33,7 @@ var workshop_materials: Label
 var workshop_message: Label
 var workshop_confirm: Button
 var repair_uid := -1
-var quick_selector: OptionButton
+var chosen_quick := -1
 
 func configure(inventory, owner_game = null) -> void:
 	game = owner_game
@@ -81,6 +81,7 @@ func configure(inventory, owner_game = null) -> void:
 	for slot in Model.EQUIPMENT_SLOTS:
 		var button := make_button(positions[slot], Vector2(44, 44))
 		button.pressed.connect(select_gear.bind(slot))
+		button.kind = &"gear"; button.slot = slot
 		gear_buttons[slot] = button
 		label(LABELS[slot], positions[slot] + Vector2(-2, -15), 11)
 	details = label("Selecciona un objeto", Vector2(260, 74), 16)
@@ -110,21 +111,13 @@ func configure(inventory, owner_game = null) -> void:
 	craft_button.size = Vector2(174,34)
 	craft_button.pressed.connect(open_crafting)
 	content.add_child(craft_button)
-	quick_selector = OptionButton.new()
-	quick_selector.position = Vector2(260,294)
-	quick_selector.size = Vector2(314,28)
-	quick_selector.add_theme_font_size_override("font_size",12)
-	quick_selector.add_item("Asignar a acceso rápido…")
-	for i in 6: quick_selector.add_item("Acceso rápido %d" % (i+1))
-	quick_selector.add_item("Quitar de los accesos rápidos")
-	quick_selector.item_selected.connect(assign_selected_quick)
-	content.add_child(quick_selector)
 	label("MOCHILA · 32 ESPACIOS", Vector2(16, 298), 14)
 	for i in Model.CAPACITY:
 		var button := make_button(Vector2(16 + (i % 8) * 71, 326 + (i / 8) * 52), Vector2(66, 47))
 		button.pressed.connect(select_backpack.bind(i))
+		button.kind = &"bag"; button.slot = i
 		backpack_buttons.append(button)
-	status = label("I / Esc: cerrar · Clic: seleccionar · Equipar: usar en su espacio", Vector2(16, 555), 12)
+	status = label("Arrastra para mover · Shift + clic: transferir · I / Esc: cerrar", Vector2(16, 555), 12)
 	build_sections()
 	resized.connect(fit_panel)
 	fit_panel()
@@ -146,7 +139,8 @@ func label(text: String, position_value: Vector2, font_size: int) -> Label:
 	return node
 
 func make_button(point: Vector2, dimensions: Vector2) -> Button:
-	var button := preload("res://scripts/menu_button.gd").new()
+	var button := preload("res://scripts/item_slot.gd").new()
+	button.game = game
 	button.position = point
 	button.size = dimensions
 	button.add_theme_font_size_override("font_size", 11)
@@ -212,18 +206,18 @@ func refresh() -> void:
 		show_item(backpack_buttons[i], model.slots[i])
 		backpack_buttons[i].self_modulate = Color("d9bf72") if chosen == i else Color.WHITE
 	for slot in gear_buttons:
-		show_item(gear_buttons[slot], model.equipment[slot], "—")
+		show_item(gear_buttons[slot], model.held_item() if slot == &"hands" else model.equipment[slot], "—")
 		gear_buttons[slot].self_modulate = Color("d9bf72") if chosen_gear == slot else Color.WHITE
 	var item: Dictionary = {}
 	if chosen >= 0:
 		item = model.slots[chosen]
 	elif chosen_gear != &"":
-		item = model.equipment[chosen_gear]
+		item = model.held_item() if chosen_gear == &"hands" else model.equipment[chosen_gear]
+	elif chosen_quick >= 0:
+		item = model.quick_slots[chosen_quick]
 	var consumable: bool = not item.is_empty() and (Model.DEFINITIONS[item["id"]].has("kcal") or Model.DEFINITIONS[item["id"]].has("water_ml"))
-	quick_selector.disabled = game == null or item.is_empty()
-	quick_selector.select(0)
 	equip_button.text = ("Beber" if item.get("id",&"") == &"water" else "Comer") if consumable else "Equipar"
-	equip_button.disabled = chosen < 0 or item.is_empty() or (not consumable and Model.DEFINITIONS[item.get("id", &"madera")]["slot"] == &"")
+	equip_button.disabled = (chosen < 0 and chosen_quick < 0) or item.is_empty() or (not consumable and Model.DEFINITIONS[item.get("id", &"madera")]["slot"] == &"")
 	remove_button.disabled = chosen_gear == &"" or item.is_empty()
 	repair_button.disabled = item.is_empty() or not Workshop.REPAIRS.has(item.get("id",&""))
 	details.text = "Selecciona un objeto.\n\nHerramientas y armas: Manos.\nMateriales: Mochila."
@@ -238,32 +232,38 @@ func refresh() -> void:
 
 func select_backpack(index: int) -> void:
 	chosen = index
+	chosen_quick = -1
 	chosen_gear = &""
 	refresh()
 
 func select_gear(slot: StringName) -> void:
 	chosen = -1
+	chosen_quick = -1
 	chosen_gear = slot
 	refresh()
 
+func select_quick(index: int) -> void:
+	chosen = -1; chosen_gear = &""; chosen_quick = index
+	refresh()
+
 func equip_selected() -> void:
-	if chosen < 0 or model.slots[chosen].is_empty():
-		return
-	var definition: Dictionary = Model.DEFINITIONS[model.slots[chosen]["id"]]
+	var item := selected_item()
+	if item.is_empty() or (chosen < 0 and chosen_quick < 0): return
+	var definition: Dictionary = Model.DEFINITIONS[item.id]
 	if definition.has("kcal") or definition.has("water_ml"):
-		consume_requested.emit(chosen)
-		refresh()
-		return
-	var destination: StringName = definition["slot"]
-	if model.equip(chosen, destination):
+		if chosen_quick >= 0: game.consume_item(chosen_quick,true)
+		else: consume_requested.emit(chosen)
+		refresh(); return
+	var destination: StringName = definition.slot
+	var success: bool = model.move_item(&"quick",chosen_quick,&"gear",destination) if chosen_quick >= 0 else model.equip(chosen,destination)
+	if success:
 		status.text = "Objeto equipado."
-		chosen = -1
-		chosen_gear = destination
+		chosen = -1; chosen_quick = -1; chosen_gear = destination
 		equipment_changed.emit()
 	refresh()
 
 func remove_selected() -> void:
-	var uid: int = model.equipment.get(chosen_gear,{}).get("uid",-1)
+	var uid: int = (model.held_item() if chosen_gear == &"hands" else model.equipment.get(chosen_gear,{})).get("uid",-1)
 	if model.unequip(chosen_gear):
 		status.text = "Equipo guardado en la mochila."
 		chosen_gear = &""
@@ -279,19 +279,8 @@ func remove_selected() -> void:
 func selected_item() -> Dictionary:
 	if chosen >= 0:
 		return model.slots[chosen]
-	return model.equipment.get(chosen_gear,{})
-
-func assign_selected_quick(index: int) -> void:
-	var item := selected_item()
-	if game == null or item.is_empty() or index == 0: return
-	if index == 7:
-		for slot in 6:
-			if game.quick_items[slot] == item.uid: game.quick_items[slot] = -1
-		status.text = "Objeto retirado de los accesos rápidos."
-	else:
-		game.assign_quick_item(index-1,item.uid)
-		status.text = "Asignado al acceso rápido %d." % index
-	quick_selector.select(0)
+	if chosen_quick >= 0: return model.quick_slots[chosen_quick]
+	return model.held_item() if chosen_gear == &"hands" else model.equipment.get(chosen_gear,{})
 
 func create_workshop() -> void:
 	close_workshop()
