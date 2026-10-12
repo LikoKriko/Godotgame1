@@ -4,6 +4,7 @@ const FOREST_SHEET = preload("res://assets/environment/basic_forest_props.png")
 const DETAILS_SHEET = preload("res://assets/environment/forest_details.png")
 const DetailRegions = preload("res://assets/environment/forest_details_regions.gd")
 const GROUND_SHADER = preload("res://shaders/quarantine_ground.gdshader")
+const Style = preload("res://scripts/visual_style.gd")
 const Nature = preload("res://scripts/nature_variants.gd")
 const TREE_FADED_ALPHA := 0.35
 var world
@@ -83,6 +84,7 @@ func presentation(cell: Vector2i) -> Dictionary:
 		var height: float = world.saplings[cell]["height"]
 		dimensions = Vector2(height * texture.get_width() / texture.get_height(), height)
 		tint = world.saplings[cell]["tint"]
+	texture = Style.normalized(texture,dimensions)
 	var result := {"texture": texture, "size": dimensions, "tint": tint, "rect": Rect2(center + Vector2(-dimensions.x/2, (60 if large else 26)-dimensions.y), dimensions)}
 	presentation_cache[cell] = result
 	return result
@@ -208,9 +210,9 @@ func _draw() -> void:
 	for puddle in world.puddles:
 		var texture: Texture2D = detail_textures[3]
 		var size := Vector2(puddle["width"],puddle["width"]*texture.get_height()/texture.get_width())
-		draw_texture_rect(texture,Rect2(puddle["position"]-size/2,size),false,Color(0.84,0.87,0.85))
+		draw_texture_rect(Style.normalized(texture,size),Rect2(puddle["position"]-size/2,size),false,Color(0.84,0.87,0.85))
 	for scuff in scuffs:
-		draw_polyline(scuff,Color("444637"),2,false)
+		draw_polyline(scuff,Color("444637"),1.0/Style.PIXELS_PER_WORLD,false)
 	for particle in particles:
 		draw_rect(Rect2(particle["position"],Vector2(2,2)),particle["tint"])
 
@@ -218,7 +220,7 @@ func draw_floor_grass() -> void:
 	for tuft in world.grass_tufts:
 		var texture: Texture2D = grass_textures[tuft["variant"]]
 		var size := Vector2(tuft["width"],tuft["width"]*texture.get_height()/texture.get_width())
-		grass_floor.draw_texture_rect(texture,Rect2(tuft["position"]-Vector2(size.x/2,size.y),size),false,Color.WHITE)
+		grass_floor.draw_texture_rect(Style.normalized(texture,size),Rect2(tuft["position"]-Vector2(size.x/2,size.y),size),false,Color.WHITE)
 
 func draw_props() -> void:
 	for cell in world.props:

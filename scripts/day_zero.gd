@@ -19,6 +19,7 @@ func _ready() -> void:
 func play() -> void:
 	if not is_instance_valid(game):
 		game = preload("res://scenes/main.tscn").instantiate()
+		game.gameplay_settings = settings
 		add_child(game)
 		game.menu_requested.connect(show_pause)
 	game.menu_open = false

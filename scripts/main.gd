@@ -5,6 +5,9 @@ var day_cycle = preload("res://scripts/day_cycle.gd").new()
 var nutrition = preload("res://scripts/nutrition.gd").new()
 var solar_lighting: Node
 var survival_status: Control
+var gameplay_settings = preload("res://scripts/game_settings.gd").new()
+var running := false
+const RUN_MULTIPLIER := 1.6
 var full_avatar: Sprite2D
 var gait: Node2D
 var locomotion = preload("res://scripts/locomotion.gd").new()
@@ -167,6 +170,8 @@ func consume_item(index: int) -> void:
 
 func fit_hud() -> void:
 	var viewport_size := get_viewport_rect().size
+	if camera != null:
+		camera.zoom = Vector2.ONE*1.95*minf(viewport_size.x/1920.0,viewport_size.y/1080.0)
 	if survival_status != null:
 		survival_status.position = Vector2(viewport_size.x-350,18)
 	interaction.position = Vector2(24, viewport_size.y - 84)
@@ -174,6 +179,7 @@ func fit_hud() -> void:
 	skill_panel.position = (viewport_size - skill_panel.size) / 2
 
 func restart() -> void:
+	running = false
 	locomotion.reset()
 	world.generate(world.seed_value)
 	world_view.refresh_ground()
@@ -265,8 +271,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if event.keycode == KEY_SPACE:
 		start_jump()
 		return
-	if event.keycode == KEY_SHIFT:
-		start_slide()
+	if event.keycode == KEY_CTRL:
+		if running: start_slide()
 		return
 	if event.keycode >= KEY_1 and event.keycode <= KEY_4:
 		cancel_work()
@@ -303,7 +309,7 @@ func start_slide() -> bool:
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN))-float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 	if input_direction == Vector2.ZERO:
 		input_direction = movement.target_direction
-	if is_paused() or not locomotion.slide(input_direction):
+	if is_paused() or not running or not locomotion.slide(input_direction):
 		return false
 	cancel_work()
 	equipping = false
@@ -313,7 +319,7 @@ func _process(delta: float) -> void:
 	if is_paused():
 		character.pause()
 		return
-	locomotion.advance(delta,Input.is_physical_key_pressed(KEY_CTRL))
+	locomotion.advance(delta,Input.is_physical_key_pressed(KEY_CTRL) and not locomotion.sliding())
 	if day_cycle.advance(delta) > 0:
 		nutrition.new_day()
 	nutrition.advance(delta,day_cycle.day_seconds)
@@ -331,6 +337,7 @@ func _process(delta: float) -> void:
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 	if direction != Vector2.ZERO and working:
 		cancel_work()
+	running = direction != Vector2.ZERO and not working and not equipping and not locomotion.airborne() and not locomotion.sliding() and locomotion.crouch < 0.01 and (gameplay_settings.values["auto_run"] or Input.is_physical_key_pressed(KEY_SHIFT))
 	if not working and not equipping:
 		move_player(direction, delta)
 	if equipping:
@@ -519,7 +526,7 @@ func clear_combat_path(target: Vector2) -> bool:
 
 func move_player(direction: Vector2, delta: float) -> void:
 	var previous := player
-	var velocity: Vector2 = movement.step(direction, delta, (70.0 + ranks[2] * 7.0)*nutrition.speed_multiplier())
+	var velocity: Vector2 = movement.step(direction, delta, (70.0 + ranks[2] * 7.0)*nutrition.speed_multiplier()*(RUN_MULTIPLIER if running else 1.0))
 	if locomotion.sliding():
 		movement.step(locomotion.slide_direction,delta,220)
 	velocity = locomotion.velocity(velocity,nutrition.speed_multiplier())
@@ -556,7 +563,7 @@ func update_hud() -> void:
 	var held: Dictionary = bag.equipment[&"hands"]
 	hud.text += "\nManos: %s · 1 Espada / 2 Arco / 3 Pico / 4 Hacha / 0 Vaciar" % ("Libres" if held.is_empty() else "%s [%d usos]" % [bag.DEFINITIONS[held["id"]]["name"], held["uses"]])
 	hud_backdrop.size = hud.get_combined_minimum_size() + Vector2(24, 18)
-	interaction.text = "Clic/E: golpear · Ctrl: agacharse · Espacio: saltar · Shift al moverse: deslizarse"
+	interaction.text = "Clic/E: golpear · Shift: correr · Ctrl: agachar / deslizar corriendo · Espacio: saltar"
 	if resources.nodes.has(focused):
 		var node: Dictionary = resources.nodes[focused]
 		interaction.text = "%s · Golpes restantes %d/%d · Clic / E" % [node["name"], node["remaining"], node["hits"]]

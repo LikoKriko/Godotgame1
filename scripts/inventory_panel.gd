@@ -31,6 +31,7 @@ var repair_uid := -1
 var craft_id: StringName = &"pickaxe"
 
 func configure(inventory) -> void:
+	theme = preload("res://scripts/ui_style.gd").theme()
 	model = inventory
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var veil := ColorRect.new()
@@ -41,7 +42,7 @@ func configure(inventory) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("20232b")
 	style.border_color = Color("6c6753")
-	style.set_border_width_all(2)
+	style.set_border_width_all(1)
 	panel.add_theme_stylebox_override("panel", style)
 	add_child(panel)
 	content = Control.new()
@@ -49,7 +50,7 @@ func configure(inventory) -> void:
 	content.size = Vector2(600,600)
 	panel.add_child(content)
 	label("INVENTARIO", Vector2(14, 12), 19)
-	var close := Button.new()
+	var close := preload("res://scripts/menu_button.gd").new()
 	close.text = "×"
 	close.position = Vector2(548, 10)
 	close.size = Vector2(38, 30)
@@ -79,25 +80,25 @@ func configure(inventory) -> void:
 	details = label("Selecciona un objeto", Vector2(260, 74), 16)
 	details.size = Vector2(320, 125)
 	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	equip_button = Button.new()
+	equip_button = preload("res://scripts/menu_button.gd").new()
 	equip_button.text = "Equipar"
 	equip_button.position = Vector2(260, 211)
 	equip_button.size = Vector2(130, 34)
 	equip_button.pressed.connect(equip_selected)
 	content.add_child(equip_button)
-	remove_button = Button.new()
+	remove_button = preload("res://scripts/menu_button.gd").new()
 	remove_button.text = "Desequipar"
 	remove_button.position = Vector2(400, 211)
 	remove_button.size = Vector2(174, 34)
 	remove_button.pressed.connect(remove_selected)
 	content.add_child(remove_button)
-	repair_button = Button.new()
+	repair_button = preload("res://scripts/menu_button.gd").new()
 	repair_button.text = "Reparar"
 	repair_button.position = Vector2(260,254)
 	repair_button.size = Vector2(130,34)
 	repair_button.pressed.connect(open_repair)
 	content.add_child(repair_button)
-	craft_button = Button.new()
+	craft_button = preload("res://scripts/menu_button.gd").new()
 	craft_button.text = "Fabricar"
 	craft_button.position = Vector2(400,254)
 	craft_button.size = Vector2(174,34)
@@ -129,7 +130,7 @@ func label(text: String, position_value: Vector2, font_size: int) -> Label:
 	return node
 
 func make_button(point: Vector2, dimensions: Vector2) -> Button:
-	var button := Button.new()
+	var button := preload("res://scripts/menu_button.gd").new()
 	button.position = point
 	button.size = dimensions
 	button.add_theme_font_size_override("font_size", 11)
@@ -307,11 +308,11 @@ func create_workshop() -> void:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_END
 	box.add_child(row)
-	var back := Button.new()
+	var back := preload("res://scripts/menu_button.gd").new()
 	back.text = "Volver"
 	back.pressed.connect(close_workshop)
 	row.add_child(back)
-	workshop_confirm = Button.new()
+	workshop_confirm = preload("res://scripts/menu_button.gd").new()
 	workshop_confirm.custom_minimum_size = Vector2(160,44)
 	workshop_confirm.pressed.connect(confirm_workshop)
 	row.add_child(workshop_confirm)

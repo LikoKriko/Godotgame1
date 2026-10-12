@@ -12,6 +12,7 @@ var resolution: OptionButton
 var message: Label
 
 func configure(model) -> void:
+	theme = preload("res://scripts/ui_style.gd").theme()
 	settings = model
 	pending = settings.values.duplicate()
 	custom_minimum_size = Vector2(700,500)
@@ -29,7 +30,15 @@ func configure(model) -> void:
 	var tabs := TabContainer.new()
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_child(tabs)
-	var sound := page(tabs,"Sonido")
+	var gameplay := page(tabs,"Juego")
+	var automatic := CheckButton.new()
+	automatic.name = "AutomaticRun"
+	automatic.text = "Correr automáticamente"
+	automatic.button_pressed = pending.get("auto_run",false)
+	automatic.toggled.connect(func(enabled): pending["auto_run"] = enabled)
+	gameplay.add_child(automatic)
+	var graphics := page(tabs,"Gráficos")
+	var sound := page(tabs,"Audio")
 	for pair in [["Volumen general","master"],["Música","music"],["Efectos","effects"]]:
 		var row := HBoxContainer.new()
 		sound.add_child(row)
@@ -54,7 +63,6 @@ func configure(model) -> void:
 	note.text = "Aún no hay sonidos. El volumen queda guardado para cuando se añadan."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	sound.add_child(note)
-	var graphics := page(tabs,"Gráficos")
 	smoothing = option(graphics,"Suavizado de bordes",["Desactivado (pixel art)","MSAA 2×","MSAA 4×"])
 	smoothing.select(pending["msaa"])
 	smoothing.item_selected.connect(func(index): pending["msaa"] = index)
@@ -66,7 +74,7 @@ func configure(model) -> void:
 	vsync.button_pressed = pending["vsync"]
 	vsync.toggled.connect(func(enabled): pending["vsync"] = enabled)
 	graphics.add_child(vsync)
-	var screen := page(tabs,"Pantalla")
+	var screen := graphics
 	mode = option(screen,"Modo de pantalla",["Ventana","Pantalla completa","Ventana sin bordes"])
 	mode.select(pending["window_mode"])
 	mode.item_selected.connect(func(index): pending["window_mode"] = index)
@@ -79,11 +87,11 @@ func configure(model) -> void:
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_END
 	box.add_child(buttons)
-	var cancel := Button.new()
+	var cancel := preload("res://scripts/menu_button.gd").new()
 	cancel.text = "Volver"
 	cancel.pressed.connect(func(): closed.emit())
 	buttons.add_child(cancel)
-	var apply_button := Button.new()
+	var apply_button := preload("res://scripts/menu_button.gd").new()
 	apply_button.text = "Aplicar"
 	apply_button.pressed.connect(apply_changes)
 	buttons.add_child(apply_button)

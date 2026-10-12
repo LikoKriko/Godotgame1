@@ -1,6 +1,6 @@
 extends RefCounted
 const PATH := "user://day_zero_settings.cfg"
-const DEFAULTS := {"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "msaa": 0, "window_mode": 0, "resolution": Vector2i(1920,1080)}
+const DEFAULTS := {"auto_run": false,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "msaa": 0, "window_mode": 0, "resolution": Vector2i(1920,1080)}
 var values: Dictionary = DEFAULTS.duplicate()
 
 func load_settings() -> void:
@@ -8,6 +8,7 @@ func load_settings() -> void:
 	if config.load(PATH) == OK:
 		for key in DEFAULTS:
 			values[key] = config.get_value("settings",key,DEFAULTS[key])
+	values["auto_run"] = bool(values["auto_run"])
 	for key in ["master","music","effects"]:
 		values[key] = clampf(float(values[key]),0,1)
 	values["fps"] = int(values["fps"]) if int(values["fps"]) in [0,30,60,120,144] else 60

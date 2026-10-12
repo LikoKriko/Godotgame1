@@ -12,6 +12,7 @@ var title: Label
 var settings_panel: PanelContainer
 
 func configure(model) -> void:
+	theme = preload("res://scripts/ui_style.gd").theme()
 	settings = model
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var background := TextureRect.new()
@@ -48,7 +49,7 @@ func configure(model) -> void:
 	fit()
 
 func button(text: String, callback: Callable) -> Button:
-	var node := Button.new()
+	var node := preload("res://scripts/menu_button.gd").new()
 	node.text = text
 	node.custom_minimum_size.y = 72
 	node.add_theme_font_size_override("font_size",32)
@@ -56,11 +57,11 @@ func button(text: String, callback: Callable) -> Button:
 		var style := StyleBoxFlat.new()
 		style.bg_color = Color(0.02,0.027,0.023,0.88) if state == "normal" else Color(0.065,0.082,0.062,0.94)
 		style.border_color = Color("4b4b32") if state == "normal" else Color("8b8655")
-		style.set_border_width_all(2)
+		style.set_border_width_all(1)
 		style.set_corner_radius_all(4)
 		style.content_margin_left = 20
 		style.shadow_color = Color(0,0,0,0.7)
-		style.shadow_size = 3
+		style.shadow_size = 0
 		node.add_theme_stylebox_override(state,style)
 	node.add_theme_color_override("font_color",Color("deddd6"))
 	node.alignment = HORIZONTAL_ALIGNMENT_LEFT

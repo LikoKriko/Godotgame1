@@ -9,9 +9,10 @@ Importa `project.godot` en Godot 4.6.3, pulsa F5 y elige **Jugar** en el menú d
 La ventana y la resolución base son **1920 × 1080**. La cámara tiene un zoom de **1,95×**, un 30% más cercano que el anterior 1,5×, para mantener legibles el personaje y los decorados; la interfaz se adapta al tamaño de la ventana. El detalle del suelo se calcula en coordenadas del mundo a resolución de un píxel, con pequeñas briznas de hierba, hojas, piedrecitas y sombras suaves de relieve. Los senderos tienen curvas y bordes irregulares; la paleta permanece reducida para facilitar la lectura. El relieve es visual y no cambia el movimiento.
 
 - WASD o flechas: movimiento.
-- Ctrl (mantener): agacharse y caminar más despacio.
+- Ctrl caminando o quieto (mantener): agacharse y caminar más despacio.
 - Espacio: saltar.
-- Shift al moverse: deslizarse con frenada progresiva.
+- Shift (mantener): correr a 1,6 veces la velocidad de caminar, sin cansancio por ahora.
+- Ctrl mientras corres: deslizarse con frenada progresiva.
 - 1: espada; 2: arco; 3: pico; 4: hacha; 0: dejar las manos libres.
 - Apunta con el punto del cursor y mantén clic izquierdo o E para golpear o disparar.
 - Árbol adulto: hacha; roca: pico; arbolito joven, máquina o piedra pequeña: manos libres (0).
@@ -96,7 +97,7 @@ Las piezas de armadura usan durabilidad: casco 80, traje 100, pantalón y botas 
 
 ## Configuración
 
-Disponible desde el menú principal y el de pausa. **Sonido** permite guardar el volumen general, de música y de efectos; los tres controles están conectados a sus buses aunque aún no haya pistas de audio. **Gráficos** permite desactivar el suavizado o usar MSAA 2×/4×, activar la sincronización vertical y limitar los fotogramas a 30, 60, 120, 144 o dejarlos sin límite. **Pantalla** permite ventana, pantalla completa o ventana sin bordes, con 1280×720, 1600×900, 1920×1080 o 2560×1440. **Aplicar** guarda los valores en `user://day_zero_settings.cfg`; volver sin aplicar descarta los cambios pendientes.
+Disponible desde el menú principal y el de pausa. **Juego** contiene Correr automáticamente: activado, correrás al moverte sin mantener Shift. **Audio** permite guardar el volumen general, de música y de efectos; los tres controles están conectados a sus buses aunque aún no haya pistas de audio. **Gráficos** permite desactivar el suavizado o usar MSAA 2×/4×, activar la sincronización vertical y limitar los fotogramas a 30, 60, 120, 144 o dejarlos sin límite. Dentro de **Gráficos**, las opciones de pantalla permiten ventana, pantalla completa o ventana sin bordes, con 1280×720, 1600×900, 1920×1080 o 2560×1440. **Aplicar** guarda los valores en `user://day_zero_settings.cfg`; volver sin aplicar descarta los cambios pendientes.
 
 ## Mapa
 
@@ -126,7 +127,7 @@ godot --headless --path . --script res://tests/workshop.gd
 godot --headless --path . --quit-after 120
 ```
 
-`tests/tool_depth_render.gd` comprueba los píxeles ocultos de hacha y pico detrás del cuerpo en las tres vistas posteriores y la presencia del personaje de noche. `tests/locomotion_render.gd` comprueba Ctrl/Espacio/Shift reales y las poses renderizadas. `tests/visual_integrity.gd` requiere pantalla gráfica y comprueba los píxeles de cada sombra de objeto, el origen de la piel lateral, la visibilidad de los brazos con hacha/pico en reposo y caminando y los anclajes de cadera.
+`tests/baked_tool_occlusion.gd` comprueba los píxeles ocultos de las cuatro herramientas en vistas laterales y superiores, la oclusión del brazo izquierdo del arco, el sentido de su cuerda y la cabeza integrada. `tests/menu_hit_areas.gd` verifica interiores y exteriores de botones a tres resoluciones. `tests/running.gd` verifica carrera manual/automática y Control. `tests/locomotion_render.gd` comprueba Ctrl/Espacio/Shift reales y las poses renderizadas. `tests/visual_integrity.gd` requiere pantalla gráfica y comprueba los píxeles de cada sombra de objeto, el origen de la piel lateral, la visibilidad de los brazos con hacha/pico en reposo y caminando y los anclajes de cadera.
 
 Con una pantalla gráfica disponible, `godot --path . --rendering-method gl_compatibility --audio-driver Dummy --script res://tests/aimed_render.gd` comprueba la animación renderizada, los impactos y el cursor, sin guardar capturas. `tests/day_zero_ui.gd`, ejecutado del mismo modo, prueba los clics reales de equipar, desequipar, reparar y fabricar, las cantidades de los iconos y la configuración guardada.
 
@@ -178,3 +179,5 @@ Pruebas de esta versión:
 - `tests/motion_polish.gd`: límites de codo, inercia, rebote por material, hombros unidos al torso, dirección tras el contacto y continuidad de marcha.
 - `tests/solar_render.gd`: sombra visible, oscuridad nocturna de todo el terreno y dirección del sol (requiere pantalla gráfica).
 - `tests/day_zero_ui.gd`: clics reales en menú, equipo, reparación, fabricación, comida y agua.
+
+Los contornos comparten la política de [AGENTS.md](AGENTS.md): un píxel de rasterización del personaje, escalado con el dibujo. `visual_style.gd` normaliza bordes de objetos, materiales e iconos; el cuerpo y las herramientas usan el mismo contorno en la exportación. La cabeza forma parte de la malla de piel, comparte su paleta y transmite solo un 35% del balanceo de marcha. Los menús usan coordenadas nativas de la ventana y rectángulos de interacción sin expansión; el zoom conserva el encuadre al cambiar de resolución. El manifiesto de animación guarda únicamente los anclajes que utiliza el disparo, sin miles de entradas vacías.

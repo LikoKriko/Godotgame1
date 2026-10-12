@@ -18,12 +18,14 @@ static func joint(root: Vector3, end: Vector3, a: float, b: float, pole: Vector3
 	var height := sqrt(maxf(0, a*a-along*along))
 	return {"root":root, "joint":root+axis*along+across*height, "end":root+axis*distance}
 
-static func gait(phase: float, amplitude: float) -> Dictionary:
+static func gait(phase: float, amplitude: float, running: bool = false) -> Dictionary:
 	var cycle := fposmod(phase, 1.0)
-	var stance := cycle < 0.6
-	var t := cycle/0.6 if stance else (cycle-0.6)/0.4
-	return {"z":(lerpf(12,-12,t) if stance else lerpf(-12,12,smoothstep(0,1,t)))*amplitude,
-		"lift":0.0 if stance else sin(t*PI)*5.0*amplitude,
+	var support := 0.4 if running else 0.6
+	var stride := 10.1 if running else 12.0
+	var stance := cycle < support
+	var t := cycle/support if stance else (cycle-support)/(1-support)
+	return {"z":(lerpf(stride,-stride,t) if stance else lerpf(-stride,stride,smoothstep(0,1,t)))*amplitude,
+		"lift":0.0 if stance else sin(t*PI)*(9.0 if running else 5.0)*amplitude,
 		"pitch":(0.12*sin(t*PI) if stance else -0.18*sin(t*PI))*amplitude}
 
 static func gesture(rest: Vector3, windup: Vector3, impact: Vector3, phase: float, family: StringName) -> Vector3:
@@ -38,6 +40,10 @@ static func gesture(rest: Vector3, windup: Vector3, impact: Vector3, phase: floa
 
 static func sample(family: StringName, state: StringName, phase: float, stop_phase: float = 0.20, stop_amplitude: float = 1.0) -> Dictionary:
 	phase = clampf(phase,0,1)
+	var running := state == &"run" or String(state).ends_with("_run")
+	if state == &"run": state = &"walk"
+	elif state == &"start_run": state = &"start"
+	elif state == &"stop_run": state = &"stop"
 	var walking := state in [&"walk",&"start",&"stop"]
 	var amplitude := 1.0 if state == &"walk" else (1-smoothstep(0,1,phase) if state == &"stop" else (smoothstep(0,1,phase) if state == &"start" else 0.0))
 	var walk_phase := phase if state == &"walk" else (stop_phase if state == &"stop" else 0.0)
@@ -51,7 +57,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var twist := -0.25*sin(phase*TAU) if action and family == &"axe" else 0.0
 	if action and family == &"sword": twist = -0.30*sin(phase*TAU)
 	if action and family == &"bow": twist = 0.70*smoothstep(0,0.26,phase)*(1-smoothstep(0.72,1,phase))
-	var lean := 0.04*sin(walk_phase*TAU)*amplitude if walking else 0.0
+	var lean := ((0.12+0.035*sin(walk_phase*TAU)) if running else 0.04*sin(walk_phase*TAU))*amplitude if walking else 0.0
 	if action: lean = -0.07*sin(phase*TAU)
 	if state == &"slide": lean = 0.4*sin(phase*PI)
 	var body := Transform3D(Basis.from_euler(Vector3(lean,twist,0)),Vector3(0,bounce*amplitude-compression-load*0.55,0))
@@ -59,7 +65,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var hips: Array[Vector3] = [body*Vector3(-4.4,26.9,0),body*Vector3(4.4,26.9,0)]
 	var legs := []
 	for side in 2:
-		var step := gait(walk_phase+side*0.5,amplitude)
+		var step := gait(walk_phase+side*0.5,amplitude,running)
 		var ankle := Vector3(-4.4 if side == 0 else 4.4,2+step["lift"],step["z"])
 		if state == &"slide": ankle += Vector3(0,0,(7 if side == 0 else -4)*sin(phase*PI))
 		if state == &"jump": ankle += Vector3(0,sin(phase*PI)*3,-sin(phase*PI)*2)
@@ -68,7 +74,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 		legs.append(leg)
 	var hands: Array[Vector3] = []
 	for side in 2:
-		var swing := -sin((walk_phase+side*0.5)*TAU)*4.5*amplitude
+		var swing := -sin((walk_phase+side*0.5)*TAU)*(7.5 if running else 4.5)*amplitude
 		hands.append(body*Vector3(-8.5 if side == 0 else 8.5,28.1,swing+1.5))
 	var grip := body*Vector3(4,32,6)
 	var shaft := Vector3(0,0.72,0.69).normalized()

@@ -57,10 +57,13 @@ func run() -> void:
 	await process_frame
 	game._process(0.02)
 	key(KEY_SHIFT,true)
+	game._process(0.02)
+	key(KEY_CTRL,true)
 	await process_frame
+	key(KEY_CTRL,false)
 	key(KEY_SHIFT,false)
 	key(KEY_D,false)
-	require(game.locomotion.sliding(),"Shift while moving triggers a slide")
+	require(game.locomotion.sliding(),"Control while running triggers a slide")
 	game._process(0.15)
 	var sliding: Image = await capture()
 	require(changed(idle,sliding) > 100 and absf(game.gait.torso.rotation) > 0.2,"Slide renders a leaning, flexed pose")

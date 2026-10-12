@@ -40,18 +40,25 @@ func run_checks() -> void:
 	require(is_instance_valid(app.menu.settings_panel),"Mouse opens settings")
 	if is_instance_valid(app.menu.settings_panel):
 		var screen = app.menu.settings_panel
+		var tabs: Array[Node] = screen.find_children("*","TabContainer",true,false)
+		require(tabs.size() == 1 and tabs[0].get_tab_count() == 3 and tabs[0].get_tab_title(0) == "Juego" and tabs[0].get_tab_title(1) == "Gráficos" and tabs[0].get_tab_title(2) == "Audio","Settings contains exactly Juego, Gráficos and Audio")
+		var automatic := screen.find_child("AutomaticRun",true,false) as CheckButton
+		automatic.button_pressed = false
+		await click(automatic)
+		require(screen.pending["auto_run"],"Real click activates automatic running in Juego")
 		screen.volume_sliders["music"].value = 25
 		screen.pending["fps"] = 120
 		screen.apply_changes()
 		var saved = Settings.new()
 		saved.load_settings()
-		require(saved.values["music"] == 0.25 and saved.values["fps"] == 120,"Sound and graphics preferences survive reload")
+		require(saved.values["music"] == 0.25 and saved.values["fps"] == 120 and saved.values["auto_run"],"Sound and graphics preferences survive reload")
 		require(is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Music"))),0.25),"Music slider applies to the audio bus")
 		app.menu.close_settings()
 	await click(app.menu.play_button)
 	require(is_instance_valid(app.game) and not app.menu.visible,"Mouse Play enters the game")
 	if is_instance_valid(app.game):
 		var game = app.game
+		require(game.gameplay_settings == app.settings and game.gameplay_settings.values["auto_run"],"Game receives the saved automatic-run preference")
 		game.set_process(false)
 		game.bag.add(&"piedra",10)
 		game.bag.add(&"palo",10)

@@ -89,21 +89,22 @@ func update_pose(delta: float) -> void:
 		was_moving = false
 	elif moving:
 		if not was_moving:
-			state = &"start"
+			state = &"start_run" if game.running else &"start"
 			transition_elapsed = 0
 			phase = 0
 		was_moving = true
-		if state == &"start" and transition_elapsed < START_SECONDS:
-			clip = &"start"
+		if state in [&"start",&"start_run"] and transition_elapsed < START_SECONDS:
+			clip = &"start_run" if game.running else &"start"
 			transition_elapsed += delta
 			progress = clampf(transition_elapsed/START_SECONDS,0,1)
 		else:
-			clip = &"walk"
-			phase = fposmod(phase+delta/WALK_SECONDS*game.movement.speed_factor*game.nutrition.speed_multiplier()*(1+game.ranks[2]*0.1),1)
+			clip = &"run" if game.running else &"walk"
+			phase = fposmod(phase+delta/(0.45 if game.running else WALK_SECONDS)*game.movement.speed_factor*game.nutrition.speed_multiplier()*(1+game.ranks[2]*0.1),1)
 			progress = phase
 	else:
 		if was_moving:
-			stop_clip = StringName(("stop_start_%02d" if state == &"start" else "stop_%02d") % frame_index)
+			var prefix := "stop_run" if state in [&"run",&"start_run"] else "stop"
+			stop_clip = StringName((prefix+"_start_%02d" if state in [&"start",&"start_run"] else prefix+"_%02d") % frame_index)
 			transition_elapsed = 0
 			state = &"stop"
 			was_moving = false
@@ -130,6 +131,6 @@ func update_pose(delta: float) -> void:
 func shot_origin() -> Vector2:
 	var data := data_for(&"action")
 	var facing := Clips.direction_index(game.movement.heading,16)
-	var point: Array = data["anchors"][facing][8]
+	var point: Array = data["release_anchors"][facing]
 	var foot := Vector2(catalogue["foot"][0],catalogue["foot"][1])
 	return game.player+Vector2(0,17)+(Vector2(point[0],point[1])-foot)/float(catalogue["pixels_per_world"])

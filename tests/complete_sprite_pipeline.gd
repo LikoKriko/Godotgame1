@@ -37,6 +37,17 @@ func run() -> void:
 			for source in 6:
 				var stop := Image.load_from_file(ProjectSettings.globalize_path(clips["stop_start_%02d" % source]["path"]))
 				require(same(frame(stop,0,row),frame(start,source,row)),"Early release preserves the partial starting stride")
+		var run_image := Image.load_from_file(ProjectSettings.globalize_path(clips["run"]["path"]))
+		var run_start := Image.load_from_file(ProjectSettings.globalize_path(clips["start_run"]["path"]))
+		require(clips["run"]["frames"] == 12 and not same(frame(run_image,3,0),frame(walk,3,0)),"Run has twelve distinct running poses, not accelerated walk frames")
+		for row in 8:
+			for source in 12:
+				var stop := Image.load_from_file(ProjectSettings.globalize_path(clips["stop_run_%02d" % source]["path"]))
+				require(same(frame(stop,0,row),frame(run_image,source,row)),"Running stop begins at the displayed running stride")
+				require(same(frame(stop,5,row),frame(idle,0,row*2)),"Running stop resolves to idle")
+			for source in 6:
+				var stop := Image.load_from_file(ProjectSettings.globalize_path(clips["stop_run_start_%02d" % source]["path"]))
+				require(same(frame(stop,0,row),frame(run_start,source,row)),"Early running release retains its partial starting stride")
 		for row in 16:
 			require(same(frame(action,0,row),frame(idle,0,row)) and same(frame(action,15,row),frame(idle,0,row)),"Action returns to its own ready pose")
 	for i in 12:

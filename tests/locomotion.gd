@@ -51,7 +51,9 @@ func run() -> void:
 	game.inventory_panel.hide()
 	game._process(Motion.JUMP_SECONDS)
 	game.movement.step(Vector2.RIGHT,1,220)
-	require(game.start_slide(),"Gameplay starts a directional slide")
+	require(not game.start_slide(),"Walking cannot initiate a slide")
+	game.running = true
+	require(game.start_slide(),"Running starts a directional slide")
 	var start: Vector2 = game.player
 	game._process(0.1)
 	require(game.player.x > start.x and game.locomotion.sliding(),"Slide moves even after movement keys are released")

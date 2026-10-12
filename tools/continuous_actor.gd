@@ -5,12 +5,14 @@ const SKIN := Color8(208,140,85)
 const CLOTH := Color8(96,77,51)
 const HAIR_VIEWS = preload("res://assets/characters/complete/reference_views.png")
 const HEADS := [Vector2(242,64),Vector2(684,64),Vector2(1104,64),Vector2(1555,64),Vector2(245,480),Vector2(667,478),Vector2(1082,480),Vector2(1557,480)]
+var surface_tag := 0.0
+var body_material: ShaderMaterial
 var surface: SurfaceTool
+var core_mesh: MeshInstance3D
 var mesh_node: MeshInstance3D
-var head: Sprite3D
 var tool: Sprite3D
-var head_cache: Dictionary = {}
 var last_pose: Dictionary = {}
+var head_center := Vector3.ZERO
 var grip_error := 0.0
 var camera_up := Vector3(0,0.97,-0.24).normalized()
 var visual_override: Dictionary = {}
@@ -19,13 +21,16 @@ var bow_ends: Array[Vector3] = []
 
 func _ready() -> void:
 	mesh_node = MeshInstance3D.new()
-	var material := ShaderMaterial.new()
-	material.shader = preload("res://shaders/baked_skin.gdshader")
-	mesh_node.material_override = material
+	body_material = ShaderMaterial.new()
+	body_material.shader = preload("res://shaders/baked_skin.gdshader")
+	mesh_node.material_override = body_material
 	add_child(mesh_node)
-	head = Sprite3D.new()
+	core_mesh = MeshInstance3D.new()
+	core_mesh.material_override = body_material
+	core_mesh.visible = false
+	add_child(core_mesh)
 	tool = Sprite3D.new()
-	for sprite in [head,tool]:
+	for sprite in [tool]:
 		sprite.shaded = false
 		sprite.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
 		sprite.alpha_scissor_threshold = 0.22
@@ -36,6 +41,8 @@ func _ready() -> void:
 	tool.material_override = tool_material
 
 func vertex(point: Vector3, color: Color) -> void:
+	surface.set_uv(Vector2(surface_tag,0))
+	surface.set_uv2(Vector2.ZERO)
 	surface.set_color(color)
 	surface.add_vertex(point)
 
@@ -89,22 +96,55 @@ func tube(joints: Array, radius_a: float,radius_b: float,color: Color,shorts: bo
 		triangle(centers[0],rings[0][(segment+1)%10],rings[0][segment],CLOTH if shorts else color)
 		triangle(centers[steps],rings[steps][segment],rings[steps][(segment+1)%10],color)
 
+func integrated_head(torso: Transform3D,actor_basis: Basis,direction: int,pose_state: StringName) -> void:
+	var index := posmod(2-roundi(direction/2.0),8)
+	var source := Rect2(HEADS[index].x-105,HEADS[index].y,210,130)
+	body_material.set_shader_parameter("head_reference",HAIR_VIEWS)
+	body_material.set_shader_parameter("reference_rect",Vector4(source.position.x/HAIR_VIEWS.get_width(),source.position.y/HAIR_VIEWS.get_height(),source.size.x/HAIR_VIEWS.get_width(),source.size.y/HAIR_VIEWS.get_height()))
+	# Neck joins torso and head. Only 35% of the torso bob reaches the head.
+	var lowered := pose_state in [&"crouch",&"slide",&"jump"]
+	var point := torso*Vector3(0,56.4,0) if lowered else Vector3(0,56.4,0)+torso.origin*0.35
+	var center := actor_basis*point+Vector3(0,0,4.2)
+	head_center = center
+	var inverse := actor_basis.inverse()
+	var join := inverse*(center-camera_up*7.5)
+	tube([torso*Vector3(0,46.8,0),(torso*Vector3(0,46.8,0)).lerp(join,0.5),join],2.4,2.1,SKIN,false,4)
+	var half_x := Vector3.RIGHT*(210.0/130*18.5*0.72/2)
+	var half_y := camera_up*(18.5/2)
+	var corners := [center-half_x+half_y,center+half_x+half_y,center+half_x-half_y,center-half_x-half_y]
+	var uv := [Vector2(0,0),Vector2(1,0),Vector2(1,1),Vector2(0,1)]
+	for corner in [0,1,2,0,2,3]:
+		surface.set_uv(Vector2(3,0))
+		surface.set_uv2(uv[corner])
+		surface.set_color(SKIN)
+		surface.add_vertex(inverse*corners[corner])
+	surface_tag = 0
+
 func tool_geometry(item: StringName) -> Dictionary:
-	if not visual_override.is_empty(): return visual_override
-	var data: Dictionary = Tools.geometry(item).duplicate()
+	var data: Dictionary = visual_override.duplicate() if not visual_override.is_empty() else Tools.geometry(item).duplicate()
 	if data.is_empty(): return data
-	var size: Vector2 = data["texture"].get_size()
-	# Actual hilt/central bow grip rather than the former generic bottom-center.
-	if item == &"sword":
-		data["grip"] = size*Vector2(0.32,0.76)
-		data["contact"] = size*Vector2(0.87,0.16)
-	elif item == &"bow":
-		data["grip"] = Vector2(289,237)
-		data["contact"] = data["grip"]+Vector2(325,-520)*0.4
-		data["string_top"] = Vector2(556,44)
-		data["string_bottom"] = Vector2(231,566)
-		data["clear_black"] = true
-	if Tools.DATA.has(item): data["support"] = Tools.DATA[item]["support"]-Tools.DATA[item]["rect"].position
+	if visual_override.is_empty():
+		var size: Vector2 = data["texture"].get_size()
+		# Actual hilt/central bow grip rather than the former generic bottom-center.
+		if item == &"sword":
+			data["grip"] = size*Vector2(0.32,0.76)
+			data["contact"] = size*Vector2(0.87,0.16)
+		elif item == &"bow":
+			data["grip"] = Vector2(289,237)
+			data["contact"] = data["grip"]+Vector2(325,-520)*0.4
+			data["string_top"] = Vector2(556,44)
+			data["string_bottom"] = Vector2(231,566)
+			data["clear_black"] = true
+		if Tools.DATA.has(item): data["support"] = Tools.DATA[item]["support"]-Tools.DATA[item]["rect"].position
+	var original: Texture2D = data["texture"]
+	var span: float = data.get("display_size",Tools.DISPLAY_SIZES.get(item,32.0))
+	var target := original.get_size()*span/maxf(original.get_width(),original.get_height())
+	var styled: Texture2D = preload("res://scripts/visual_style.gd").normalized(original,target,false,item == &"bow")
+	var ratio := styled.get_size()/original.get_size()
+	data["texture"] = styled
+	if data.has("string_top"): data["string_width"] = data.get("string_width",8.0)*sqrt(ratio.x*ratio.y)
+	for name in ["grip","contact","support","string_top","string_bottom"]:
+		if data.has(name): data[name] *= ratio
 	return data
 
 func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis,item: StringName) -> Dictionary:
@@ -113,6 +153,8 @@ func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis
 	var across := Vector3.RIGHT-direction*direction.dot(Vector3.RIGHT)
 	if across.length_squared() < 0.03: across = camera_up-direction*direction.dot(camera_up)
 	across = across.normalized()
+	if item == &"bow" and (actor_basis*Vector3.BACK).x > 0.001:
+		across = -across
 	var x_axis := direction*source_axis.x-across*source_axis.y
 	var y_axis := direction*source_axis.y+across*source_axis.x
 	var texture: Texture2D = data["texture"]
@@ -129,6 +171,7 @@ func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis
 	tool_material.set_shader_parameter("clear_black",data.get("clear_black",false))
 	tool_material.set_shader_parameter("string_top",data.get("string_top",Vector2.ZERO))
 	tool_material.set_shader_parameter("string_bottom",data.get("string_bottom",Vector2.ZERO))
+	tool_material.set_shader_parameter("string_width",data.get("string_width",1.0))
 	tool.pixel_size = pixels
 	tool.basis = Basis(x_axis,-y_axis,x_axis.cross(-y_axis)).orthonormalized()
 	tool.position = world_grip+(x_axis*center.x+y_axis*center.y)*pixels
@@ -171,6 +214,7 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 		hands[active] = grip
 		if family in [&"axe",&"pickaxe"]: hands[1-active] = placement["support"]
 		pose["grip"] = grip
+	surface_tag = 0
 	surface = SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var torso: Transform3D = pose["body"]
@@ -184,7 +228,12 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 		ellipsoid(torso*Vector3(side*1.5,32.8,2.7),Vector3(1.55,1.6,0.4),SKIN,torso.basis)
 		ellipsoid(torso*Vector3(side*3.2,41.0,4.0),Vector3(0.35,0.3,0.18),SKIN.darkened(0.23),torso.basis)
 	ellipsoid(torso*Vector3(0,27.7,0),Vector3(7.2,3.5,3.5),CLOTH,torso.basis)
+	integrated_head(torso,actor_basis,direction,pose["state"])
+	surface.generate_normals()
+	core_mesh.mesh = surface.commit()
+	core_mesh.basis = actor_basis
 	for side in 2:
+		surface_tag = 0
 		var leg: Dictionary = pose["legs"][side]
 		tube([leg["root"],leg["joint"],leg["end"]],2.65,1.55,SKIN,true)
 		var ankle: Vector3 = leg["end"]
@@ -197,9 +246,11 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 		var arm := Pose.joint(shoulder,hands[side],Pose.UPPER_ARM,Pose.FOREARM,pole)
 		if tool.visible and (family in [&"axe",&"pickaxe"] or side == pose["active"]):
 			grip_error = maxf(grip_error,arm["end"].distance_to(hands[side]))
+		surface_tag = 1 if side == 0 else 2
 		tube([arm["root"],arm["joint"],arm["end"]],2.2,1.35,SKIN)
 		ellipsoid(arm["end"],Vector3(1.45,1.7,1.5),SKIN)
 		pose["hands"][side] = arm["end"]
+		surface_tag = 0
 		var patch: Vector3 = leg["root"].lerp(leg["joint"],0.17)+Vector3(0,0,2.9)
 		ellipsoid(patch,Vector3(1.0,1.1,0.14),Color8(130,86,46))
 	if family == &"bow":
@@ -223,14 +274,13 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 	surface.generate_normals()
 	mesh_node.mesh = surface.commit()
 	mesh_node.basis = actor_basis
-	# Convert clockwise right/down indexing to the source's down-first ordering.
-	var index := posmod(2-roundi(direction/2.0),8)
-	if not head_cache.has(index):
-		var atlas := AtlasTexture.new()
-		atlas.atlas = HAIR_VIEWS
-		atlas.region = Rect2(HEADS[index].x-105,HEADS[index].y,210,130)
-		head_cache[index] = atlas
-	head.texture = head_cache[index]
-	head.pixel_size = 18.5/130
-	head.position = actor_basis*(torso*Vector3(0,56.4,0))+Vector3(0,0,4.2)
-	head.basis = Basis(Vector3.RIGHT*0.72,camera_up,Vector3.RIGHT.cross(camera_up))
+
+func show_core_only() -> void:
+	mesh_node.hide()
+	tool.hide()
+	core_mesh.show()
+
+func restore_full(item: StringName) -> void:
+	core_mesh.hide()
+	mesh_node.show()
+	tool.visible = item != &""

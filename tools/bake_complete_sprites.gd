@@ -32,14 +32,20 @@ func frame_ready() -> void:
 	await RenderingServer.frame_post_draw
 
 func outlined(picture: Image) -> Image:
-	var result := picture.duplicate()
-	for y in range(1,picture.get_height()-1):
-		for x in range(1,picture.get_width()-1):
-			if picture.get_pixel(x,y).a > 0.01: continue
-			for offset in [Vector2i.LEFT,Vector2i.RIGHT,Vector2i.UP,Vector2i.DOWN]:
-				if picture.get_pixelv(Vector2i(x,y)+offset).a > 0.8:
-					result.set_pixel(x,y,Color(0.18,0.12,0.075,0.9)); break
-	return result
+	return preload("res://scripts/visual_style.gd").outlined(picture)
+
+func protect_body(item: StringName,direction: int) -> void:
+	actor.tool_material.set_shader_parameter("protect_body",false)
+	actor.body_material.set_shader_parameter("protect_bow_arm",false)
+	if item == &"" or sin(direction*TAU/16) > 0.001: return
+	actor.show_core_only()
+	await frame_ready()
+	var mask := ImageTexture.create_from_image(viewport.get_texture().get_image())
+	actor.restore_full(item)
+	actor.body_material.set_shader_parameter("body_mask",mask)
+	actor.body_material.set_shader_parameter("protect_bow_arm",item == &"bow" and sin(direction*TAU/16) < -0.001)
+	actor.tool_material.set_shader_parameter("body_mask",mask)
+	actor.tool_material.set_shader_parameter("protect_body",true)
 
 func sheet(item: StringName,family: StringName,state: StringName,count: int,directions: int,stop_frame: int = -1, from_start: bool = false) -> Dictionary:
 	var result := Image.create(CELL.x*count,CELL.y*directions,false,Image.FORMAT_RGBA8)
@@ -48,22 +54,25 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 	for direction in directions:
 		var row := []
 		for frame in count:
-			var phase := frame/float(count) if state == &"walk" else (frame/float(count-1) if count > 1 else 0.0)
+			var phase := frame/float(count) if state in [&"walk",&"run"] else (frame/float(count-1) if count > 1 else 0.0)
 			if state == &"action": phase = frame/16.0 if frame <= 8 else 0.5+(frame-8)/14.0
 			actor.build(item,family,state,phase,direction*(16/directions),0.0 if from_start else (stop_frame/12.0 if stop_frame >= 0 else 0.20),smoothstep(0,1,stop_frame/5.0) if from_start else 1.0)
+			await protect_body(item,direction*(16/directions))
 			var grip: Vector3 = actor.last_pose["grip"]
 			var yaw := PI/2-direction*(16.0/directions)*TAU/16
 			var basis := Basis(Vector3.UP,yaw)
 			var base: Vector3 = actor.last_pose["hands"][1]
 			var tip := base+base.direction_to(actor.last_pose["hands"][0]+Vector3(0,1,0))*24
 			var point := camera.unproject_position(basis*tip) if family == &"bow" else Vector2.ZERO
-			row.append([point.x,point.y])
+			if family == &"bow" and state == &"action" and frame == 8:
+				row.append(snappedf(point.x,0.001))
+				row.append(snappedf(point.y,0.001))
 			grip_error = maxf(grip_error,actor.grip_error)
 			await frame_ready()
 			var picture := outlined(viewport.get_texture().get_image())
 			picture.convert(Image.FORMAT_RGBA8)
 			result.blit_rect(picture,Rect2i(Vector2i.ZERO,CELL),Vector2i(frame*CELL.x,direction*CELL.y))
-		anchors.append(row)
+		if not row.is_empty(): anchors.append(row)
 	var id := "bare" if item == &"" else String(item)
 	var suffix := ("_start_%02d" if from_start else "_%02d") % stop_frame if stop_frame >= 0 else ""
 	var path := OUTPUT+id+"_"+String(state)+suffix+".png"
@@ -72,7 +81,10 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 		failures += 1
 		push_error("Export %s: write=%s, grip_error=%s" % [path,error,grip_error])
 	print("BAKED %s: %d directions × %d frames; grip error %.5f" % [path,directions,count,grip_error])
-	return {"path":path,"frames":count,"directions":directions,"grip_error":grip_error,"anchors":anchors,"body_height":result.get_region(Rect2i(0,4*CELL.y,CELL.x,CELL.y)).get_used_rect().size.y if item == &"" and state == &"idle" else 0}
+	var data := {"path":path,"frames":count,"directions":directions,"grip_error":snappedf(grip_error,0.00001)}
+	if not anchors.is_empty(): data["release_anchors"] = anchors
+	if item == &"" and state == &"idle": data["body_height"] = result.get_region(Rect2i(0,4*CELL.y,CELL.x,CELL.y)).get_used_rect().size.y
+	return data
 
 func run() -> void:
 	setup()
@@ -84,6 +96,7 @@ func run() -> void:
 			for column in 8:
 				var item: StringName = [&"axe",&"pickaxe",&"sword",&"bow"][row]
 				actor.build(item,item,&"action",0.25 if column%2 == 0 else 0.5,(column/2)*4)
+				await protect_body(item,(column/2)*4)
 				await frame_ready()
 				contact.blit_rect(outlined(viewport.get_texture().get_image()),Rect2i(Vector2i.ZERO,CELL),Vector2i(column*CELL.x,row*CELL.y))
 		contact.save_png("/tmp/continuous-body-probe.png")
@@ -93,18 +106,40 @@ func run() -> void:
 		var index := arguments.find("--item")
 		items = [StringName(arguments[index+1])]
 	var foot := camera.unproject_position(Vector3.ZERO)
-	var manifest := {"version":1,"canvas":[CELL.x,CELL.y],"foot":[foot.x,foot.y],"world_span":128.0,"items":{}}
+	var manifest := {"version":2,"canvas":[CELL.x,CELL.y],"foot":[foot.x,foot.y],"world_span":128.0,"items":{}}
 	var path := OUTPUT+"manifest.json"
 	if FileAccess.file_exists(path):
 		var previous: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(path))
 		manifest["items"] = previous["items"]
 		manifest["pixels_per_world"] = previous.get("pixels_per_world",1.0)
+	var selected_clips := PackedStringArray()
+	if "--clips" in arguments:
+		selected_clips = arguments[arguments.find("--clips")+1].split(",")
 	for item in items:
 		var family: StringName = Inventory.DEFINITIONS.get(item,{}).get("category",&"")
 		var clips := {}
+		if not selected_clips.is_empty():
+			var key := "bare" if item == &"" else String(item)
+			clips = manifest["items"][key]["clips"].duplicate(true)
+			for name in selected_clips:
+				if name not in ["jump","crouch","slide"]:
+					push_error("Partial export currently supports jump,crouch,slide only")
+					quit(1); return
+				clips[name] = await sheet(item,family,StringName(name),6,8)
+			manifest["items"][key]["clips"] = clips
+			var partial := FileAccess.open(path,FileAccess.WRITE)
+			partial.store_string(JSON.stringify(manifest,"\t"))
+			partial.close()
+			continue
 		clips["idle"] = await sheet(item,family,&"idle",1,16)
 		if item == &"": manifest["pixels_per_world"] = clips["idle"]["body_height"]/64.0
 		clips["walk"] = await sheet(item,family,&"walk",12,8)
+		clips["run"] = await sheet(item,family,&"run",12,8)
+		clips["start_run"] = await sheet(item,family,&"start_run",6,8)
+		for source in 12:
+			clips["stop_run_%02d" % source] = await sheet(item,family,&"stop_run",6,8,source)
+		for source in 6:
+			clips["stop_run_start_%02d" % source] = await sheet(item,family,&"stop_run",6,8,source,true)
 		clips["start"] = await sheet(item,family,&"start",6,8)
 		for start_frame in 12:
 			clips["stop_%02d" % start_frame] = await sheet(item,family,&"stop",6,8,start_frame)
