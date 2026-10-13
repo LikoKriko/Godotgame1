@@ -13,7 +13,7 @@ func run() -> void:
 	camera = Camera3D.new(); camera.projection = Camera3D.PROJECTION_ORTHOGONAL; camera.size = 64
 	camera.position = Vector3(0,61,200); viewport.add_child(camera); camera.look_at(Vector3(0,17,0))
 	actor = preload("res://tools/enemy/young_volume.gd").new(); viewport.add_child(actor)
-	var manifest := {"canvas":[CELL.x,CELL.y],"foot":[camera.unproject_position(Vector3.ZERO).x,camera.unproject_position(Vector3.ZERO).y],"pixels_per_world":1.5,"world_height":32,"source":"Day_Zero_Enemigo_Joven_4_Vistas.png"}
+	var manifest := {"authoring":"continuous_actor_surfaces_two_bone_ik", "version":2,"canvas":[CELL.x,CELL.y],"foot":[camera.unproject_position(Vector3.ZERO).x,camera.unproject_position(Vector3.ZERO).y],"pixels_per_world":1.5,"world_height":32,"source":"Day_Zero_Enemigo_Joven_4_Vistas.png"}
 	for name in ["idle","walk","attack_left","attack_right"]:
 		var count := 1 if name == "idle" else (12 if name == "walk" else 16)
 		var sheet := Image.create(CELL.x*count,CELL.y*16,false,Image.FORMAT_RGBA8)

@@ -31,3 +31,9 @@ an impact had **zero differing pixels**. The spatial regression test compares
 12,000 queries with the old full silhouette scan, including parent transforms,
 rotations, negative scales, removal and insertion-order ties. Existing
 interaction, ground-cover, combat and render-reuse checks passed.
+
+Repeat the batch measurement with:
+
+```sh
+godot --headless --path . --script tools/benchmark_presentation.gd
+```

@@ -9,6 +9,7 @@
 		"frames": 16,
 		"path": "res://assets/enemies/first/attack_right.png"
 	},
+	"authoring": "continuous_actor_surfaces_two_bone_ik",
 	"canvas": [
 		96,
 		96
@@ -24,6 +25,7 @@
 	},
 	"pixels_per_world": 1.5,
 	"source": "Day_Zero_Enemigo_Joven_4_Vistas.png",
+	"version": 2,
 	"walk": {
 		"directions": 16,
 		"frames": 12,

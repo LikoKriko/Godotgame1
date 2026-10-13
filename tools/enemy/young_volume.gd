@@ -1,113 +1,94 @@
-extends Node3D
-## Reconstruct a continuous textured visual hull from the user's four views.
-## Only the exported full sprites are used in game; this rig is authoring data.
-const HEIGHT := 32
+extends "res://tools/continuous_actor.gd"
+## Same continuous ellipsoid/two-bone skin authoring as the player.
+## Source paint is attached to body parts; runtime uses whole baked sprites.
 const CROPS := [Rect2i(85,61,259,220),Rect2i(495,61,241,220),Rect2i(975,64,256,217),Rect2i(1466,61,239,220)]
-const NORMALS := [Vector3i(0,0,1),Vector3i(1,0,0),Vector3i(0,0,-1),Vector3i(-1,0,0),Vector3i(0,1,0),Vector3i(0,-1,0)]
-var pictures: Array[Image] = []
-var points: Array[Vector3] = []
-var faces: Array = []
-var view_colors: Dictionary = {}
-var mesh_node := MeshInstance3D.new()
-var width := 38.0
-var depth := 35.0
-
+const FUR := Color8(132,96,80)
+const STONE := Color8(170,162,135)
+const PINK := Color8(185,128,109)
+const MOSS := Color8(154,155,65)
+const IVORY := Color8(220,207,164)
+var paint_transform := Transform3D.IDENTITY
+var limb_lengths: Array[Vector2] = []
 func _ready() -> void:
-	add_child(mesh_node)
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.vertex_color_use_as_albedo = true
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mesh_node.material_override = material
-	var original := Image.load_from_file("res://assets/enemies/first/reference_views.png")
-	for rect in CROPS: pictures.append(original.get_region(rect))
-	width = HEIGHT*CROPS[0].size.x/float(CROPS[0].size.y)
-	depth = HEIGHT*CROPS[1].size.x/float(CROPS[1].size.y)
-	var occupied := {}
-	for y in HEIGHT:
-		for x in range(-ceili(width/2),ceili(width/2)):
-			for z in range(-ceili(depth/2),ceili(depth/2)):
-				var center := Vector3(x+0.5,y+0.5,z+0.5)
-				var inside := true
-				for view in 4:
-					if sample(center,view).a < 0.75: inside = false; break
-				if inside: occupied[Vector3i(x,y,z)] = true
-	var vertices := {}
-	for cell in occupied:
-		for side in 6:
-			if occupied.has(cell+NORMALS[side]): continue
-			var normal := Vector3(NORMALS[side])
-			var tangent := Vector3.RIGHT if side in [0,2,4,5] else Vector3.FORWARD
-			var up := normal.cross(tangent)
-			var center := Vector3(cell)+Vector3.ONE/2+normal/2
-			var quad := []
-			for corner in [Vector2(-1,-1),Vector2(1,-1),Vector2(1,1),Vector2(-1,1)]:
-				var point: Vector3 = center+tangent*corner.x/2+up*corner.y/2
-				if not vertices.has(point): vertices[point] = points.size(); points.append(point)
-				quad.append(vertices[point])
-			var view := side if side < 4 else (0 if center.z >= 0 else 2)
-			var color := sample(center-normal*0.5,view)
-			color.a = 1
-			if side == 5: color = color.darkened(0.08)
-			faces.append([quad,color,Vector3(cell)+Vector3.ONE/2])
-	print("Young volume: %d occupied cells, %d shared vertices, %d faces" % [occupied.size(),points.size(),faces.size()])
-
-func sample(point: Vector3,view: int) -> Color:
-	var horizontal := point.x/width if view in [0,2] else point.z/depth
-	if view in [2,3]: horizontal = -horizontal
-	var uv := Vector2(0.5+horizontal,1-point.y/HEIGHT)
-	if uv.x < 0 or uv.x >= 1 or uv.y < 0 or uv.y >= 1: return Color.TRANSPARENT
-	var picture := pictures[view]
-	var color := picture.get_pixel(clampi(int(uv.x*picture.get_width()),0,picture.get_width()-1),clampi(int(uv.y*picture.get_height()),0,picture.get_height()-1))
-	if maxf(color.r,maxf(color.g,color.b)) < 0.08: color.a = 0
-	return color
-
-func deform(point: Vector3,state: String,phase: float,left: bool) -> Vector3:
-	var result := point
-	var gait := sin(phase*TAU)
-	var side := 1.0 if point.x >= 0 else -1.0
-	var leg := 1-smoothstep(8,14,point.y)
-	var arm := smoothstep(8,13,absf(point.x))*(1-smoothstep(24,29,point.y))*smoothstep(6,10,point.y)
-	if state == "walk":
-		var stride := gait*side
-		result.z += stride*4*leg
-		result.y += maxf(0,-stride)*1.7*leg
-		# A broad shoulder blend keeps the textured stone fists attached.
-		result.z -= stride*2*arm
-		result.y += (1-absf(gait))*0.45
-	elif state == "attack":
-		var amount: float
-		if phase <= 0.28: amount = -0.35*smoothstep(0,0.28,phase)
-		elif phase <= 0.5: amount = lerpf(-0.35,1,smoothstep(0.28,0.5,phase))
-		elif phase <= 0.64: amount = lerpf(1,0.35,smoothstep(0.5,0.64,phase))
-		else: amount = 0.35*(1-smoothstep(0.64,1,phase))
-		var active := (side > 0) == left
-		if active:
-			result.z += amount*9*arm
-			result.x -= side*amount*2*arm
-			result.y += amount*4.5*arm
-		else: result.z -= amount*1.2*arm
-		var body := smoothstep(5,15,point.y)
-		result.z += amount*1.6*body
-	return result
-
+	mesh_node = MeshInstance3D.new(); add_child(mesh_node)
+	body_material = ShaderMaterial.new(); body_material.shader = preload("res://shaders/baked_young.gdshader")
+	mesh_node.material_override = body_material
+	var original: Image = preload("res://assets/enemies/first/reference_views.png").get_image()
+	var names := ["front","right_view","back","left_view"]
+	for i in 4: body_material.set_shader_parameter(names[i],ImageTexture.create_from_image(original.get_region(CROPS[i])))
+func triangle(a: Vector3,b: Vector3,c: Vector3,color: Color) -> void:
+	for point in [a,b,c]:
+		var rest: Vector3 = paint_transform.affine_inverse()*point
+		surface.set_uv(Vector2(0.5+rest.z/35.0,surface_tag))
+		surface.set_uv2(Vector2(0.5+rest.x/38.0,1.0-rest.y/32.0))
+		surface.set_color(color); surface.add_vertex(point)
+func volume(center: Vector3,size: Vector3,color: Color,tag: float,body: Transform3D) -> void:
+	surface_tag = tag; paint_transform = body
+	ellipsoid(body*center,size,color,body.basis)
+func limb(root_point: Vector3,target: Vector3,a: float,b: float,pole: Vector3,radius: float,body: Transform3D) -> Dictionary:
+	var joints := Pose.joint(root_point,target,a,b,pole)
+	limb_lengths.append(Vector2(joints.root.distance_to(joints.joint),joints.joint.distance_to(joints.end)))
+	paint_transform = body; surface_tag = 0
+	tube([body*joints.root,body*joints.joint,body*joints.end],radius,radius*0.8,FUR,false,12)
+	return joints
 func pose(state: String,phase: float,direction: int,left: bool = true) -> void:
 	rotation.y = PI/2-direction*TAU/16
-	# Project the same view across all visible faces; sampling each cube's normal
-	# separately produces horizontal colour seams at voxel steps in side views.
-	if not view_colors.has(direction):
-		var colors := PackedColorArray()
-		var source: int = [3,0,1,2][posmod(roundi(direction/4.0),4)]
-		for face in faces:
-			var color := sample(face[2],source)
-			if color.a < 0.75: color = face[1]
-			color.a = 1; colors.append(color)
-		view_colors[direction] = colors
-	var transformed := PackedVector3Array()
-	for point in points: transformed.append(deform(point,state,phase,left))
-	var surface := SurfaceTool.new(); surface.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for i in faces.size():
-		var face: Array = faces[i]
-		surface.set_color(view_colors[direction][i])
-		for index in [0,1,2,0,2,3]: surface.add_vertex(transformed[face[0][index]])
-	mesh_node.mesh = surface.commit()
+	var paint_direction := fposmod((direction-4)/4.0,4.0)
+	body_material.set_shader_parameter("view",floori(paint_direction))
+	body_material.set_shader_parameter("next_view",(floori(paint_direction)+1)%4)
+	body_material.set_shader_parameter("view_blend",smoothstep(0,1,fposmod(paint_direction,1.0)))
+	surface = SurfaceTool.new(); surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	limb_lengths.clear()
+	var walking := state == "walk"
+	var attacking := state == "attack" and phase > 0.0 and phase < 1.0
+	var effort := sin(phase*PI) if attacking else 0.0
+	var bob := -0.35*(1-cos(phase*TAU*2)) if walking else -0.25*effort
+	var lean := -0.04*effort
+	var body := Transform3D(Basis(Vector3.RIGHT,lean),Vector3(0,bob,0))
+	volume(Vector3(0,11.5,-1.5),Vector3(9.3,8.5,7),FUR,0,body)
+	volume(Vector3(0,21,2.5),Vector3(9.5,8.6,7.8),FUR,0,body)
+	# A compact muzzle, eyes and tusks stay attached to the same skull.
+	volume(Vector3(0,16.8,10.6),Vector3(5.2,3,3.7),PINK,2,body)
+	for side in [-1.0,1.0]:
+		volume(Vector3(side*1.8,17.2,14),Vector3(0.7,0.65,0.45),Color8(65,40,30),2,body)
+		volume(Vector3(side*5.7,20.4,9.6),Vector3(1.65,1.25,1.1),Color8(40,31,21),2,body)
+		volume(Vector3(side*5.7,20.5,10.45),Vector3(0.72,0.65,0.32),Color8(183,62,43),2,body)
+		volume(Vector3(side*5.85,20.95,10.4),Vector3(1.8,0.45,0.6),FUR*0.72,2,body)
+		volume(Vector3(side*6.0,21.0,10.85),Vector3(0.32,0.32,0.2),IVORY,2,body)
+		volume(Vector3(side*8.6,26,2),Vector3(2.2,1.6,1.4),FUR,0,body)
+		volume(Vector3(side*8.8,26.2,3.1),Vector3(1.4,0.8,0.45),PINK,2,body)
+		surface_tag = 2; paint_transform = body
+		tube([body*Vector3(side*4,14,9),body*Vector3(side*6.8,15.5,11),body*Vector3(side*5.2,18.2,11.9)],1.6,0.12,IVORY,false,8)
+	volume(Vector3(0,9,-8),Vector3(1.0,1.2,0.6),PINK,2,body)
+	for side in [-1.0,1.0]: volume(Vector3(side*2,13.4,12),Vector3(0.5,1.1,0.45),IVORY,2,body)
+	# Green crest matches the young reference rather than the adult silhouette.
+	for i in 7:
+		var z := -3.5+i*1.3
+		volume(Vector3(0,28.9,z),Vector3(3.7,2.4-absf(i-3)*0.3,1.3),MOSS,2,body)
+	for index in 2:
+		var side := -1.0 if index == 0 else 1.0
+		var gait := Pose.gait(phase+index*0.5,0.29) if walking else {"z":0.0,"lift":0.0,"pitch":0.0}
+		var foot := Vector3(side*5.5,1.5+float(gait.lift)-bob,1.5+float(gait.z))
+		var leg := limb(Vector3(side*5.5,8.5,-1),foot,4.4,4.2,Vector3(0,0,1),2.2,body)
+		var shoe := Transform3D(body.basis,body*leg.end)
+		# Foot and toes move as one part; no detached lower leg.
+		volume(Vector3.ZERO,Vector3(2.6,1.45,3.3),FUR,0,shoe)
+		for toe in 3: volume(Vector3((toe-1)*1.1,-0.25,2.4),Vector3(0.5,0.65,1.1),IVORY,2,shoe)
+		var rest := Vector3(side*12.4,10.8,5.5)
+		var hand := rest
+		if walking: hand += Vector3(0,0,-float(gait.z)*0.45)
+		if attacking:
+			if (index == 1) == left:
+				var windup := Vector3(side*12.0,14.5,1)
+				var impact := Vector3(side*9.3,16.7,13.3)
+				hand = Pose.gesture(rest,windup,impact,phase,&"fist")
+			else: hand = rest.lerp(Vector3(side*10.5,14.5,7),effort*0.5)
+		var arm := limb(Vector3(side*8,20,0.7),hand,6.3,6.6,Vector3(side,0,-0.3),2.55,body)
+		var fist := Transform3D(body.basis,body*arm.end)
+		# Stable hand-local paint prevents moving stone textures during the punch.
+		var rest_fist := Transform3D(Basis.IDENTITY,rest)
+		paint_transform = fist*rest_fist.affine_inverse(); surface_tag = 1
+		ellipsoid(fist.origin,Vector3(4.6,4.0,4.5),STONE,fist.basis)
+		for ridge in 3:
+			ellipsoid(fist*Vector3((ridge-1)*2,0.9,3.4),Vector3(1.2,1.5,1.2),STONE*0.92,fist.basis)
+	surface.generate_normals(); mesh_node.mesh = surface.commit()

@@ -36,4 +36,11 @@ Las poses `equip_walk`, `equip_run` y `equip_crouch_walk` combinan seis etapas d
 
 La recogida usa `pickup` (6 fotogramas por dirección) y `pickup_walk` (6 etapas × 12 fases de caminata), también con armadura. La preparación de espada ocupa el primer 18% del gesto; se conserva el contacto a mitad de secuencia. Hacha y pico usan el agarre zurdo con mano izquierda superior. El relieve y contraste muscular del torso se reducen al 90% del anterior.
 
-El enemigo joven se autoriza a partir de las cuatro vistas originales. `tools/enemy/young_volume.gd` reconstruye un volumen texturizado continuo y deforma su superficie; `tools/enemy/bake_young.gd` exporta 16 direcciones, caminata de 12 poses y dos secuencias de 16 puñetazos para alternar manos. Sus celdas de 96×96 mantienen el mismo detalle de raster que el personaje, evitando el espacio vacío de celdas de 192×192 para un cuerpo de 32 unidades. En juego solo se muestran sprites completos.
+El enemigo joven se autoriza a partir de las cuatro vistas originales. `tools/enemy/young_volume.gd` comparte con el personaje las superficies continuas de cuerpo y extremidades, con cinemática de dos huesos de longitud fija. Las cuatro vistas aportan los tonos y detalles de piel, musgo y piedra; hocico, ojos, orejas, colmillos y puños son volúmenes unidos al cuerpo que se ocultan naturalmente al girar. Sustituye la antigua reconstrucción por vóxeles, que deformaba las diagonales; `tools/enemy/bake_young.gd` exporta 16 direcciones, caminata de 12 poses y dos secuencias de 16 puñetazos para alternar manos. Sus celdas de 96×96 mantienen el mismo detalle de raster que el personaje, evitando el espacio vacío de celdas de 192×192 para un cuerpo de 32 unidades. En juego solo se muestran sprites completos.
+
+La revisión del joven mantiene hocico, ojos, colmillos, orejas y cresta unidos
+al cráneo, y los puños unidos a los antebrazos. La pintura de las cuatro vistas
+se mezcla entre orientaciones vecinas, sin cambiar el volumen al pasar por una
+diagonal. `tests/young_sprite_quality.gd` comprueba las longitudes de los huesos,
+las 16 orientaciones distintas, los márgenes de exportación y la recuperación
+exacta de ambos puñetazos. Las referencias originales permanecen intactas.
