@@ -20,6 +20,10 @@ var ground: Polygon2D
 var ground_material: ShaderMaterial
 var scuffs: Array[PackedVector2Array] = []
 var tree_sprites: Dictionary = {}
+var tree_records: Dictionary = {}
+var fading_trees: Dictionary = {}
+var last_tree_player := Vector2.INF
+var last_tree_props := -1
 var hit_meshes = preload("res://scripts/hit_meshes.gd").new()
 var impulses: Dictionary = {}
 var particles: Array[Dictionary] = []
@@ -132,6 +136,8 @@ func rebuild_trees() -> void:
 		remove_child(sprite)
 		sprite.queue_free()
 	tree_sprites.clear()
+	tree_records.clear(); fading_trees.clear()
+	last_tree_player = Vector2.INF; last_tree_props = -1
 	hit_meshes.clear()
 	for cell in world.props:
 		var data := presentation(cell)
@@ -151,6 +157,7 @@ func rebuild_trees() -> void:
 		sprite.z_index = -1
 		add_child(sprite)
 		tree_sprites[cell] = sprite
+		tree_records[cell] = {"rest":rect,"base":rect.position+Vector2(rect.size.x/2,rect.size.y),"tint":data["tint"],"initialized":false}
 
 func register_impact(cell: Vector2i, point: Vector2, direction: Vector2, material: String, strength: float = 1) -> void:
 	impulses[cell] = {"time": 0.20, "direction": direction, "strength": strength}
@@ -185,28 +192,47 @@ func update_trees(player: Vector2, delta: float) -> void:
 		if particles[i]["time"] <= 0:
 			particles.remove_at(i)
 	var character_rect := Rect2(player+Vector2(-28,-53),Vector2(56,76))
-	for cell in tree_sprites.keys():
+	var visibility_changed: bool = player != last_tree_player or world.props.size() != last_tree_props
+	var active: Array = tree_sprites.keys() if visibility_changed else fading_trees.keys()
+	if not visibility_changed:
+		for cell in changed_props:
+			if tree_sprites.has(cell) and not active.has(cell): active.append(cell)
+	var fade_factor := 1-exp(-delta*12)
+	for cell in active:
 		var sprite: Sprite2D = tree_sprites[cell]
 		if not world.props.has(cell):
 			remove_child(sprite)
 			sprite.queue_free()
 			tree_sprites.erase(cell)
+			tree_records.erase(cell); fading_trees.erase(cell)
+			hit_meshes.remove(cell)
 			continue
-		var rest: Rect2 = hit_meshes.targets[cell]["rest"]
-		var base := rest.position + Vector2(rest.size.x/2,rest.size.y)
+		var record: Dictionary = tree_records[cell]
+		var rest: Rect2 = record.rest
+		var base: Vector2 = record.base
 		var direction := 1.0
 		if impulses.has(cell) and absf(impulses[cell]["direction"].x) > 0.1:
 			direction = signf(impulses[cell]["direction"].x)
-		var rotation := impulse_wave(cell) * (0.065 if world.props[cell] == 4 else 0.025) * direction
-		sprite.rotation = rotation
-		sprite.position = base - Vector2(rest.size.x/2,rest.size.y).rotated(rotation)
+		var wave := impulse_wave(cell)
+		var rotation := wave * (0.065 if world.props[cell] == 4 else 0.025) * direction
+		if not record.initialized or sprite.rotation != rotation:
+			sprite.rotation = rotation
+			sprite.position = base - Vector2(rest.size.x/2,rest.size.y).rotated(rotation)
+			hit_meshes.set_transform(cell,sprite.position,sprite.rotation,sprite.scale)
+			record.initialized = true
 		var behind: bool = player.y+17 < world.prop_collisions[cell].end.y
 		var hidden: bool = behind and rest.intersects(character_rect)
-		sprite.z_index = 1 if behind else -1
-		var alpha := lerpf(sprite.modulate.a,TREE_FADED_ALPHA if hidden else 1.0,1-exp(-delta*12))
-		sprite.modulate = presentation(cell)["tint"].lerp(Color.WHITE,absf(impulse_wave(cell))*0.15)
-		sprite.modulate.a = alpha
-		hit_meshes.set_transform(cell,sprite.position,sprite.rotation,sprite.scale)
+		var z := 1 if behind else -1
+		if sprite.z_index != z: sprite.z_index = z
+		var target := TREE_FADED_ALPHA if hidden else 1.0
+		var alpha := lerpf(sprite.modulate.a,target,fade_factor)
+		var tint: Color = record.tint.lerp(Color.WHITE,absf(wave)*0.15)
+		tint.a = alpha
+		if sprite.modulate != tint: sprite.modulate = tint
+		# Keep the original floating-point interpolation, without snapping alpha.
+		if tint.a != Color(0,0,0,target).a: fading_trees[cell] = true
+		else: fading_trees.erase(cell)
+	last_tree_player = player; last_tree_props = world.props.size()
 	# Static prop surfaces already have their transform from add(). Only
 	# impacted props need updates, including the frame when an impulse ends.
 	for cell in changed_props:

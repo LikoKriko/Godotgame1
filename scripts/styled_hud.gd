@@ -25,6 +25,8 @@ var map_terrain: Texture2D
 var map_seed := -1
 var map_prop_count := -1
 var terrain_rebuilds := 0
+var displayed_state: Array = []
+var displayed_map: Array = []
 
 func configure(owner_game) -> void:
 	game = owner_game
@@ -287,6 +289,20 @@ func refresh_terrain() -> void:
 
 func refresh() -> void:
 	refresh_terrain()
+	var map_state := [game.player,terrain_rebuilds,map_frame.size]
+	if map_state != displayed_map:
+		displayed_map = map_state; map_frame.queue_redraw()
+	var held_uid: int = game.bag.held_item().get("uid",-1)
+	var quick_state := []
+	for item in game.bag.quick_slots:
+		quick_state.append(-1 if item.is_empty() else [item.uid,item.id,item.quantity,item.get("water_ml",0) > 0])
+	var skill_state := []
+	for id in [&"speed",&"power"]: skill_state.append([ceilf(game.progression.cooldowns[id]),game.progression.skills[id] == 0])
+	# Compare displayed values, rather than raw hydration/cooldown floats: their
+	# hidden fractional changes must not rebuild identical labels and icons.
+	var state := ["%.0f / %.0f" % [game.progression.health,game.progression.max_health()],game.nutrition.calories_today,roundi(game.nutrition.speed_penalty()*100),"Agua: %.0f / 2000 ml" % game.nutrition.hydration_ml,game.day_cycle.clock_text(),quick_state,held_uid,skill_state]
+	if state == displayed_state: return
+	displayed_state = state
 	life.text = "%.0f / %.0f" % [game.progression.health,game.progression.max_health()]
 	food.text = "%d kcal" % game.nutrition.calories_today
 	food.tooltip_text = "Calorías de hoy / 1600 kcal. Velocidad: −%d%%" % roundi(game.nutrition.speed_penalty()*100)
@@ -305,14 +321,13 @@ func refresh() -> void:
 			icon.texture = Icons.for_item(item)
 			amount.text = str(item.quantity) if item.quantity > 1 else ""
 			quick_buttons[i].tooltip_text = "%s · %d" % [game.bag.DEFINITIONS[item.id].name,i+1]
-			quick_buttons[i].modulate = Color("d6c895") if item.uid == game.bag.held_item().get("uid",-1) else Color.WHITE
+			quick_buttons[i].modulate = Color("d6c895") if item.uid == held_uid else Color.WHITE
 	for i in 2:
 		var id: StringName = &"speed" if i == 0 else &"power"
 		var remaining: float = game.progression.cooldowns[id]
 		skill_buttons[i].text = ("Z" if i == 0 else "X") if remaining <= 0 else "%.0f s" % ceilf(remaining)
 		skill_buttons[i].disabled = game.progression.skills[id] == 0 or remaining > 0
 		skill_buttons[i].tooltip_text = game.progression.SKILLS[id].name
-	map_frame.queue_redraw()
 
 func _process(delta: float) -> void:
 	quick_bar.visible = not game.world_map.visible
