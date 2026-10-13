@@ -3,7 +3,24 @@ const MATERIALS = preload("res://assets/items/basic_materials.png")
 const MaterialRegions = preload("res://assets/items/material_regions.gd")
 const StoneTools = preload("res://scripts/tool_sprites.gd")
 static var textures: Dictionary = {}
+static func for_item(item: Dictionary) -> Texture2D:
+	if item.get("id") == &"botella":
+		return preload("res://scripts/container_art.gd").icon(1 if item.get("water_ml",0) > 0 else 0)
+	return get_icon(item.get("id",&""))
+
 static func get_icon(id: StringName) -> Texture2D:
+	if id in [&"botella",&"water",&"cuero",&"hilo"]:
+		return preload("res://scripts/container_art.gd").icon({&"botella":0,&"water":1,&"cuero":2,&"hilo":3}[id])
+	if id == &"apple":
+		if not textures.has(&"new_apple"):
+			var apple := AtlasTexture.new()
+			apple.atlas = preload("res://assets/items/apple.png")
+			apple.region = Rect2(324,158,549,642)
+			textures[&"new_apple"] = preload("res://scripts/visual_style.gd").icon(apple,id)
+		return textures[&"new_apple"]
+	if id == &"piedra":
+		var rock := preload("res://scripts/imported_nature.gd")
+		return preload("res://scripts/visual_style.gd").icon(rock.texture(rock.ROCKS[0]),id)
 	if id in [&"burdock_armor",&"hoja_bardana"]:
 		if not textures.has(id):
 			var atlas := AtlasTexture.new()

@@ -4,7 +4,7 @@ const Tools = preload("res://scripts/tool_sprites.gd")
 const SKIN := Color8(208,140,85)
 const CLOTH := Color8(96,77,51)
 const HAIR_VIEWS = preload("res://assets/characters/complete/reference_views.png")
-const HEADS := [Vector2(242,64),Vector2(684,64),Vector2(1104,64),Vector2(1555,64),Vector2(245,480),Vector2(667,478),Vector2(1082,480),Vector2(1557,480)]
+const HEADS := [Vector2(250,64),Vector2(682,64),Vector2(1097,64),Vector2(1532,64),Vector2(246,480),Vector2(670,478),Vector2(1083,480),Vector2(1536,480)]
 const Armor = preload("res://tools/torso_armor.gd")
 var armor_id: StringName = &""
 var nocked_arrow_enabled := true
@@ -21,6 +21,7 @@ var camera_up := Vector3(0,0.97,-0.24).normalized()
 var visual_override: Dictionary = {}
 var tool_material: ShaderMaterial
 var bow_ends: Array[Vector3] = []
+var view_direction := 0
 
 func _ready() -> void:
 	mesh_node = MeshInstance3D.new()
@@ -113,10 +114,13 @@ func integrated_head(torso: Transform3D,actor_basis: Basis,direction: int,pose_s
 	head_center = center
 	var inverse := actor_basis.inverse()
 	var join := inverse*(center-camera_up*7.5)
-	tube([torso*Vector3(0,46.8,0),(torso*Vector3(0,46.8,0)).lerp(join,0.5),join],2.4,2.1,SKIN,false,4)
+	tube([torso*Vector3(0,46.8,0),(torso*Vector3(0,46.8,0)).lerp(join,0.5),join],1.85,1.65,SKIN,false,4)
 	var half_x := Vector3.RIGHT*(210.0/130*18.5*0.72/2)
 	var half_y := camera_up*(18.5/2)
-	var corners := [center-half_x+half_y,center+half_x+half_y,center+half_x-half_y,center-half_x-half_y]
+	# Move the painted head toward the camera along its depth axis. Projection
+	# and skull size stay fixed, while opaque hair/beard correctly cover the neck.
+	var plane_center := center+Vector3.RIGHT.cross(camera_up).normalized()*4.4
+	var corners := [plane_center-half_x+half_y,plane_center+half_x+half_y,plane_center+half_x-half_y,plane_center-half_x-half_y]
 	var uv := [Vector2(0,0),Vector2(1,0),Vector2(1,1),Vector2(0,1)]
 	for corner in [0,1,2,0,2,3]:
 		surface.set_uv(Vector2(3,0))
@@ -136,7 +140,7 @@ func tool_geometry(item: StringName) -> Dictionary:
 	var original: Texture2D = data["texture"]
 	var span: float = data.get("display_size",Tools.DISPLAY_SIZES.get(item,32.0))
 	var target := original.get_size()*span/maxf(original.get_width(),original.get_height())
-	var styled: Texture2D = preload("res://scripts/visual_style.gd").normalized(original,target,false,item == &"bow")
+	var styled: Texture2D = preload("res://scripts/visual_style.gd").normalized(original,target,false,data.get("clear_black",item == &"bow"))
 	var ratio := styled.get_size()/original.get_size()
 	data["texture"] = styled
 	if data.has("string_top"): data["string_width"] = data.get("string_width",8.0)*sqrt(ratio.x*ratio.y)
@@ -148,9 +152,17 @@ func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis
 	var source_axis: Vector2 = (data["contact"]-data["grip"]).normalized()
 	var direction := (actor_basis*shaft).normalized()
 	var plane_axis := -(actor_basis*Vector3.BACK) if item == &"bow" else Vector3.RIGHT
+	if item == &"axe":
+		# In north views the strike plane was almost edge-on to the camera.
+		# Roll the rigid tool toward the viewer so its cutting face is readable.
+		var north := maxf(0,-sin(view_direction*TAU/16))
+		plane_axis = plane_axis.lerp(camera_up,0.65*north).normalized()
 	var across := plane_axis-direction*direction.dot(plane_axis)
 	if across.length_squared() < 0.03: across = camera_up-direction*direction.dot(camera_up)
 	across = across.normalized()
+	# Reverse the broad face about the handle, preserving both grips and the
+	# cutting contact. Southern and western poses now lead with the blade.
+	if item == &"axe" and view_direction in range(1,12): across = -across
 	var x_axis := direction*source_axis.x-across*source_axis.y
 	var y_axis := direction*source_axis.y+across*source_axis.x
 	var texture: Texture2D = data["texture"]
@@ -183,6 +195,7 @@ func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis
 	return {"support":actor_basis.inverse()*support,"grip":grip}
 
 func build(item: StringName,family: StringName,state: StringName,phase: float,direction: int,stop_phase: float = 0.20,stop_amplitude: float = 1.0) -> void:
+	view_direction = posmod(direction,16)
 	var pose := Pose.sample(family,state,phase,stop_phase,stop_amplitude,direction)
 	if state == &"action" and (phase <= 0 or phase >= 1): pose = Pose.sample(family,&"idle",0,0.20,1.0,direction)
 	last_pose = pose
@@ -215,7 +228,7 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var torso: Transform3D = pose["body"]
 	# All body surfaces belong to one mesh; root joints stay inside the torso.
-	for section in [[Vector3(0,35,0),Vector3(6.5,8.5,3.0)], [Vector3(0,42,0),Vector3(8.6,5.0,3.5)], [Vector3(0,48,0),Vector3(2.6,3.1,2.6)]]:
+	for section in [[Vector3(0,35,0),Vector3(6.5,8.5,3.0)], [Vector3(0,42,0),Vector3(8.6,5.0,3.5)], [Vector3(0,48,0),Vector3(2.05,2.6,1.85)]]:
 		ellipsoid(torso*section[0],section[1],SKIN,torso.basis)
 	for side in [-1,1]:
 		ellipsoid(torso*Vector3(side*7.4,44.6,0),Vector3(2.6,2.9,2.7),SKIN,torso.basis)

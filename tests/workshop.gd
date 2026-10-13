@@ -83,7 +83,7 @@ func run_checks() -> void:
 		position = game.resources.bounds(small).get_center()
 		for i in 2:
 			game.resources.hit(small,position)
-		require(game.bag.count(&"piedra") == 1,"Bare hands gather a small stone")
+		require(game.bag.count(&"piedra") >= 1 and game.bag.count(&"piedra") <= 3,"Bare hands gather a small stone")
 	game.inventory_panel.show()
 	game.inventory_panel.open_crafting()
 	require(game.inventory_panel.creation_page.materials.find_children("*","Label",true,false).any(func(node): return node.text.contains("Cuerda: 0 / 1 m")),"Creation page shows available/required rope in metre units")

@@ -123,7 +123,7 @@ func run() -> void:
 				contact.blit_rect(outlined(viewport.get_texture().get_image()),Rect2i(Vector2i.ZERO,CELL),Vector2i(column*CELL.x,row*CELL.y))
 		contact.save_png("/tmp/continuous-body-probe.png")
 		quit(); return
-	var items: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow"]
+	var items: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow",&"bottle_empty",&"bottle_full"]
 	if "--item" in arguments:
 		var index := arguments.find("--item")
 		items = [StringName(arguments[index+1])]
@@ -142,6 +142,7 @@ func run() -> void:
 		selected_clips = arguments[arguments.find("--clips")+1].split(",")
 	for item in items:
 		var family: StringName = Inventory.DEFINITIONS.get(item,{}).get("category",&"")
+		if String(item).begins_with("bottle_"): family = &"bottle"
 		var clips := {}
 		var key := "bare" if item == &"" else String(item)
 		if armor_id != &"": key = String(armor_id)+"__"+key

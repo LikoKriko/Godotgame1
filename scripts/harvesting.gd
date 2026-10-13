@@ -28,16 +28,18 @@ func configure(map, inventory_model = null, hit_meshes = null) -> void:
 			continue
 		var data: Dictionary = TYPES[kind].duplicate()
 		if kind == 5: data["yield"] = 5 if world.burdock[cell] == 1 else 3
-		data["hand_collectable"] = kind == 1 and not world.large_rocks.has(cell) and world.prop_collisions[cell].size.x <= 20
+		data["hand_collectable"] = kind == 1 and preload("res://scripts/nature_variants.gd").profile(1,world.prop_variants[cell]).size_index == 0
 		if data["hand_collectable"]:
 			data["name"] = "Piedra pequeña"
-			data["hits"] = 2
-			data["yield"] = 1
+			data["hits"] = 1
+			data["yield"] = 1+posmod((cell.x*73856093) ^ (cell.y*19349663) ^ world.seed_value,3)
 		data["footprint"] = Rect2i(cell, Vector2i(2, 2) if world.large_rocks.has(cell) else Vector2i.ONE)
-		if world.large_rocks.has(cell):
-			data["name"] = "Roca grande"
-			data["hits"] = 6
-			data["yield"] = 12
+		if kind == 1 and not data.hand_collectable:
+			var size_index: int = preload("res://scripts/nature_variants.gd").profile(1,world.prop_variants[cell]).size_index
+			var size_progress := clampf((size_index-1)/3.0,0,1)
+			data["name"] = "Roca grande" if size_index == 4 else "Roca"
+			data["hits"] = roundi(lerpf(4,12,size_progress))
+			data["yield"] = roundi(lerpf(4,15,size_progress))
 		data["remaining"] = data["hits"]
 		nodes[cell] = data
 
@@ -110,6 +112,8 @@ func hit(cell: Vector2i, player: Vector2, bonus: int = 0, validated_impact: bool
 	if not nodes.has(cell) or (not validated_impact and not can_reach(cell, player)):
 		return {}
 	var node: Dictionary = nodes[cell]
+	if node["hand_collectable"] and bag != null and bag.held_id() != &"":
+		return {"reason": "herramienta"}
 	var bare_stone: bool = node["hand_collectable"] and bag != null and bag.held_id() == &""
 	if bag != null and not bare_stone and not bag.can_harvest(node["material"]):
 		return {"reason": "herramienta"}

@@ -11,7 +11,7 @@ func _get_drag_data(_point: Vector2):
 	if location.is_empty(): return null
 	var item: Dictionary = game.bag.at(location.kind,location.index)
 	var preview := TextureRect.new()
-	preview.texture = preload("res://scripts/item_icons.gd").get_icon(item.id)
+	preview.texture = preload("res://scripts/item_icons.gd").for_item(item)
 	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	preview.custom_minimum_size = Vector2(48,48)

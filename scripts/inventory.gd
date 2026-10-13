@@ -16,7 +16,11 @@ const DEFINITIONS := {
 	&"apple": {"name": "Manzana", "slot": &"", "uses": -1, "stack": 99, "purpose": "Comer · 95 kcal", "kcal": 95},
 	&"berries": {"name": "Bayas", "slot": &"", "uses": -1, "stack": 99, "purpose": "Comer · 40 kcal", "kcal": 40},
 	&"ration": {"name": "Ración", "slot": &"", "uses": -1, "stack": 99, "purpose": "Comer · 400 kcal", "kcal": 400},
-	&"water": {"name": "Agua", "slot": &"", "uses": -1, "stack": 99, "purpose": "Beber · 500 ml · 0 kcal", "water_ml": 500},
+	# Retained only to read old stacked water without discarding excess bottles.
+	&"water": {"name": "Botella", "slot": &"", "uses": -1, "stack": 99, "purpose": "Botellas de una partida anterior · 500 ml cada una", "water_ml": 500, "catalogue":false},
+	&"botella": {"name":"Botella","slot":&"tool","category":&"bottle","uses":-1,"stack":1,"purpose":"500 ml · beber 250 ml · E sobre agua para rellenar","container":true},
+	&"cuero": {"name":"Cuero","slot":&"","uses":-1,"stack":99,"purpose":"Material de fabricación; todavía no disponible en el mundo"},
+	&"hilo": {"name":"Hilo","slot":&"","uses":-1,"stack":99,"purpose":"Cada unidad equivale a 1 metro; todavía no disponible en el mundo"},
 	&"helmet": {"name": "Casco", "slot": &"head", "uses": 80, "stack": 1, "purpose": "Protección de cabeza"},
 	&"suit": {"name": "Traje", "slot": &"torso", "uses": 100, "stack": 1, "purpose": "Protección de torso"},
 	&"trousers": {"name": "Pantalón corto", "slot": &"legs", "uses": 60, "stack": 1, "purpose": "Equipo de piernas"},
@@ -53,6 +57,7 @@ func reset() -> void:
 
 func make_item(id: StringName, quantity: int) -> Dictionary:
 	var item := {"id": id, "quantity": quantity, "uses": DEFINITIONS[id]["uses"], "rarity": &"basico", "uid": next_uid}
+	if id == &"botella": item["water_ml"] = 0
 	next_uid += 1
 	return item
 

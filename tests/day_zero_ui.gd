@@ -119,10 +119,12 @@ func run_checks() -> void:
 		inventory.open_section(0)
 		var ration_index := -1
 		var water_index := -1
+		game.bag.add(&"botella",1)
 		for i in game.bag.CAPACITY:
 			if game.bag.slots[i].get("id") == &"ration":
 				ration_index = i
-			if game.bag.slots[i].get("id") == &"water":
+			if game.bag.slots[i].get("id") == &"botella":
+				game.bag.slots[i].water_ml = 500
 				water_index = i
 		if ration_index >= 0:
 			await click(inventory.backpack_buttons[ration_index])
@@ -133,7 +135,7 @@ func run_checks() -> void:
 			game.nutrition.hydration_ml = 1000
 			await click(inventory.backpack_buttons[water_index])
 			await click(inventory.equip_button)
-			require(game.nutrition.hydration_ml == 1500 and game.bag.count(&"water") == 7,"Real mouse click drinks one bottle")
+			require(game.nutrition.hydration_ml == 1250 and game.bag.count(&"botella") == 1 and game.bag.slots[water_index].water_ml == 250,"Real mouse click drinks one bottle")
 		inventory.hide()
 		app.show_pause()
 		require(game.is_paused() and app.menu.visible,"Pause menu suspends the game")

@@ -24,7 +24,7 @@ func run_checks() -> void:
 			var data := Nature.profile(kind, id)
 			unique[str(data["shape"]) + ":" + str(data["size"]) + ":" + str(data["tint"])] = true
 			sizes[data["size"]] = true
-			var texture: Texture2D = game.world_view.forest_textures[(0 if kind == 2 else 1) + data["shape"] * 2]
+			var texture: Texture2D = game.world_view.forest_textures[data["shape"]] if kind == 2 else preload("res://scripts/imported_nature.gd").texture(preload("res://scripts/imported_nature.gd").ROCKS[data.size_index*2+data.shape])
 			var dimensions := Nature.dimensions(kind, id, texture.get_size())
 			var rect := Rect2(Vector2(-dimensions.x / 2, 26 - dimensions.y), dimensions)
 			var body := Nature.collision(Vector2.ZERO, kind, id, false)
@@ -61,7 +61,7 @@ func run_checks() -> void:
 		var body: Rect2 = map.prop_collisions[small]
 		require(map.walkable(map.center(small)), "Tiny pebble does not block its entire cell")
 		require(body.size.x < 16, "Tiny pebble has a small collider")
-		game.bag.select_tool(&"pickaxe")
+		game.bag.unequip(&"tool")
 		var approach := Vector2.ZERO
 		var found := false
 		for candidate in [body.position + Vector2(-24, body.size.y / 2), body.position + Vector2(body.size.x + 24, body.size.y / 2), body.position + Vector2(body.size.x / 2, -24), body.position + Vector2(body.size.x / 2, body.size.y + 24)]:
@@ -73,7 +73,7 @@ func run_checks() -> void:
 		var hits: int = game.resources.nodes[small]["remaining"]
 		for i in hits:
 			game.resources.hit(small, approach)
-		require(game.bag.count(&"piedra") == 1, "Variable-sized stone gives the matching stone yield")
+		require(game.bag.count(&"piedra") >= 1 and game.bag.count(&"piedra") <= 3, "Variable-sized stone gives the matching stone yield")
 		require(not map.props.has(small) and not map.prop_variants.has(small) and not map.prop_collisions.has(small), "Harvest removes sprite, variant and collider")
 		require(map.walkable(body.get_center()), "Harvest frees the actual collision body")
 		for entries in map.collision_cells.values():

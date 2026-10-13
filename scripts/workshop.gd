@@ -4,6 +4,7 @@ const RECIPES := {
 	&"axe": {&"piedra": 1, &"palo": 2, &"cuerda": 1},
 	&"cuerda": {&"fibra": 3},
 	&"burdock_armor": {&"hoja_bardana":15,&"cuerda":3,&"fibra":20},
+	&"botella": {&"cuero":3,&"hilo":1},
 }
 const REPAIRS := {
 	&"pickaxe": {&"piedra": 1, &"palo": 1},

@@ -6,6 +6,7 @@ const DetailRegions = preload("res://assets/environment/forest_details_regions.g
 const GROUND_SHADER = preload("res://shaders/quarantine_ground.gdshader")
 const Style = preload("res://scripts/visual_style.gd")
 const Nature = preload("res://scripts/nature_variants.gd")
+const Imported = preload("res://scripts/imported_nature.gd")
 const TREE_FADED_ALPHA := 0.35
 var world
 var prop_textures: Array[AtlasTexture] = []
@@ -23,6 +24,7 @@ var hit_meshes = preload("res://scripts/hit_meshes.gd").new()
 var impulses: Dictionary = {}
 var particles: Array[Dictionary] = []
 var presentation_cache: Dictionary = {}
+var water_presentations: Dictionary = {}
 
 func atlas(sheet: Texture2D, cell: Rect2i, trim: bool = true) -> AtlasTexture:
 	var texture := AtlasTexture.new()
@@ -38,7 +40,7 @@ func configure(map) -> void:
 	var half := Vector2i(PROP_SHEET.get_width() / 2, PROP_SHEET.get_height() / 2)
 	for i in 4:
 		prop_textures.append(atlas(PROP_SHEET, Rect2i(Vector2i(i % 2, i / 2) * half, half)))
-	for region in [Rect2i(0,0,650,676), Rect2i(658,280,FOREST_SHEET.get_width()-658,396), Rect2i(0,676,640,FOREST_SHEET.get_height()-676), Rect2i(640,676,FOREST_SHEET.get_width()-640,FOREST_SHEET.get_height()-676)]:
+	for region in [Rect2i(0,0,650,676),Rect2i(0,676,640,FOREST_SHEET.get_height()-676)]:
 		forest_textures.append(atlas(FOREST_SHEET, region))
 	for region in DetailRegions.REGIONS:
 		detail_textures.append(atlas(DETAILS_SHEET, region, false))
@@ -50,11 +52,14 @@ func configure(map) -> void:
 	ground.polygon = PackedVector2Array([world.bounds.position, Vector2(world.bounds.end.x, world.bounds.position.y), world.bounds.end, Vector2(world.bounds.position.x, world.bounds.end.y)])
 	ground_material = ShaderMaterial.new()
 	ground_material.shader = GROUND_SHADER
+	ground_material.set_shader_parameter("grass_reference",preload("res://assets/environment/imported/terreno1.png"))
+	ground_material.set_shader_parameter("soil_reference",preload("res://assets/environment/imported/terreno2.png"))
+	ground_material.set_shader_parameter("dirt_reference_a",preload("res://assets/environment/imported/terreno6.png"))
+	ground_material.set_shader_parameter("dirt_reference_b",preload("res://assets/environment/imported/terreno7.png"))
 	ground.material = ground_material
 	add_child(ground)
 	refresh_ground()
-	for region in preload("res://assets/environment/grass_regions.gd").REGIONS:
-		grass_textures.append(atlas(preload("res://assets/environment/grass_groups.png"),Rect2i(region[0],region[1],region[2],region[3]),false))
+	for record in Imported.GRASS: grass_textures.append(Imported.texture(record))
 	grass_floor = Node2D.new()
 	grass_floor.z_index = -1
 	var foliage_material := ShaderMaterial.new()
@@ -80,7 +85,7 @@ func presentation(cell: Vector2i) -> Dictionary:
 	if kind in [1,2]:
 		var variant: int = world.prop_variants[cell]
 		var profile := Nature.profile(kind, variant)
-		texture = forest_textures[(0 if kind == 2 else 1) + profile["shape"] * 2]
+		texture = forest_textures[profile.shape] if kind == 2 else Imported.texture(Imported.ROCKS[profile.size_index*2+profile.shape])
 		dimensions = Nature.dimensions(kind, variant, texture.get_size())
 		tint = profile["tint"]
 	elif kind == 4:
@@ -90,17 +95,21 @@ func presentation(cell: Vector2i) -> Dictionary:
 	elif kind == 5:
 		dimensions = Vector2(32*texture.get_width()/texture.get_height(),32)
 		tint = Color.WHITE
-	texture = Style.normalized(texture,dimensions)
+	texture = Style.normalized(texture,dimensions,true,kind == 1)
 	var result := {"texture": texture, "size": dimensions, "tint": tint, "rect": Rect2(center + Vector2(-dimensions.x/2, (60 if large else 26)-dimensions.y), dimensions)}
 	presentation_cache[cell] = result
 	return result
 
 func refresh_ground() -> void:
 	presentation_cache.clear()
+	water_presentations.clear()
 	ground_material.set_shader_parameter("map_seed", float(world.seed_value))
 	for i in world.stone_patches.size():
 		var patch: Rect2 = world.stone_patches[i]
 		ground_material.set_shader_parameter("stone_patch_%d" % i,Vector4(patch.get_center().x,patch.get_center().y,patch.size.x/2,patch.size.y/2))
+	for i in world.dirt_patches.size():
+		var patch: Rect2 = world.dirt_patches[i]
+		ground_material.set_shader_parameter("dirt_patch_%d" % i,Vector4(patch.get_center().x,patch.get_center().y,patch.size.x/2,patch.size.y/2))
 	if grass_floor != null:
 		grass_floor.queue_redraw()
 	if props_layer != null:
@@ -217,9 +226,8 @@ func _draw() -> void:
 	for strip in [Rect2(edge.position,Vector2(edge.size.x,64)),Rect2(edge.position+Vector2(0,edge.size.y-64),Vector2(edge.size.x,64)),Rect2(edge.position,Vector2(64,edge.size.y)),Rect2(edge.position+Vector2(edge.size.x-64,0),Vector2(64,edge.size.y))]:
 		draw_rect(strip,Color("3b4433"))
 	for puddle in world.puddles:
-		var texture: Texture2D = detail_textures[3]
-		var size := Vector2(puddle["width"],puddle["width"]*texture.get_height()/texture.get_width())
-		draw_texture_rect(Style.normalized(texture,size),Rect2(puddle["position"]-size/2,size),false,Color(0.84,0.87,0.85))
+		var data := puddle_presentation(puddle)
+		draw_texture_rect(data.texture,data.rect,false,Color(0.84,0.87,0.85))
 	for scuff in scuffs:
 		draw_polyline(scuff,Color("444637"),1.0/Style.PIXELS_PER_WORLD,false)
 	for particle in particles:
@@ -227,9 +235,28 @@ func _draw() -> void:
 
 func draw_floor_grass() -> void:
 	for tuft in world.grass_tufts:
-		var texture: Texture2D = grass_textures[tuft["variant"]]
+		var texture: Texture2D = grass_textures[posmod(tuft["variant"],grass_textures.size())]
 		var size := Vector2(tuft["width"],tuft["width"]*texture.get_height()/texture.get_width())
-		grass_floor.draw_texture_rect(Style.normalized(texture,size),Rect2(tuft["position"]-Vector2(size.x/2,size.y),size),false,Color.WHITE)
+		grass_floor.draw_texture_rect(Style.normalized(texture,size,true,true),Rect2(tuft["position"]-Vector2(size.x/2,size.y),size),false,Color.WHITE)
+
+func puddle_presentation(puddle: Dictionary) -> Dictionary:
+	var key := str(puddle.position)+"/"+str(puddle.width)
+	if not water_presentations.has(key):
+		var source: Texture2D = detail_textures[3]
+		var size := Vector2(puddle.width,puddle.width*source.get_height()/source.get_width())
+		var texture := Style.normalized(source,size)
+		water_presentations[key] = {"texture":texture,"rect":Rect2(puddle.position-size/2,size),"pixels":texture.get_image()}
+	return water_presentations[key]
+
+func water_at(point: Vector2) -> Rect2:
+	for puddle in world.puddles:
+		var data := puddle_presentation(puddle)
+		var rect: Rect2 = data.rect
+		if not rect.has_point(point): continue
+		var image: Image = data.pixels
+		var pixel := Vector2i((point-rect.position)/rect.size*Vector2(image.get_size()))
+		if image.get_pixelv(pixel).a > 0.5: return rect
+	return Rect2()
 
 func draw_props() -> void:
 	for cell in world.props:

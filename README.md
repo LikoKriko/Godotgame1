@@ -11,12 +11,13 @@ La ventana y la resolución base son **1920 × 1080**. La cámara tiene un zoom 
 - WASD o flechas: movimiento.
 - Ctrl caminando o quieto (mantener): agacharse y caminar más despacio.
 - Espacio: saltar.
+- K: catálogo de prueba con búsqueda y cantidad; añade objetos a la mochila sin fabricarlos y pausa la partida.
 - Shift (mantener): correr a 1,6 veces la velocidad de caminar, sin cansancio por ahora.
 - Ctrl mientras corres: deslizarse con frenada progresiva.
 - 1–6: usar/sacar el objeto de cada acceso rápido. Repetir la tecla del arma activa la guarda y deja las manos libres, conservando el objeto y sus usos en la barra. 0: dejar las manos libres.
 - El hueco Manos del inventario es exclusivo para guantes; las armas no son piezas de armadura. Equipar desde la mochila traslada el arma a un hueco libre de la barra rápida; si está llena, primero hay que liberar uno.
 - La barra rápida añade seis espacios físicos: sus objetos no ocupan la mochila. Arrastra entre mochila, equipo y barra para mover o intercambiar objetos. Shift + clic desde la mochila equipa primero una armadura si su hueco está vacío; si no, la pasa al primer espacio rápido disponible. Desde barra o equipo, Shift + clic devuelve el objeto a la mochila. Los materiales compatibles se apilan sin duplicarse; las herramientas y armaduras siguen ocupando un espacio cada una.
-- Apunta con el punto del cursor y mantén clic izquierdo o E para golpear o disparar.
+- Apunta con el punto del cursor y mantén clic izquierdo para golpear o disparar. E se reserva para interactuar: recoge bardana y piedras pequeñas con las manos libres, o rellena la botella seleccionada apuntando al agua y estando cerca.
 - Árbol adulto: hacha; roca: pico; arbolito joven, máquina o piedra pequeña: manos libres (0).
 - I: inventario, fabricación y reparación; I, Esc o ×: cerrar. Esc cierra primero la ventana de fabricación/reparación si está abierta. El inventario pausa el juego y los proyectiles.
 - T: abrir Creación. Tab: abrir Habilidades. Z / X: activar Impulso / Golpe potenciado.
@@ -67,7 +68,7 @@ El hacha y el pico tienen una dimensión visible máxima de **32 px**; la espada
 
 ## Inventario y objetos
 
-Panel cuadrado centrado, con un área aproximada del 60% de la pantalla. En ventanas muy alargadas se limita al 95% del lado menor para permanecer visible. Muestra el personaje con cinco espacios fijos alrededor: cabeza, torso, piernas, manos y pies. Debajo hay 32 espacios de mochila. Selecciona un objeto y pulsa **Equipar**, o selecciona una pieza equipada y pulsa **Desequipar**. Las herramientas y armas ocupan Manos; la ropa ocupa su espacio correspondiente. Los materiales se apilan hasta 99 unidades por espacio. **Las armas y herramientas ocupan una unidad por espacio**, tienen identidades y desgaste independientes y nunca se acumulan. Piedra, palo y cuerda tienen iconos basados en las herramientas primitivas; cada espacio muestra su cantidad en pequeño en la esquina inferior derecha. En las herramientas se muestra un «1»; los usos aparecen en la descripción al seleccionarlas.
+Panel cuadrado centrado, con un área aproximada del 60% de la pantalla. En ventanas muy alargadas se limita al 95% del lado menor para permanecer visible. Muestra el personaje con cinco espacios fijos alrededor: cabeza, torso, piernas, manos y pies. Debajo hay 32 espacios de mochila. Selecciona un objeto y pulsa **Equipar**, o selecciona una pieza equipada y pulsa **Desequipar**. Manos está reservado para guantes; herramientas y armas se guardan físicamente en la barra rápida. Los materiales se apilan hasta 99 unidades por espacio. **Las armas y herramientas ocupan una unidad por espacio**, tienen identidades y desgaste independientes y nunca se acumulan. Piedra, palo y cuerda tienen iconos basados en las herramientas primitivas; cada espacio muestra su cantidad en pequeño en la esquina inferior derecha. En las herramientas se muestra un «1»; los usos aparecen en la descripción al seleccionarlas.
 
 | Objeto básico | Uso permitido | Usos iniciales |
 | --- | --- | --- |
@@ -78,7 +79,7 @@ Panel cuadrado centrado, con un área aproximada del 60% de la pantalla. En vent
 
 Cada impacto válido con una herramienta, ataque de espada o disparo consume un uso. Un intento con la herramienta incorrecta o una cancelación antes del impacto no consume usos. El objeto conserva su desgaste al guardarlo o equiparlo. A cero usos queda roto y no funciona. Por ahora solo existe rareza Básico; los valores están en las definiciones de objetos. El arco no requiere munición separada en esta versión.
 
-Si no cabe la recompensa en la mochila, el último golpe no destruye el recurso ni consume un uso. El intercambio de equipo tampoco pierde objetos cuando la mochila está llena. La partida todavía no tiene guardado persistente; la configuración sí se guarda. La ropa puede equiparse y retirarse del inventario; por ahora el sprite del personaje conserva su aspecto original.
+Si no cabe la recompensa en la mochila, el último golpe no destruye el recurso ni consume un uso. El intercambio de equipo tampoco pierde objetos cuando la mochila está llena. La partida tiene guardado manual en pausa; la configuración también se guarda. La armadura de hojas se dibuja sobre el torso y acompaña las poses completas; las demás piezas todavía no tienen apariencia propia.
 
 ## Fabricación y reparación
 
@@ -110,7 +111,7 @@ Disponible desde el menú principal y el de pausa. **Juego** contiene **Tamaño 
 
 ## Mapa
 
-Primer bioma: bosque sencillo con un claro central, pequeño y procedural, de 48 × 32 casillas (3072 × 2048 px), con el doble de superficie que la versión inicial. Árboles comunes de tronco marrón y hojas verdes apagadas; rocas grises redondeadas con algo de musgo. El suelo mezcla suavemente tierra y hierba con senderos continuos, sin cuadrícula visible, y una viñeta ligera conserva el ambiente sombrío. Hay diez rocas grandes, veinte arbolitos jóvenes, dos máquinas abandonadas para obtener chatarra y una baliza. Diez grupos de césped forman una cobertura uniforme con posiciones, tamaños y formas variadas. Sus contornos gris verdoso oscuro y su capa inferior mantienen legibles al personaje y los decorados. Cuatro zonas de piedra expuesta interrumpen la hierba; los senderos, charcos y zonas pedregosas quedan libres de césped. Solo aparecen entre tres y cinco charcos pequeños por mapa, separados al menos 600 px entre sí; césped y charcos son decorativos y no bloquean el paso. La semilla inicial es 73129. F2 la incrementa; la misma semilla reproduce la distribución. Los caminos y la zona inicial están despejados.
+Primer bioma: bosque sencillo con un claro central, pequeño y procedural, de 48 × 32 casillas (3072 × 2048 px), con el doble de superficie que la versión inicial. Árboles comunes de tronco marrón y hojas verdes apagadas; rocas grises redondeadas con algo de musgo. El suelo mezcla suavemente tierra y hierba con senderos continuos, sin cuadrícula visible, y una viñeta ligera conserva el ambiente sombrío. Hay diez rocas grandes, veinte arbolitos jóvenes, dos máquinas abandonadas para obtener chatarra y una baliza. Doce grupos de césped forman una cobertura uniforme con posiciones, tamaños y formas variadas. Sus contornos gris verdoso oscuro y su capa inferior mantienen legibles al personaje y los decorados. Cuatro zonas de piedra expuesta interrumpen la hierba; los senderos, charcos y zonas pedregosas quedan libres de césped. Solo aparecen entre tres y cinco charcos pequeños por mapa, separados al menos 600 px entre sí; césped y charcos son decorativos y no bloquean el paso. La semilla inicial es 73129. F2 la incrementa; la misma semilla reproduce la distribución. Los caminos y la zona inicial están despejados.
 
 Cada familia tiene **30 variantes generadas en el juego**, combinando dos siluetas, cinco tamaños y tres tonos suaves de la misma especie/material. Se reutilizan los sprites originales con escala proporcional y tinte; no son 30 PNG separados. Los árboles miden 102–188 px de alto. Las rocas miden 12.8, 25.6, 44.8, 76.8 o 128 px de ancho: aproximadamente del 20% al 200% de la altura inicial del personaje, tomando 64 px como referencia en el mundo. La cámara aplica el mismo zoom a todos. El mapa inicial contiene las 30 variantes de cada familia; el catálogo se distribuye con una semilla estable, sin cambiar de aspecto durante la partida.
 
@@ -162,7 +163,7 @@ Agacharse flexiona las piernas y baja el torso. El salto tiene un arco de 0,66 s
 - `scripts/turn_motion.gd`: giros (hasta 0.28 s; frenada máxima 35% en 180°, 8.75% en 90° y 2.19% en 45°).
 - `assets/environment/basic_forest_props.png`: árboles y rocas del primer bioma.
 - `assets/environment/forest_details.png`: arbolito joven y charco.
-- `assets/environment/grass_groups.png`: diez grupos de césped; `shaders/ground_foliage.gdshader`: paleta y contornos suaves del suelo.
+- `assets/environment/imported/`: doce grupos de césped, diez dibujos de roca y referencias de terreno; `shaders/ground_foliage.gdshader`: paleta y contornos suaves del suelo.
 - `shaders/quarantine_ground.gdshader`: suelo natural continuo; `shaders/atmosphere.gdshader`: sombreado ligero de bordes.
 
 Los atlas están en `assets/`; `.godot/` contiene cachés locales excluidas de Git. Se han eliminado los atlas antiguos de suelos y caminata, el dibujado duplicado de herramientas y el recorte de cabeza anterior. Del atlas de decorados se usan la maquinaria y la baliza. Contornos, geometría de herramientas y presentaciones de decorados se almacenan en cachés acotadas. Las sombras estáticas no reconstruyen sus comandos si el sol, la cámara y los objetos no han cambiado de forma perceptible; los impactos fuerzan su actualización. Los materiales se almacenan en la mochila; no se sueltan en el suelo. Las comprobaciones automáticas validan lógica y carga; la sensación del movimiento y las animaciones requiere también jugar en el editor.
@@ -192,10 +193,20 @@ La espada básica usa `assets/items/basic_sword.png`, procedente del PNG origina
 
 ## Bardana y primera receta de armadura
 
-Se generan 24 plantas individuales en zonas de césped transitables y despejadas. Las dos imágenes se reparten por el terreno: `bardana1` da exactamente 5 hojas, `bardana2` da 3. Se recolectan con un golpe de manos, apuntando a la superficie y estando cerca. Desaparecen tras recogerlas y su estado se conserva al guardar. Los guardados anteriores reciben las nuevas plantas. El material utiliza el PNG original de la hoja.
+Se generan 24 plantas individuales en zonas de césped transitables y despejadas. Las dos imágenes se reparten por el terreno: `bardana1` da exactamente 5 hojas, `bardana2` da 3. Se recolectan con E y las manos libres, apuntando a la superficie y estando cerca. Desaparecen tras recogerlas y su estado se conserva al guardar. Los guardados anteriores reciben las nuevas plantas. El material utiliza el PNG original de la hoja.
 
 **Armadura de hojas:** 15 hojas de bardana + 3 metros de cuerda + 20 de fibra. Se puede equipar en el torso y aparece también en el retrato del inventario. Su tejido de hojas sigue el movimiento de la piel en todas las poses, incluidas carrera, agachado, salto y herramientas. Todavía no aporta protección ni estadísticas y no tiene reparación. La fabricación puede usar materiales de mochila y barra rápida.
 
 Las barras inferiores se recortan siguiendo la silueta de marco y cabecera para que los píxeles de escenario de la plantilla no se dibujen en las esquinas. Pausa usa una fuente de mapa de bits creada a partir de las letras de sus botones originales, con letras acentuadas y tamaño ajustado al texto. El nuevo arco conserva su PNG, con cuerda, agarre e iconos propios. Hacha, pico y espada abren la trayectoria en vistas de frente, espalda y diagonales sin cambiar el ritmo ni la longitud de los huesos; ambos brazos quedan ocultos detrás de la espalda cuando corresponde.
 
 La plantilla `tools/torso_armor.gd` envuelve el torso con una superficie de armadura ligada al mismo transform que la piel; cada armadura normal especifica su dibujo y perfil. El juego usa sprites completos ya exportados. Las animaciones combinadas de equipamiento se reparten en seis atlas por movimiento, cada uno de 2304×1536; la caché aplica un límite de 128 MiB. La máscara del personaje solo se redibuja cuando cambia la pose, y las mallas de impacto estáticas no actualizan sus transformaciones cada fotograma.
+
+## Botella, rocas y terreno de referencia
+
+La botella se fabrica con **3 cueros y 1 metro de hilo**. Estos materiales todavía no aparecen en el mundo; K permite conseguirlos para probar la receta. Cada botella usa un slot, se crea vacía y conserva su identidad al beber. Con la botella seleccionada, E sobre la superficie visible de un charco cercano la llena con 500 ml. Clic izquierdo o Beber en el inventario consume 250 ml por uso. Si la hidratación ya está llena no se desperdicia agua. Se muestra en la mano con sprites completos, también al caminar, correr o agacharse, con y sin armadura de hojas. Los guardados anteriores conservan sus botellas y el progreso de las rocas al migrar al formato 4.
+
+Las piedras pequeñas se recogen con E y manos libres y dan entre 1 y 3 piedras. Las cuatro tallas de roca restantes requieren respectivamente 4, 7, 9 y 12 golpes de pico y dan 4, 8, 11 y 15 piedras. Se usan los diez PNG originales, dos siluetas por talla con tonos suaves.
+
+El suelo toma las texturas de las referencias de terreno y las mezcla con rotaciones y offsets compartidos para evitar bordes de cuadrícula. Los senderos continuos forman curvas y cruces como las referencias, y cuatro manchas de tierra interrumpen la hierba. Los doce dibujos de césped válidos aparecen en la capa inferior; la distribución evita caminos, charcos, zonas de piedra y tierra y bases de objetos. `entregables/cesped_13.png` está truncado y no se incorpora hasta recibir un PNG válido. Los originales de entregables se conservan.
+
+`tests/containers.gd` verifica la receta, volumen, identidad, límites de almacenamiento, migración y catálogo; `tests/container_ui.gd` usa clics nativos para probar el catálogo, Beber y la botella en la mano. `tests/interactions.gd` comprueba las manos libres, E, la superficie visible del agua y la distancia; `tests/ground_cover.gd` comprueba reproducibilidad y zonas despejadas en distintas semillas.

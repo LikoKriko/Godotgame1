@@ -43,14 +43,16 @@ func run() -> void:
 	nutrition.consume(bag,index)
 	require(bag.slots[index].is_empty() and nutrition.calories_today == 800,"Last portion frees its inventory slot")
 	require(not nutrition.consume(bag,index)["ok"],"Empty slot cannot create calories")
-	bag.add(&"water",2)
+	bag.add(&"botella",2)
 	for i in bag.CAPACITY:
-		if bag.slots[i].get("id") == &"water":
+		if bag.slots[i].get("id") == &"botella":
 			index = i
-	require(not nutrition.consume(bag,index)["ok"] and bag.count(&"water") == 2,"Full hydration conserves bottled water")
+	bag.slots[index].water_ml = 500
+	require(not nutrition.consume(bag,index)["ok"] and bag.count(&"botella") == 2,"Full hydration conserves bottled water")
 	nutrition.advance(Cycle.DAY_SECONDS/2,Cycle.DAY_SECONDS)
 	require(is_equal_approx(nutrition.hydration_ml,1000),"Hydration decreases by one litre per half day")
-	require(nutrition.consume(bag,index)["ok"] and nutrition.hydration_ml == 1500 and nutrition.calories_today == 800,"Water restores hydration without calories")
+	require(nutrition.consume(bag,index)["ok"] and nutrition.hydration_ml == 1250 and nutrition.calories_today == 800 and bag.slots[index].water_ml == 250,"Water restores hydration without calories")
+	require(nutrition.consume(bag,index)["ok"] and nutrition.hydration_ml == 1500 and bag.slots[index].water_ml == 0 and bag.count(&"botella") == 2,"Second sip keeps the empty flask")
 	nutrition.new_day()
 	require(nutrition.calories_today == 0 and nutrition.speed_penalty() == 0 and nutrition.hydration_ml == 1500,"Midnight clears daily calories/penalty but does not refill hydration")
 	for id in Tools.DISPLAY_SIZES:

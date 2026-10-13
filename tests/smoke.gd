@@ -49,7 +49,7 @@ func run_checks() -> void:
 	check(game.resources.hit(tree, game.player).is_empty(), "Cannot collect depleted tree twice")
 	var rock := Vector2i(3, -4)
 	work(game, rock)
-	check(game.resources.inventory["piedra"] == 12, "Large rock gives minerals")
+	check(game.resources.inventory["piedra"] == 15, "Large rock gives minerals")
 	for y in 2:
 		for x in 2:
 			check(game.world.walkable(game.world.center(rock + Vector2i(x, y))), "Entire rock footprint released")
@@ -74,7 +74,7 @@ func run_checks() -> void:
 	Input.parse_input_event(input)
 	Input.flush_buffered_events()
 	game._process(0.01)
-	check(game.working and game.full_avatar.state == &"action", "E starts a cursor-directed whole-frame strike")
+	check(not game.working, "E interacts without starting a weapon strike")
 	var release: InputEventKey = input.duplicate()
 	release.pressed = false
 	Input.parse_input_event(release)

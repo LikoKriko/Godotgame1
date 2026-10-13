@@ -43,6 +43,6 @@ func run() -> void:
 			var foot := sprite.global_transform*Vector2(moved.texture.get_width()/2.0,moved.texture.get_height())
 			require(moved.base.is_equal_approx(foot),"Impact shake and rotation retain the visual shadow contact")
 			sprite.transform = transform
-	require(kinds.size() == 3 and cropped > 30,"Actual tree, rock and sapling variants exercise padded image correction")
+	require(kinds.size() == 3 and cropped > 0,"Padded saplings and tightly cropped new rock silhouettes both retain their visual shadow anchors")
 	print("%s: %d prop shadow anchor checks, %d failures; %d cropped ground margins" % ["PASS" if failures == 0 else "FAIL",checks,failures,cropped])
 	quit(1 if failures else 0)

@@ -13,7 +13,7 @@ func run():
 	var variants := {1:0,2:0}
 	for cell in game.world.burdock:
 		variants[game.world.burdock[cell]] += 1
-		require(game.world.grass_allowed(game.world.center(cell)+Vector2(0,26),0),"Burdock lies on grass, outside dirt, puddles and stone patches")
+		require(game.world.grass_allowed(game.world.center(cell)+Vector2(0,26),0,false,false),"Burdock lies on natural soil, outside paths, puddles and stone patches")
 		require(game.world.walkable(game.world.center(cell)+Vector2(0,26)),"Burdock never blocks walking")
 	require(variants[1] == 12 and variants[2] == 12,"Both uploaded variants occur")
 	var targets := {}

@@ -2,7 +2,7 @@ extends RefCounted
 ## Versioned data only: never deserialize executable objects. Replace the save
 ## atomically so interruption during writing leaves the last good game intact.
 const PATH := "user://day_zero_save.cfg"
-const VERSION := 3
+const VERSION := 4
 
 static func capture(game) -> Dictionary:
 	var remaining := {}
@@ -21,7 +21,7 @@ static func capture(game) -> Dictionary:
 		"health": game.progression.health, "day": game.day_cycle.day, "hour": game.day_cycle.hour,
 		"calories": game.nutrition.calories_today, "hydration": game.nutrition.hydration_ml,
 		"water_today": game.nutrition.water_today_ml, "quick_items": quick,
-		"held_tool": game.bag.held_tool.duplicate(true), "quick_slots": game.bag.quick_slots.duplicate(true), "active_quick_uid": game.bag.active_quick_uid, "plant_layout_version":1
+		"held_tool": game.bag.held_tool.duplicate(true), "quick_slots": game.bag.quick_slots.duplicate(true), "active_quick_uid": game.bag.active_quick_uid, "plant_layout_version":1,"resource_layout_version":2
 	}
 
 static func write(game, path: String = PATH) -> Error:
@@ -39,6 +39,38 @@ static func read_state(path: String = PATH) -> Dictionary:
 	return data if data is Dictionary and valid(data) else {}
 
 static func migrate(original: Dictionary) -> Dictionary:
+	var data := migrate_tools(original)
+	if original.get("version") not in [1,2,3]: return data
+	if not data.get("slots") is Array or not data.get("quick_slots") is Array or not data.get("next_uid") is int: return {}
+	# Split only when the entire old stack fits; otherwise keep it recoverable
+	# until a bottle can be unpacked while drinking. Preserve each original UID.
+	for item in data.slots+data.quick_slots:
+		if not item is Dictionary or item.get("id") != &"water": continue
+		if not item.get("quantity") is int or item.quantity < 1: return {}
+		var free: Array[int] = []
+		for i in data.slots.size():
+			if data.slots[i] is Dictionary and data.slots[i].is_empty(): free.append(i)
+		if free.size() < item.quantity-1: continue
+		var extra: int = item.quantity-1
+		item.id = &"botella"; item.quantity = 1; item.water_ml = 500
+		for i in extra:
+			var bottle: Dictionary = item.duplicate(true)
+			bottle.uid = data.next_uid; data.next_uid += 1
+			data.slots[free[i]] = bottle
+	if data.get("resource_layout_version",0) != 2 and data.get("seed") is int and data.get("resources") is Dictionary:
+		var world = preload("res://scripts/test_world.gd").new(); world.generate(data.seed)
+		var resources = preload("res://scripts/harvesting.gd").new(); resources.configure(world)
+		for cell in data.resources:
+			if not cell is Vector2i or not data.resources[cell] is int: return {}
+			if world.props.get(cell) != 1: continue
+			var old_hits := 6 if world.large_rocks.has(cell) else (2 if world.prop_collisions[cell].size.x <= 20 else 3)
+			var remaining: int = data.resources[cell]
+			if remaining < 1 or remaining > old_hits: return {}
+			data.resources[cell] = ceili(remaining/float(old_hits)*resources.nodes[cell].hits)
+	data.version = VERSION; data.resource_layout_version = 2
+	return data
+
+static func migrate_tools(original: Dictionary) -> Dictionary:
 	var data := original.duplicate(true)
 	if data.get("collected") is Dictionary: data.collected["hoja_bardana"] = data.collected.get("hoja_bardana",0)
 	if data.get("version") == 2: return migrate_held_tool(data)
@@ -125,7 +157,7 @@ static func valid(data: Dictionary) -> bool:
 	if data.health < 0 or data.health > 20*(1+0.1*data.perks[&"life"]): return false
 	if not data.resources is Dictionary or not data.collected is Dictionary or data.collected.size() != 6: return false
 	for cell in data.resources:
-		if not cell is Vector2i or not data.resources[cell] is int or data.resources[cell] < 1 or data.resources[cell] > 6: return false
+		if not cell is Vector2i or not data.resources[cell] is int or data.resources[cell] < 1 or data.resources[cell] > 12: return false
 	for id in data.collected:
 		if not id in ["madera", "piedra", "chatarra", "fibra", "palo","hoja_bardana"] or not data.collected[id] is int or data.collected[id] < 0: return false
 	if not data.get("quick_items") is Array or data.quick_items.size() != 6: return false
@@ -155,6 +187,8 @@ static func valid_item(item, uids: Dictionary) -> bool:
 	if not item.quantity is int or item.quantity < 1 or item.quantity > definitions[item.id].stack: return false
 	if not item.uses is int or item.uses < -1 or item.uses > definitions[item.id].uses: return false
 	if definitions[item.id].uses >= 0 and item.uses < 0: return false
+	if item.id == &"botella":
+		if not item.get("water_ml") is int or item.water_ml < 0 or item.water_ml > 500 or item.water_ml%250 != 0: return false
 	if not item.uid is int or item.uid < 1 or uids.has(item.uid): return false
 	uids[item.uid] = true
 	return true

@@ -66,15 +66,15 @@ func run_checks() -> void:
 	aim = Aim.approach(game, rock, &"axe")
 	require(game.start_work(aim), "Axe can swing at rocks")
 	game.advance_work(game.work_duration)
-	require(game.resources.nodes[rock]["remaining"] == 6, "Axe does not mine rocks")
+	require(game.resources.nodes[rock]["remaining"] == 12, "Axe does not mine rocks")
 	aim = Aim.approach(game, rock, &"pickaxe")
 	require(game.start_work(aim) and game.working, "Mining starts a complete-sprite action")
 	game.advance_work(game.work_duration)
 	require(game.bag.held_item()["uses"] == 29, "Mining consumes a pickaxe use")
-	for i in 5:
+	for i in 11:
 		game.start_work(aim)
 		game.advance_work(game.work_duration)
-	require(game.bag.count(&"piedra") == 12 and not game.resources.nodes.has(rock), "Mined material enters backpack and node disappears")
+	require(game.bag.count(&"piedra") == 15 and not game.resources.nodes.has(rock), "Mined material enters backpack and node disappears")
 	game.restart()
 	game.bag.select_tool(&"sword")
 	game.player = Vector2.ZERO

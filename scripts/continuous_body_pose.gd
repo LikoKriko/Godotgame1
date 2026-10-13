@@ -97,11 +97,14 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var hands: Array[Vector3] = []
 	for side in 2:
 		var swing := -sin((walk_phase+side*0.5)*TAU)*(7.5 if running else 4.5)*amplitude
-		hands.append(body*Vector3(-8.5 if side == 0 else 8.5,28.1,swing+1.5))
+		hands.append(body*Vector3(-11.0 if side == 0 else 11.0,28.0,swing+3.5))
 	var grip := body*Vector3(4,32,6)
 	var shaft := Vector3(0,0.72,0.69).normalized()
 	var active := 1
-	if family == &"bow":
+	if family == &"bottle":
+		grip = hands[1]
+		shaft = body.basis*Vector3.UP
+	elif family == &"bow":
 		active = 0
 		var side_clearance := maxf(0,-sin(direction*TAU/16))*5.5 if direction >= 0 else 0.0
 		grip = body*Vector3(-3.5-side_clearance,36,13)
@@ -144,6 +147,11 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 			var hit_axis := Vector3(0.6,-0.3,0.72)
 			if family == &"pickaxe": hit_axis = Vector3(0.4,-0.68,0.6)
 			if family == &"sword": wind = Vector3(10,43,1); hit = Vector3(8,37,13); wind_axis = Vector3(0.75,0.6,-0.25)
+			if family == &"axe" and sin(direction*TAU/16) < -0.001:
+				wind = Vector3(11,49,4)
+				hit = Vector3(9,34.5,14)
+				wind_axis = Vector3(0.45,0.89,-0.08)
+				hit_axis = Vector3(0.72,-0.24,0.64)
 			open_grip = gesture(open_grip,wind,hit,phase,family)
 			open_axis = gesture(open_axis,wind_axis,hit_axis,phase,family)
 		grip = grip.lerp(body*open_grip,openness)

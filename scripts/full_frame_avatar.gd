@@ -41,11 +41,14 @@ func reset() -> void:
 
 func item_key() -> String:
 	var id := "bare" if game.bag.held_id() == &"" else String(game.bag.held_id())
+	if id == "botella": id = "bottle_full" if game.bag.held_item().get("water_ml",0) > 0 else "bottle_empty"
+	if not catalogue.items.has(id): id = "bare"
 	var armor: StringName = game.bag.equipment[&"torso"].get("id",&"")
 	return String(armor)+"__"+id if catalogue.items.has(String(armor)+"__"+id) else id
 
 func data_for(clip: StringName) -> Dictionary:
-	return catalogue["items"][item_key()]["clips"][String(clip)]
+	var clips: Dictionary = catalogue["items"][item_key()]["clips"]
+	return clips.get(String(clip),clips["idle"])
 
 func sheet_for(data: Dictionary, progress: float = 0.0) -> Texture2D:
 	var path: String = data.paths[Clips.action_frame(progress,data.equip_frames)] if data.has("paths") else data["path"]

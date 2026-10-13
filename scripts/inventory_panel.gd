@@ -193,10 +193,11 @@ func show_item(button: Button, item: Dictionary, empty_label: String = "") -> vo
 		return
 	var id: StringName = item["id"]
 	var definition: Dictionary = Model.DEFINITIONS[id]
-	icon.texture = Icons.get_icon(id)
+	icon.texture = Icons.for_item(item)
 	button.text = "" if icon.texture != null else ABBREV.get(id, "")
 	count.text = str(item["quantity"])
 	button.tooltip_text = "%s · Básico\n%s" % [definition["name"], definition["purpose"]]
+	if id == &"botella": button.tooltip_text += "\nContenido: %d / 500 ml" % item.get("water_ml",0)
 	if item["uses"] >= 0:
 		button.tooltip_text += "\nUsos: %d / %d" % [item["uses"], definition["uses"]]
 	button.modulate = Color("bd8585") if item["uses"] == 0 else Color.WHITE
@@ -226,8 +227,8 @@ func refresh() -> void:
 		item = model.equipment[chosen_gear]
 	elif chosen_quick >= 0:
 		item = model.quick_slots[chosen_quick]
-	var consumable: bool = not item.is_empty() and (Model.DEFINITIONS[item["id"]].has("kcal") or Model.DEFINITIONS[item["id"]].has("water_ml"))
-	equip_button.text = ("Beber" if item.get("id",&"") == &"water" else "Comer") if consumable else ("Guardar" if not item.is_empty() and item.get("uid") == model.held_item().get("uid",-1) else "Equipar")
+	var consumable: bool = not item.is_empty() and (item.id == &"botella" or Model.DEFINITIONS[item["id"]].has("kcal") or Model.DEFINITIONS[item["id"]].has("water_ml"))
+	equip_button.text = ("Beber" if item.get("id",&"") in [&"water",&"botella"] else "Comer") if consumable else ("Guardar" if not item.is_empty() and item.get("uid") == model.held_item().get("uid",-1) else "Equipar")
 	equip_button.disabled = (chosen < 0 and chosen_quick < 0) or item.is_empty() or (not consumable and Model.DEFINITIONS[item.get("id", &"madera")]["slot"] == &"")
 	remove_button.disabled = chosen_gear == &"" or item.is_empty()
 	repair_button.disabled = item.is_empty() or not Workshop.REPAIRS.has(item.get("id",&""))
@@ -239,6 +240,7 @@ func refresh() -> void:
 			details.text += "\n%s: %d / %d%s" % ["Usos" if definition["slot"] == &"tool" else "Durabilidad",item["uses"], definition["uses"], " · ROTO" if item["uses"] == 0 else ""]
 		else:
 			details.text += "\nCantidad: %d" % item["quantity"]
+		if item.id == &"botella": details.text += "\nContenido: %d / 500 ml" % item.get("water_ml",0)
 	if creation_page != null: creation_page.refresh()
 
 func select_backpack(index: int) -> void:
@@ -261,7 +263,7 @@ func equip_selected() -> void:
 	var item := selected_item()
 	if item.is_empty() or (chosen < 0 and chosen_quick < 0): return
 	var definition: Dictionary = Model.DEFINITIONS[item.id]
-	if definition.has("kcal") or definition.has("water_ml"):
+	if item.id == &"botella" or definition.has("kcal") or definition.has("water_ml"):
 		if chosen_quick >= 0: game.consume_item(chosen_quick,true)
 		else: consume_requested.emit(chosen)
 		refresh(); return
@@ -392,7 +394,7 @@ func update_workshop() -> void:
 		workshop_item.text += "\n\nEstado: %d / %d\nTras reparar: %d / %d" % [item["uses"],Model.DEFINITIONS[id]["uses"],Model.DEFINITIONS[id]["uses"],Model.DEFINITIONS[id]["uses"]]
 	workshop_materials.text = "MATERIALES NECESARIOS\n"
 	for material in cost:
-		var unit := " m" if material == &"cuerda" else ""
+		var unit := " m" if material in [&"cuerda",&"hilo"] else ""
 		workshop_materials.text += "\n%s: %d%s\nDisponible: %d%s\n" % [Model.DEFINITIONS[material]["name"],cost[material],unit,model.count(material),unit]
 	var damaged: bool = valid and item["uses"] < Model.DEFINITIONS[id]["uses"]
 	workshop_confirm.disabled = not valid or not damaged or not Workshop.affordable(model,cost)

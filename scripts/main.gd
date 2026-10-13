@@ -41,6 +41,7 @@ var world = preload("res://scripts/test_world.gd").new()
 var terrain = world.terrain
 var world_view: Node2D
 var world_map: Control
+var item_catalog: Control
 var player := Vector2.ZERO
 var experience := 0
 var level := 1
@@ -89,6 +90,8 @@ func _ready() -> void:
 	world_map = preload("res://scripts/world_map.gd").new()
 	canvas.add_child(world_map)
 	world_map.configure(self)
+	item_catalog = preload("res://scripts/item_catalog.gd").new()
+	canvas.add_child(item_catalog); item_catalog.configure(self)
 	gameplay_settings.changed.connect(fit_hud)
 	get_viewport().size_changed.connect(fit_hud)
 	fit_hud()
@@ -110,11 +113,14 @@ func _ready() -> void:
 	canvas.move_child(cursor,canvas.get_child_count()-1)
 	canvas.move_child(inventory_panel,canvas.get_child_count()-1)
 	canvas.move_child(world_map,canvas.get_child_count()-1)
+	canvas.move_child(item_catalog,canvas.get_child_count()-1)
 
 func consume_item(index: int, quick: bool = false) -> void:
 	var result: Dictionary = nutrition.consume(bag,index,quick)
 	inventory_panel.status.text = result["message"]
 	inventory_panel.refresh()
+	if result.ok: full_avatar.update_pose(0)
+	feedback = result.message; feedback_time = 2
 	update_hud()
 
 func fit_hud() -> void:
@@ -131,7 +137,7 @@ func restart() -> void:
 	world.generate(world.seed_value)
 	world_view.refresh_ground()
 	bag.reset()
-	for provision in [[&"apple",4],[&"berries",10],[&"ration",8],[&"water",8]]:
+	for provision in [[&"apple",4],[&"berries",10],[&"ration",8]]:
 		bag.add(provision[0],provision[1])
 	day_cycle.reset()
 	nutrition.reset()
@@ -139,6 +145,7 @@ func restart() -> void:
 	inventory_panel.refresh()
 	inventory_panel.hide()
 	world_map.hide()
+	if item_catalog != null: item_catalog.hide()
 	for arrow in get_tree().get_nodes_in_group("player_arrows"):
 		arrow.queue_free()
 	weapon_timer = 0.0
@@ -206,20 +213,27 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		menu_requested.emit()
 		get_viewport().set_input_as_handled()
 		return
+	if event.keycode == KEY_K:
+		cancel_work(); inventory_panel.hide(); world_map.hide()
+		item_catalog.open_catalog(); get_viewport().set_input_as_handled(); return
 	if event.keycode == KEY_M:
 		cancel_work()
+		item_catalog.hide()
 		inventory_panel.hide()
 		world_map.open_map()
 		get_viewport().set_input_as_handled()
 		return
 	if event.keycode in [KEY_I,KEY_T,KEY_TAB]:
 		cancel_work()
+		item_catalog.hide()
 		world_map.hide()
 		inventory_panel.open_section(1 if event.keycode == KEY_T else (2 if event.keycode == KEY_TAB else 0))
 		update_hud()
 		return
-	if inventory_panel.visible or world_map.visible:
+	if inventory_panel.visible or world_map.visible or item_catalog.visible:
 		return
+	if event.keycode == KEY_E:
+		interact_at(cursor_world_position()); get_viewport().set_input_as_handled(); return
 	if event.keycode in [KEY_Z,KEY_X]:
 		activate_skill(&"speed" if event.keycode == KEY_Z else &"power")
 		return
@@ -244,7 +258,46 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	update_hud()
 
 func is_paused() -> bool:
-	return menu_open or inventory_panel.visible or world_map.visible
+	return menu_open or inventory_panel.visible or world_map.visible or (item_catalog != null and item_catalog.visible)
+
+func cursor_world_position() -> Vector2:
+	return get_canvas_transform().affine_inverse()*preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
+
+func _unhandled_input(event: InputEvent) -> void:
+	if is_paused() or not event is InputEventMouseButton or not event.pressed or event.button_index != MOUSE_BUTTON_LEFT: return
+	if bag.held_id() == &"botella":
+		var location: Dictionary = bag.location(bag.active_quick_uid)
+		if location.get("kind") == &"quick": consume_item(location.index,true)
+		get_viewport().set_input_as_handled()
+
+func interact_at(aim: Vector2) -> bool:
+	if is_paused() or progression.health <= 0 or locomotion.airborne() or locomotion.sliding(): return false
+	var result: Dictionary = {}
+	var water: Rect2 = world_view.water_at(aim)
+	if bag.held_id() == &"botella" and water.has_area():
+		var nearest: Vector2 = player.clamp(water.position,water.end)
+		var reachable: bool = player.distance_to(nearest) <= resources.REACH
+		for step in range(1,maxi(1,ceili(player.distance_to(nearest)/5))):
+			if not world.walkable(player.move_toward(nearest,step*5),1): reachable = false
+		result = nutrition.refill(bag.held_item()) if reachable else {"ok":false,"message":"Acércate al agua para rellenar la botella."}
+	else:
+		var cell: Vector2i = resources.target_at(aim)
+		if resources.nodes.has(cell) and (resources.nodes[cell].hand_collectable or world.props[cell] == 5):
+			if bag.held_id() != &"":
+				result = {"ok":false,"message":"Deja las manos libres para recoger este objeto."}
+			elif not resources.can_reach(cell,player):
+				result = {"ok":false,"message":"Acércate al objeto para recogerlo."}
+			else:
+				cancel_work()
+				var gathered: Dictionary = resources.hit(cell,player)
+				var ok: bool = gathered.get("depleted",false)
+				result = {"ok":ok,"message":"%s × %d recogido." % [bag.DEFINITIONS[StringName(gathered.material)].name,gathered.amount] if ok else "La mochila está llena."}
+				if ok: gain_experience(10); world_view.queue_redraw(); world_view.props_layer.queue_redraw()
+		else:
+			result = {"ok":false,"message":"Apunta al agua para rellenar la botella." if bag.held_id() == &"botella" else "No hay un objeto para interactuar aquí."}
+	feedback = result.message; feedback_time = 2
+	inventory_panel.refresh(); full_avatar.update_pose(0); update_hud()
+	return result.ok
 
 func assign_quick_item(index: int, uid: int) -> bool:
 	var source: Dictionary = bag.location(uid)
@@ -322,7 +375,7 @@ func _process(delta: float) -> void:
 	focused = resources.target_at(aim)
 	var hovered := get_viewport().gui_get_hovered_control()
 	var over_hud: bool = hovered != null and styled_hud != null and styled_hud.is_ancestor_of(hovered)
-	var pressed := Input.is_physical_key_pressed(KEY_E) or (Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not over_hud)
+	var pressed := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not over_hud and bag.held_category() != &"bottle"
 	if over_hud: focused = resources.NONE
 	if direction == Vector2.ZERO and not working and not equipping and pressed:
 		start_work(aim)
@@ -341,6 +394,7 @@ func start_work(aim: Vector2) -> bool:
 	if progression.health <= 0 or is_paused() or working or equipping or locomotion.airborne() or locomotion.sliding():
 		return false
 	var item: StringName = bag.held_category()
+	if item == &"bottle": return false
 	if item != &"" and not bag.usable():
 		feedback = "La herramienta está rota."
 		feedback_time = 2

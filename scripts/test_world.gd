@@ -19,6 +19,7 @@ var burdock: Dictionary = {}
 var grass_tufts: Array[Dictionary] = []
 var puddles: Array[Dictionary] = []
 var stone_patches: Array[Rect2] = []
+var dirt_patches: Array[Rect2] = []
 var reachable: Array[Vector2i] = []
 var bounds := Rect2(Vector2(FIRST * TILE), Vector2(SIZE * TILE))
 
@@ -110,7 +111,7 @@ func add_burdock() -> void:
 		if burdock.size() == 24: break
 		var cell: Vector2i = reachable[rng.randi_range(0,reachable.size()-1)]
 		var base := center(cell)+Vector2(0,26)
-		if props.has(cell) or cells[cell].road or not grass_allowed(base,12) or not walkable(base,42): continue
+		if props.has(cell) or cells[cell].road or not grass_allowed(base,12,false,false) or not walkable(base,42): continue
 		var covered := false
 		for anchor in props:
 			if props[anchor] != 2: continue
@@ -160,14 +161,25 @@ func generate_ground_details() -> void:
 		var radius := Vector2(rng.randf_range(85,145),rng.randf_range(65,110))
 		stone_patches.append(Rect2(center-radius,radius*2))
 	# Stratified, jittered cover prevents both empty stretches and a tile grid.
+	var soil_rng := RandomNumberGenerator.new(); soil_rng.seed = seed_value ^ 65173
+	dirt_patches.clear()
+	for quadrant in [Vector2(-1,-1),Vector2(1,-1),Vector2(-1,1),Vector2(1,1)]:
+		var center: Vector2 = quadrant*Vector2(soil_rng.randf_range(350,1250),soil_rng.randf_range(240,780))
+		var radius := Vector2(soil_rng.randf_range(65,125),soil_rng.randf_range(55,95))
+		dirt_patches.append(Rect2(center-radius,radius*2))
 	for y in range(int(inset.position.y),int(inset.end.y),22):
 		for x in range(int(inset.position.x),int(inset.end.x),24):
 			var point := Vector2(x+rng.randf_range(-9,9),y+rng.randf_range(-8,8))
-			var width := rng.randf_range(25,38)
-			if grass_allowed(point,width*0.55):
-				grass_tufts.append({"position": point,"width": width,"variant": rng.randi_range(0,9)})
+			var width := rng.randf_range(18,28)
+			var variant := rng.randi_range(0,preload("res://scripts/imported_nature.gd").GRASS.size()-1)
+			if rng.randf() < 0.60 and grass_allowed(point,grass_padding(width,variant)):
+				grass_tufts.append({"position": point,"width": width,"variant": variant})
 
-func grass_allowed(point: Vector2, padding: float = 0.0) -> bool:
+static func grass_padding(width: float, variant: int) -> float:
+	var region: Rect2 = preload("res://scripts/imported_nature.gd").GRASS[variant].rect
+	return maxf(width*0.55,width*region.size.y/region.size.x)
+
+func grass_allowed(point: Vector2, padding: float = 0.0, exclude_dirt: bool = true, exclude_bases: bool = true) -> bool:
 	var horizontal := 24*sin(point.x/210)+10*sin(point.x/93)
 	var vertical := 24*sin(point.y/245)-10*sin(point.y/110)
 	if minf(absf(point.y-horizontal),absf(point.x-vertical)) < 82+padding:
@@ -176,6 +188,17 @@ func grass_allowed(point: Vector2, padding: float = 0.0) -> bool:
 		var radius := patch.size/2+Vector2.ONE*(padding+20)
 		if ((point-patch.get_center())/radius).length() < 1.0:
 			return false
+	if exclude_dirt:
+		for patch in dirt_patches:
+			var radius := patch.size/2+Vector2.ONE*(padding+20)
+			if ((point-patch.get_center())/radius).length() < 1.0: return false
+	if exclude_bases:
+		var first := cell_at(point-Vector2.ONE*padding)
+		var last := cell_at(point+Vector2.ONE*padding)
+		for y in range(first.y,last.y+1):
+			for x in range(first.x,last.x+1):
+				for anchor in collision_cells.get(Vector2i(x,y),[]):
+					if prop_collisions[anchor].grow(padding).has_point(point): return false
 	for puddle in puddles:
 		if point.distance_to(puddle["position"]) < puddle["width"]*0.55+padding:
 			return false

@@ -81,7 +81,7 @@ func refresh() -> void:
 	if model == null: return
 	object_name.text = Model.DEFINITIONS[selected]["name"]
 	preview.texture = Icons.get_icon(selected)
-	result_label.text = "Resultado: 1 metro de cuerda" if selected == &"cuerda" else "Resultado: 1 herramienta básica · %d usos" % Model.DEFINITIONS[selected]["uses"]
+	result_label.text = "Resultado: 1 metro de cuerda" if selected == &"cuerda" else ("Resultado: 1 botella vacía · capacidad 500 ml" if selected == &"botella" else ("Resultado: 1 armadura de hojas" if selected == &"burdock_armor" else "Resultado: 1 herramienta básica · %d usos" % Model.DEFINITIONS[selected]["uses"]))
 	for id in recipe_buttons:
 		recipe_buttons[id].self_modulate = Color("d9bf72") if id == selected else Color.WHITE
 	for child in materials.get_children():
@@ -104,7 +104,7 @@ func refresh() -> void:
 		var amount := Label.new()
 		var have: int = model.count(id)
 		var need: int = Workshop.RECIPES[selected][id]
-		amount.text = "%s: %d / %d%s" % [Model.DEFINITIONS[id]["name"],have,need," m" if id == &"cuerda" else ""]
+		amount.text = "%s: %d / %d%s" % [Model.DEFINITIONS[id]["name"],have,need," m" if id in [&"cuerda",&"hilo"] else ""]
 		amount.add_theme_font_size_override("font_size",14)
 		amount.modulate = Color("c6d5a3") if have >= need else Color("d19c91")
 		row.add_child(amount)

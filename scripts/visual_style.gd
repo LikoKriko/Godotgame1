@@ -14,12 +14,15 @@ static func normalized(texture: Texture2D,world_size: Vector2,outline: bool = tr
 	var source := texture.get_image()
 	# AtlasTexture.get_image returns its own isolated region.
 	source.convert(Image.FORMAT_RGBA8)
+	# Nearest-neighbour sampling preserves the selected pixels exactly. Clear
+	# their black background after reducing large uploads, avoiding millions
+	# of source-pixel visits for each small grass or inventory representation.
+	source.resize(target.x,target.y,Image.INTERPOLATE_NEAREST)
 	if clear_black:
 		for y in source.get_height():
 			for x in source.get_width():
 				var paint := source.get_pixel(x,y)
 				if maxf(paint.r,maxf(paint.g,paint.b)) < 0.035: source.set_pixel(x,y,Color.TRANSPARENT)
-	source.resize(target.x,target.y,Image.INTERPOLATE_NEAREST)
 	var result := clean_border(source)
 	if outline: result = outlined(result)
 	var image := ImageTexture.create_from_image(result)

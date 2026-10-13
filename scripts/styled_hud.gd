@@ -302,7 +302,7 @@ func refresh() -> void:
 			icon.texture = null; amount.text = ""
 			quick_buttons[i].tooltip_text = "Espacio rápido %d vacío. Arrastra un objeto desde el inventario." % (i+1)
 		else:
-			icon.texture = Icons.get_icon(item.id)
+			icon.texture = Icons.for_item(item)
 			amount.text = str(item.quantity) if item.quantity > 1 else ""
 			quick_buttons[i].tooltip_text = "%s · %d" % [game.bag.DEFINITIONS[item.id].name,i+1]
 			quick_buttons[i].modulate = Color("d6c895") if item.uid == game.bag.held_item().get("uid",-1) else Color.WHITE

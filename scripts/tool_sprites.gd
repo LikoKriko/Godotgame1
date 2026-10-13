@@ -37,6 +37,14 @@ static func support_offset(id: StringName, direction: Vector2, mirrored: bool) -
 static func geometry(id: StringName) -> Dictionary:
 	if geometry_cache.has(id):
 		return geometry_cache[id]
+	if id in [&"bottle_empty",&"bottle_full"]:
+		var filled := id == &"bottle_full"
+		var bottle := preload("res://scripts/container_art.gd").part(1 if filled else 0)
+		var grip := Vector2(1050,235) if filled else Vector2(435,235)
+		var mouth := Vector2(1090,135) if filled else Vector2(475,130)
+		var entry := {"texture":bottle,"grip":grip-bottle.region.position,"contact":mouth-bottle.region.position,"display_size":14.0,"clear_black":true}
+		geometry_cache[id] = entry
+		return entry
 	var texture: Texture2D = icon(id)
 	if texture == null: return {}
 	var grip: Vector2 = DATA[id].grip-DATA[id].rect.position
@@ -50,7 +58,7 @@ static func reach_length(id: StringName) -> float:
 	if data.is_empty():
 		return 0.0
 	var size: Vector2 = data["texture"].get_size()
-	return data["grip"].distance_to(data["contact"])*DISPLAY_SIZES[id]/maxf(size.x,size.y)
+	return data["grip"].distance_to(data["contact"])*data.get("display_size",DISPLAY_SIZES.get(id,14.0))/maxf(size.x,size.y)
 
 static func reach_lengths() -> Dictionary:
 	var lengths := {&"": 0.0}

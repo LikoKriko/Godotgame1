@@ -2,6 +2,8 @@ extends RefCounted
 const WEIGHT_KG := 60.0
 const DAILY_KCAL := 1600
 const WATER_CAPACITY_ML := 2000.0
+const BOTTLE_CAPACITY_ML := 500
+const SIP_ML := 250
 var calories_today := 0
 var hydration_ml := WATER_CAPACITY_ML
 var water_today_ml := 0
@@ -40,6 +42,15 @@ func consume(inventory, index: int, quick: bool = false) -> Dictionary:
 	if index < 0 or index >= storage.size() or storage[index].is_empty():
 		return {"ok": false,"message": "Selecciona un alimento o agua."}
 	var item: Dictionary = storage[index]
+	if item.id == &"water": return consume_legacy_bottle(inventory,index,quick)
+	if item.id == &"botella":
+		var contents: int = item.get("water_ml",0)
+		if contents < SIP_ML: return {"ok":false,"message":"La botella está vacía; rellénala con E junto al agua."}
+		if hydration_ml >= WATER_CAPACITY_ML: return {"ok":false,"message":"Ya estás hidratado; el agua se conserva."}
+		item.water_ml = contents-SIP_ML
+		hydration_ml = minf(WATER_CAPACITY_ML,hydration_ml+SIP_ML)
+		water_today_ml += SIP_ML
+		return {"ok":true,"kcal":0,"water_ml":SIP_ML,"message":"Botella: +250 ml · quedan %d ml" % item.water_ml}
 	var definition: Dictionary = inventory.DEFINITIONS[item["id"]]
 	var kcal: int = definition.get("kcal",0)
 	var water: int = definition.get("water_ml",0)
@@ -55,3 +66,31 @@ func consume(inventory, index: int, quick: bool = false) -> Dictionary:
 	hydration_ml = minf(WATER_CAPACITY_ML,hydration_ml+water)
 	water_today_ml += water
 	return {"ok": true,"kcal": kcal,"water_ml": water,"message": "%s: +%d kcal%s" % [definition["name"],kcal," · +%d ml" % water if water > 0 else ""]}
+
+func consume_legacy_bottle(inventory, index: int, quick: bool) -> Dictionary:
+	# Unpack an old stack atomically. Never lose its volume or consume the flask.
+	var trial = inventory.fork()
+	var storage: Array = trial.quick_slots if quick else trial.slots
+	var old: Dictionary = storage[index]
+	var target := index
+	var target_quick := quick
+	if old.quantity == 1:
+		old.id = &"botella"; old.water_ml = BOTTLE_CAPACITY_ML
+	else:
+		if not trial.can_add(&"botella",1): return {"ok":false,"message":"Libera un hueco para separar una botella de la pila antigua."}
+		old.quantity -= 1
+		trial.add(&"botella",1)
+		var location: Dictionary = trial.location(trial.next_uid-1)
+		target = location.index; target_quick = false
+		trial.slots[target].water_ml = BOTTLE_CAPACITY_ML
+	var result := consume(trial,target,target_quick)
+	if result.ok:
+		inventory.slots = trial.slots; inventory.quick_slots = trial.quick_slots
+		inventory.next_uid = trial.next_uid
+	return result
+
+static func refill(item: Dictionary) -> Dictionary:
+	if item.get("id") != &"botella": return {"ok":false,"message":"Selecciona una botella en la barra rápida."}
+	if item.get("water_ml",0) == BOTTLE_CAPACITY_ML: return {"ok":false,"message":"La botella ya está llena."}
+	item.water_ml = BOTTLE_CAPACITY_ML
+	return {"ok":true,"message":"Botella rellenada · 500 ml."}
