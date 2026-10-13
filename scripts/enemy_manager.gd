@@ -74,7 +74,7 @@ func chase_direction(origin: Vector2, target: Vector2) -> Vector2:
 func capture_state() -> Dictionary:
 	var creature := {}
 	if is_instance_valid(enemy) and not defeated and enemy.health > 0:
-		for key in ["position","heading","health","attack_elapsed","impact_done","punch_left","stun_remaining","walk_phase","state"]: creature[key] = enemy.get(key)
+		for key in ["position","heading","health","attack_elapsed","impact_done","punch_left","stun_remaining","walk_phase","state","standing","entering_attack","lower_elapsed"]: creature[key] = enemy.get(key)
 	var hits := []
 	for hit in parry.pending: hits.append({"damage":hit.damage,"impact":hit.impact})
 	return {"defeated":defeated,"enemy":creature,"time":parry.time,"last_activation":parry.last_activation,"used":parry.used,"pending":hits}
@@ -100,6 +100,9 @@ static func valid_state(data) -> bool:
 	if creature.health <= 0 or creature.health > Enemy.MAX_HEALTH or creature.attack_elapsed < -1 or creature.attack_elapsed >= Enemy.ATTACK_PERIOD: return false
 	if creature.stun_remaining < 0 or creature.stun_remaining > Parry.STUN_SECONDS or creature.walk_phase < 0 or creature.walk_phase >= 1: return false
 	if not creature.get("impact_done") is bool or not creature.get("punch_left") is bool: return false
+	if creature.has("standing") and not creature.standing is bool: return false
+	if creature.has("entering_attack") and not creature.entering_attack is bool: return false
+	if creature.has("lower_elapsed") and (not creature.lower_elapsed is float or not is_finite(creature.lower_elapsed) or creature.lower_elapsed < -1 or creature.lower_elapsed > 0.18): return false
 	return creature.get("state") in [&"idle",&"walk",&"attack"]
 
 func restore_state(data: Dictionary) -> void:
@@ -108,6 +111,7 @@ func restore_state(data: Dictionary) -> void:
 	if defeated and is_instance_valid(enemy): enemy.free(); enemy = null
 	if is_instance_valid(enemy) and not data.enemy.is_empty():
 		for key in data.enemy: enemy.set(key,data.enemy[key])
+		if not data.enemy.has("standing"): enemy.standing = enemy.state == &"attack"
 		enemy.update_sprite()
 	parry.time = data.time; parry.last_activation = data.last_activation; parry.used = data.used; parry.pending.clear()
 	for hit in data.pending: parry.pending.append({"attacker":enemy,"damage":hit.damage,"impact":hit.impact})

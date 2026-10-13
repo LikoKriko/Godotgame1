@@ -1,16 +1,19 @@
 shader_type spatial;
 render_mode unshaded, cull_disabled;
 uniform bool protect_bow_arm = false;
+uniform bool protect_bow_arrow = false;
 uniform bool debug_left_arm = false;
 uniform bool debug_right_arm = false;
 uniform sampler2D body_mask : filter_nearest;
 uniform sampler2D armor_texture : filter_nearest;
+uniform sampler2D arrow_texture : filter_nearest;
 uniform sampler2D head_reference : filter_nearest;
 uniform vec4 reference_rect;
 void fragment() {
 	// Both arms and the procedural cord/arrow belong behind the back in upper views.
-	bool bow_part = (UV.x > 0.5 && UV.x < 2.5) || (UV.x > 3.5 && UV.x < 4.5);
+	bool bow_part = (UV.x > 0.5 && UV.x < 2.5) || (UV.x > 3.5 && UV.x < 4.5) || (UV.x > 6.5 && UV.x < 7.5);
 	if (protect_bow_arm && bow_part && texture(body_mask,SCREEN_UV).a > 0.5) discard;
+	if (protect_bow_arrow && ((UV.x > 3.5 && UV.x < 4.5) || (UV.x > 6.5 && UV.x < 7.5)) && texture(body_mask,SCREEN_UV).a > 0.5) discard;
 	float diffuse = max(dot(normalize(NORMAL), normalize(vec3(-0.25,0.7,0.6))),0.0);
 	float light = 0.80 + floor(diffuse*4.0)/4.0*0.25;
 	vec3 skin = COLOR.rgb;
@@ -25,7 +28,11 @@ void fragment() {
 			light = 1.0;
 		}
 	}
-	if (UV.x > 4.5) {
+	if (UV.x > 6.5 && UV.x < 7.5) {
+		vec4 paint = texture(arrow_texture,UV2);
+		if (paint.a < 0.22) discard;
+		skin = paint.rgb;
+	} else if (UV.x > 4.5) {
 		vec4 paint = texture(armor_texture,UV2);
 		if (paint.a < 0.22 || max(paint.r,max(paint.g,paint.b)) < 0.08) discard;
 		skin = paint.rgb;

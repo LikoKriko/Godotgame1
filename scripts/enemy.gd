@@ -17,6 +17,10 @@ var punch_left := true
 var stun_remaining := 0.0
 var walk_phase := 0.0
 var state: StringName = &"idle"
+var standing := false
+var entering_attack := false
+var lower_elapsed := -1.0
+const LOWER_SECONDS := 0.18
 var sprite := Sprite2D.new()
 var atlas := AtlasTexture.new()
 var clips: Dictionary = {}
@@ -34,6 +38,10 @@ func configure(owner_game, owner_manager) -> void:
 func stun(seconds: float) -> void:
 	stun_remaining = maxf(stun_remaining,seconds)
 	attack_elapsed = -1; impact_done = true; state = &"idle"
+	begin_lower()
+func begin_lower() -> void:
+	if standing and lower_elapsed < 0: lower_elapsed = 0
+	entering_attack = false
 func hit_center() -> Vector2: return global_position+Vector2(0,-1)
 func contains_point(point: Vector2) -> bool:
 	if sprite.texture == null: return point.distance_to(hit_center()) < 18
@@ -48,6 +56,10 @@ func take_damage(amount: float) -> void:
 		manager.defeated = true; remove_from_group("damageable"); hide(); queue_free()
 func advance(delta: float) -> void:
 	if health <= 0 or game.progression.health <= 0: return
+	if lower_elapsed >= 0:
+		lower_elapsed += delta
+		if lower_elapsed >= LOWER_SECONDS: lower_elapsed = -1; standing = false
+		else: state = &"idle"; stun_remaining = maxf(0,stun_remaining-delta); return
 	if stun_remaining > 0:
 		stun_remaining = maxf(0,stun_remaining-delta); state = &"idle"; return
 	var distance: float = position.distance_to(game.player)
@@ -64,14 +76,16 @@ func advance(delta: float) -> void:
 				game.combat_effects.flash(game.player+Vector2(0,-22),position.direction_to(game.player),parried)
 		if attack_elapsed+0.000000001 >= ATTACK_PERIOD and stun_remaining <= 0:
 			if distance <= ATTACK_REACH and game.clear_combat_path(position):
-				attack_elapsed = maxf(0,attack_elapsed-ATTACK_PERIOD); impact_done = false; punch_left = not punch_left
+				attack_elapsed = maxf(0,attack_elapsed-ATTACK_PERIOD); impact_done = false; punch_left = not punch_left; entering_attack = false
 				heading = position.direction_to(game.player).angle()
-			else: attack_elapsed = -1
+			else: attack_elapsed = -1; begin_lower()
 		return
-	if distance > AGGRO_RADIUS: state = &"idle"; return
+	if distance > AGGRO_RADIUS: state = &"idle"; begin_lower(); return
 	heading = position.direction_to(game.player).angle()
 	if distance <= ATTACK_REACH and game.clear_combat_path(position):
+		entering_attack = not standing; standing = true
 		attack_elapsed = 0; impact_done = false; state = &"attack"; return
+	if standing: begin_lower(); state = &"idle"; return
 	var direction: Vector2 = manager.chase_direction(position,game.player)
 	var before := position
 	position = game.world.move_actor(position,direction*SPEED*delta,9)
@@ -81,14 +95,15 @@ func advance(delta: float) -> void:
 		heading = (position-before).angle(); walk_phase = fposmod(walk_phase+moved/20,1)
 func update_sprite() -> void:
 	if clips.is_empty(): return
-	var name := ("attack_left" if punch_left else "attack_right") if state == &"attack" else String(state)
+	var attack_name := ("enter_" if entering_attack else "attack_")+("left" if punch_left else "right")
+	var name := "lower" if lower_elapsed >= 0 else (attack_name if state == &"attack" else String(state))
 	var clip: Dictionary = clips.get(name,clips.idle)
 	if not sheets.has(clip.path):
 		sheets[clip.path] = load(clip.path)
 		var mask := BitMap.new(); mask.create_from_image_alpha(sheets[clip.path].get_image(),0.5)
 		alpha_masks[clip.path] = mask
 	current_sheet = clip.path
-	var phase := walk_phase if state == &"walk" else (clampf(attack_elapsed/ATTACK_PERIOD,0,1) if state == &"attack" else 0.0)
+	var phase := lower_elapsed/LOWER_SECONDS if lower_elapsed >= 0 else (walk_phase if state == &"walk" else (clampf(attack_elapsed/ATTACK_PERIOD,0,1) if state == &"attack" else 0.0))
 	var frame := preload("res://scripts/complete_sprite_clips.gd").action_frame(phase,clip.frames)
 	var direction := preload("res://scripts/complete_sprite_clips.gd").direction_index(heading,int(clip.directions))
 	var cell: Vector2 = Vector2(clips.canvas[0],clips.canvas[1])

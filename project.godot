@@ -5,12 +5,17 @@ config/name="Day Zero"
 run/main_scene="res://scenes/day_zero.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
+[autoload]
+GameCursor="*res://scripts/cursor_overlay.gd"
+
 [display]
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/window_width_override=1920
 window/size/window_height_override=1080
 window/stretch/mode="disabled"
+; Native tooltips avoid consuming pointer motion while closing embedded popups.
+window/subwindows/embed_subwindows=false
 
 [rendering]
 renderer/rendering_method="gl_compatibility"

@@ -18,6 +18,7 @@ var options: Control
 var title_area: Control
 var title: Label
 var settings_panel: PanelContainer
+var settings_backdrop: ColorRect
 var art: TextureRect
 var exact_art := false
 var rects: Dictionary = {}
@@ -157,9 +158,8 @@ func set_resume(active: bool) -> void:
 	for node in rects:
 		if node == mute_button: continue
 		node.add_theme_font_override("font",pause_font)
-		var baked: bool = node.get_meta("baked")
-		node.text = String(node.get_meta("caption")).to_upper() if active or not baked else ""
-		if pause_faces.has(node): pause_faces[node].visible = active
+		node.text = String(node.get_meta("caption")).to_upper()
+		if pause_faces.has(node): pause_faces[node].visible = true
 	fit()
 
 func set_saved_available(available: bool) -> void:
@@ -214,8 +214,12 @@ func fit() -> void:
 
 func open_settings() -> void:
 	if is_instance_valid(settings_panel): return
-	options.hide()
-	title_area.hide()
+	# Keep the live font covers visible: hiding them reveals the old text
+	# baked into the background template. A backdrop blocks underlying input.
+	settings_backdrop = ColorRect.new()
+	settings_backdrop.color = Color(0,0,0,0.35)
+	settings_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(settings_backdrop)
 	settings_panel = preload("res://scripts/settings_panel.gd").new()
 	add_child(settings_panel)
 	settings_panel.configure(settings)
@@ -225,6 +229,8 @@ func close_settings() -> void:
 	if is_instance_valid(settings_panel):
 		remove_child(settings_panel)
 		settings_panel.queue_free()
+	if is_instance_valid(settings_backdrop):
+		remove_child(settings_backdrop); settings_backdrop.queue_free()
 	options.show()
 	title_area.show()
 	refresh_audio()

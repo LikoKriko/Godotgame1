@@ -49,7 +49,7 @@ static func geometry(id: StringName) -> Dictionary:
 	if texture == null: return {}
 	var grip: Vector2 = DATA[id].grip-DATA[id].rect.position
 	var contact: Vector2 = DATA[id].contact-DATA[id].rect.position
-	var result := {"texture": texture,"grip": grip,"contact": contact}
+	var result := {"texture": texture,"grip": grip,"contact": contact,"support":DATA[id].support-DATA[id].rect.position}
 	geometry_cache[id] = result
 	return result
 

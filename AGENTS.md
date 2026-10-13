@@ -7,3 +7,20 @@ El grosor de referencia es un píxel de la rasterización del personaje completo
 Las herramientas no deben dibujarse a través del torso o la cabeza al mirar hacia arriba o hacia los lados. Los agarres y los brazos deben seguir visibles donde corresponda. Validar la oclusión en los fotogramas completos exportados, no únicamente en el rig antiguo.
 
 Si una decisión visual o de comportamiento no está especificada, presentar opciones al usuario antes de escogerla. Las decisiones de implementación que cumplen el resultado ya definido no necesitan consultas repetidas.
+
+## Animación y anatomía compartidas
+
+Usar las superficies continuas de `tools/continuous_actor.gd` y la cinemática de
+`scripts/continuous_body_pose.gd` como base reutilizable para personajes y
+enemigos. Los huesos mantienen su longitud; hombros y caderas permanecen dentro
+del torso, y piel, manos, pies y ropa acompañan sus articulaciones. Las fases de
+apoyo y transferencia se comparten mediante `stance_swing`; el número de patas y
+la postura deben corresponder a la criatura. El joven camina sobre cuatro patas
+y se levanta solo para sus puñetazos alternos.
+
+Orientar las herramientas a partir de sus puntos reales de agarre y de su plano
+de corte, de forma continua durante reposo, preparación, impacto y recuperación.
+No solucionar una orientación incorrecta con inversiones aisladas de frames o
+direcciones. La estela de la espada debe tomar la punta exportada en cada sprite.
+Revisar todas las direcciones y poses completas, también con armadura; validar
+agarres, oclusión, márgenes y continuidad antes de publicar los atlas.

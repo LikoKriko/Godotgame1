@@ -7,6 +7,6 @@ void fragment() {
 	vec3 color = pixel.rgb * vec3(0.72,0.76,0.72);
 	float outline = 1.0-smoothstep(0.09,0.24,value);
 	color = mix(color,vec3(0.20,0.23,0.21),outline);
-	color = mix(vec3(0.235,0.295,0.205),color,0.36);
-	COLOR = vec4(color*ambient_tint,pixel.a*0.82);
+	color = mix(vec3(0.245,0.302,0.207),color,0.24);
+	COLOR = vec4(color*ambient_tint,pixel.a*0.78);
 }

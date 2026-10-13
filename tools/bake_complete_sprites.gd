@@ -8,6 +8,7 @@ var camera: Camera3D
 var actor: Node3D
 var failures := 0
 var armor_id: StringName = &""
+var unloaded_bow := false
 
 func _initialize() -> void: call_deferred("run")
 
@@ -41,6 +42,7 @@ func outlined(picture: Image) -> Image:
 func protect_body(item: StringName,direction: int) -> void:
 	actor.tool_material.set_shader_parameter("protect_body",false)
 	actor.body_material.set_shader_parameter("protect_bow_arm",false)
+	actor.body_material.set_shader_parameter("protect_bow_arrow",false)
 	if item == &"" or sin(direction*TAU/16) > 0.001: return
 	actor.show_core_only()
 	await frame_ready()
@@ -48,6 +50,7 @@ func protect_body(item: StringName,direction: int) -> void:
 	actor.restore_full(item)
 	actor.body_material.set_shader_parameter("body_mask",mask)
 	actor.body_material.set_shader_parameter("protect_bow_arm",sin(direction*TAU/16) < -0.001)
+	actor.body_material.set_shader_parameter("protect_bow_arrow",item == &"bow")
 	actor.tool_material.set_shader_parameter("body_mask",mask)
 	actor.tool_material.set_shader_parameter("protect_body",true)
 
@@ -55,8 +58,10 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 	var result := Image.create(CELL.x*count,CELL.y*directions,false,Image.FORMAT_RGBA8)
 	var grip_error := 0.0
 	var anchors := []
+	var tip_anchors := []
 	for direction in directions:
 		var row := []
+		var tips := []
 		for frame in count:
 			var combined := String(state).begins_with("equip_") or state == &"pickup_walk"
 			var pose_frame := frame/12 if combined else frame
@@ -70,17 +75,21 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 			var basis := Basis(Vector3.UP,yaw)
 			var base: Vector3 = actor.last_pose["hands"][1]
 			var tip := base+base.direction_to(actor.last_pose["hands"][0]+Vector3(0,1,0))*24
-			var point := camera.unproject_position(basis*tip) if family == &"bow" else Vector2.ZERO
+			var point := camera.unproject_position(actor.arrow_tip) if family == &"bow" else Vector2.ZERO
 			if family == &"bow" and state == &"action" and frame == 8:
 				row.append(snappedf(point.x,0.001))
 				row.append(snappedf(point.y,0.001))
+			if family == &"sword" and state == &"action":
+				var sword_tip := camera.unproject_position(actor.tool_tip)
+				tips.append([snappedf(sword_tip.x,0.001),snappedf(sword_tip.y,0.001)])
 			grip_error = maxf(grip_error,actor.grip_error)
 			await frame_ready()
 			var picture := outlined(viewport.get_texture().get_image())
 			picture.convert(Image.FORMAT_RGBA8)
 			result.blit_rect(picture,Rect2i(Vector2i.ZERO,CELL),Vector2i(frame*CELL.x,direction*CELL.y))
 		if not row.is_empty(): anchors.append(row)
-	var id := "bare" if item == &"" else String(item)
+		if not tips.is_empty(): tip_anchors.append(tips)
+	var id := "bare" if item == &"" else ("bow_unloaded" if unloaded_bow and item == &"bow" else String(item))
 	if armor_id != &"": id = String(armor_id)+"__"+id
 	var suffix := ("_start_%02d" if from_start else "_%02d") % stop_frame if stop_frame >= 0 else ""
 	var path := OUTPUT+id+"_"+String(state)+suffix+".png"
@@ -105,6 +114,7 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 	var data := {"path":path,"frames":12 if combined else count,"directions":directions,"grip_error":snappedf(grip_error,0.00001)}
 	if combined: data["equip_frames"] = 6; data["gait_frames"] = 12; data["paths"] = paths
 	if not anchors.is_empty(): data["release_anchors"] = anchors
+	if not tip_anchors.is_empty(): data["tip_anchors"] = tip_anchors
 	if armor_id == &"" and item == &"" and state == &"idle": data["body_height"] = result.get_region(Rect2i(0,4*CELL.y,CELL.x,CELL.y)).get_used_rect().size.y
 	return data
 
@@ -112,6 +122,8 @@ func run() -> void:
 	setup()
 	await frame_ready()
 	var arguments := OS.get_cmdline_user_args()
+	unloaded_bow = "--unloaded-bow" in arguments
+	if unloaded_bow: actor.nocked_arrow_enabled = false
 	if "--armor" in arguments:
 		armor_id = StringName(arguments[arguments.find("--armor")+1])
 		actor.armor_id = armor_id
@@ -147,15 +159,15 @@ func run() -> void:
 		var family: StringName = Inventory.DEFINITIONS.get(item,{}).get("category",&"")
 		if String(item).begins_with("bottle_"): family = &"bottle"
 		var clips := {}
-		var key := "bare" if item == &"" else String(item)
+		var key := "bare" if item == &"" else ("bow_unloaded" if unloaded_bow and item == &"bow" else String(item))
 		if armor_id != &"": key = String(armor_id)+"__"+key
 		if not selected_clips.is_empty():
 			clips = manifest["items"][key]["clips"].duplicate(true)
 			for name in selected_clips:
-				if name not in ["action","pickup","pickup_walk","jump","crouch","slide","slide_jump","crouch_walk","equip_walk","equip_run","equip_crouch_walk","crouch_equip"]:
+				if name not in ["draw","action","pickup","pickup_walk","jump","crouch","slide","slide_jump","crouch_walk","equip_walk","equip_run","equip_crouch_walk","crouch_equip"]:
 					push_error("Partial export currently supports jump,crouch,slide,crouch_walk only")
 					quit(1); return
-				clips[name] = await sheet(item,family,StringName(name),72 if name.begins_with("equip_") or name == "pickup_walk" else (16 if name == "action" else (12 if name == "crouch_walk" else 6)),16 if name in ["crouch_equip","action"] else 8)
+				clips[name] = await sheet(item,family,StringName(name),72 if name.begins_with("equip_") or name == "pickup_walk" else (16 if name == "action" else (12 if name == "crouch_walk" else 6)),16 if name in ["draw","crouch_equip","action"] else 8)
 			manifest["items"][key]["clips"] = clips
 			var partial := FileAccess.open(path,FileAccess.WRITE)
 			partial.store_string(JSON.stringify(manifest,"\t"))
@@ -177,6 +189,8 @@ func run() -> void:
 		for start_frame in 6:
 			clips["stop_start_%02d" % start_frame] = await sheet(item,family,&"stop",6,8,start_frame,true)
 		clips["action"] = await sheet(item,family,&"action",16,16)
+		if item == &"bow":
+			clips["draw"] = await sheet(item,family,&"draw",6,16)
 		if item == &"":
 			clips["pickup"] = await sheet(item,family,&"pickup",6,8)
 			clips["pickup_walk"] = await sheet(item,family,&"pickup_walk",72,8)

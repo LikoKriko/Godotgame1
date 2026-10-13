@@ -6,6 +6,7 @@ x11 = ctypes.CDLL("libX11.so.6")
 xtest = ctypes.CDLL("libXtst.so.6")
 x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
 x11.XOpenDisplay.restype = ctypes.c_void_p
+x11.XRaiseWindow.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
 x11.XSetInputFocus.argtypes = [ctypes.c_void_p, ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong]
 x11.XFlush.argtypes = [ctypes.c_void_p]
 x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
@@ -14,6 +15,22 @@ xtest.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_
 display = x11.XOpenDisplay(None)
 if not display:
     raise SystemExit("X11 display required")
+if sys.argv[1:] == ["--cursor-art"]:
+    class CursorImage(ctypes.Structure):
+        _fields_ = [("x", ctypes.c_short), ("y", ctypes.c_short),
+                    ("width", ctypes.c_ushort), ("height", ctypes.c_ushort),
+                    ("xhot", ctypes.c_ushort), ("yhot", ctypes.c_ushort),
+                    ("serial", ctypes.c_ulong), ("pixels", ctypes.POINTER(ctypes.c_ulong))]
+    fixes = ctypes.CDLL("libXfixes.so.3")
+    fixes.XFixesGetCursorImage.argtypes = [ctypes.c_void_p]
+    fixes.XFixesGetCursorImage.restype = ctypes.POINTER(CursorImage)
+    cursor_image = fixes.XFixesGetCursorImage(display)
+    item = cursor_image.contents
+    print(item.width, item.height, item.xhot, item.yhot)
+    x11.XFree.argtypes = [ctypes.c_void_p]
+    x11.XFree(cursor_image)
+    x11.XCloseDisplay(display)
+    raise SystemExit(0)
 if sys.argv[1:] == ["--has-wm"]:
     # Godot's X11 fullscreen flag requires an EWMH window manager. The cloud
     # dummy display can still test desktop coverage and the rendering transform.
@@ -35,6 +52,7 @@ if sys.argv[1:] == ["--has-wm"]:
     x11.XCloseDisplay(display)
     raise SystemExit(0 if managed else 2)
 window, x, y = map(int, sys.argv[1:4])
+x11.XRaiseWindow(display, window)
 x11.XSetInputFocus(display, window, 2, 0)
 xtest.XTestFakeMotionEvent(display, -1, x, y, 0)
 if len(sys.argv) > 4:

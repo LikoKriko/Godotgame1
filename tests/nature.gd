@@ -17,6 +17,14 @@ func run_checks() -> void:
 	root.add_child(game)
 	game.set_process(false)
 	var map = game.world
+	game.bag.unequip(&"tool")
+	var sapling_designs := {}
+	for cell in map.saplings:
+		var data: Dictionary = game.world_view.presentation(cell)
+		require(is_equal_approx(data.size.y,42.0),"All five new sapling designs share the same world height")
+		sapling_designs[posmod(cell.x*31+cell.y*17,5)] = true
+		require(game.bag.can_harvest(game.resources.nodes[cell].material),"New saplings remain harvestable with bare hands")
+	require(sapling_designs.size() == 5,"The initial map contains every uploaded sapling design")
 	for kind in [1, 2]:
 		var unique := {}
 		var sizes := {}

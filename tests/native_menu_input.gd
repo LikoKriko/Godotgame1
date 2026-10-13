@@ -8,19 +8,26 @@ func require(value: bool,message: String) -> void:
 func settle() -> void:
 	for i in 4: await process_frame
 func native_pointer(button: Control, point: Vector2, pressed: int = -1) -> void:
+	var expected := button.get_global_transform_with_canvas()*point
 	var screen: Vector2 = root.get_final_transform()*button.get_global_transform_with_canvas()*point+Vector2(root.position)
 	var arguments := PackedStringArray([ProjectSettings.globalize_path("res://tests/native_pointer.py"),str(DisplayServer.window_get_native_handle(DisplayServer.WINDOW_HANDLE)),str(roundi(screen.x)),str(roundi(screen.y))])
 	if pressed != -1: arguments.append(str(pressed))
 	var error := OS.execute("python3",arguments)
 	require(error == 0,"Native pointer injection succeeds")
 	await settle()
+	# XTest delivery is asynchronous, especially while software rendering.
+	# Wait for the actual requested coordinates, never for a desired hover result.
+	for frame in 12:
+		if root.get_mouse_position().distance_to(expected) <= 1.5: break
+		await process_frame
+	require(root.get_mouse_position().distance_to(expected) <= 1.5,"The engine receives the native pointer coordinates before testing hit areas")
 
 
 func boundaries(button: Control) -> void:
 	await settle()
 	for point in [Vector2(3,3),button.size-Vector2(3,3),button.size/2]:
 		await native_pointer(button,point)
-		require(root.gui_get_hovered_control() == button,"Real OS pointer hovers exactly inside the rendered button")
+		require(root.gui_get_hovered_control() == button,"Real OS pointer hovers exactly inside the rendered button: %s, local=%s, screen=%s, hover=%s, mouse=%s" % [button.get_path(),point,root.get_final_transform()*button.get_global_transform_with_canvas()*point+Vector2(root.position),root.gui_get_hovered_control(),root.get_mouse_position()])
 	for point in [Vector2(-3,button.size.y/2),Vector2(button.size.x+3,button.size.y/2)]:
 		await native_pointer(button,point)
 		require(root.gui_get_hovered_control() != button,"Real OS pointer outside the button cannot hover it")

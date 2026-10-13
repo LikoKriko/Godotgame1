@@ -24,6 +24,9 @@ var visual_override: Dictionary = {}
 var tool_material: ShaderMaterial
 var bow_ends: Array[Vector3] = []
 var view_direction := 0
+var arrow_tip := Vector3.ZERO
+var tool_tip := Vector3.ZERO
+var tool_cutting_axis := Vector3.ZERO
 
 func _ready() -> void:
 	mesh_node = MeshInstance3D.new()
@@ -150,26 +153,30 @@ func tool_geometry(item: StringName) -> Dictionary:
 	return data
 
 func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis,item: StringName) -> Dictionary:
-	var source_axis: Vector2 = (data["contact"]-data["grip"]).normalized()
+	# The wood shaft is defined by the two grip points, not an off-centre
+	# cutting tip. Its broad face always points into the actor's strike plane;
+	# there are no per-direction or per-frame sprite inversions.
+	var source_axis: Vector2 = (data.get("support",data["contact"])-data["grip"]).normalized() if item in [&"axe",&"pickaxe"] else (data["contact"]-data["grip"]).normalized()
 	var direction := (actor_basis*shaft).normalized()
-	var plane_axis := -(actor_basis*Vector3.BACK) if item == &"bow" else Vector3.RIGHT
-	if item == &"axe":
-		# In north views the strike plane was almost edge-on to the camera.
-		# Roll the rigid tool toward the viewer so its cutting face is readable.
-		var north := maxf(0,-sin(view_direction*TAU/16))
-		plane_axis = plane_axis.lerp(camera_up,0.65*north).normalized()
+	var local_shaft := actor_basis.inverse()*direction
+	# Pitch the cutting edge with the handle: upright -> forward edge,
+	# horizontal -> downward edge. This never changes sign between frames.
+	var cut := Vector3(0,-local_shaft.z,local_shaft.y)
+	cut.x = 0.70*pow(absf(sin(view_direction*TAU/16)),0.8)
+	var plane_axis := actor_basis*cut
+	if item == &"bow": plane_axis = -(actor_basis*Vector3.BACK)
+	if item == &"sword": plane_axis = Vector3.RIGHT
 	var across := plane_axis-direction*direction.dot(plane_axis)
 	if across.length_squared() < 0.03: across = camera_up-direction*direction.dot(camera_up)
 	across = across.normalized()
-	# Reverse the broad face about the handle, preserving both grips and the
-	# cutting contact. Southern and western poses now lead with the blade.
-	if item == &"axe" and view_direction in range(1,12): across = -across
 	var x_axis := direction*source_axis.x-across*source_axis.y
 	var y_axis := direction*source_axis.y+across*source_axis.x
 	var texture: Texture2D = data["texture"]
 	var pixels: float = data.get("display_size",Tools.DISPLAY_SIZES.get(item,32.0))/maxf(texture.get_width(),texture.get_height())
 	var center: Vector2 = texture.get_size()/2-data["grip"]
 	var world_grip := actor_basis*grip
+	tool_tip = world_grip+(x_axis*(data.contact.x-data.grip.x)+y_axis*(data.contact.y-data.grip.y))*pixels
+	tool_cutting_axis = across
 	tool.texture = texture
 	var raw: Texture2D = texture.atlas if texture is AtlasTexture else texture
 	var region: Rect2 = texture.region if texture is AtlasTexture else Rect2(Vector2.ZERO,texture.get_size())
@@ -197,6 +204,7 @@ func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis
 
 func build(item: StringName,family: StringName,state: StringName,phase: float,direction: int,stop_phase: float = 0.20,stop_amplitude: float = 1.0) -> void:
 	view_direction = posmod(direction,16)
+	if state == &"draw": state = &"action"; phase *= 0.44
 	var pose := Pose.sample(family,state,phase,stop_phase,stop_amplitude,direction)
 	if state == &"action" and (phase <= 0 or phase >= 1): pose = Pose.sample(family,&"idle",0,0.20,1.0,direction)
 	last_pose = pose
@@ -274,11 +282,12 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 			string_mid = string_mid.lerp(pose["hands"][1],smoothstep(0.2,0.44,phase))
 		tube([bow_ends[0],bow_ends[0].lerp(string_mid,0.5),string_mid],0.12,0.12,Color8(123,125,119),false,2)
 		tube([string_mid,string_mid.lerp(bow_ends[1],0.5),bow_ends[1]],0.12,0.12,Color8(123,125,119),false,2)
+		var arrow_base: Vector3 = pose["hands"][1]
+		var arrow_axis := arrow_base.direction_to(pose["hands"][0]+Vector3(0,1,0))
+		arrow_tip = actor_basis*(arrow_base+arrow_axis*preload("res://scripts/arrow_art.gd").LENGTH)
 		if nocked_arrow_enabled and (state != &"action" or phase < 0.5 or phase > 0.97):
-			var arrow_base: Vector3 = pose["hands"][1]
-			var arrow_axis := arrow_base.direction_to(pose["hands"][0]+Vector3(0,1,0))
-			tube([arrow_base,arrow_base+arrow_axis*12,arrow_base+arrow_axis*24],0.6,0.6,Color8(174,133,75),false,2)
-			ellipsoid(arrow_base+arrow_axis*24,Vector3(0.8,0.8,1.0),Color8(158,160,151))
+			append_arrow(arrow_base,arrow_axis,actor_basis)
+
 	surface_tag = 0
 	# Cord and small fabric patches remain attached to the pelvis/thigh surfaces.
 	for index in 24:
@@ -300,3 +309,19 @@ func restore_full(item: StringName) -> void:
 	core_mesh.hide()
 	mesh_node.show()
 	tool.visible = item != &""
+
+func append_arrow(base: Vector3,axis: Vector3,actor_basis: Basis) -> void:
+	var data := preload("res://scripts/arrow_art.gd").data(false)
+	body_material.set_shader_parameter("arrow_texture",data.texture)
+	var source_axis: Vector2 = (data.tip-data.tail).normalized()
+	var plane := actor_basis.inverse()*camera_up
+	var across := plane-axis*plane.dot(axis)
+	if across.length_squared() < 0.03: across = actor_basis.inverse()*Vector3.RIGHT-axis*axis.dot(actor_basis.inverse()*Vector3.RIGHT)
+	across = across.normalized()
+	var x_axis := axis*source_axis.x-across*source_axis.y
+	var y_axis := axis*source_axis.y+across*source_axis.x
+	var size: Vector2 = data.texture.get_size()
+	for uv in [Vector2(0,0),Vector2(0,1),Vector2(1,1),Vector2(0,0),Vector2(1,1),Vector2(1,0)]:
+		var offset: Vector2 = uv*size-data.tail
+		surface.set_uv(Vector2(7,0)); surface.set_uv2(uv); surface.set_color(Color.WHITE)
+		surface.add_vertex(base+(x_axis*offset.x+y_axis*offset.y)*data.world_per_pixel)

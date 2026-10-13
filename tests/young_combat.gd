@@ -61,11 +61,14 @@ func run() -> void:
 	game.inventory_panel.hide()
 	enemy = encounter(); game.bag.select_tool(&"sword"); game.weapon_timer = 0
 	require(enemy.contains_point(enemy.hit_center()) and game.use_weapon(enemy.hit_center()),"A sword can select an opaque enemy surface at close range")
-	require(enemy.health == 0 and game.enemies.defeated and not game.combat_effects.flashes.is_empty(),"Sword damage defeats the ten-HP creature and emits contact shock")
+	require(enemy.health > 0 and not game.combat_effects.flashes.is_empty(),"A three-damage sword strike emits contact shock without instantly killing ten HP")
+	for i in 3:
+		game.weapon_timer = 0; game.use_weapon(enemy.hit_center())
+	require(enemy.health == 0 and game.enemies.defeated,"Four basic sword strikes defeat the ten-HP creature")
 	state = Save.capture(game); require(Save.valid(state) and Save.restore(game,state) and not is_instance_valid(game.enemies.enemy),"A defeated enemy stays defeated after continuing a saved game")
 	enemy = encounter()
 	var arrow = preload("res://scripts/arrow.gd").new(); arrow.world = game.world; arrow.game = game
 	game.add_child(arrow); arrow.set_process(false); arrow.position = enemy.hit_center()-Vector2(3,0); arrow.velocity = Vector2(60,0); arrow._process(0.05)
-	require(enemy.health == 0 and game.enemies.defeated,"An arrow impacts the enemy's visible pixels and applies weapon damage")
+	require(enemy.health > 0 and enemy.health <= 7,"A three-damage arrow impacts opaque enemy pixels without instantly killing ten HP")
 	print("%s: %d young enemy/combat checks, %d failures" % ["PASS" if failures == 0 else "FAIL",checks,failures])
 	game.free(); quit(1 if failures else 0)

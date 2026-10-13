@@ -16,6 +16,7 @@ var phase := 0.0
 var state: StringName = &"idle"
 var direction := 4
 var frame_index := 0
+var active_data: Dictionary = {}
 var transition_elapsed := 0.0
 var stop_clip: StringName = &"stop_00"
 var previous_player := Vector2.ZERO
@@ -41,6 +42,7 @@ func reset() -> void:
 
 func item_key() -> String:
 	var id := "bare" if game.bag.held_id() == &"" else String(game.bag.held_id())
+	if id == "bow" and game.bag.count(&"flecha") == 0 and catalogue.items.has("bow_unloaded"): id = "bow_unloaded"
 	if id == "botella": id = "bottle_full" if game.bag.held_item().get("water_ml",0) > 0 else "bottle_empty"
 	if not catalogue.items.has(id): id = "bare"
 	var armor: StringName = game.bag.equipment[&"torso"].get("id",&"")
@@ -86,6 +88,11 @@ func update_pose(delta: float) -> void:
 	elif game.working:
 		clip = &"action"
 		progress = clampf(game.work_elapsed/game.work_duration,0,1)
+		if game.bag.held_category() == &"bow":
+			var draw_seconds: float = preload("res://scripts/action_motion.gd").BOW_DRAW_SECONDS
+			if game.work_elapsed < draw_seconds:
+				clip = &"draw"; progress = clampf(game.work_elapsed/draw_seconds,0,1)
+			else: progress = 0.5+0.5*clampf((game.work_elapsed-draw_seconds)/(game.work_duration-draw_seconds),0,1)
 		was_moving = false
 	elif game.equipping and not game.locomotion.airborne() and not game.locomotion.sliding():
 		clip = &"crouch_equip" if game.locomotion.crouch > 0.95 else &"equip"
@@ -138,6 +145,7 @@ func update_pose(delta: float) -> void:
 			progress = clampf(transition_elapsed/STOP_SECONDS,0,1)
 	state = &"stop" if String(clip).begins_with("stop_") else clip
 	var data := data_for(clip)
+	active_data = data
 	var count: int = data["frames"]
 	var facing: float = game.player.direction_to(game.pickup_aim).angle() if game.interaction_motion.picking_up() else game.movement.heading
 	direction = Clips.direction_index(facing,int(data["directions"]))
@@ -157,8 +165,15 @@ func update_pose(delta: float) -> void:
 	show()
 
 func shot_origin() -> Vector2:
-	var data := data_for(&"action")
+	var armor: StringName = game.bag.equipment[&"torso"].get("id",&"")
+	var key := String(armor)+"__bow" if catalogue.items.has(String(armor)+"__bow") else "bow"
+	var data: Dictionary = catalogue.items[key].clips.action
 	var facing := Clips.direction_index(game.movement.heading,16)
 	var point: Array = data["release_anchors"][facing]
 	var foot := Vector2(catalogue["foot"][0],catalogue["foot"][1])
 	return game.player+Vector2(0,17)+(Vector2(point[0],point[1])-foot)/float(catalogue["pixels_per_world"])
+
+func held_tip() -> Vector2:
+	if not active_data.has("tip_anchors"): return Vector2.INF
+	var point: Array = active_data.tip_anchors[direction][frame_index]
+	return to_global(Vector2(point[0],point[1]))

@@ -39,6 +39,11 @@ func run() -> void:
 		var walk := Image.load_from_file(ProjectSettings.globalize_path(clips["walk"]["path"]))
 		var start := Image.load_from_file(ProjectSettings.globalize_path(clips["start"]["path"]))
 		var idle := Image.load_from_file(ProjectSettings.globalize_path(clips["idle"]["path"]))
+		if "bow" in String(item):
+			require(clips.has("draw") and clips.draw.frames == 6 and clips.draw.directions == 16,"Bow has six tension frames in sixteen directions")
+			var draw := Image.load_from_file(ProjectSettings.globalize_path(clips.draw.path))
+			for row in 16:
+				require(same(frame(draw,0,row),frame(idle,0,row)),"Bow drawing begins at the exact ready pose")
 		var action := Image.load_from_file(ProjectSettings.globalize_path(clips["action"]["path"]))
 		if clips.has("pickup"):
 			require(clips.pickup.frames == 6 and clips.pickup.directions == 8,"Pickup has six full poses per movement direction")

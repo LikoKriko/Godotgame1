@@ -5,7 +5,7 @@ const SIZE := Vector2i(48, 32)
 const FIRST := Vector2i(-24, -16)
 const PLAYER_RADIUS := 15.0
 const DIRECTIONS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
-const RETIRED_STRUCTURE_CELLS := [Vector2i(-8,-5),Vector2i(7,4)]
+const RETIRED_STRUCTURE_CELLS := [Vector2i(-8,-5),Vector2i(7,4),Vector2i(-5,-5)]
 var previous_grass_count := 0
 const Nature = preload("res://scripts/nature_variants.gd")
 var seed_value := 73129
@@ -20,7 +20,6 @@ var saplings: Dictionary = {}
 var burdock: Dictionary = {}
 var grass_tufts: Array[Dictionary] = []
 var puddles: Array[Dictionary] = []
-var stone_patches: Array[Rect2] = []
 var dirt_patches: Array[Rect2] = []
 var navigation_revision := 0
 var reachable: Array[Vector2i] = []
@@ -82,9 +81,6 @@ func generate(new_seed: int) -> void:
 	for cell in RETIRED_STRUCTURE_CELLS:
 		props[cell] = 0
 		cells[cell]["blocked"] = true
-	for cell in [Vector2i(-5, -5)]:
-		props[cell] = 3
-		cells[cell]["blocked"] = true
 	ensure_nature_variety()
 	add_saplings(rng)
 	var visited := {Vector2i.ZERO: true}
@@ -143,7 +139,9 @@ func add_saplings(rng: RandomNumberGenerator) -> void:
 			continue
 		props[cell] = 4
 		cells[cell]["blocked"] = true
-		saplings[cell] = {"height": rng.randf_range(34, 50), "tint": Color(0.94, rng.randf_range(0.96, 1.0), 0.92)}
+		# Preserve the seed stream while replacing variable sizes with five equal-height drawings.
+		rng.randf_range(34, 50); rng.randf_range(0.96, 1.0)
+		saplings[cell] = {"height": 42.0, "tint": Color.WHITE}
 
 func generate_ground_details() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -165,11 +163,9 @@ func generate_ground_details() -> void:
 		if separated:
 			puddles.append({"position": point, "width": rng.randf_range(28, 48)})
 
-	stone_patches.clear()
-	for quadrant in [Vector2(-1,-1),Vector2(1,-1),Vector2(-1,1),Vector2(1,1)]:
-		var center: Vector2 = quadrant*Vector2(rng.randf_range(430,1050),rng.randf_range(300,670))
-		var radius := Vector2(rng.randf_range(85,145),rng.randf_range(65,110))
-		stone_patches.append(Rect2(center-radius,radius*2))
+	# Preserve the random stream used by older saved layouts, without
+	# creating the retired gray gravel zones.
+	for unused in 16: rng.randf()
 	# Stratified, jittered cover prevents both empty stretches and a tile grid.
 	var soil_rng := RandomNumberGenerator.new(); soil_rng.seed = seed_value ^ 65173
 	dirt_patches.clear()
@@ -219,10 +215,6 @@ func grass_allowed(point: Vector2, padding: float = 0.0, exclude_dirt: bool = tr
 	var vertical := 24*sin(point.y/245)-10*sin(point.y/110)
 	if minf(absf(point.y-horizontal),absf(point.x-vertical)) < 82+padding:
 		return false
-	for patch in stone_patches:
-		var radius := patch.size/2+Vector2.ONE*(padding+20)
-		if ((point-patch.get_center())/radius).length() < 1.0:
-			return false
 	if exclude_dirt:
 		for patch in dirt_patches:
 			var radius := patch.size/2+Vector2.ONE*(padding+20)

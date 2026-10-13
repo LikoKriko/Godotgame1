@@ -21,6 +21,7 @@ const HARVEST_TIME := 0.6
 var bag = preload("res://scripts/inventory.gd").new()
 var inventory_panel: Control
 var work_item_uid := -1
+var bow_draw_uid := -1
 var work_aim := Vector2.ZERO
 var work_contact_aim := Vector2(INF,INF)
 var weapon_timer := 0.0
@@ -99,9 +100,6 @@ func _ready() -> void:
 	gameplay_settings.changed.connect(fit_hud)
 	get_viewport().size_changed.connect(fit_hud)
 	fit_hud()
-	var cursor := preload("res://scripts/aim_cursor.gd").new()
-	cursor.game = self
-	canvas.add_child(cursor)
 	inventory_panel.consume_requested.connect(consume_item)
 	full_avatar = preload("res://scripts/full_frame_avatar.gd").new()
 	add_child(full_avatar)
@@ -117,7 +115,6 @@ func _ready() -> void:
 	styled_hud = preload("res://scripts/styled_hud.gd").new()
 	canvas.add_child(styled_hud)
 	styled_hud.configure(self)
-	canvas.move_child(cursor,canvas.get_child_count()-1)
 	canvas.move_child(inventory_panel,canvas.get_child_count()-1)
 	canvas.move_child(world_map,canvas.get_child_count()-1)
 	canvas.move_child(item_catalog,canvas.get_child_count()-1)
@@ -137,6 +134,7 @@ func fit_hud() -> void:
 	var factor: float = gameplay_settings.hud_scale(gameplay_settings.values["hud_size"])
 	interaction.scale = Vector2.ONE*factor
 	interaction.position = Vector2(24,viewport_size.y-18-110*factor)
+	if styled_hud != null: styled_hud.fit()
 
 func restart() -> void:
 	running = false
@@ -158,6 +156,7 @@ func restart() -> void:
 	for arrow in get_tree().get_nodes_in_group("player_arrows"):
 		arrow.queue_free()
 	weapon_timer = 0.0
+	bow_draw_uid = -1
 	player = Vector2.ZERO
 	movement.reset()
 	experience = 0
@@ -180,7 +179,7 @@ func restart() -> void:
 		solar_lighting.update_light()
 		update_hud()
 	enemies.reset()
-	if combat_effects != null: combat_effects.flashes.clear(); combat_effects.queue_redraw()
+	if combat_effects != null: combat_effects.flashes.clear(); combat_effects.trail.clear(); combat_effects.queue_redraw(); combat_effects.trail_layer.queue_redraw()
 
 func buy_improvement(id: StringName, ability: bool) -> bool:
 	var spent: int = progression.purchase(id,ability,skill_points)
@@ -373,7 +372,6 @@ func _process(delta: float) -> void:
 	if is_paused():
 		return
 	enemies.advance(delta)
-	combat_effects.advance(delta)
 	interaction_motion.advance(delta)
 	advance_pickup()
 	progression.advance(delta)
@@ -416,10 +414,12 @@ func _process(delta: float) -> void:
 		advance_work(delta, aim)
 	world_view.update_trees(player, delta)
 	full_avatar.update_pose(delta)
+	combat_effects.advance(delta)
 	solar_lighting.update_light()
 	interaction.text = feedback if feedback_time > 0 else ""
 
 func cancel_work() -> void:
+	bow_draw_uid = -1
 	working = false
 	work_elapsed = 0.0
 
@@ -428,6 +428,8 @@ func start_work(aim: Vector2) -> bool:
 		return false
 	var item: StringName = bag.held_category()
 	if item == &"bottle": return false
+	if item == &"bow" and bag.count(&"flecha") == 0:
+		feedback = "Necesitas flechas para disparar el arco"; feedback_time = 2; update_hud(); return false
 	if item != &"" and not bag.usable():
 		feedback = "La herramienta está rota."
 		feedback_time = 2
@@ -435,6 +437,8 @@ func start_work(aim: Vector2) -> bool:
 	if item in [&"sword", &"bow"] and weapon_timer > 0:
 		return false
 	work_item_uid = bag.held_item().get("uid", -1)
+	bow_draw_uid = work_item_uid if item == &"bow" else -1
+	if item == &"bow": bag.consume_use(); update_hud()
 	work_aim = aim
 	work_contact_aim = Vector2(INF,INF)
 	work_target = resources.target_at(aim)
@@ -459,7 +463,7 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 	movement.heading = (target-player).angle()
 	var item: StringName = bag.held_category()
 	var pose: Dictionary = preload("res://scripts/tool_contact.gd").contact(player,target,item)
-	if not hit_applied and work_elapsed >= work_duration * 0.5:
+	if not hit_applied and work_elapsed >= preload("res://scripts/action_motion.gd").contact_time(item,work_duration):
 		work_contact_aim = resources.visual_aim(work_aim,player)
 		hit_applied = true
 		# Resolve the contact pose even when a long frame crosses the impact moment.
@@ -467,61 +471,35 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 		if item in [&"sword", &"bow"]:
 			use_weapon(work_aim, true, pose)
 		else:
-			work_target = resources.target_at(work_aim)
-			var result: Dictionary = resources.hit_at(work_aim, pose["tip"], pose["shoulder"], player, 0)
-			if result.get("miss", false):
-				feedback = "Golpe al aire." if not result.get("blocked", false) else "Hay un obstáculo delante."
-				feedback_time = 1
-			elif result.has("cell"):
-				var material := "madera"
-				if resources.nodes.has(result["cell"]):
-					material = resources.nodes[result["cell"]]["material"]
-				else:
-					material = result.get("material", "madera")
-				impact_position = result.get("impact",work_aim)
-				impact_time = 0.18
-				world_view.register_impact(result["cell"], impact_position, pose["direction"], material, 0.3 if result.has("reason") else 1.0)
-				if result.has("reason"):
-					feedback = "La mochila está llena." if result["reason"] == "mochila_llena" else "Usa manos para fibra/chatarra, hacha para madera y pico para piedras (las pequeñas se recogen a mano)."
-					feedback_time = 2
-				elif result.has("depleted") and item != &"":
-					bag.consume_use()
-				if result.get("depleted", false):
-					feedback = "+%d %s" % [result["amount"], result["material"]]
-					if result["material"] == "fibra":
-						feedback += " · +2 palos"
-					feedback_time = 2
-					gain_experience(10)
-					focused = resources.NONE
-					world_view.queue_redraw()
+			resolve_melee_contact(work_aim,pose)
+
 	if work_elapsed >= work_duration:
 		cancel_work()
 
 func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {}) -> bool:
-	if progression.health <= 0 or (working and not from_strike) or is_paused() or weapon_timer > 0 or not bag.usable():
+	var drawn_bow: bool = from_strike and bow_draw_uid == bag.held_item().get("uid",-2) and bag.held_category() == &"bow"
+	if progression.health <= 0 or (working and not from_strike) or is_paused() or weapon_timer > 0 or (not bag.usable() and not drawn_bow):
 		return false
 	var id: StringName = bag.held_category()
 	if id not in [&"sword", &"bow"]:
 		return false
+	if id == &"bow" and bag.count(&"flecha") == 0:
+		feedback = "Necesitas flechas para disparar el arco"; feedback_time = 2; update_hud(); return false
 	if pose.is_empty():
 		pose = preload("res://scripts/tool_contact.gd").contact(player, target, id)
 	combat_aim = player.direction_to(target)
 	if combat_aim == Vector2.ZERO:
 		combat_aim = Vector2.from_angle(movement.heading)
-	bag.consume_use()
 	weapon_timer = 0.45 if id == &"sword" else 0.65
 	if id == &"sword":
-		for victim in get_tree().get_nodes_in_group("damageable"):
-			if victim is Node2D and victim.has_method("take_damage"):
-				var selected: bool = victim.contains_point(target) if victim.has_method("contains_point") else victim.global_position.distance_to(target) <= 18
-				var close: bool = victim.global_position.distance_to(player) <= resources.REACH+9
-				if selected and close and clear_combat_path(victim.global_position):
-					victim.take_damage(combat_damage(24.0))
-					if not victim.has_method("hit_center"): combat_effects.flash(victim.global_position,combat_aim)
+		resolve_melee_contact(target,pose)
 	else:
 		var arrow := preload("res://scripts/arrow.gd").new()
 		arrow.world = world
 		arrow.game = self
+		if not drawn_bow: bag.consume_use()
+		bag.remove_amount(&"flecha",1)
+		arrow.damage = bag.held_damage()
 		arrow.position = full_avatar.shot_origin() if full_avatar != null else pose["tip"]
 		arrow.velocity = arrow.position.direction_to(target) * 650
 		if arrow.velocity == Vector2.ZERO:
@@ -530,6 +508,41 @@ func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {
 		arrow.add_to_group("player_arrows")
 	update_hud()
 	return true
+
+func resolve_melee_contact(target: Vector2, pose: Dictionary) -> bool:
+	var category: StringName = bag.held_category()
+	if category != &"" and not bag.usable(): return false
+	if category in [&"sword",&"axe",&"pickaxe"]:
+		for victim in get_tree().get_nodes_in_group("damageable"):
+			if not victim is Node2D or not victim.has_method("take_damage"): continue
+			var selected: bool = victim.contains_point(target) if victim.has_method("contains_point") else victim.global_position.distance_to(target) <= 18
+			if selected and victim.global_position.distance_to(player) <= resources.REACH+9 and clear_combat_path(victim.global_position):
+				victim.take_damage(combat_damage(bag.held_damage()))
+				bag.consume_use(1 if category == &"sword" else 2)
+				if not victim.has_method("hit_center"): combat_effects.flash(victim.global_position,player.direction_to(target))
+				update_hud(); return true
+	var cell: Vector2i = resources.target_at(target)
+	if cell == resources.NONE or not resources.can_reach(cell,player):
+		feedback = "Golpe al aire."; feedback_time = 1; return false
+	var node: Dictionary = resources.nodes[cell]
+	var material: String = node.material
+	var impact: Vector2 = resources.visual_aim(target,player)
+	var correct: bool = not node.hand_collectable and bag.can_harvest(material)
+	var result: Dictionary = resources.hit(cell,player,0,true) if category != &"sword" else {"reason":"herramienta"}
+	if category in [&"sword",&"axe",&"pickaxe"]:
+		bag.consume_use(1 if category == &"sword" or correct else 2)
+	impact_position = impact; impact_time = 0.18
+	world_view.register_impact(cell,impact,pose.direction,material,1.0 if correct else 0.3)
+	if category == &"sword": combat_effects.flash(impact,pose.direction)
+	if result.has("reason"):
+		feedback = "La mochila está llena." if result.reason == "mochila_llena" else "Ese objeto necesita otra herramienta o manos libres."
+		feedback_time = 2
+	elif result.get("depleted",false):
+		feedback = "+%d %s" % [result.amount,result.material]
+		if result.material == "fibra": feedback += " · +2 palos"
+		feedback_time = 2; gain_experience(10); focused = resources.NONE
+		world_view.queue_redraw()
+	update_hud(); return true
 
 func clear_combat_path(target: Vector2) -> bool:
 	var distance := player.distance_to(target)

@@ -82,6 +82,7 @@ func refresh() -> void:
 	object_name.text = Model.DEFINITIONS[selected]["name"]
 	preview.texture = Icons.get_icon(selected)
 	result_label.text = "Resultado: 1 metro de cuerda" if selected == &"cuerda" else ("Resultado: 1 botella vacía · capacidad 500 ml" if selected == &"botella" else ("Resultado: 1 armadura de hojas" if selected == &"burdock_armor" else "Resultado: 1 herramienta básica · %d usos" % Model.DEFINITIONS[selected]["uses"]))
+	if selected == &"flecha": result_label.text = "Resultado: 5 flechas básicas"
 	for id in recipe_buttons:
 		recipe_buttons[id].self_modulate = Color("d9bf72") if id == selected else Color.WHITE
 	for child in materials.get_children():

@@ -4,10 +4,6 @@ uniform vec3 ambient_tint = vec3(1.0);
 
 uniform float map_seed = 73129.0;
 varying vec2 world_position;
-uniform vec4 stone_patch_0;
-uniform vec4 stone_patch_1;
-uniform vec4 stone_patch_2;
-uniform vec4 stone_patch_3;
 uniform vec4 dirt_patch_0;
 uniform vec4 dirt_patch_1;
 uniform vec4 dirt_patch_2;
@@ -64,7 +60,13 @@ void fragment() {
 	// Continuous woodland soil: restrained grass and earth, independent of cells.
 	vec2 position = floor(world_position);
 	float grain = (hash(floor(position / 2.0)) - 0.5) * 0.010;
-	vec3 ground = quilt(grass_reference,position,384.0,vec4(0.0,0.0,1.0,1.0));
+	vec3 reference = quilt(grass_reference,position,144.0,vec4(0.0,0.0,1.0,1.0));
+	vec3 ground = mix(vec3(0.245,0.302,0.207),reference,0.36);
+	// Quiet two-unit blades bridge the large soil color and the tuft sprites.
+	vec2 blade_cell = floor(position/vec2(4.0,6.0));
+	vec2 blade_pixel = mod(position,vec2(4.0,6.0));
+	float fine_blade = step(0.70,hash(blade_cell+91.0))*step(abs(blade_pixel.x-1.0),0.5)*step(blade_pixel.y,2.0);
+	ground += vec3(-0.006,0.009,-0.003)*fine_blade;
 	// Gently winding trails stay inside the map's clear central corridors.
 	float horizontal_bend = 24.0 * sin(position.x / 210.0) + 10.0 * sin(position.x / 93.0);
 	float vertical_bend = 24.0 * sin(position.y / 245.0) - 10.0 * sin(position.y / 110.0);
@@ -82,27 +84,7 @@ void fragment() {
 	// Low-contrast light and shade hint at small rises without obscuring props.
 	float slope = smooth_noise((position + vec2(-12.0, -18.0)) / 110.0) - smooth_noise((position + vec2(12.0, 18.0)) / 110.0);
 	ground += vec3(slope * 0.035 + grain);
-	// Exposed gravel replaces the grass reference inside rocky patches.
-	float rocky = max(max(patch_mask(position,stone_patch_0),patch_mask(position,stone_patch_1)),max(patch_mask(position,stone_patch_2),patch_mask(position,stone_patch_3)))*(1.0-path);
-	if (rocky > 0.0) {
-		vec2 gravel_cell = floor(position/9.0);
-		float pebble = 0.0;
-		float stone_grain = 0.0;
-		for (int y = -1; y <= 1; y++) {
-			for (int x = -1; x <= 1; x++) {
-				vec2 cell = gravel_cell+vec2(float(x),float(y));
-				vec2 center = (cell+vec2(hash(cell+31.0),hash(cell+83.0)))*9.0;
-				vec2 offset = (position-center)/vec2(2.5+hash(cell+7.0)*2.5,2.0+hash(cell+18.0)*2.0);
-				float shape = max(length(offset),abs(offset.x+offset.y)*0.65);
-				float visible = 1.0-smoothstep(0.75,1.05,shape);
-				pebble = max(pebble,visible);
-				stone_grain += visible*(hash(cell)-0.5)*0.024;
-			}
-		}
-		vec3 stone_color = mix(vec3(0.258,0.270,0.254),vec3(0.308,0.318,0.299),pebble)+vec3(stone_grain);
-		ground = mix(ground,stone_color,rocky);
-	}
-	float dirt = max(max(patch_mask(position,dirt_patch_0),patch_mask(position,dirt_patch_1)),max(patch_mask(position,dirt_patch_2),patch_mask(position,dirt_patch_3))) * (1.0-path)*(1.0-rocky);
+	float dirt = max(max(patch_mask(position,dirt_patch_0),patch_mask(position,dirt_patch_1)),max(patch_mask(position,dirt_patch_2),patch_mask(position,dirt_patch_3))) * (1.0-path);
 	if (dirt > 0.0) {
 		vec3 a = quilt(dirt_reference_a,position,100.0,vec4(0.43,0.30,0.10,0.36));
 		vec3 b = quilt(dirt_reference_b,position,100.0,vec4(0.46,0.46,0.10,0.10));

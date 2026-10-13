@@ -184,6 +184,7 @@ func show_item(button: Button, item: Dictionary, empty_label: String = "") -> vo
 	button.text = "" if icon.texture != null else ABBREV.get(id, "")
 	count.text = str(item["quantity"])
 	button.tooltip_text = "%s · Básico\n%s" % [definition["name"], definition["purpose"]]
+	if definition.has("damage"): button.tooltip_text += "\nDaño base: %d" % definition.damage
 	if id == &"botella": button.tooltip_text += "\nContenido: %d / 500 ml" % item.get("water_ml",0)
 	if item["uses"] >= 0:
 		button.tooltip_text += "\nUsos: %d / %d" % [item["uses"], definition["uses"]]
@@ -228,6 +229,7 @@ func refresh() -> void:
 			details.text += "\n%s: %d / %d%s" % ["Usos" if definition["slot"] == &"tool" else "Durabilidad",item["uses"], definition["uses"], " · ROTO" if item["uses"] == 0 else ""]
 		else:
 			details.text += "\nCantidad: %d" % item["quantity"]
+		if definition.has("damage"): details.text += "\nDaño base: %d" % definition.damage
 		if item.id == &"botella": details.text += "\nContenido: %d / 500 ml" % item.get("water_ml",0)
 	if creation_page != null: creation_page.refresh()
 

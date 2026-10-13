@@ -89,16 +89,16 @@ func run() -> void:
 	game.weapon_timer = 0
 	var pose := {"reachable":true}
 	game.use_weapon(target.global_position,false,pose)
-	require(close_to(target.damage,36) and game.progression.active[&"power"] == 0,"Successful sword hit receives power bonus")
+	require(close_to(target.damage,4.5) and game.progression.active[&"power"] == 0,"Successful sword hit receives power bonus")
 	game.progression.cooldowns[&"power"] = 0; key(KEY_X)
-	game.bag.select_tool(&"bow"); game.weapon_timer = 0
+	game.bag.select_tool(&"bow"); game.bag.add(&"flecha",1); game.weapon_timer = 0
 	game.use_weapon(target.global_position)
 	require(game.progression.active[&"power"] == 5,"Arrow release preserves powered hit until impact")
 	var arrows := get_nodes_in_group("player_arrows")
 	var arrow = arrows[-1]
 	arrow.set_process(false); arrow.position = target.global_position-Vector2(3,0); arrow.velocity = Vector2(30,0)
 	arrow._process(0.1)
-	require(close_to(target.damage,63) and game.progression.active[&"power"] == 0,"Arrow impact consumes power and adds 27 damage")
+	require(close_to(target.damage,9) and game.progression.active[&"power"] == 0,"Arrow impact consumes power and adds 4.5 damage")
 	game.progression.cooldowns[&"speed"] = 0; key(KEY_Z)
 	require(game.progression.active[&"speed"] == 5,"Z activates the movement ability")
 	game.restart()

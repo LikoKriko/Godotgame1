@@ -1,22 +1,23 @@
 extends Control
 var game
-
+var cursor: Texture2D
+var hotspot := Vector2.ZERO
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	cursor = load("res://assets/ui/cursor.png")
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/ui/cursor.json"))
+	hotspot = Vector2(data.hotspot[0],data.hotspot[1])
 func _process(_delta: float) -> void:
-	var menu: bool = game.is_paused()
-	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if menu else Input.MOUSE_MODE_HIDDEN
+	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	queue_redraw()
-
 func _draw() -> void:
-	if game.is_paused():
-		return
-	# Drawing happens in this Control's local space, not viewport or world space.
-	var point := get_global_transform_with_canvas().affine_inverse()*preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
-	var tint := Color("ebe7d5")
-	if game.resources.nodes.has(game.focused):
-		tint = Color("c6d5a3") if game.resources.can_reach(game.focused,game.player) else Color("bca092")
-	draw_circle(point, 3, Color(0.05, 0.06, 0.05, 0.7))
-	draw_circle(point, 1.7, tint)
+	if cursor == null: return
+	var point := preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
+	# Cancel any inherited canvas transform so cursor size and hotspot are
+	# measured in viewport pixels, independently of camera/HUD scaling.
+	draw_set_transform_matrix(get_global_transform_with_canvas().affine_inverse())
+	var physical_scale := get_viewport().get_final_transform().get_scale().abs()
+	physical_scale = physical_scale.max(Vector2(0.001,0.001))
+	draw_texture_rect(cursor,Rect2(point-hotspot/physical_scale,cursor.get_size()/physical_scale),false)

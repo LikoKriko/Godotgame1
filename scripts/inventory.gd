@@ -2,10 +2,11 @@ extends RefCounted
 const CAPACITY := 32
 const EQUIPMENT_SLOTS := [&"head", &"torso", &"legs", &"hands", &"feet"]
 const DEFINITIONS := {
-	&"sword": {"name": "Espada", "slot": &"tool", "category": &"sword", "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
-	&"bow": {"name": "Arco", "slot": &"tool", "category": &"bow", "uses": 60, "stack": 1, "purpose": "Disparar flechas"},
-	&"pickaxe": {"name": "Pico", "slot": &"tool", "category": &"pickaxe", "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
-	&"axe": {"name": "Hacha", "slot": &"tool", "category": &"axe", "uses": 30, "stack": 1, "purpose": "Cortar árboles"},
+	&"sword": {"name": "Espada", "slot": &"tool", "category": &"sword", "damage": 3.0, "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
+	&"bow": {"name": "Arco", "slot": &"tool", "category": &"bow", "damage": 3.0, "uses": 60, "stack": 1, "purpose": "Requiere flechas · un uso por tensado"},
+	&"pickaxe": {"name": "Pico", "slot": &"tool", "category": &"pickaxe", "damage": 1.0, "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
+	&"axe": {"name": "Hacha", "slot": &"tool", "category": &"axe", "damage": 1.0, "uses": 30, "stack": 1, "purpose": "Cortar árboles"},
+	&"flecha": {"name":"Flecha básica","slot":&"","uses":-1,"stack":99,"purpose":"Munición para arcos · se consume una por disparo"},
 	&"madera": {"name": "Madera", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"mineral": {"name": "Mineral", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"chatarra": {"name": "Chatarra", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
@@ -278,11 +279,17 @@ func usable() -> bool:
 	var item: Dictionary = held_item()
 	return not item.is_empty() and item["uses"] > 0
 
-func consume_use() -> bool:
-	if not usable():
-		return false
-	held_item()["uses"] -= 1
+func consume_item_uses(uid: int, amount: int = 1) -> bool:
+	var item := item_by_uid(uid)
+	if item.is_empty() or item.uses <= 0 or amount <= 0: return false
+	item.uses = maxi(0,item.uses-amount)
 	return true
+
+func consume_use(amount: int = 1) -> bool:
+	return consume_item_uses(held_item().get("uid",-1),amount)
+
+func held_damage() -> float:
+	return float(DEFINITIONS.get(held_id(),{}).get("damage",0.0))
 
 func can_harvest(material: String) -> bool:
 	if material in ["chatarra", "fibra", "hoja_bardana"]:

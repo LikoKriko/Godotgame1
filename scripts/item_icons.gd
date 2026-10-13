@@ -9,6 +9,7 @@ static func for_item(item: Dictionary) -> Texture2D:
 	return get_icon(item.get("id",&""))
 
 static func get_icon(id: StringName) -> Texture2D:
+	if id == &"flecha": return preload("res://scripts/arrow_art.gd").data().texture
 	if id in [&"botella",&"water",&"cuero",&"hilo"]:
 		return preload("res://scripts/container_art.gd").icon({&"botella":0,&"water":1,&"cuero":2,&"hilo":3}[id])
 	if id == &"apple":

@@ -42,6 +42,9 @@ func add(cell: Vector2i, texture: Texture2D, rect: Rect2, depth: float) -> void:
 	area.z_index = -20
 	for polygon in source["polygons"]:
 		var shape := CollisionPolygon2D.new()
+		# Targeting uses the exact alpha bitmap, including disconnected leaves.
+		# Keep a boundary mesh without decomposing tiny, concave raster outlines.
+		shape.build_mode = CollisionPolygon2D.BUILD_SEGMENTS
 		shape.polygon = polygon
 		area.add_child(shape)
 	host.add_child(area)

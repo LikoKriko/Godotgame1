@@ -250,6 +250,7 @@ func fit() -> void:
 	quick_bar.position = Vector2((screen.x-total)/2,screen.y-18-98*factor)
 	skill_bar.position = quick_bar.position+Vector2(438*factor,0)
 	life.position = Vector2(18,screen.y-18-120*factor)
+	game.interaction.position = life.position-Vector2(0,game.interaction.get_theme_font("font").get_height(game.interaction.get_theme_font_size("font_size"))*factor+8)
 	food.position = life.position+Vector2(0,40*factor)
 	water.position = food.position+Vector2(0,40*factor)
 	weight.position = Vector2(screen.x-18-100*factor,screen.y-18-28*factor)
@@ -295,12 +296,12 @@ func refresh() -> void:
 	var held_uid: int = game.bag.held_item().get("uid",-1)
 	var quick_state := []
 	for item in game.bag.quick_slots:
-		quick_state.append(-1 if item.is_empty() else [item.uid,item.id,item.quantity,item.get("water_ml",0) > 0])
+		quick_state.append(-1 if item.is_empty() else [item.uid,item.id,item.quantity,item.uses,item.get("water_ml",0) > 0])
 	var skill_state := []
 	for id in [&"speed",&"power"]: skill_state.append([ceilf(game.progression.cooldowns[id]),game.progression.skills[id] == 0])
 	# Compare displayed values, rather than raw hydration/cooldown floats: their
 	# hidden fractional changes must not rebuild identical labels and icons.
-	var state := ["%.0f / %.0f" % [game.progression.health,game.progression.max_health()],game.nutrition.calories_today,roundi(game.nutrition.speed_penalty()*100),"Agua: %.0f / 2000 ml" % game.nutrition.hydration_ml,game.day_cycle.clock_text(),quick_state,held_uid,skill_state]
+	var state := ["%.0f / %.0f" % [game.progression.health,game.progression.max_health()],game.nutrition.calories_today,roundi(game.nutrition.speed_penalty()*100),"Agua: %.0f / 2000 ml" % game.nutrition.hydration_ml,game.day_cycle.clock_text(),quick_state,held_uid,skill_state,game.bag.count(&"flecha")]
 	if state == displayed_state: return
 	displayed_state = state
 	life.text = "%.0f / %.0f" % [game.progression.health,game.progression.max_health()]
@@ -321,6 +322,10 @@ func refresh() -> void:
 			icon.texture = Icons.for_item(item)
 			amount.text = str(item.quantity) if item.quantity > 1 else ""
 			quick_buttons[i].tooltip_text = "%s · %d" % [game.bag.DEFINITIONS[item.id].name,i+1]
+			var definition: Dictionary = game.bag.DEFINITIONS[item.id]
+			if definition.has("damage"): quick_buttons[i].tooltip_text += "\nDaño base: %d" % definition.damage
+			if item.uses >= 0: quick_buttons[i].tooltip_text += "\nUsos: %d / %d" % [item.uses,definition.uses]
+			if item.id == &"bow": quick_buttons[i].tooltip_text += "\nFlechas disponibles: %d" % game.bag.count(&"flecha")
 			quick_buttons[i].modulate = Color("d6c895") if item.uid == held_uid else Color.WHITE
 	for i in 2:
 		var id: StringName = &"speed" if i == 0 else &"power"

@@ -29,8 +29,6 @@ class TerrainView:
 	func _draw() -> void:
 		if ground == null: return
 		draw_texture_rect(ground,Rect2(Vector2.ZERO,size),false)
-		for patch in game.world.stone_patches:
-			draw_rect(Rect2(world_to_map(patch.position),patch.size/game.world.bounds.size*size),Color(0.47,0.48,0.43,0.65))
 		for puddle in game.world.puddles:
 			var point := world_to_map(puddle["position"])
 			draw_circle(point,2.5,Color("657b82"))

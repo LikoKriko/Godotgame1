@@ -14,6 +14,16 @@
 		96,
 		96
 	],
+	"enter_left": {
+		"directions": 16,
+		"frames": 16,
+		"path": "res://assets/enemies/first/enter_left.png"
+	},
+	"enter_right": {
+		"directions": 16,
+		"frames": 16,
+		"path": "res://assets/enemies/first/enter_right.png"
+	},
 	"foot": [
 		48.0,
 		72.9044342041016
@@ -23,9 +33,15 @@
 		"frames": 1,
 		"path": "res://assets/enemies/first/idle.png"
 	},
+	"locomotion": "four_leg_heavy_walk_standing_punch",
+	"lower": {
+		"directions": 16,
+		"frames": 6,
+		"path": "res://assets/enemies/first/lower.png"
+	},
 	"pixels_per_world": 1.5,
 	"source": "Day_Zero_Enemigo_Joven_4_Vistas.png",
-	"version": 2,
+	"version": 3,
 	"walk": {
 		"directions": 16,
 		"frames": 12,

@@ -46,7 +46,7 @@ func run_checks() -> void:
 	require(game.start_work(aim), "Wrong tool can swing")
 	game.advance_work(game.work_duration)
 	require(game.resources.nodes[tree]["remaining"] == 3, "Pickaxe does not chop trees")
-	require(game.bag.held_item()["uses"] == 30, "Wrong use does not consume durability")
+	require(game.bag.held_item()["uses"] == 28, "Wrong tool impact costs two uses")
 	aim = Aim.approach(game, tree, &"axe")
 	require(game.start_work(aim), "Axe chops trees")
 	game.advance_work(0.1)
@@ -60,7 +60,7 @@ func run_checks() -> void:
 		game.bag.slots[i] = game.bag.make_item(&"piedra", 99)
 	game.start_work(aim)
 	game.advance_work(game.work_duration)
-	require(game.resources.nodes[tree]["remaining"] == 1 and game.bag.held_item()["uses"] == 29, "Full inventory preserves resource and last-hit durability")
+	require(game.resources.nodes[tree]["remaining"] == 1 and game.bag.held_item()["uses"] == 28, "Full inventory preserves resource but physical impact still costs a use")
 	game.restart()
 	var rock: Vector2i = game.world.large_rocks.keys()[0]
 	aim = Aim.approach(game, rock, &"axe")
@@ -84,13 +84,14 @@ func run_checks() -> void:
 	dummy.add_to_group("damageable")
 	game.progression.rng.seed = 42
 	require(game.use_weapon(Vector2(32, -12)), "Sword action")
-	require(dummy.damage_received == 24 and game.bag.held_item()["uses"] == 39, "Sword affects combat targets and uses")
+	require(dummy.damage_received == 3 and game.bag.held_item()["uses"] == 39, "Sword affects combat targets and uses")
 	require(not game.use_weapon(Vector2(32, -12)), "Weapon cooldown enforced")
 	game.bag.select_tool(&"bow")
+	game.bag.add(&"flecha",1)
 	game.weapon_timer = 0
 	require(game.use_weapon(Vector2(32, -12)), "Bow shoots")
 	var arrows := get_nodes_in_group("player_arrows")
-	require(arrows.size() == 1 and game.bag.held_item()["uses"] == 59, "One arrow per bow use")
+	require(arrows.size() == 1 and game.bag.held_item()["uses"] == 59, "A bow use is spent when drawing/firing, including missed arrows")
 	var arrow = arrows[0]
 	game.inventory_panel.show()
 	var previous: Vector2 = arrow.position
@@ -98,7 +99,7 @@ func run_checks() -> void:
 	require(arrow.position == previous, "Inventory pauses projectiles")
 	game.inventory_panel.hide()
 	arrow._process(0.1)
-	require(dummy.damage_received == 42, "Arrow hits only combat target")
+	require(dummy.damage_received == 6, "Arrow hits only combat target")
 	game.bag.select_tool(&"pickaxe")
 	game.weapon_timer = 0
 	require(not game.use_weapon(Vector2(32, -12)), "Pickaxe cannot attack")

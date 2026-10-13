@@ -5,7 +5,9 @@ const RECIPES := {
 	&"cuerda": {&"fibra": 3},
 	&"burdock_armor": {&"hoja_bardana":15,&"cuerda":3,&"fibra":20},
 	&"botella": {&"cuero":3,&"hilo":1},
+	&"flecha": {&"palo":1,&"piedra":1,&"cuerda":1},
 }
+const OUTPUT_COUNTS := {&"flecha":5}
 const REPAIRS := {
 	&"pickaxe": {&"piedra": 1, &"palo": 1},
 	&"axe": {&"piedra": 1, &"palo": 1},
@@ -33,7 +35,7 @@ static func craft(bag, id: StringName) -> String:
 	var trial = bag.fork()
 	for material in RECIPES[id]:
 		trial.remove_amount(material,RECIPES[id][material])
-	if not trial.add(id,1):
+	if not trial.add(id,OUTPUT_COUNTS.get(id,1)):
 		return "La mochila está llena."
 	bag.slots = trial.slots
 	bag.quick_slots = trial.quick_slots

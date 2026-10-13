@@ -22,11 +22,15 @@ static func gait(phase: float, amplitude: float, running: bool = false) -> Dicti
 	var cycle := fposmod(phase, 1.0)
 	var support := 0.4 if running else 0.6
 	var stride := 10.1 if running else 12.0
+	return stance_swing(cycle,stride*amplitude,(9.0 if running else 5.0)*amplitude,support,amplitude)
+
+static func stance_swing(phase: float, stride: float, lift: float, support: float = 0.75, pitch_scale: float = 1.0) -> Dictionary:
+	var cycle := fposmod(phase,1.0)
 	var stance := cycle < support
 	var t := cycle/support if stance else (cycle-support)/(1-support)
-	return {"z":(lerpf(stride,-stride,t) if stance else lerpf(-stride,stride,smoothstep(0,1,t)))*amplitude,
-		"lift":0.0 if stance else sin(t*PI)*(9.0 if running else 5.0)*amplitude,
-		"pitch":(0.12*sin(t*PI) if stance else -0.18*sin(t*PI))*amplitude}
+	return {"z":lerpf(stride,-stride,t) if stance else lerpf(-stride,stride,smoothstep(0,1,t)),
+		"lift":0.0 if stance else sin(t*PI)*lift,
+		"pitch":(0.12*sin(t*PI) if stance else -0.18*sin(t*PI))*pitch_scale}
 
 static func gesture(rest: Vector3, windup: Vector3, impact: Vector3, phase: float, family: StringName) -> Vector3:
 	var prepared := 0.18 if family == &"sword" else 0.30
@@ -120,9 +124,9 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 		hands[1] = grip+Vector3(0,1,-6)
 		if action:
 			var lift := smoothstep(0,0.26,phase)*(1-smoothstep(0.72,1,phase))
-			grip = grip.lerp(Vector3(2.5,50.5,21.0)+body.origin,lift)
+			grip = grip.lerp(Vector3(2.5-3.0*side_clearance,50.5,21.0)+body.origin,lift)
 			var draw := smoothstep(0.20,0.44,phase)*(1-smoothstep(0.57,1,phase))
-			hands[1] = (grip+Vector3(0,1,-6)).lerp(Vector3(2.5,51.5,3.5)+body.origin,draw)
+			hands[1] = (grip+Vector3(0,1,-6)).lerp(Vector3(2.5-3.0*side_clearance,51.5,3.5)+body.origin,draw)
 	elif family == &"sword":
 		grip = body*Vector3(6,31,5)
 		shaft = Vector3(0,0.35,0.94).normalized()
@@ -139,10 +143,10 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 		if action:
 			var windup := Vector3(3,47,0) if family == &"axe" else Vector3(1.5,49,4)
 			var impact := Vector3(4.5,35,13) if family == &"axe" else Vector3(1,31.5,13)
-			grip = body*gesture(Vector3(4,32,6),windup,impact,phase,family)
+			grip = body*gesture(Vector3(-4,32,6),windup,impact,phase,family)
 			var wind_direction := Vector3(0,0.95,-0.28) if family == &"axe" else Vector3.UP
 			var hit_direction := Vector3(-0.15,0.05,0.98) if family == &"axe" else Vector3(0,-0.55,0.84)
-			shaft = body.basis*gesture(Vector3(0,0.72,0.69),wind_direction,hit_direction,phase,family).normalized()
+			shaft = body.basis*gesture(Vector3(0.42,0.72,0.55),wind_direction,hit_direction,phase,family).normalized()
 	elif action:
 		hands[1] = body*gesture(Vector3(8.5,28.1,1.5),Vector3(7,37,3),Vector3(7,38,16),phase,family)
 	# The overhead camera foreshortens a tool held straight forward in north/
@@ -163,7 +167,9 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 			var hit_axis := Vector3(0.6,-0.3,0.72)
 			if family in [&"axe",&"pickaxe"]: wind.x = -4; hit.x = -4
 			if family == &"pickaxe": hit_axis = Vector3(0.4,-0.68,0.6)
-			if family == &"sword": wind = Vector3(10,43,1); hit = Vector3(8,37,13); wind_axis = Vector3(0.75,0.6,-0.25)
+			if family == &"sword":
+				wind = Vector3(7,43,4); hit = Vector3(7,34,12)
+				wind_axis = Vector3(-0.82,0.52,0.24); hit_axis = Vector3(0.78,-0.40,0.48)
 			if family == &"axe" and sin(direction*TAU/16) < -0.001:
 				wind = Vector3(-7,49,4)
 				hit = Vector3(-7,34.5,14)

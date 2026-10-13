@@ -3,7 +3,16 @@ var world
 var game
 var velocity := Vector2.ZERO
 var distance_left := 680.0
-var damage := 18.0
+var damage := 3.0
+var sprite := Sprite2D.new()
+func _ready() -> void:
+	var art := preload("res://scripts/arrow_art.gd").data()
+	var turn: float = velocity.angle()-(art.tip-art.tail).angle()
+	sprite.texture = art.texture; sprite.centered = false
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.scale = Vector2.ONE*art.world_per_pixel; sprite.rotation = turn
+	sprite.position = -Vector2(art.tip).rotated(turn)*art.world_per_pixel
+	add_child(sprite)
 
 func _process(delta: float) -> void:
 	if game != null and game.is_paused():
@@ -14,7 +23,7 @@ func _process(delta: float) -> void:
 		var motion := displacement / steps
 		position += motion
 		distance_left -= motion.length()
-		if distance_left <= 0 or not world.walkable(position, 2):
+		if distance_left <= 0:
 			queue_free()
 			return
 		for target in get_tree().get_nodes_in_group("damageable"):
@@ -25,8 +34,7 @@ func _process(delta: float) -> void:
 				queue_free()
 				return
 
-func _draw() -> void:
-	var direction := velocity.normalized()
-	draw_line(-direction * 16, Vector2.ZERO, Color("c5c0ac"), 2)
-	draw_line(Vector2.ZERO, -direction.rotated(0.65) * 6, Color("e1d8b0"), 2)
-	draw_line(Vector2.ZERO, -direction.rotated(-0.65) * 6, Color("e1d8b0"), 2)
+		if game != null and game.resources.target_at(global_position) != game.resources.NONE:
+			game.combat_effects.flash(global_position,velocity.normalized())
+			queue_free(); return
+		if not world.walkable(position,2): queue_free(); return

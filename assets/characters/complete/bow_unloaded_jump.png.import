@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cp7pemie3a0k7"
-path="res://.godot/imported/quarantine_props.png-c882e441b0a40069ce7944803fc3a803.ctex"
+uid="uid://c1n4107h3riim"
+path="res://.godot/imported/bow_unloaded_jump.png-c20464acba2e1fc198519387d5025692.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/quarantine_props.png"
-dest_files=["res://.godot/imported/quarantine_props.png-c882e441b0a40069ce7944803fc3a803.ctex"]
+source_file="res://assets/characters/complete/bow_unloaded_jump.png"
+dest_files=["res://.godot/imported/bow_unloaded_jump.png-c20464acba2e1fc198519387d5025692.ctex"]
 
 [params]
 
