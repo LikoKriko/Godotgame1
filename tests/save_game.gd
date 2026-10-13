@@ -32,9 +32,9 @@ func run() -> void:
 	game.nutrition.calories_today = 1800
 	game.nutrition.hydration_ml = 1999.1234567891011
 	game.bag.add(&"piedra", 10)
-	game.bag.equipment[&"hands"].uses = 18
-	game.assign_quick_item(0,game.bag.equipment[&"hands"].uid)
-	game.bag.activate_quick(0)
+	game.bag.held_item().uses = 18
+	game.assign_quick_item(0,game.bag.held_item().uid)
+	if game.bag.active_quick_uid != game.bag.quick_slots[0].uid: game.bag.activate_quick(0)
 	game.movement.heading = -PI/2
 	var removed: Vector2i = game.resources.nodes.keys()[0]
 	var footprint: Rect2i = game.resources.nodes[removed].footprint
@@ -65,6 +65,15 @@ func run() -> void:
 	legacy.erase("quick_slots"); legacy.erase("active_quick_uid")
 	require(Save.restore(loaded,legacy),"Previous alias-based save migrates to physical quick storage")
 	require(loaded.bag.equipment[&"hands"].is_empty() and loaded.bag.quick_slots[0].uid == loaded.bag.held_item().uid,"Migration retains the held tool exactly once")
+	var physical_legacy := state.duplicate(true)
+	physical_legacy.version = 2
+	physical_legacy.equipment[&"hands"] = physical_legacy.quick_slots[0]
+	physical_legacy.quick_slots[0] = {}
+	physical_legacy.quick_items[0] = -1
+	physical_legacy.active_quick_uid = -1
+	physical_legacy.erase("held_tool")
+	require(Save.restore(loaded,physical_legacy),"Version-two carried weapon migrates out of the glove equipment slot")
+	require(loaded.bag.equipment[&"hands"].is_empty() and loaded.bag.held_item().uses == 18,"Migration preserves carried-tool durability and free glove slot")
 	for mutate in [
 		func(d): d.version = 99,
 		func(d): d.slots[0].quantity = 200,

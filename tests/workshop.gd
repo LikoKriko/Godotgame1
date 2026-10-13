@@ -30,14 +30,14 @@ func run_checks() -> void:
 	bag.add(&"piedra",10)
 	bag.add(&"palo",10)
 	bag.add(&"cuerda",10)
-	var uid: int = bag.equipment[&"hands"]["uid"]
+	var uid: int = bag.held_item()["uid"]
 	require(Workshop.craft(bag,&"pickaxe") == "","Pickaxe crafts")
 	require(bag.count(&"piedra") == 8 and bag.count(&"palo") == 8 and bag.count(&"cuerda") == 9,"Pickaxe costs exactly 2 stones, 2 sticks, 1 metre")
 	require(Workshop.craft(bag,&"axe") == "","Axe crafts")
 	require(bag.count(&"piedra") == 7 and bag.count(&"palo") == 6 and bag.count(&"cuerda") == 8,"Axe costs exactly 1 stone, 2 sticks, 1 metre")
-	require(bag.equipment[&"hands"]["uid"] == uid,"Crafting preserves equipped identity")
-	bag.equipment[&"hands"]["uses"] = 0
-	require(Workshop.repair(bag,uid) == "" and bag.equipment[&"hands"]["uses"] == 30,"Broken equipped axe can be repaired")
+	require(bag.held_item()["uid"] == uid,"Crafting preserves equipped identity")
+	bag.held_item()["uses"] = 0
+	require(Workshop.repair(bag,uid) == "" and bag.held_item()["uses"] == 30,"Broken equipped axe can be repaired")
 	require(bag.count(&"piedra") == 6 and bag.count(&"palo") == 5,"Repair consumes displayed costs once")
 	var before: Array = bag.slots.duplicate(true)
 	require(Workshop.repair(bag,uid) != "" and bag.slots == before,"Repairing a full-durability item cannot spend materials")
@@ -67,7 +67,7 @@ func run_checks() -> void:
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_process(false)
-	game.bag.unequip(&"hands")
+	game.bag.unequip(&"tool")
 	var young: Vector2i = game.world.saplings.keys()[0]
 	var position: Vector2 = game.resources.bounds(young).get_center()
 	for i in 2:

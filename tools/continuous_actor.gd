@@ -5,6 +5,9 @@ const SKIN := Color8(208,140,85)
 const CLOTH := Color8(96,77,51)
 const HAIR_VIEWS = preload("res://assets/characters/complete/reference_views.png")
 const HEADS := [Vector2(242,64),Vector2(684,64),Vector2(1104,64),Vector2(1555,64),Vector2(245,480),Vector2(667,478),Vector2(1082,480),Vector2(1557,480)]
+const Armor = preload("res://tools/torso_armor.gd")
+var armor_id: StringName = &""
+var nocked_arrow_enabled := true
 var surface_tag := 0.0
 var body_material: ShaderMaterial
 var surface: SurfaceTool
@@ -101,11 +104,12 @@ func integrated_head(torso: Transform3D,actor_basis: Basis,direction: int,pose_s
 	var source := Rect2(HEADS[index].x-105,HEADS[index].y,210,130)
 	body_material.set_shader_parameter("head_reference",HAIR_VIEWS)
 	body_material.set_shader_parameter("reference_rect",Vector4(source.position.x/HAIR_VIEWS.get_width(),source.position.y/HAIR_VIEWS.get_height(),source.size.x/HAIR_VIEWS.get_width(),source.size.y/HAIR_VIEWS.get_height()))
-	# Neck joins torso and head. Only 45% of the torso bob reaches the head.
-	var lowered := pose_state in [&"crouch",&"crouch_walk",&"slide",&"jump"]
-	var head_motion := torso.origin if lowered else torso.origin*0.45
-	var point := torso.basis*Vector3(0,56.4,0)+head_motion
-	var center := actor_basis*point+Vector3(0,0,4.2)
+	# The neck and skull share the torso translation and its attachment pivot.
+	# Counter-rotate the skull gently about the neck so running lean cannot
+	# stretch the face or pull it backwards away from the shoulders.
+	var neck := torso*Vector3(0,48.5,0)
+	var stable_up := Vector3.UP.lerp(torso.basis*Vector3.UP,0.12).normalized()
+	var center := actor_basis*(neck+stable_up*7.9)
 	head_center = center
 	var inverse := actor_basis.inverse()
 	var join := inverse*(center-camera_up*7.5)
@@ -125,17 +129,6 @@ func tool_geometry(item: StringName) -> Dictionary:
 	var data: Dictionary = visual_override.duplicate() if not visual_override.is_empty() else Tools.geometry(item).duplicate()
 	if data.is_empty(): return data
 	if visual_override.is_empty():
-		var size: Vector2 = data["texture"].get_size()
-		# Actual hilt/central bow grip rather than the former generic bottom-center.
-		if item == &"sword" and not Tools.DATA.has(item):
-			data["grip"] = size*Vector2(0.32,0.76)
-			data["contact"] = size*Vector2(0.87,0.16)
-		elif item == &"bow" and not Tools.DATA.has(item):
-			data["grip"] = Vector2(289,237)
-			data["contact"] = data["grip"]+Vector2(325,-520)*0.4
-			data["string_top"] = Vector2(556,44)
-			data["string_bottom"] = Vector2(231,566)
-			data["clear_black"] = true
 		if Tools.DATA.has(item):
 			for anchor in ["support","string_top","string_bottom"]:
 				if Tools.DATA[item].has(anchor): data[anchor] = Tools.DATA[item][anchor]-Tools.DATA[item]["rect"].position
@@ -154,11 +147,10 @@ func tool_geometry(item: StringName) -> Dictionary:
 func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis,item: StringName) -> Dictionary:
 	var source_axis: Vector2 = (data["contact"]-data["grip"]).normalized()
 	var direction := (actor_basis*shaft).normalized()
-	var across := Vector3.RIGHT-direction*direction.dot(Vector3.RIGHT)
+	var plane_axis := -(actor_basis*Vector3.BACK) if item == &"bow" else Vector3.RIGHT
+	var across := plane_axis-direction*direction.dot(plane_axis)
 	if across.length_squared() < 0.03: across = camera_up-direction*direction.dot(camera_up)
 	across = across.normalized()
-	if item == &"bow" and (actor_basis*Vector3.BACK).x > 0.001:
-		across = -across
 	var x_axis := direction*source_axis.x-across*source_axis.y
 	var y_axis := direction*source_axis.y+across*source_axis.x
 	var texture: Texture2D = data["texture"]
@@ -232,6 +224,10 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 		ellipsoid(torso*Vector3(side*1.5,32.8,2.7),Vector3(1.55,1.6,0.4),SKIN,torso.basis)
 		ellipsoid(torso*Vector3(side*3.2,41.0,4.0),Vector3(0.35,0.3,0.18),SKIN.darkened(0.23),torso.basis)
 	ellipsoid(torso*Vector3(0,27.7,0),Vector3(7.2,3.5,3.5),CLOTH,torso.basis)
+	if armor_id != &"":
+		ellipsoid(torso*Vector3(0,35.5,0),Vector3(7.1,9.0,3.9),Color8(92,72,41),torso.basis)
+		body_material.set_shader_parameter("armor_texture",Armor.texture_for(armor_id))
+		Armor.append(surface,torso,armor_id)
 	integrated_head(torso,actor_basis,direction,state)
 	surface.generate_normals()
 	core_mesh.mesh = surface.commit()
@@ -264,11 +260,11 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 			string_mid = string_mid.lerp(pose["hands"][1],smoothstep(0.2,0.44,phase))
 		tube([bow_ends[0],bow_ends[0].lerp(string_mid,0.5),string_mid],0.12,0.12,Color8(123,125,119),false,2)
 		tube([string_mid,string_mid.lerp(bow_ends[1],0.5),bow_ends[1]],0.12,0.12,Color8(123,125,119),false,2)
-		if state != &"action" or phase < 0.5 or phase > 0.97:
+		if nocked_arrow_enabled and (state != &"action" or phase < 0.5 or phase > 0.97):
 			var arrow_base: Vector3 = pose["hands"][1]
 			var arrow_axis := arrow_base.direction_to(pose["hands"][0]+Vector3(0,1,0))
-			tube([arrow_base,arrow_base+arrow_axis*12,arrow_base+arrow_axis*24],0.14,0.14,Color8(128,89,44),false,2)
-			ellipsoid(arrow_base+arrow_axis*24,Vector3(0.35,0.35,0.8),Color8(158,160,151))
+			tube([arrow_base,arrow_base+arrow_axis*12,arrow_base+arrow_axis*24],0.6,0.6,Color8(174,133,75),false,2)
+			ellipsoid(arrow_base+arrow_axis*24,Vector3(0.8,0.8,1.0),Color8(158,160,151))
 	surface_tag = 0
 	# Cord and small fabric patches remain attached to the pelvis/thigh surfaces.
 	for index in 24:

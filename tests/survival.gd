@@ -59,7 +59,7 @@ func run() -> void:
 		var scale: float = Tools.reach_length(id)/geometry["grip"].distance_to(geometry["contact"])
 		require(is_equal_approx(maxf(size.x,size.y)*scale,Tools.DISPLAY_SIZES[id]),"Visible tool dimensions agree with collision scale")
 	require(Tools.DISPLAY_SIZES[&"axe"] == Tools.DISPLAY_SIZES[&"pickaxe"],"Axe and pickaxe share the same visible size")
-	require(Tools.DISPLAY_SIZES[&"sword"] == preload("res://scripts/survivor_frames.gd").CHARACTER_HEIGHT/2,"Sword measures half the character height")
+	require(Tools.DISPLAY_SIZES[&"sword"] == 64.0/2,"Sword measures half the character height")
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_process(false)

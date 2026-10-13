@@ -61,7 +61,7 @@ func run_checks() -> void:
 	if is_instance_valid(app.game):
 		var game = app.game
 		require(game.gameplay_settings == app.settings and game.gameplay_settings.values["auto_run"],"Game receives the saved automatic-run preference")
-		require(game.survival_status.scale.is_equal_approx(Vector2.ONE*Settings.hud_scale(6)),"Saved HUD scale applies when gameplay starts")
+		require(game.styled_hud.map_frame.scale.is_equal_approx(Vector2.ONE*Settings.hud_scale(6)),"Saved HUD scale applies when gameplay starts")
 		game.set_process(false)
 		game.bag.add(&"piedra",10)
 		game.bag.add(&"palo",10)
@@ -73,9 +73,12 @@ func run_checks() -> void:
 		await click(inventory.backpack_buttons[0])
 		require(inventory.chosen == 0 and not inventory.equip_button.disabled,"Mouse selects a weapon and enables Equip")
 		await click(inventory.equip_button)
-		require(game.bag.held_id() == &"sword" and inventory.chosen_gear == &"hands","Mouse Equip swaps the item into the hands slot")
-		require(not inventory.remove_button.disabled,"Equipping immediately enables Unequip")
-		await click(inventory.remove_button)
+		require(game.bag.held_id() == &"sword" and game.bag.location(game.bag.held_item().uid).kind == &"quick","Mouse Equip transfers the tool into physical quick storage")
+		var active_slot: int = game.bag.location(game.bag.held_item().uid).index
+		inventory.select_quick(active_slot)
+		await click(inventory.equip_button)
+		game.bag.shift_transfer(&"quick",active_slot)
+		inventory.refresh()
 		require(game.bag.held_id() == &"","Mouse Unequip returns the item to the backpack")
 		var sword_index := -1
 		var stone_index := -1

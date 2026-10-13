@@ -26,9 +26,10 @@ func run_checks() -> void:
 	root.add_child(game)
 	game.set_process(false)
 	check(not game.has_method("spawn_enemy") and not game.has_method("attack"), "Exploration contains no enemy spawning or combat")
+	var initial_resources: Dictionary = game.resources.inventory.duplicate()
 	for i in 600:
 		game._process(0.1)
-	check(game.resources.inventory == {"madera": 0, "piedra": 0, "chatarra": 0, "fibra": 0, "palo": 0}, "Idle exploration grants no resources")
+	check(game.resources.inventory == initial_resources, "Idle exploration grants no resources, including newly introduced materials")
 	var tree := Vector2i(-4, -3)
 	var aim: Vector2 = game.resources.bounds(tree).get_center()
 	check(game.start_work(aim), "Distant swing starts")
@@ -73,14 +74,11 @@ func run_checks() -> void:
 	Input.parse_input_event(input)
 	Input.flush_buffered_events()
 	game._process(0.01)
-	check(game.working and str(game.character.animation).begins_with("work_") and game.arm_rig.visible, "E starts a cursor-directed articulated strike")
+	check(game.working and game.full_avatar.state == &"action", "E starts a cursor-directed whole-frame strike")
 	var release: InputEventKey = input.duplicate()
 	release.pressed = false
 	Input.parse_input_event(release)
 	Input.flush_buffered_events()
 	game.cancel_work()
-	var frames: SpriteFrames = game.character.sprite_frames
-	for direction in preload("res://scripts/turn_motion.gd").FACINGS:
-		check(not frames.has_animation("harvest_" + direction) and not frames.has_animation("mine_" + direction), "Tool animation clips removed")
 	print("%s: %d exploration checks: wood, minerals, scrap, animation, cancellation, range, inventory, progression, reset" % ["PASS" if failures == 0 else "FAIL", checks])
 	quit(0 if failures == 0 else 1)

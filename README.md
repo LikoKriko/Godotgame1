@@ -13,7 +13,8 @@ La ventana y la resolución base son **1920 × 1080**. La cámara tiene un zoom 
 - Espacio: saltar.
 - Shift (mantener): correr a 1,6 veces la velocidad de caminar, sin cansancio por ahora.
 - Ctrl mientras corres: deslizarse con frenada progresiva.
-- 1–6: usar/equipar el objeto asignado a cada acceso rápido; 0: dejar las manos libres.
+- 1–6: usar/sacar el objeto de cada acceso rápido. Repetir la tecla del arma activa la guarda y deja las manos libres, conservando el objeto y sus usos en la barra. 0: dejar las manos libres.
+- El hueco Manos del inventario es exclusivo para guantes; las armas no son piezas de armadura. Equipar desde la mochila traslada el arma a un hueco libre de la barra rápida; si está llena, primero hay que liberar uno.
 - La barra rápida añade seis espacios físicos: sus objetos no ocupan la mochila. Arrastra entre mochila, equipo y barra para mover o intercambiar objetos. Shift + clic desde la mochila equipa primero una armadura si su hueco está vacío; si no, la pasa al primer espacio rápido disponible. Desde barra o equipo, Shift + clic devuelve el objeto a la mochila. Los materiales compatibles se apilan sin duplicarse; las herramientas y armaduras siguen ocupando un espacio cada una.
 - Apunta con el punto del cursor y mantén clic izquierdo o E para golpear o disparar.
 - Árbol adulto: hacha; roca: pico; arbolito joven, máquina o piedra pequeña: manos libres (0).
@@ -27,9 +28,9 @@ El recurso bajo el cursor muestra cuántos golpes faltan. El punto adopta un ton
 
 El personaje es un superviviente humano sin camiseta, con barba, pantalón corto marrón y pies descalzos. La altura de referencia es de 64 unidades en el mundo; la cámara mantiene su zoom anterior de 1,95. La cabeza usa las vistas de estilo original de tamaño constante durante la marcha. Las extremidades y la ropa se exportan unidas en cada pose. Los giros mantienen la fase de marcha y la frenada proporcional al ángulo; al completarse recuperan la velocidad máxima permitida por habilidades y alimentación.
 
-El personaje visible se reproduce mediante **sprites completos de cuerpo y herramienta**, exportados desde un cuerpo continuo. Cada caminata tiene 12 fotogramas en ocho orientaciones; cada categoría de herramienta, 16 fotogramas de acción en 16 orientaciones. Equipar y detenerse usan seis fotogramas dedicados. La parada conserva la fase exacta del último paso. Piel y ropa permanecen unidas a muslos y torso; no se recortan rodillas ni se montan brazos durante el juego. El hacha y el pico tienen dos agarres sobre el mismo mango y gestos diferentes; la profundidad de autoría oculta la herramienta cuando queda detrás del cuerpo. Cada ID mantiene su propio dibujo. La caminata base es de 70 unidades/s y equipar detiene brevemente el desplazamiento.
+El personaje visible se reproduce mediante **sprites completos de cuerpo y herramienta**, exportados desde un cuerpo continuo. Cada caminata tiene 12 fotogramas en ocho orientaciones; cada categoría de herramienta, 16 fotogramas de acción en 16 orientaciones. Equipar y detenerse usan seis fotogramas dedicados. La parada conserva la fase exacta del último paso. Piel y ropa permanecen unidas a muslos y torso; no se recortan rodillas ni se montan brazos durante el juego. El hacha y el pico tienen dos agarres sobre el mismo mango y gestos diferentes; la profundidad de autoría oculta la herramienta cuando queda detrás del cuerpo. Cada ID mantiene su propio dibujo. La caminata base es de 70 unidades/s y sacar una herramienta mantiene el desplazamiento: hay poses completas combinadas con caminar, correr y caminar agachado.
 
-La cabeza conserva ocho vistas pintadas de tamaño fijo; el cuerpo y las herramientas se exportan en las 16 orientaciones de uso. Son imágenes estilizadas, no una copia exacta del original ni una simulación muscular. Los criterios, la regeneración y las limitaciones se documentan en [docs/COMPLETE_SPRITE_PLAN.md](docs/COMPLETE_SPRITE_PLAN.md). Los antiguos módulos de articulación todavía calculan contactos y mantienen compatibilidad con comprobaciones de lógica; sus piezas no se muestran. Las pruebas visuales nuevas son `complete_sprite_pipeline.gd`, `full_frame_runtime.gd` y `full_frame_render.gd`.
+La cabeza conserva ocho vistas pintadas de tamaño fijo; el cuerpo y las herramientas se exportan en las 16 orientaciones de uso. Son imágenes estilizadas, no una copia exacta del original ni una simulación muscular. Los criterios, la regeneración y las limitaciones se documentan en [docs/COMPLETE_SPRITE_PLAN.md](docs/COMPLETE_SPRITE_PLAN.md). El juego ya no crea ni calcula el antiguo sistema de extremidades separadas. El contacto lógico usa `tool_contact.gd`, sin cargar atlas viejos ni construir miembros ocultos. Las pruebas visuales nuevas son `complete_sprite_pipeline.gd`, `full_frame_runtime.gd` y `full_frame_render.gd`.
 
 
 El impacto se aplica si el cursor está sobre la superficie visible del objeto y el personaje está a un máximo de 40 px de su base o huella física. Se usa el borde más próximo de la huella, también en rocas grandes. No es necesario apuntar al punto exacto alcanzado por la punta: señalar la copa de un árbol cercano también lo selecciona. La animación golpea una parte próxima de su silueta y conserva el límite natural de los brazos; se mantiene la comprobación de obstáculos interpuestos. Un fallo muestra el golpe al aire, conserva los usos de la herramienta y no mueve el objeto. Un contacto produce una sacudida breve y pequeñas partículas en el punto golpeado; una herramienta incorrecta no extrae materiales. Moverse, cambiar de equipo o abrir un panel cancela el trabajo pendiente; un golpe que ya impactó se conserva. Mantener pulsado repite el ciclo; soltar permite terminar la acción actual.
@@ -122,32 +123,25 @@ godot --headless --path . --editor --import --quit
 godot --headless --path . --script res://tests/smoke.gd
 godot --headless --path . --script res://tests/inventory.gd
 godot --headless --path . --script res://tests/movement.gd
-godot --headless --path . --script res://tests/turns.gd
-godot --headless --fixed-fps 60 --path . --script res://tests/walk_cycle.gd
 godot --headless --path . --script res://tests/world.gd
 godot --headless --path . --script res://tests/nature.gd
 godot --headless --path . --script res://tests/aimed_harvesting.gd
-godot --headless --path . --script res://tests/character_actions.gd
-godot --headless --path . --script res://tests/motion_polish.gd
 godot --headless --path . --script res://tests/locomotion.gd
-godot --headless --path . --script res://tests/clothing_volume.gd
 godot --headless --path . --script res://tests/workshop.gd
 godot --headless --path . --quit-after 120
 ```
 
-`tests/baked_tool_occlusion.gd` comprueba los píxeles ocultos de las cuatro herramientas en vistas laterales y superiores, la oclusión dambos brazos del arco, el sentido de su cuerda y la cabeza integrada. `tests/menu_hit_areas.gd` verifica interiores y exteriores de botones a tres resoluciones. `tests/running.gd` verifica carrera manual/automática y Control. `tests/locomotion_render.gd` comprueba Ctrl/Espacio/Shift reales y las poses renderizadas. `tests/visual_integrity.gd` requiere pantalla gráfica y comprueba los píxeles de cada sombra de objeto, el origen de la piel lateral, la visibilidad de los brazos con hacha/pico en reposo y caminando y los anclajes de cadera.
+`tests/baked_tool_occlusion.gd` comprueba anatomía, oclusión y cabeza integrada; `tool_back_exports.gd` revisa los sprites exportados. `full_frame_runtime.gd` y `equipment_motion.gd` comprueban movimiento y equipamiento. `running.gd` verifica carrera manual/automática y Control.
 
 Con una pantalla gráfica disponible, `godot --path . --rendering-method gl_compatibility --audio-driver Dummy --script res://tests/aimed_render.gd` comprueba la animación renderizada, los impactos y el cursor, sin guardar capturas. `tests/day_zero_ui.gd`, ejecutado del mismo modo, prueba los clics reales de equipar, desequipar, reparar y fabricar, las cantidades de los iconos y la configuración guardada.
 
 En cloud, usa los directorios XDG escribibles indicados en las instrucciones del entorno bajo `/workspace/shared`. No se necesitan servicios ni credenciales para jugar.
 
-Agacharse flexiona las piernas y baja el torso. El salto tiene un arco de 0,66 s y 24 px de altura visual; la posición y las colisiones del suelo siguen activas, por lo que esta versión no salta a través de árboles o rocas. Caminar agachado tiene 12 fotogramas propios en ocho direcciones. Deslizarse fija la dirección durante 0,46 s y frena hasta detenerse; entre 0,23 y 0,46 s se puede cancelar con un salto que recorre un 15% más bajo la misma entrada de movimiento, manteniendo sus 0,66 s y altura. La ventaja termina al aterrizar; hay una recuperación de 0,9 s desde el inicio. Los paneles pausan estos estados y reiniciar los restablece. Saltar o deslizarse cancela la recolección y el equipamiento en curso; no se pueden iniciar golpes durante estos movimientos.
+Agacharse flexiona las piernas y baja el torso. El salto tiene un arco de 0,66 s y 24 px de altura visual; la posición y las colisiones del suelo siguen activas, por lo que esta versión no salta a través de árboles o rocas. Caminar agachado tiene 12 fotogramas propios en ocho direcciones. Deslizarse fija la dirección durante 0,46 s y frena hasta detenerse; se puede saltar en cualquier momento conservando la velocidad y dirección actuales del deslizamiento, con una pose propia de impulso hacia delante. El giro en el aire está limitado a 70° a cada lado de la dirección de despegue, manteniendo los 0,66 s y la altura habituales. La inercia termina al aterrizar; hay una recuperación de 0,9 s desde el inicio. Los paneles pausan estos estados y reiniciar los restablece. Saltar o deslizarse cancela la recolección y el equipamiento en curso; no se pueden iniciar golpes durante estos movimientos.
 
 ## Archivos
 
 - `scripts/locomotion.gd`: agacharse, salto, deslizamiento y curvas de movimiento.
-- `scripts/character_parts.gd`: contornos de piernas y pies por orientación.
-- `scripts/clothing_poses.gd` y `scripts/clothing_rig.gd`: catálogo de fases y deformación de la ropa.
 
 - `scenes/day_zero.tscn` y `scripts/day_zero.gd`: entrada al juego, menú y pausa.
 - `scripts/day_zero_menu.gd`: opciones a la izquierda y título a la derecha.
@@ -160,19 +154,15 @@ Agacharse flexiona las piernas y baja el torso. El salto tiene un arco de 0,66 s
 - `assets/items/stone_tools.png` y `assets/items/basic_materials.png`: hacha, pico, palos, cuerda y piedra.
 - `scripts/item_icons.gd`: iconos de herramientas y materiales; `scripts/arrow.gd`: proyectiles del arco.
 - `scripts/harvesting.gd`: contacto, recursos, golpes, inventario y agotamiento.
-- `scripts/arm_rig.gd`: brazos articulados y alcance natural de cada herramienta.
 - `scripts/hit_meshes.gd`: mallas de las siluetas, transparencia y selección por cursor.
 - `scripts/aim_cursor.gd`: punto del ratón y alcance visual.
 - `scripts/test_world.gd`: generación y colisiones.
 - `scripts/nature_variants.gd`: catálogo de tamaños, tonos y bases de colisión de árboles y rocas.
-- `scripts/world_view.gd`: suelo y decorados; `scripts/world_minimap.gd`: minimapa.
+- `scripts/world_view.gd`: suelo y decorados; `scripts/styled_hud.gd`: HUD y minimapa con terreno almacenado en caché.
 - `scripts/turn_motion.gd`: giros (hasta 0.28 s; frenada máxima 35% en 180°, 8.75% en 90° y 2.19% en 45°).
-- `scripts/survivor_frames.gd`: ocho vistas desde los atlas de reposo y cuerpo; un reloj de marcha compartido sin cargar imágenes de caminar antiguas; giros mediante vistas intermedias.
-- `assets/characters/survivor_regions.gd`: recortes y anclajes anatómicos de los fotogramas del nuevo personaje.
 - `assets/environment/basic_forest_props.png`: árboles y rocas del primer bioma.
 - `assets/environment/forest_details.png`: arbolito joven y charco.
 - `assets/environment/grass_groups.png`: diez grupos de césped; `shaders/ground_foliage.gdshader`: paleta y contornos suaves del suelo.
-- `assets/characters/survivor_body_8dir.png`: cuerpo del personaje para golpes articulados.
 - `shaders/quarantine_ground.gdshader`: suelo natural continuo; `shaders/atmosphere.gdshader`: sombreado ligero de bordes.
 
 Los atlas están en `assets/`; `.godot/` contiene cachés locales excluidas de Git. Se han eliminado los atlas antiguos de suelos y caminata, el dibujado duplicado de herramientas y el recorte de cabeza anterior. Del atlas de decorados se usan la maquinaria y la baliza. Contornos, geometría de herramientas y presentaciones de decorados se almacenan en cachés acotadas. Las sombras estáticas no reconstruyen sus comandos si el sol, la cámara y los objetos no han cambiado de forma perceptible; los impactos fuerzan su actualización. Los materiales se almacenan en la mochila; no se sueltan en el suelo. Las comprobaciones automáticas validan lógica y carga; la sensación del movimiento y las animaciones requiere también jugar en el editor.
@@ -183,12 +173,10 @@ Pruebas de esta versión:
 
 - `tests/survival.gd`: límites calóricos, consumo, hidratación, medianoche, pausas, movimiento y dimensiones.
 - `tests/proximity_harvesting.gd`: cercanía a la huella y cursor sobre cualquier parte visible del objeto.
-- `tests/articulated_walk.gd`: cabeza constante, alternancia de pies, longitudes de huesos y transición al reposo.
-- `tests/motion_polish.gd`: límites de codo, inercia, rebote por material, hombros unidos al torso, dirección tras el contacto y continuidad de marcha.
 - `tests/solar_render.gd`: sombra visible, oscuridad nocturna de todo el terreno y dirección del sol (requiere pantalla gráfica).
 - `tests/day_zero_ui.gd`: clics reales en menú, equipo, reparación, fabricación, comida y agua.
 
-Los contornos comparten la política de [AGENTS.md](AGENTS.md): un píxel de rasterización del personaje, escalado con el dibujo. `visual_style.gd` normaliza bordes de objetos, materiales e iconos; el cuerpo y las herramientas usan el mismo contorno en la exportación. La cabeza forma parte de la malla de piel, comparte su paleta y transmite solo un 45% del balanceo de marcha. Los menús usan coordenadas nativas de la ventana y rectángulos de interacción sin expansión; el zoom conserva el encuadre al cambiar de resolución. El manifiesto de animación guarda únicamente los anclajes que utiliza el disparo, sin miles de entradas vacías.
+Los contornos comparten la política de [AGENTS.md](AGENTS.md): un píxel de rasterización del personaje, escalado con el dibujo. `visual_style.gd` normaliza bordes de objetos, materiales e iconos; el cuerpo y las herramientas usan el mismo contorno en la exportación. La cabeza forma parte de la malla de piel y comparte su paleta. Cuello y torso se desplazan juntos; la inclinación del cráneo respecto al cuello es muy leve. El giro del torso parte de la cadera para evitar estirar la cabeza al correr. Los menús usan coordenadas nativas de la ventana y rectángulos de interacción sin expansión; el zoom conserva el encuadre al cambiar de resolución. El manifiesto de animación guarda únicamente los anclajes que utiliza el disparo, sin miles de entradas vacías.
 
 En pantalla solo se muestran los atajos **Inventario (I), Crear (T) y Mapa (M)**, en marcos abajo a la derecha. La vida, las calorías y la hidratación están abajo a la izquierda; calorías y agua quedan pegadas. El peso aparece pequeño abajo a la derecha. El minimapa conserva el marco e icono de la segunda plantilla, con día y hora debajo. Ajustes y pausa están arriba a la izquierda. Las barras inferiores contienen seis accesos rápidos y cuatro espacios de habilidades (Z/X y dos vacíos). Solo se usan los elementos de interfaz de la segunda plantilla; el terreno sigue siendo el mapa procedural. M abre el mapa completo del terreno y muestra la posición actual sin niebla de exploración; M, Esc o × lo cierran. El mapa pausa el juego y no se superpone al inventario. Los avisos de recolección siguen siendo mensajes informativos, sin otros atajos. `tests/hud_map.gd` comprueba las seis áreas y anclajes; `tests/bow_back_occlusion.gd` revisa ambos brazos y la piel de la espalda en los PNG exportados. `tests/native_menu_input.gd` usa `native_pointer.py` y XTest para mover y pulsar el ratón del sistema en X11, incluyendo escalas de 100%, 125% y 150%.
 
@@ -206,6 +194,8 @@ La espada básica usa `assets/items/basic_sword.png`, procedente del PNG origina
 
 Se generan 24 plantas individuales en zonas de césped transitables y despejadas. Las dos imágenes se reparten por el terreno: `bardana1` da exactamente 5 hojas, `bardana2` da 3. Se recolectan con un golpe de manos, apuntando a la superficie y estando cerca. Desaparecen tras recogerlas y su estado se conserva al guardar. Los guardados anteriores reciben las nuevas plantas. El material utiliza el PNG original de la hoja.
 
-**Armadura de hojas:** 15 hojas de bardana + 3 metros de cuerda + 20 de fibra. Por petición del usuario esta primera incorporación configura la receta y su icono terminado; no define todavía estadísticas, reparación ni aspecto equipado. La fabricación puede usar materiales de mochila y barra rápida.
+**Armadura de hojas:** 15 hojas de bardana + 3 metros de cuerda + 20 de fibra. Se puede equipar en el torso y aparece también en el retrato del inventario. Su tejido de hojas sigue el movimiento de la piel en todas las poses, incluidas carrera, agachado, salto y herramientas. Todavía no aporta protección ni estadísticas y no tiene reparación. La fabricación puede usar materiales de mochila y barra rápida.
 
 Las barras inferiores se recortan siguiendo la silueta de marco y cabecera para que los píxeles de escenario de la plantilla no se dibujen en las esquinas. Pausa usa una fuente de mapa de bits creada a partir de las letras de sus botones originales, con letras acentuadas y tamaño ajustado al texto. El nuevo arco conserva su PNG, con cuerda, agarre e iconos propios. Hacha, pico y espada abren la trayectoria en vistas de frente, espalda y diagonales sin cambiar el ritmo ni la longitud de los huesos; ambos brazos quedan ocultos detrás de la espalda cuando corresponde.
+
+La plantilla `tools/torso_armor.gd` envuelve el torso con una superficie de armadura ligada al mismo transform que la piel; cada armadura normal especifica su dibujo y perfil. El juego usa sprites completos ya exportados. Las animaciones combinadas de equipamiento se reparten en seis atlas por movimiento, cada uno de 2304×1536; la caché aplica un límite de 128 MiB. La máscara del personaje solo se redibuja cuando cambia la pose, y las mallas de impacto estáticas no actualizan sus transformaciones cada fotograma.

@@ -23,9 +23,9 @@ func run() -> void:
 	var origin: Vector2 = game.player
 	key(KEY_D,true)
 	game._process(0.01)
-	require(game.equipping and game.full_avatar.state == &"equip","Selecting a tool enters its dedicated equip clip")
+	require(game.equipping and game.full_avatar.state == &"equip_walk","Selecting a tool enters its dedicated equip clip")
 	for i in 4: game._process(0.10)
-	require(game.player == origin,"Walking input cannot interrupt or move during equip")
+	require(game.player != origin and game.equipping,"Walking continues throughout the dedicated moving equip clip")
 	game._process(0.10)
 	game._process(0.10)
 	require(not game.equipping and game.player != origin,"Movement resumes after equip finishes")

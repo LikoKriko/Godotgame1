@@ -4,7 +4,7 @@ var kind: StringName = &"bag"
 var slot
 func source() -> Dictionary:
 	if game == null: return {}
-	var item: Dictionary = game.bag.held_item() if kind == &"gear" and slot == &"hands" else game.bag.at(kind,slot)
+	var item: Dictionary = game.bag.at(kind,slot)
 	return game.bag.location(item.get("uid",-1))
 func _get_drag_data(_point: Vector2):
 	var location := source()

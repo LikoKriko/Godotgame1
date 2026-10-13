@@ -21,6 +21,10 @@ var quick_bar: Control
 var skill_bar: Control
 var map_frame: Control
 var refresh_elapsed := 0.0
+var map_terrain: Texture2D
+var map_seed := -1
+var map_prop_count := -1
+var terrain_rebuilds := 0
 
 func configure(owner_game) -> void:
 	game = owner_game
@@ -35,6 +39,7 @@ func configure(owner_game) -> void:
 	pause_button.tooltip_text = "Pausa"
 	pause_button.pressed.connect(func(): game.menu_requested.emit())
 	map_frame = Control.new()
+	map_frame.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	map_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	map_frame.size = Vector2(195,183)
 	add_child(map_frame)
@@ -257,12 +262,7 @@ func draw_map() -> void:
 		map_frame.draw_rect(Rect2(Vector2.ZERO,map_frame.size),Color("828169"),false,1)
 		map_frame.draw_string(ThemeDB.fallback_font,Vector2(10,24),"MAPA",HORIZONTAL_ALIGNMENT_LEFT,-1,16)
 	var terrain_rect := Rect2(10,44,175,127)
-	var cell_size := terrain_rect.size/Vector2(game.world.SIZE)
-	for cell in game.world.cells:
-		var data: Dictionary = game.world.cells[cell]
-		var color := Color("737968") if data.blocked else Color("414a39")
-		if data.road and not data.blocked: color = Color("6a6351")
-		map_frame.draw_rect(Rect2(terrain_rect.position+Vector2(cell-game.world.FIRST)*cell_size,cell_size),color)
+	if map_terrain != null: map_frame.draw_texture_rect(map_terrain,terrain_rect,false)
 	var point: Vector2 = terrain_rect.position+(game.player-game.world.bounds.position)/game.world.bounds.size*terrain_rect.size
 	map_frame.draw_circle(point,2.5,Color("ffe078"))
 
@@ -273,7 +273,20 @@ func open_shortcut(index: int) -> void:
 	if index == 2: open_map(); return
 	game.cancel_work(); game.world_map.hide(); game.inventory_panel.open_section(index)
 
+func refresh_terrain() -> void:
+	if map_seed == game.world.seed_value and map_prop_count == game.world.props.size(): return
+	map_seed = game.world.seed_value; map_prop_count = game.world.props.size()
+	var pixels := Image.create(game.world.SIZE.x,game.world.SIZE.y,false,Image.FORMAT_RGB8)
+	for cell in game.world.cells:
+		var data: Dictionary = game.world.cells[cell]
+		var color := Color("737968") if data.blocked else Color("414a39")
+		if data.road and not data.blocked: color = Color("6a6351")
+		pixels.set_pixelv(cell-game.world.FIRST,color)
+	map_terrain = ImageTexture.create_from_image(pixels)
+	terrain_rebuilds += 1
+
 func refresh() -> void:
+	refresh_terrain()
 	life.text = "%.0f / %.0f" % [game.progression.health,game.progression.max_health()]
 	food.text = "%d kcal" % game.nutrition.calories_today
 	food.tooltip_text = "Calorías de hoy / 1600 kcal. Velocidad: −%d%%" % roundi(game.nutrition.speed_penalty()*100)

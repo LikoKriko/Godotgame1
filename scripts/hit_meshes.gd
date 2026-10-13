@@ -44,7 +44,8 @@ func add(cell: Vector2i, texture: Texture2D, rect: Rect2, depth: float) -> void:
 func set_transform(cell: Vector2i, origin: Vector2, rotation: float, scale: Vector2) -> void:
 	if targets.has(cell):
 		var area: Area2D = targets[cell]["area"]
-		area.transform = Transform2D(rotation, scale, 0, origin)
+		var placement := Transform2D(rotation, scale, 0, origin)
+		if area.transform != placement: area.transform = placement
 
 func contains(cell: Vector2i, point: Vector2) -> bool:
 	if not targets.has(cell):

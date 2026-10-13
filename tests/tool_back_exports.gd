@@ -24,62 +24,94 @@ func run() -> void:
 	var actor := Actor.new(); view.add_child(actor); actor.camera_up = camera.global_basis.y
 	var hidden := [0,0]
 	var kept := [0,0]
-	for selected_item in [&"axe",&"pickaxe",&"sword",&"bow"]:
-		for state in [&"idle",&"walk",&"run",&"equip",&"action",&"crouch_walk"]:
-			for direction in [10,12,14]:
-				for phase in [0.0,0.28,0.5,0.85]:
-					actor.build(selected_item,selected_item,state,phase,direction)
-					actor.body_material.set_shader_parameter("protect_bow_arm",false)
-					actor.tool.hide(); actor.show_core_only()
-					var core := await capture(view)
-					actor.restore_full(&"")
-					actor.body_material.set_shader_parameter("body_mask",ImageTexture.create_from_image(core))
-					for side in 2:
-						var parameter := "debug_left_arm" if side == 0 else "debug_right_arm"
-						actor.body_material.set_shader_parameter(parameter,true)
+	for armor in [&"",&"burdock_armor"]:
+		actor.armor_id = armor
+		for selected_item in [&"axe",&"pickaxe",&"sword",&"bow"]:
+			for state in [&"idle",&"walk",&"run",&"equip",&"action",&"crouch_walk",&"crouch_equip",&"slide_jump"]:
+				for direction in [10,12,14]:
+					for phase in [0.0,0.28,0.5,0.85]:
+						actor.build(selected_item,selected_item,state,phase,direction)
 						actor.body_material.set_shader_parameter("protect_bow_arm",false)
-						var raw := await capture(view)
+						actor.tool.hide(); actor.show_core_only()
+						var core := await capture(view)
+						actor.restore_full(&"")
+						actor.body_material.set_shader_parameter("body_mask",ImageTexture.create_from_image(core))
+						for side in 2:
+							var parameter := "debug_left_arm" if side == 0 else "debug_right_arm"
+							actor.body_material.set_shader_parameter(parameter,true)
+							actor.body_material.set_shader_parameter("protect_bow_arm",false)
+							var raw := await capture(view)
+							actor.body_material.set_shader_parameter("protect_bow_arm",true)
+							var masked := await capture(view)
+							var leaks := 0
+							var lost := 0
+							for y in 192:
+								for x in 192:
+									var pixel := raw.get_pixel(x,y)
+									if pixel.r < 0.99 or pixel.b < 0.99 or pixel.g > 0.01: continue
+									var output := masked.get_pixel(x,y)
+									if core.get_pixel(x,y).a > 0.99:
+										hidden[side] += 1
+										if output.r > 0.99 and output.b > 0.99 and output.g < 0.01: leaks += 1
+									else:
+										kept[side] += 1
+										if difference(pixel,output) > 0.04: lost += 1
+							require(leaks == 0 and lost == 0,"Both tool arms are hidden only where the back covers them: %s/%d/%s/arm%d" % [state,direction,phase,side])
+							actor.body_material.set_shader_parameter(parameter,false)
+							actor.body_material.set_shader_parameter("protect_bow_arm",false)
+			for side in 2: require(hidden[side] > 0 and kept[side] > 0,"Each arm has tested occlusion and visible grips")
+			# Check the shipped whole frames against the torso/head mask, rather than
+			# accepting authoring-only fixes that never reach the PNG used by the game.
+			var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/characters/complete/manifest.json"))
+			for state in [&"idle",&"walk",&"run",&"equip",&"action",&"crouch_walk",&"crouch_equip",&"slide_jump"]:
+				var data: Dictionary = manifest.items[(String(armor)+"__" if armor != &"" else "")+String(selected_item)].clips[String(state)]
+				var sheet := Image.load_from_file(ProjectSettings.globalize_path(data.path))
+				var count := int(data.frames)
+				var directions := int(data.directions)
+				for direction in [10,12,14]:
+					for frame in count:
+						var phase := frame/float(count) if state in [&"walk",&"run",&"crouch_walk"] else (frame/float(count-1) if count > 1 else 0.0)
+						if state == &"action": phase = frame/16.0 if frame <= 8 else 0.5+(frame-8)/14.0
+						actor.build(selected_item,selected_item,state,phase,direction)
+						actor.show_core_only()
+						var core := await capture(view)
+						actor.restore_full(&"")
+						actor.body_material.set_shader_parameter("body_mask",ImageTexture.create_from_image(core))
 						actor.body_material.set_shader_parameter("protect_bow_arm",true)
-						var masked := await capture(view)
-						var leaks := 0
-						var lost := 0
+						# Pants may naturally cover the armor hem near the hips. Compare
+						# the complete body with its arms masked, not an isolated torso.
+						var body := await capture(view)
+						var baked := sheet.get_region(Rect2i(frame*192,(direction/(16/directions))*192,192,192))
+						var overwritten := 0
 						for y in 192:
 							for x in 192:
-								var pixel := raw.get_pixel(x,y)
-								if pixel.r < 0.99 or pixel.b < 0.99 or pixel.g > 0.01: continue
-								var output := masked.get_pixel(x,y)
-								if core.get_pixel(x,y).a > 0.99:
-									hidden[side] += 1
-									if output.r > 0.99 and output.b > 0.99 and output.g < 0.01: leaks += 1
-								else:
-									kept[side] += 1
-									if difference(pixel,output) > 0.04: lost += 1
-						require(leaks == 0 and lost == 0,"Both tool arms are hidden only where the back covers them: %s/%d/%s/arm%d" % [state,direction,phase,side])
-						actor.body_material.set_shader_parameter(parameter,false)
-						actor.body_material.set_shader_parameter("protect_bow_arm",false)
-		for side in 2: require(hidden[side] > 0 and kept[side] > 0,"Each arm has tested occlusion and visible grips")
-		# Check the shipped whole frames against the torso/head mask, rather than
-		# accepting authoring-only fixes that never reach the PNG used by the game.
-		var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/characters/complete/manifest.json"))
-		for state in [&"idle",&"walk",&"run",&"equip",&"action",&"crouch_walk"]:
-			var data: Dictionary = manifest.items[String(selected_item)].clips[String(state)]
-			var sheet := Image.load_from_file(ProjectSettings.globalize_path(data.path))
-			var count := int(data.frames)
-			var directions := int(data.directions)
-			for direction in [10,12,14]:
-				for frame in count:
-					var phase := frame/float(count) if state in [&"walk",&"run",&"crouch_walk"] else (frame/float(count-1) if count > 1 else 0.0)
-					if state == &"action": phase = frame/16.0 if frame <= 8 else 0.5+(frame-8)/14.0
-					actor.build(selected_item,selected_item,state,phase,direction)
-					actor.show_core_only()
-					var core := await capture(view)
-					actor.restore_full(&"")
-					var baked := sheet.get_region(Rect2i(frame*192,(direction/(16/directions))*192,192,192))
-					var overwritten := 0
-					for y in 192:
-						for x in 192:
-							var pixel := core.get_pixel(x,y)
-							if pixel.a > 0.99 and pixel.r > 0.58 and pixel.g > 0.30 and pixel.r > pixel.g*1.15 and difference(pixel,baked.get_pixel(x,y)) > 0.06: overwritten += 1
-					require(overwritten <= 2,"Exported back retains exposed skin colors without arm or cord bleeding: %s/%d/%d (%d pixels)" % [state,direction,frame,overwritten])
+								var pixel := core.get_pixel(x,y)
+								var skin := pixel.r > 0.58 and pixel.g > 0.30 and pixel.r > pixel.g*1.15
+								var leaves := pixel.g > 0.25 and pixel.g > pixel.r*1.1 and pixel.g > pixel.b*1.2
+								if pixel.a > 0.99 and (skin or leaves) and difference(body.get_pixel(x,y),baked.get_pixel(x,y)) > 0.06: overwritten += 1
+						require(overwritten <= 2,"Exported back retains body colors without arm or cord bleeding: %s/%s/%s/%d/%d (%d pixels)" % [armor,selected_item,state,direction,frame,overwritten])
+			for state in [&"equip_walk",&"equip_run",&"equip_crouch_walk"]:
+				var key := (String(armor)+"__" if armor != &"" else "")+String(selected_item)
+				var data: Dictionary = manifest.items[key].clips[String(state)]
+				for stage in [1,3]:
+					var sheet := Image.load_from_file(ProjectSettings.globalize_path(data.paths[stage]))
+					for direction in [10,14]:
+						for frame in [3,9]:
+							actor.build(selected_item,selected_item,state,stage/5.0,direction,frame/12.0)
+							actor.show_core_only()
+							var core := await capture(view)
+							actor.restore_full(&"")
+							actor.body_material.set_shader_parameter("body_mask",ImageTexture.create_from_image(core))
+							actor.body_material.set_shader_parameter("protect_bow_arm",true)
+							var body := await capture(view)
+							var baked := sheet.get_region(Rect2i(frame*192,direction/2*192,192,192))
+							var overwritten := 0
+							for y in 192:
+								for x in 192:
+									var pixel := core.get_pixel(x,y)
+									var skin := pixel.r > 0.58 and pixel.g > 0.30 and pixel.r > pixel.g*1.15
+									var leaves := pixel.g > 0.25 and pixel.g > pixel.r*1.1 and pixel.g > pixel.b*1.2
+									if pixel.a > 0.99 and (skin or leaves) and difference(body.get_pixel(x,y),baked.get_pixel(x,y)) > 0.06: overwritten += 1
+							require(overwritten <= 2,"Moving equip export preserves body and armor occlusion: %s/%s/%d/%d/%d" % [key,state,stage,direction,frame])
 	print("%s: %d tool-back export checks, %d failures; hidden pixels %s, visible arm pixels %s" % ["PASS" if failures == 0 else "FAIL",checks,failures,hidden,kept])
 	quit(1 if failures else 0)

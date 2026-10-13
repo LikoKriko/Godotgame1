@@ -1,5 +1,4 @@
 extends RefCounted
-const BASIC = preload("res://assets/items/basic_tools.png")
 const SHEET = preload("res://assets/items/stone_tools.png")
 const SWORD = preload("res://assets/items/basic_sword.png")
 const BOW = preload("res://assets/items/basic_bow.png")
@@ -23,22 +22,6 @@ static func icon(id: StringName) -> Texture2D:
 		textures[id] = texture
 	return textures[id]
 
-static func draw(canvas: CanvasItem, id: StringName, hand: Vector2, tip: Vector2, mirrored: bool = false, basis: Transform2D = Transform2D.IDENTITY, tint: Color = Color.WHITE) -> void:
-	var data := geometry(id)
-	if data.is_empty():
-		return
-	var texture: Texture2D = data["texture"]
-	var grip: Vector2 = data["grip"]
-	var contact: Vector2 = data["contact"]
-	var reflection := Vector2(-1,1) if mirrored else Vector2.ONE
-	grip *= reflection
-	contact *= reflection
-	var factor := hand.distance_to(tip)/grip.distance_to(contact)
-	var rotation := (tip-hand).angle()-(contact-grip).angle()
-	canvas.draw_set_transform_matrix(basis*Transform2D(rotation,reflection*factor,0,hand-grip.rotated(rotation)*factor))
-	canvas.draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false,tint)
-	canvas.draw_set_transform_matrix(basis)
-
 # Both hands are anchored to actual points on the wooden shaft, using the
 # same reflection, rotation and scale as the visible tool.
 static func support_offset(id: StringName, direction: Vector2, mirrored: bool) -> Vector2:
@@ -55,28 +38,9 @@ static func geometry(id: StringName) -> Dictionary:
 	if geometry_cache.has(id):
 		return geometry_cache[id]
 	var texture: Texture2D = icon(id)
-	var grip: Vector2
-	var contact: Vector2
-	if texture != null:
-		grip = DATA[id]["grip"]-DATA[id]["rect"].position
-		contact = DATA[id]["contact"]-DATA[id]["rect"].position
-	else:
-		var ids := [&"sword",&"bow"]
-		if id not in ids:
-			return {}
-		if not textures.has(id):
-			var half := Vector2i(BASIC.get_size()/2)
-			var region := Rect2i(Vector2i(ids.find(id),0)*half,half)
-			var used := BASIC.get_image().get_region(region).get_used_rect()
-			var atlas := AtlasTexture.new()
-			atlas.atlas = BASIC
-			atlas.region = Rect2(region.position+used.position,used.size)
-			textures[id] = atlas
-		texture = textures[id]
-		if texture == null:
-			return {}
-		grip = texture.get_size()*Vector2(0.5,0.8)
-		contact = texture.get_size()*Vector2(0.5,0.15)
+	if texture == null: return {}
+	var grip: Vector2 = DATA[id].grip-DATA[id].rect.position
+	var contact: Vector2 = DATA[id].contact-DATA[id].rect.position
 	var result := {"texture": texture,"grip": grip,"contact": contact}
 	geometry_cache[id] = result
 	return result

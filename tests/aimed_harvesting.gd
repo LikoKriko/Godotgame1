@@ -1,5 +1,5 @@
 extends SceneTree
-const Rig = preload("res://scripts/arm_rig.gd")
+const Rig = preload("res://scripts/tool_contact.gd")
 const Aim = preload("res://tests/aim_fixture.gd")
 var checks := 0
 var failures := 0
@@ -17,26 +17,11 @@ func run_checks() -> void:
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_process(false)
-	# The two rigid arm segments retain their length in every direction,
-	# throughout wind-up, contact and recovery, for every equipped item.
 	for item in Rig.TOOL_LENGTHS:
 		for i in 8:
-			for distance in [1.0, 25.0, 60.0, 1000.0]:
-				var aim: Vector2 = Vector2.from_angle(i*TAU/8)*distance
-				var pose := Rig.contact(Vector2.ZERO,aim,item)
-				for phase in [0.0,0.15,0.35,0.5,0.8,1.0]:
-					game.arm_rig.animate(Vector2.ZERO,aim,item,phase)
-					for limb in game.arm_rig.layers:
-						require(is_equal_approx(sqrt(limb.shoulder.distance_squared_to(limb.elbow)+limb.depth*limb.depth),Rig.UPPER),"Upper arm never stretches")
-						require(is_equal_approx(sqrt(limb.elbow.distance_squared_to(limb.hand)+pow(limb.hand_depth-limb.depth,2)),Rig.FOREARM),"Forearm never stretches")
-					if phase == 0.5:
-						require(game.arm_rig.layers[pose["index"]].tip.is_equal_approx(pose["tip"]),"Visible contact and logical tip coincide")
-				if distance == 1000:
-					require(not pose["reachable"],"Far cursor remains out of anatomical reach")
-					var beyond: Dictionary = Rig.contact(Vector2.ZERO,pose["tip"]+pose["direction"]*0.25,item)
-					if beyond["facing"] == pose["facing"] and beyond["index"] == pose["index"]:
-						require(not beyond["reachable"],"Even a cursor just beyond the same shoulder limit cannot extend natural reach")
-	game.arm_rig.hide()
+			var aim := Vector2.from_angle(i*TAU/8)*1000
+			var contact := Rig.contact(Vector2.ZERO,aim,item)
+			require(not contact.reachable,"Far cursor remains outside interaction reach")
 	var world = game.world
 	require(world.saplings.size() == 20,"Twenty young hand-harvestable trees")
 	require(world.grass_tufts.size() > 300,"Natural grass populates the ground")
@@ -81,7 +66,7 @@ func run_checks() -> void:
 	game.advance_work(game.work_duration)
 	require(game.resources.nodes[tree]["remaining"] == initial_hp,"Moving the live cursor away makes the strike miss")
 	require(game.world_view.impulses.is_empty() and game.world_view.particles.is_empty(),"Miss produces no object movement or debris")
-	require(mesh.transform == rest and game.bag.equipment[&"hands"]["uses"] == 30,"Miss preserves mesh and durability")
+	require(mesh.transform == rest and game.bag.held_item()["uses"] == 30,"Miss preserves mesh and durability")
 	game.player = Vector2.ZERO
 	game.start_work(aim)
 	game.advance_work(game.work_duration)
@@ -97,7 +82,7 @@ func run_checks() -> void:
 	game.advance_work(game.work_duration*0.5)
 	require(game.resources.nodes[tree]["remaining"] == initial_hp-1,"Reachable aimed contact deals one hit")
 	require(game.world_view.hit_meshes.contains(tree,game.impact_position),"Impact occurs on a nearby visible part of the selected object")
-	require(game.bag.equipment[&"hands"]["uses"] == 29,"One valid hit consumes one use")
+	require(game.bag.held_item()["uses"] == 29,"One valid hit consumes one use")
 	game.world_view.update_trees(game.player,0.03)
 	require(mesh.transform != rest,"A landed hit visibly moves the tree")
 	var sprite: Sprite2D = game.world_view.tree_sprites[tree]
@@ -114,12 +99,12 @@ func run_checks() -> void:
 	var sapling: Vector2i = world.saplings.keys()[0]
 	aim = Aim.approach(game,sapling,&"")
 	for i in 2:
-		require(game.start_work(aim) and game.arm_rig.visible,"Bare hands animate at a young tree")
+		require(game.start_work(aim) and game.working,"Bare hands animate at a young tree")
 		game.advance_work(game.work_duration)
 		game.world_view.update_trees(game.player,0.3)
 	require(game.bag.count(&"fibra") == 3,"Hand-harvesting awards three plant fibers")
 	require(not world.props.has(sapling) and not game.world_view.hit_meshes.targets.has(sapling),"Destroyed sapling removes impact and movement collision")
-	require(not game.working and game.gait.clothing.state == &"idle" and game.arm_rig.layers[0].tool == &"" and game.arm_rig.layers[1].tool == &"","Hand strike recovers to consistent bare-handed rest")
+	require(not game.working and game.bag.held_id() == &"","Hand strike recovers to consistent bare-handed rest")
 	var grass: Array = world.grass_tufts.duplicate(true)
 	var puddles: Array = world.puddles.duplicate(true)
 	game.restart()

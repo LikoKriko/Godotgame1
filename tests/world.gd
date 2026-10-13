@@ -51,8 +51,8 @@ func run_checks() -> void:
 	input.pressed = true
 	game._unhandled_key_input(input)
 	require(game.world.seed_value == 73130 and game.player == Vector2.ZERO, "F2 generates and resets run")
-	require(game.minimap.world == game.world, "Minimap uses active map")
-	require(Vector2(game.world.SIZE) * game.minimap.cell_scale() == Vector2(192, 144), "Expanded map fits minimap panel")
+	require(game.styled_hud.map_seed == game.world.seed_value, "Minimap uses active map")
+	require(game.styled_hud.map_terrain.get_size() == Vector2(game.world.SIZE), "Expanded map fits minimap panel")
 	require(game.camera.limit_left == -1536 and game.camera.limit_right == 1536 and game.camera.limit_top == -1024 and game.camera.limit_bottom == 1024, "Camera follows expanded world limits")
 	require(game.world_view.ground_material.get_shader_parameter("map_seed") == 73130.0, "Ground follows regenerated seed")
 	print("%s: %d world checks across 20 seeds, %d failures: connectivity, expanded boundaries, minimap and regeneration" % ["PASS" if failures == 0 else "FAIL", checks, failures])

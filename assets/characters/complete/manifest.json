@@ -9,6 +9,7 @@
 	],
 	"items": {
 		"axe": {
+			"armor": "",
 			"category": "axe",
 			"clips": {
 				"action": {
@@ -23,6 +24,12 @@
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/axe_crouch.png"
 				},
+				"crouch_equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/axe_crouch_equip.png"
+				},
 				"crouch_walk": {
 					"directions": 8.0,
 					"frames": 12.0,
@@ -34,6 +41,54 @@
 					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/axe_equip.png"
+				},
+				"equip_crouch_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/axe_equip_crouch_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/axe_equip_crouch_walk_00.png",
+						"res://assets/characters/complete/axe_equip_crouch_walk_01.png",
+						"res://assets/characters/complete/axe_equip_crouch_walk_02.png",
+						"res://assets/characters/complete/axe_equip_crouch_walk_03.png",
+						"res://assets/characters/complete/axe_equip_crouch_walk_04.png",
+						"res://assets/characters/complete/axe_equip_crouch_walk_05.png"
+					]
+				},
+				"equip_run": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/axe_equip_run_00.png",
+					"paths": [
+						"res://assets/characters/complete/axe_equip_run_00.png",
+						"res://assets/characters/complete/axe_equip_run_01.png",
+						"res://assets/characters/complete/axe_equip_run_02.png",
+						"res://assets/characters/complete/axe_equip_run_03.png",
+						"res://assets/characters/complete/axe_equip_run_04.png",
+						"res://assets/characters/complete/axe_equip_run_05.png"
+					]
+				},
+				"equip_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/axe_equip_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/axe_equip_walk_00.png",
+						"res://assets/characters/complete/axe_equip_walk_01.png",
+						"res://assets/characters/complete/axe_equip_walk_02.png",
+						"res://assets/characters/complete/axe_equip_walk_03.png",
+						"res://assets/characters/complete/axe_equip_walk_04.png",
+						"res://assets/characters/complete/axe_equip_walk_05.png"
+					]
 				},
 				"idle": {
 					"directions": 16.0,
@@ -58,6 +113,12 @@
 					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/axe_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/axe_slide_jump.png"
 				},
 				"start": {
 					"directions": 8.0,
@@ -296,6 +357,7 @@
 			}
 		},
 		"bare": {
+			"armor": "",
 			"category": "",
 			"clips": {
 				"action": {
@@ -316,14 +378,8 @@
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bare_crouch_walk.png"
 				},
-				"equip": {
-					"directions": 16.0,
-					"frames": 6.0,
-					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bare_equip.png"
-				},
 				"idle": {
-					"body_height": 98.0,
+					"body_height": 100.0,
 					"directions": 16.0,
 					"frames": 1.0,
 					"grip_error": 0.0,
@@ -346,6 +402,12 @@
 					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bare_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bare_slide_jump.png"
 				},
 				"start": {
 					"directions": 8.0,
@@ -584,13 +646,1064 @@
 			}
 		},
 		"bow": {
+			"armor": "",
+			"category": "bow",
+			"clips": {
+				"action": {
+					"directions": 16.0,
+					"frames": 16.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_action.png",
+					"release_anchors": [
+						[
+							137.25,
+							70.363
+						],
+						[
+							135.545,
+							73.816
+						],
+						[
+							127.82,
+							76.866
+						],
+						[
+							115.25,
+							79.049
+						],
+						[
+							99.75,
+							80.032
+						],
+						[
+							83.679,
+							79.666
+						],
+						[
+							69.483,
+							78.006
+						],
+						[
+							59.325,
+							75.305
+						],
+						[
+							54.75,
+							71.975
+						],
+						[
+							56.455,
+							68.521
+						],
+						[
+							64.18,
+							65.471
+						],
+						[
+							76.75,
+							63.289
+						],
+						[
+							92.25,
+							62.306
+						],
+						[
+							108.321,
+							62.672
+						],
+						[
+							122.517,
+							64.332
+						],
+						[
+							132.675,
+							67.033
+						]
+					]
+				},
+				"crouch": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_crouch.png"
+				},
+				"crouch_equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_crouch_equip.png"
+				},
+				"crouch_walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_crouch_walk.png"
+				},
+				"equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_equip.png"
+				},
+				"equip_crouch_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_equip_crouch_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/bow_equip_crouch_walk_00.png",
+						"res://assets/characters/complete/bow_equip_crouch_walk_01.png",
+						"res://assets/characters/complete/bow_equip_crouch_walk_02.png",
+						"res://assets/characters/complete/bow_equip_crouch_walk_03.png",
+						"res://assets/characters/complete/bow_equip_crouch_walk_04.png",
+						"res://assets/characters/complete/bow_equip_crouch_walk_05.png"
+					]
+				},
+				"equip_run": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_equip_run_00.png",
+					"paths": [
+						"res://assets/characters/complete/bow_equip_run_00.png",
+						"res://assets/characters/complete/bow_equip_run_01.png",
+						"res://assets/characters/complete/bow_equip_run_02.png",
+						"res://assets/characters/complete/bow_equip_run_03.png",
+						"res://assets/characters/complete/bow_equip_run_04.png",
+						"res://assets/characters/complete/bow_equip_run_05.png"
+					]
+				},
+				"equip_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_equip_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/bow_equip_walk_00.png",
+						"res://assets/characters/complete/bow_equip_walk_01.png",
+						"res://assets/characters/complete/bow_equip_walk_02.png",
+						"res://assets/characters/complete/bow_equip_walk_03.png",
+						"res://assets/characters/complete/bow_equip_walk_04.png",
+						"res://assets/characters/complete/bow_equip_walk_05.png"
+					]
+				},
+				"idle": {
+					"directions": 16.0,
+					"frames": 1.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_idle.png"
+				},
+				"jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_jump.png"
+				},
+				"run": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_run.png"
+				},
+				"slide": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_slide_jump.png"
+				},
+				"start": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_start.png"
+				},
+				"start_run": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_start_run.png"
+				},
+				"stop_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_00.png"
+				},
+				"stop_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_01.png"
+				},
+				"stop_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_02.png"
+				},
+				"stop_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_03.png"
+				},
+				"stop_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_04.png"
+				},
+				"stop_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_05.png"
+				},
+				"stop_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_06.png"
+				},
+				"stop_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_07.png"
+				},
+				"stop_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_08.png"
+				},
+				"stop_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_09.png"
+				},
+				"stop_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_10.png"
+				},
+				"stop_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_11.png"
+				},
+				"stop_run_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_00.png"
+				},
+				"stop_run_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_01.png"
+				},
+				"stop_run_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_02.png"
+				},
+				"stop_run_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_03.png"
+				},
+				"stop_run_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_04.png"
+				},
+				"stop_run_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_05.png"
+				},
+				"stop_run_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_06.png"
+				},
+				"stop_run_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_07.png"
+				},
+				"stop_run_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_08.png"
+				},
+				"stop_run_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_09.png"
+				},
+				"stop_run_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_10.png"
+				},
+				"stop_run_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_11.png"
+				},
+				"stop_run_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_start_00.png"
+				},
+				"stop_run_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_start_01.png"
+				},
+				"stop_run_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_start_02.png"
+				},
+				"stop_run_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_start_03.png"
+				},
+				"stop_run_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_start_04.png"
+				},
+				"stop_run_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_run_start_05.png"
+				},
+				"stop_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_start_00.png"
+				},
+				"stop_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_start_01.png"
+				},
+				"stop_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_start_02.png"
+				},
+				"stop_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_start_03.png"
+				},
+				"stop_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_start_04.png"
+				},
+				"stop_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_stop_start_05.png"
+				},
+				"walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bow_walk.png"
+				}
+			}
+		},
+		"burdock_armor__axe": {
+			"armor": "burdock_armor",
+			"category": "axe",
+			"clips": {
+				"action": {
+					"directions": 16.0,
+					"frames": 16.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_action.png"
+				},
+				"crouch": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_crouch.png"
+				},
+				"crouch_equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_crouch_equip.png"
+				},
+				"crouch_walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_crouch_walk.png"
+				},
+				"equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_equip.png"
+				},
+				"equip_crouch_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_equip_crouch_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__axe_equip_crouch_walk_00.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_crouch_walk_01.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_crouch_walk_02.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_crouch_walk_03.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_crouch_walk_04.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_crouch_walk_05.png"
+					]
+				},
+				"equip_run": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_equip_run_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__axe_equip_run_00.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_run_01.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_run_02.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_run_03.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_run_04.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_run_05.png"
+					]
+				},
+				"equip_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_equip_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__axe_equip_walk_00.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_walk_01.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_walk_02.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_walk_03.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_walk_04.png",
+						"res://assets/characters/complete/burdock_armor__axe_equip_walk_05.png"
+					]
+				},
+				"idle": {
+					"directions": 16.0,
+					"frames": 1.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_idle.png"
+				},
+				"jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_jump.png"
+				},
+				"run": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_run.png"
+				},
+				"slide": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_slide_jump.png"
+				},
+				"start": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_start.png"
+				},
+				"start_run": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_start_run.png"
+				},
+				"stop_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_00.png"
+				},
+				"stop_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_01.png"
+				},
+				"stop_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_02.png"
+				},
+				"stop_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_03.png"
+				},
+				"stop_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_04.png"
+				},
+				"stop_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_05.png"
+				},
+				"stop_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_06.png"
+				},
+				"stop_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_07.png"
+				},
+				"stop_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_08.png"
+				},
+				"stop_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_09.png"
+				},
+				"stop_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_10.png"
+				},
+				"stop_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_11.png"
+				},
+				"stop_run_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_00.png"
+				},
+				"stop_run_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_01.png"
+				},
+				"stop_run_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_02.png"
+				},
+				"stop_run_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_03.png"
+				},
+				"stop_run_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_04.png"
+				},
+				"stop_run_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_05.png"
+				},
+				"stop_run_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_06.png"
+				},
+				"stop_run_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_07.png"
+				},
+				"stop_run_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_08.png"
+				},
+				"stop_run_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_09.png"
+				},
+				"stop_run_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_10.png"
+				},
+				"stop_run_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_11.png"
+				},
+				"stop_run_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_start_00.png"
+				},
+				"stop_run_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_start_01.png"
+				},
+				"stop_run_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_start_02.png"
+				},
+				"stop_run_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_start_03.png"
+				},
+				"stop_run_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_start_04.png"
+				},
+				"stop_run_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_run_start_05.png"
+				},
+				"stop_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_start_00.png"
+				},
+				"stop_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_start_01.png"
+				},
+				"stop_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_start_02.png"
+				},
+				"stop_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_start_03.png"
+				},
+				"stop_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_start_04.png"
+				},
+				"stop_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_stop_start_05.png"
+				},
+				"walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__axe_walk.png"
+				}
+			}
+		},
+		"burdock_armor__bare": {
+			"armor": "burdock_armor",
+			"category": "",
+			"clips": {
+				"action": {
+					"directions": 16.0,
+					"frames": 16.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_action.png"
+				},
+				"crouch": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_crouch.png"
+				},
+				"crouch_walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_crouch_walk.png"
+				},
+				"idle": {
+					"directions": 16.0,
+					"frames": 1.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_idle.png"
+				},
+				"jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_jump.png"
+				},
+				"run": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_run.png"
+				},
+				"slide": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_slide_jump.png"
+				},
+				"start": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_start.png"
+				},
+				"start_run": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_start_run.png"
+				},
+				"stop_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_00.png"
+				},
+				"stop_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_01.png"
+				},
+				"stop_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_02.png"
+				},
+				"stop_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_03.png"
+				},
+				"stop_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_04.png"
+				},
+				"stop_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_05.png"
+				},
+				"stop_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_06.png"
+				},
+				"stop_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_07.png"
+				},
+				"stop_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_08.png"
+				},
+				"stop_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_09.png"
+				},
+				"stop_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_10.png"
+				},
+				"stop_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_11.png"
+				},
+				"stop_run_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_00.png"
+				},
+				"stop_run_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_01.png"
+				},
+				"stop_run_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_02.png"
+				},
+				"stop_run_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_03.png"
+				},
+				"stop_run_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_04.png"
+				},
+				"stop_run_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_05.png"
+				},
+				"stop_run_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_06.png"
+				},
+				"stop_run_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_07.png"
+				},
+				"stop_run_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_08.png"
+				},
+				"stop_run_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_09.png"
+				},
+				"stop_run_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_10.png"
+				},
+				"stop_run_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_11.png"
+				},
+				"stop_run_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_start_00.png"
+				},
+				"stop_run_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_start_01.png"
+				},
+				"stop_run_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_start_02.png"
+				},
+				"stop_run_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_start_03.png"
+				},
+				"stop_run_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_start_04.png"
+				},
+				"stop_run_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_run_start_05.png"
+				},
+				"stop_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_start_00.png"
+				},
+				"stop_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_start_01.png"
+				},
+				"stop_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_start_02.png"
+				},
+				"stop_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_start_03.png"
+				},
+				"stop_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_start_04.png"
+				},
+				"stop_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_stop_start_05.png"
+				},
+				"walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_walk.png"
+				}
+			}
+		},
+		"burdock_armor__bow": {
+			"armor": "burdock_armor",
 			"category": "bow",
 			"clips": {
 				"action": {
 					"directions": 16,
 					"frames": 16,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_action.png",
+					"path": "res://assets/characters/complete/burdock_armor__bow_action.png",
 					"release_anchors": [
 						[
 							137.25,
@@ -662,281 +1775,1038 @@
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_crouch.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_crouch.png"
+				},
+				"crouch_equip": {
+					"directions": 16,
+					"frames": 6,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bow_crouch_equip.png"
 				},
 				"crouch_walk": {
 					"directions": 8,
 					"frames": 12,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_crouch_walk.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_crouch_walk.png"
 				},
 				"equip": {
 					"directions": 16,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_equip.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_equip.png"
+				},
+				"equip_crouch_walk": {
+					"directions": 8,
+					"equip_frames": 6,
+					"frames": 12,
+					"gait_frames": 12,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bow_equip_crouch_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__bow_equip_crouch_walk_00.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_crouch_walk_01.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_crouch_walk_02.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_crouch_walk_03.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_crouch_walk_04.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_crouch_walk_05.png"
+					]
+				},
+				"equip_run": {
+					"directions": 8,
+					"equip_frames": 6,
+					"frames": 12,
+					"gait_frames": 12,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bow_equip_run_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__bow_equip_run_00.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_run_01.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_run_02.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_run_03.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_run_04.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_run_05.png"
+					]
+				},
+				"equip_walk": {
+					"directions": 8,
+					"equip_frames": 6,
+					"frames": 12,
+					"gait_frames": 12,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bow_equip_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__bow_equip_walk_00.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_walk_01.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_walk_02.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_walk_03.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_walk_04.png",
+						"res://assets/characters/complete/burdock_armor__bow_equip_walk_05.png"
+					]
 				},
 				"idle": {
 					"directions": 16,
 					"frames": 1,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_idle.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_idle.png"
 				},
 				"jump": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_jump.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_jump.png"
 				},
 				"run": {
 					"directions": 8,
 					"frames": 12,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_run.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_run.png"
 				},
 				"slide": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_slide.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8,
+					"frames": 6,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bow_slide_jump.png"
 				},
 				"start": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_start.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_start.png"
 				},
 				"start_run": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_start_run.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_start_run.png"
 				},
 				"stop_00": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_00.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_00.png"
 				},
 				"stop_01": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_01.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_01.png"
 				},
 				"stop_02": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_02.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_02.png"
 				},
 				"stop_03": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_03.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_03.png"
 				},
 				"stop_04": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_04.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_04.png"
 				},
 				"stop_05": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_05.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_05.png"
 				},
 				"stop_06": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_06.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_06.png"
 				},
 				"stop_07": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_07.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_07.png"
 				},
 				"stop_08": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_08.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_08.png"
 				},
 				"stop_09": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_09.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_09.png"
 				},
 				"stop_10": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_10.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_10.png"
 				},
 				"stop_11": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_11.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_11.png"
 				},
 				"stop_run_00": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_00.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_00.png"
 				},
 				"stop_run_01": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_01.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_01.png"
 				},
 				"stop_run_02": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_02.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_02.png"
 				},
 				"stop_run_03": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_03.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_03.png"
 				},
 				"stop_run_04": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_04.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_04.png"
 				},
 				"stop_run_05": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_05.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_05.png"
 				},
 				"stop_run_06": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_06.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_06.png"
 				},
 				"stop_run_07": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_07.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_07.png"
 				},
 				"stop_run_08": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_08.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_08.png"
 				},
 				"stop_run_09": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_09.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_09.png"
 				},
 				"stop_run_10": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_10.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_10.png"
 				},
 				"stop_run_11": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_11.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_11.png"
 				},
 				"stop_run_start_00": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_start_00.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_start_00.png"
 				},
 				"stop_run_start_01": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_start_01.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_start_01.png"
 				},
 				"stop_run_start_02": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_start_02.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_start_02.png"
 				},
 				"stop_run_start_03": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_start_03.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_start_03.png"
 				},
 				"stop_run_start_04": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_start_04.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_start_04.png"
 				},
 				"stop_run_start_05": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_run_start_05.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_run_start_05.png"
 				},
 				"stop_start_00": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_start_00.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_start_00.png"
 				},
 				"stop_start_01": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_start_01.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_start_01.png"
 				},
 				"stop_start_02": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_start_02.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_start_02.png"
 				},
 				"stop_start_03": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_start_03.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_start_03.png"
 				},
 				"stop_start_04": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_start_04.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_start_04.png"
 				},
 				"stop_start_05": {
 					"directions": 8,
 					"frames": 6,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_stop_start_05.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_stop_start_05.png"
 				},
 				"walk": {
 					"directions": 8,
 					"frames": 12,
 					"grip_error": 0.0,
-					"path": "res://assets/characters/complete/bow_walk.png"
+					"path": "res://assets/characters/complete/burdock_armor__bow_walk.png"
+				}
+			}
+		},
+		"burdock_armor__pickaxe": {
+			"armor": "burdock_armor",
+			"category": "pickaxe",
+			"clips": {
+				"action": {
+					"directions": 16.0,
+					"frames": 16.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_action.png"
+				},
+				"crouch": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_crouch.png"
+				},
+				"crouch_equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_crouch_equip.png"
+				},
+				"crouch_walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_crouch_walk.png"
+				},
+				"equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_equip.png"
+				},
+				"equip_crouch_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_equip_crouch_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_crouch_walk_00.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_crouch_walk_01.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_crouch_walk_02.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_crouch_walk_03.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_crouch_walk_04.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_crouch_walk_05.png"
+					]
+				},
+				"equip_run": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_equip_run_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_run_00.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_run_01.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_run_02.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_run_03.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_run_04.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_run_05.png"
+					]
+				},
+				"equip_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_equip_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_walk_00.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_walk_01.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_walk_02.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_walk_03.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_walk_04.png",
+						"res://assets/characters/complete/burdock_armor__pickaxe_equip_walk_05.png"
+					]
+				},
+				"idle": {
+					"directions": 16.0,
+					"frames": 1.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_idle.png"
+				},
+				"jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_jump.png"
+				},
+				"run": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_run.png"
+				},
+				"slide": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_slide_jump.png"
+				},
+				"start": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_start.png"
+				},
+				"start_run": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_start_run.png"
+				},
+				"stop_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_00.png"
+				},
+				"stop_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_01.png"
+				},
+				"stop_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_02.png"
+				},
+				"stop_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_03.png"
+				},
+				"stop_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_04.png"
+				},
+				"stop_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_05.png"
+				},
+				"stop_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_06.png"
+				},
+				"stop_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_07.png"
+				},
+				"stop_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_08.png"
+				},
+				"stop_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_09.png"
+				},
+				"stop_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_10.png"
+				},
+				"stop_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_11.png"
+				},
+				"stop_run_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_00.png"
+				},
+				"stop_run_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_01.png"
+				},
+				"stop_run_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_02.png"
+				},
+				"stop_run_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_03.png"
+				},
+				"stop_run_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_04.png"
+				},
+				"stop_run_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_05.png"
+				},
+				"stop_run_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_06.png"
+				},
+				"stop_run_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_07.png"
+				},
+				"stop_run_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_08.png"
+				},
+				"stop_run_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_09.png"
+				},
+				"stop_run_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_10.png"
+				},
+				"stop_run_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_11.png"
+				},
+				"stop_run_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_start_00.png"
+				},
+				"stop_run_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_start_01.png"
+				},
+				"stop_run_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_start_02.png"
+				},
+				"stop_run_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_start_03.png"
+				},
+				"stop_run_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_start_04.png"
+				},
+				"stop_run_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_run_start_05.png"
+				},
+				"stop_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_start_00.png"
+				},
+				"stop_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_start_01.png"
+				},
+				"stop_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_start_02.png"
+				},
+				"stop_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_start_03.png"
+				},
+				"stop_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_start_04.png"
+				},
+				"stop_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_stop_start_05.png"
+				},
+				"walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__pickaxe_walk.png"
+				}
+			}
+		},
+		"burdock_armor__sword": {
+			"armor": "burdock_armor",
+			"category": "sword",
+			"clips": {
+				"action": {
+					"directions": 16.0,
+					"frames": 16.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_action.png"
+				},
+				"crouch": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_crouch.png"
+				},
+				"crouch_equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_crouch_equip.png"
+				},
+				"crouch_walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_crouch_walk.png"
+				},
+				"equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_equip.png"
+				},
+				"equip_crouch_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_equip_crouch_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__sword_equip_crouch_walk_00.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_crouch_walk_01.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_crouch_walk_02.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_crouch_walk_03.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_crouch_walk_04.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_crouch_walk_05.png"
+					]
+				},
+				"equip_run": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_equip_run_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__sword_equip_run_00.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_run_01.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_run_02.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_run_03.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_run_04.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_run_05.png"
+					]
+				},
+				"equip_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_equip_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__sword_equip_walk_00.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_walk_01.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_walk_02.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_walk_03.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_walk_04.png",
+						"res://assets/characters/complete/burdock_armor__sword_equip_walk_05.png"
+					]
+				},
+				"idle": {
+					"directions": 16.0,
+					"frames": 1.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_idle.png"
+				},
+				"jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_jump.png"
+				},
+				"run": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_run.png"
+				},
+				"slide": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_slide_jump.png"
+				},
+				"start": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_start.png"
+				},
+				"start_run": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_start_run.png"
+				},
+				"stop_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_00.png"
+				},
+				"stop_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_01.png"
+				},
+				"stop_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_02.png"
+				},
+				"stop_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_03.png"
+				},
+				"stop_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_04.png"
+				},
+				"stop_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_05.png"
+				},
+				"stop_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_06.png"
+				},
+				"stop_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_07.png"
+				},
+				"stop_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_08.png"
+				},
+				"stop_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_09.png"
+				},
+				"stop_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_10.png"
+				},
+				"stop_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_11.png"
+				},
+				"stop_run_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_00.png"
+				},
+				"stop_run_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_01.png"
+				},
+				"stop_run_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_02.png"
+				},
+				"stop_run_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_03.png"
+				},
+				"stop_run_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_04.png"
+				},
+				"stop_run_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_05.png"
+				},
+				"stop_run_06": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_06.png"
+				},
+				"stop_run_07": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_07.png"
+				},
+				"stop_run_08": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_08.png"
+				},
+				"stop_run_09": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_09.png"
+				},
+				"stop_run_10": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_10.png"
+				},
+				"stop_run_11": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_11.png"
+				},
+				"stop_run_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_00.png"
+				},
+				"stop_run_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_01.png"
+				},
+				"stop_run_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_02.png"
+				},
+				"stop_run_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_03.png"
+				},
+				"stop_run_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_04.png"
+				},
+				"stop_run_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_05.png"
+				},
+				"stop_start_00": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_00.png"
+				},
+				"stop_start_01": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_01.png"
+				},
+				"stop_start_02": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_02.png"
+				},
+				"stop_start_03": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_03.png"
+				},
+				"stop_start_04": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_04.png"
+				},
+				"stop_start_05": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_05.png"
+				},
+				"walk": {
+					"directions": 8.0,
+					"frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__sword_walk.png"
 				}
 			}
 		},
 		"pickaxe": {
+			"armor": "",
 			"category": "pickaxe",
 			"clips": {
 				"action": {
@@ -951,6 +2821,12 @@
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/pickaxe_crouch.png"
 				},
+				"crouch_equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/pickaxe_crouch_equip.png"
+				},
 				"crouch_walk": {
 					"directions": 8.0,
 					"frames": 12.0,
@@ -962,6 +2838,54 @@
 					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/pickaxe_equip.png"
+				},
+				"equip_crouch_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/pickaxe_equip_crouch_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/pickaxe_equip_crouch_walk_00.png",
+						"res://assets/characters/complete/pickaxe_equip_crouch_walk_01.png",
+						"res://assets/characters/complete/pickaxe_equip_crouch_walk_02.png",
+						"res://assets/characters/complete/pickaxe_equip_crouch_walk_03.png",
+						"res://assets/characters/complete/pickaxe_equip_crouch_walk_04.png",
+						"res://assets/characters/complete/pickaxe_equip_crouch_walk_05.png"
+					]
+				},
+				"equip_run": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/pickaxe_equip_run_00.png",
+					"paths": [
+						"res://assets/characters/complete/pickaxe_equip_run_00.png",
+						"res://assets/characters/complete/pickaxe_equip_run_01.png",
+						"res://assets/characters/complete/pickaxe_equip_run_02.png",
+						"res://assets/characters/complete/pickaxe_equip_run_03.png",
+						"res://assets/characters/complete/pickaxe_equip_run_04.png",
+						"res://assets/characters/complete/pickaxe_equip_run_05.png"
+					]
+				},
+				"equip_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/pickaxe_equip_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/pickaxe_equip_walk_00.png",
+						"res://assets/characters/complete/pickaxe_equip_walk_01.png",
+						"res://assets/characters/complete/pickaxe_equip_walk_02.png",
+						"res://assets/characters/complete/pickaxe_equip_walk_03.png",
+						"res://assets/characters/complete/pickaxe_equip_walk_04.png",
+						"res://assets/characters/complete/pickaxe_equip_walk_05.png"
+					]
 				},
 				"idle": {
 					"directions": 16.0,
@@ -986,6 +2910,12 @@
 					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/pickaxe_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/pickaxe_slide_jump.png"
 				},
 				"start": {
 					"directions": 8.0,
@@ -1224,6 +3154,7 @@
 			}
 		},
 		"sword": {
+			"armor": "",
 			"category": "sword",
 			"clips": {
 				"action": {
@@ -1238,6 +3169,12 @@
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/sword_crouch.png"
 				},
+				"crouch_equip": {
+					"directions": 16.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/sword_crouch_equip.png"
+				},
 				"crouch_walk": {
 					"directions": 8.0,
 					"frames": 12.0,
@@ -1249,6 +3186,54 @@
 					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/sword_equip.png"
+				},
+				"equip_crouch_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/sword_equip_crouch_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/sword_equip_crouch_walk_00.png",
+						"res://assets/characters/complete/sword_equip_crouch_walk_01.png",
+						"res://assets/characters/complete/sword_equip_crouch_walk_02.png",
+						"res://assets/characters/complete/sword_equip_crouch_walk_03.png",
+						"res://assets/characters/complete/sword_equip_crouch_walk_04.png",
+						"res://assets/characters/complete/sword_equip_crouch_walk_05.png"
+					]
+				},
+				"equip_run": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/sword_equip_run_00.png",
+					"paths": [
+						"res://assets/characters/complete/sword_equip_run_00.png",
+						"res://assets/characters/complete/sword_equip_run_01.png",
+						"res://assets/characters/complete/sword_equip_run_02.png",
+						"res://assets/characters/complete/sword_equip_run_03.png",
+						"res://assets/characters/complete/sword_equip_run_04.png",
+						"res://assets/characters/complete/sword_equip_run_05.png"
+					]
+				},
+				"equip_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/sword_equip_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/sword_equip_walk_00.png",
+						"res://assets/characters/complete/sword_equip_walk_01.png",
+						"res://assets/characters/complete/sword_equip_walk_02.png",
+						"res://assets/characters/complete/sword_equip_walk_03.png",
+						"res://assets/characters/complete/sword_equip_walk_04.png",
+						"res://assets/characters/complete/sword_equip_walk_05.png"
+					]
 				},
 				"idle": {
 					"directions": 16.0,
@@ -1273,6 +3258,12 @@
 					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/sword_slide.png"
+				},
+				"slide_jump": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/sword_slide_jump.png"
 				},
 				"start": {
 					"directions": 8.0,
@@ -1511,7 +3502,7 @@
 			}
 		}
 	},
-	"pixels_per_world": 1.53125,
+	"pixels_per_world": 1.5625,
 	"version": 2,
 	"world_span": 128.0
 }

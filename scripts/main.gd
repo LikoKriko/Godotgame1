@@ -5,13 +5,11 @@ var menu_open := false
 var day_cycle = preload("res://scripts/day_cycle.gd").new()
 var nutrition = preload("res://scripts/nutrition.gd").new()
 var solar_lighting: Node
-var survival_status: Control
 var gameplay_settings = preload("res://scripts/game_settings.gd").new()
 var progression = preload("res://scripts/progression.gd").new()
 var running := false
 const RUN_MULTIPLIER := 1.6
 var full_avatar: Sprite2D
-var gait: Node2D
 var locomotion = preload("res://scripts/locomotion.gd").new()
 var equipping := false
 var equip_elapsed := 0.0
@@ -25,7 +23,6 @@ var inventory_panel: Control
 var work_item_uid := -1
 var work_aim := Vector2.ZERO
 var work_contact_aim := Vector2(INF,INF)
-var arm_rig: Node2D
 var weapon_timer := 0.0
 var combat_aim := Vector2.RIGHT
 var resources = preload("res://scripts/harvesting.gd").new()
@@ -43,17 +40,13 @@ var interaction: Label
 var world = preload("res://scripts/test_world.gd").new()
 var terrain = world.terrain
 var world_view: Node2D
-var minimap: Control
 var world_map: Control
 var player := Vector2.ZERO
 var experience := 0
 var level := 1
 var skill_points := 0
 var camera: Camera2D
-var character: AnimatedSprite2D
 var movement = preload("res://scripts/turn_motion.gd").new()
-var hud: Label
-var hud_backdrop: Panel
 var quick_items: Array[int]:
 	get:
 		var ids: Array[int] = []
@@ -68,14 +61,6 @@ func _ready() -> void:
 	world_view = preload("res://scripts/world_view.gd").new()
 	world_view.configure(world)
 	add_child(world_view)
-	character = AnimatedSprite2D.new()
-	character.sprite_frames = preload("res://scripts/survivor_frames.gd").build()
-	character.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	add_child(character)
-	character.frame_changed.connect(sync_character)
-	character.animation_changed.connect(sync_character)
-	arm_rig = preload("res://scripts/arm_rig.gd").new()
-	add_child(arm_rig)
 	camera = Camera2D.new()
 	camera.zoom = Vector2(1.95, 1.95)
 	camera.limit_left = int(world.bounds.position.x)
@@ -92,28 +77,10 @@ func _ready() -> void:
 	atmosphere_material.shader = preload("res://shaders/atmosphere.gdshader")
 	atmosphere.material = atmosphere_material
 	canvas.add_child(atmosphere)
-	hud_backdrop = Panel.new()
-	hud_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var hud_style := StyleBoxFlat.new()
-	hud_style.bg_color = Color(0.09, 0.115, 0.09, 0.90)
-	hud_style.set_corner_radius_all(4)
-	hud_style.set_border_width_all(1)
-	hud_style.border_color = Color("676952")
-	hud_backdrop.add_theme_stylebox_override("panel", hud_style)
-	canvas.add_child(hud_backdrop)
-	hud = Label.new()
-	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hud.add_theme_font_size_override("font_size", 24)
-	canvas.add_child(hud)
 	interaction = Label.new()
 	interaction.add_theme_font_size_override("font_size", 22)
 	interaction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(interaction)
-	minimap = preload("res://scripts/world_minimap.gd").new()
-	minimap.world = world
-	minimap.scale = Vector2(1.25, 1.25)
-	minimap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	canvas.add_child(minimap)
 	inventory_panel = preload("res://scripts/inventory_panel.gd").new()
 	canvas.add_child(inventory_panel)
 	bag.reset()
@@ -128,17 +95,9 @@ func _ready() -> void:
 	var cursor := preload("res://scripts/aim_cursor.gd").new()
 	cursor.game = self
 	canvas.add_child(cursor)
-	survival_status = preload("res://scripts/survival_status.gd").new()
-	survival_status.configure(self)
-	canvas.add_child(survival_status)
 	inventory_panel.consume_requested.connect(consume_item)
-	gait = preload("res://scripts/walk_presentation.gd").new()
-	add_child(gait)
-	gait.configure(self)
 	full_avatar = preload("res://scripts/full_frame_avatar.gd").new()
 	add_child(full_avatar)
-	# Near arms must draw after the torso; far arms retain z=-1.
-	move_child(arm_rig,get_child_count()-1)
 	solar_lighting = preload("res://scripts/solar_lighting.gd").new()
 	add_child(solar_lighting)
 	solar_lighting.configure(self)
@@ -148,12 +107,6 @@ func _ready() -> void:
 	styled_hud = preload("res://scripts/styled_hud.gd").new()
 	canvas.add_child(styled_hud)
 	styled_hud.configure(self)
-	# Keep status models for the inventory and existing consumers, but render
-	# only the new HUD; there is no duplicate set of old controls underneath.
-	hud.hide()
-	hud_backdrop.hide()
-	minimap.hide()
-	survival_status.hide()
 	canvas.move_child(cursor,canvas.get_child_count()-1)
 	canvas.move_child(inventory_panel,canvas.get_child_count()-1)
 	canvas.move_child(world_map,canvas.get_child_count()-1)
@@ -162,7 +115,6 @@ func consume_item(index: int, quick: bool = false) -> void:
 	var result: Dictionary = nutrition.consume(bag,index,quick)
 	inventory_panel.status.text = result["message"]
 	inventory_panel.refresh()
-	survival_status.update_status()
 	update_hud()
 
 func fit_hud() -> void:
@@ -170,17 +122,6 @@ func fit_hud() -> void:
 	if camera != null:
 		camera.zoom = Vector2.ONE*1.95*minf(viewport_size.x/1920.0,viewport_size.y/1080.0)
 	var factor: float = gameplay_settings.hud_scale(gameplay_settings.values["hud_size"])
-	if survival_status != null:
-		survival_status.scale = Vector2.ONE*factor
-		survival_status.position = viewport_size-Vector2(18,18)-survival_status.size*factor
-	minimap.scale = Vector2.ONE*1.25*factor
-	minimap.position = Vector2(viewport_size.x-18-200*minimap.scale.x,18+24*minimap.scale.y)
-	hud.scale = Vector2.ONE*factor
-	hud.size = hud.get_combined_minimum_size()
-	hud_backdrop.scale = Vector2.ONE*factor
-	hud_backdrop.size = hud.size+Vector2(24,18)
-	hud_backdrop.position = Vector2((viewport_size.x-hud_backdrop.size.x*factor)/2,viewport_size.y-18-hud_backdrop.size.y*factor)
-	hud.position = hud_backdrop.position+Vector2(12,9)*factor
 	interaction.scale = Vector2.ONE*factor
 	interaction.position = Vector2(24,viewport_size.y-18-110*factor)
 
@@ -201,10 +142,8 @@ func restart() -> void:
 	for arrow in get_tree().get_nodes_in_group("player_arrows"):
 		arrow.queue_free()
 	weapon_timer = 0.0
-	character.rotation = 0
 	player = Vector2.ZERO
 	movement.reset()
-	character.play(&"idle_down")
 	experience = 0
 	level = 1
 	skill_points = 0
@@ -212,38 +151,30 @@ func restart() -> void:
 	working = false
 	equipping = false
 	last_tool_uid = bag.held_item().get("uid",-1)
-	arm_rig.hide()
-	if gait != null:
-		gait.cancel()
 	work_elapsed = 0.0
 	focused = resources.NONE
 	feedback = ""
 	feedback_time = 0.0
 	impact_time = 0.0
 	camera.position = player
-	sync_character()
-	present_rest_pose()
 	world_view.update_trees(player, 1.0)
 	if full_avatar != null:
 		full_avatar.reset()
 	if solar_lighting != null:
 		solar_lighting.update_light()
-		survival_status.update_status()
-	update_hud()
-	queue_redraw()
+		update_hud()
 
 func buy_improvement(id: StringName, ability: bool) -> bool:
 	var spent: int = progression.purchase(id,ability,skill_points)
 	if spent == 0: return false
 	skill_points -= spent
-	if survival_status != null: survival_status.update_status()
 	update_hud()
 	return true
 
 func activate_skill(id: StringName) -> bool:
 	if menu_open or working or equipping: return false
 	var success: bool = progression.activate(id)
-	if success and survival_status != null: survival_status.update_status()
+	if success: update_hud()
 	return success
 
 func combat_damage(base: float) -> float:
@@ -252,7 +183,6 @@ func combat_damage(base: float) -> float:
 func take_damage(amount: float) -> void:
 	progression.take_damage(amount)
 	if progression.health <= 0: cancel_work(); running = false
-	survival_status.update_status()
 
 func gain_experience(amount: int) -> void:
 	experience += amount
@@ -303,7 +233,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		use_quick_item(event.keycode-KEY_1)
 	if event.keycode == KEY_0:
 		cancel_work()
-		if bag.held_id() != &"" and not bag.unequip(&"hands"):
+		if bag.held_id() != &"" and not bag.unequip(&"tool"):
 			feedback = "La mochila está llena."
 			feedback_time = 2
 	if event.keycode == KEY_F2:
@@ -321,14 +251,14 @@ func assign_quick_item(index: int, uid: int) -> bool:
 	return not source.is_empty() and bag.move_item(source.kind,source.index,&"quick",index)
 
 func use_quick_item(index: int) -> bool:
-	if index < 0 or index >= 6 or is_paused() or working or equipping: return false
+	if index < 0 or index >= 6 or is_paused(): return false
 	var item: Dictionary = bag.quick_slots[index]
 	if item.is_empty(): return false
 	var definition: Dictionary = bag.DEFINITIONS[item.id]
 	if definition.has("kcal") or definition.has("water_ml"):
 		consume_item(index,true)
 		return true
-	if definition.slot == &"hands":
+	if definition.slot == &"tool":
 		cancel_work()
 		return bag.activate_quick(index)
 	if definition.slot != &"":
@@ -341,7 +271,7 @@ func use_quick_item(index: int) -> bool:
 	return true
 
 func start_jump() -> bool:
-	if progression.health <= 0 or is_paused() or not locomotion.jump():
+	if progression.health <= 0 or is_paused() or not locomotion.jump(nutrition.speed_multiplier()*progression.speed_multiplier()):
 		return false
 	cancel_work()
 	equipping = false
@@ -361,7 +291,6 @@ func start_slide() -> bool:
 
 func _process(delta: float) -> void:
 	if is_paused():
-		character.pause()
 		return
 	progression.advance(delta)
 	locomotion.advance(delta,Input.is_physical_key_pressed(KEY_CTRL) and not locomotion.sliding())
@@ -382,19 +311,13 @@ func _process(delta: float) -> void:
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 	if direction != Vector2.ZERO and working:
 		cancel_work()
-	running = progression.health > 0 and direction != Vector2.ZERO and not working and not equipping and not locomotion.airborne() and not locomotion.sliding() and locomotion.crouch < 0.01 and (gameplay_settings.values["auto_run"] or Input.is_physical_key_pressed(KEY_SHIFT))
-	if not working and not equipping and progression.health > 0:
+	running = progression.health > 0 and direction != Vector2.ZERO and not working and not locomotion.airborne() and not locomotion.sliding() and locomotion.crouch < 0.01 and (gameplay_settings.values["auto_run"] or Input.is_physical_key_pressed(KEY_SHIFT))
+	if not working and progression.health > 0:
 		move_player(direction, delta)
 	if equipping:
 		equip_elapsed += delta
 		var duration := 0.5 if bag.held_category() == &"pickaxe" else 0.42
-		var facing: StringName = movement.facing()
-		character.play(StringName("work_"+facing))
-		arm_rig.equip(player,facing,bag.held_category(),clampf(equip_elapsed/duration,0,1),preload("res://scripts/arm_rig.gd").idle_hand(facing))
-		if equip_elapsed >= duration:
-			equipping = false
-			arm_rig.hide()
-			character.play(StringName("idle_"+facing))
+		if equip_elapsed >= duration: equipping = false
 	var aim := get_canvas_transform().affine_inverse()*preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
 	focused = resources.target_at(aim)
 	var hovered := get_viewport().gui_get_hovered_control()
@@ -406,38 +329,13 @@ func _process(delta: float) -> void:
 	if working:
 		advance_work(delta, aim)
 	world_view.update_trees(player, delta)
-	gait.update_pose(delta)
-	if not gait.active() and not working and not equipping:
-		present_rest_pose()
-	gait.apply_locomotion()
 	full_avatar.update_pose(delta)
 	solar_lighting.update_light()
-	survival_status.update_status()
-	update_hud()
-	queue_redraw()
-
-func present_rest_pose() -> void:
-	if bag.held_category() in [&"axe",&"pickaxe"]:
-		character.play(StringName("work_"+movement.facing()))
-		arm_rig.ready_pose(player,movement.facing(),bag.held_category())
-	else:
-		character.play(StringName("idle_"+movement.facing()))
-		arm_rig.gait(player,movement.facing(),bag.held_category(),0,0)
-	gait.update_work_pose()
+	interaction.text = feedback if feedback_time > 0 else ""
 
 func cancel_work() -> void:
-	if not working:
-		return
 	working = false
-	arm_rig.hide()
 	work_elapsed = 0.0
-	character.speed_scale = 1.0
-	character.rotation = 0
-	arm_rig.rotation = 0
-	character.show()
-	character.play(StringName("idle_" + movement.facing()))
-	gait.cancel()
-	present_rest_pose()
 
 func start_work(aim: Vector2) -> bool:
 	if progression.health <= 0 or is_paused() or working or equipping or locomotion.airborne() or locomotion.sliding():
@@ -459,22 +357,7 @@ func start_work(aim: Vector2) -> bool:
 	work_duration = preload("res://scripts/action_motion.gd").DURATION.get(item,HARVEST_TIME)
 	movement.heading = (resources.visual_aim(aim,player) - player).angle()
 	movement.target_direction = Vector2.ZERO
-	character.speed_scale = 1.0
-	character.play(StringName("work_" + movement.facing()))
-	character.frame = 0
-	animate_work_rig(0)
-	gait.update_pose(0)
 	return true
-
-func animate_work_rig(phase: float) -> Dictionary:
-	var item: StringName = bag.held_category()
-	var transform := preload("res://scripts/action_motion.gd").torso_transform(player,movement.facing(),phase,item,arm_rig.impact_material)
-	var target: Vector2 = work_contact_aim if hit_applied and work_contact_aim.is_finite() else resources.visual_aim(work_aim,player)
-	var aim: Vector2 = transform.affine_inverse()*target
-	var pose: Dictionary = arm_rig.animate(player,aim,item,phase,movement.facing())
-	arm_rig.position = transform*player
-	arm_rig.rotation = transform.get_rotation()
-	return pose
 
 func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 	if not working:
@@ -487,14 +370,13 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 	work_elapsed += delta
 	var target: Vector2 = work_contact_aim if hit_applied and work_contact_aim.is_finite() else resources.visual_aim(work_aim,player)
 	movement.heading = (target-player).angle()
-	character.play(StringName("work_" + movement.facing()))
 	var item: StringName = bag.held_category()
-	var pose: Dictionary = animate_work_rig(clampf(work_elapsed / work_duration, 0, 1))
+	var pose: Dictionary = preload("res://scripts/tool_contact.gd").contact(player,target,item)
 	if not hit_applied and work_elapsed >= work_duration * 0.5:
 		work_contact_aim = resources.visual_aim(work_aim,player)
 		hit_applied = true
 		# Resolve the contact pose even when a long frame crosses the impact moment.
-		pose = preload("res://scripts/arm_rig.gd").contact(player,resources.visual_aim(work_aim,player),item)
+		pose = preload("res://scripts/tool_contact.gd").contact(player,resources.visual_aim(work_aim,player),item)
 		if item in [&"sword", &"bow"]:
 			use_weapon(work_aim, true, pose)
 		else:
@@ -511,8 +393,6 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 					material = result.get("material", "madera")
 				impact_position = result.get("impact",work_aim)
 				impact_time = 0.18
-				arm_rig.impact_material = StringName(material)
-				animate_work_rig(clampf(work_elapsed/work_duration,0,1))
 				world_view.register_impact(result["cell"], impact_position, pose["direction"], material, 0.3 if result.has("reason") else 1.0)
 				if result.has("reason"):
 					feedback = "La mochila está llena." if result["reason"] == "mochila_llena" else "Usa manos para fibra/chatarra, hacha para madera y pico para piedras (las pequeñas se recogen a mano)."
@@ -527,7 +407,6 @@ func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
 					gain_experience(10)
 					focused = resources.NONE
 					world_view.queue_redraw()
-	gait.update_pose(0)
 	if work_elapsed >= work_duration:
 		cancel_work()
 
@@ -538,7 +417,7 @@ func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {
 	if id not in [&"sword", &"bow"]:
 		return false
 	if pose.is_empty():
-		pose = preload("res://scripts/arm_rig.gd").contact(player, target, id)
+		pose = preload("res://scripts/tool_contact.gd").contact(player, target, id)
 	combat_aim = player.direction_to(target)
 	if combat_aim == Vector2.ZERO:
 		combat_aim = Vector2.from_angle(movement.heading)
@@ -570,45 +449,18 @@ func clear_combat_path(target: Vector2) -> bool:
 	return true
 
 func move_player(direction: Vector2, delta: float) -> void:
-	var previous := player
 	var velocity: Vector2 = movement.step(direction, delta, 70.0*progression.speed_multiplier()*nutrition.speed_multiplier()*(RUN_MULTIPLIER if running else 1.0))
 	if locomotion.sliding():
 		movement.step(locomotion.slide_direction,delta,220)
+	if locomotion.airborne() and locomotion.from_slide:
+		locomotion.steer_air(direction,delta)
+		movement.heading = locomotion.jump_heading
+		movement.target_direction = Vector2.ZERO
+		movement.speed_factor = 1.0
 	velocity = locomotion.velocity(velocity,nutrition.speed_multiplier()*progression.speed_multiplier())
 	var motion := velocity * delta
 	player = world.move_actor(player, motion)
 	camera.position = player
-	var moving := player.distance_squared_to(previous) > 0.00001
-	var turn: StringName = movement.turn_animation()
-	if moving and movement.is_turning() and character.sprite_frames.has_animation(turn):
-		character.speed_scale = 1.0
-		character.play(turn)
-		var count := character.sprite_frames.get_frame_count(turn)
-		character.set_frame_and_progress(roundi(movement.turn_progress() * (count - 1)), 0)
-		character.pause()
-		sync_character()
-		return
-	var animation := StringName(("walk_" if moving else "idle_") + movement.facing())
-	character.speed_scale = movement.speed_factor*nutrition.speed_multiplier() if moving else 1.0
-	character.play(animation)
-	sync_character()
-
-func sync_character() -> void:
-	if character == null or not character.sprite_frames.has_animation(character.animation):
-		return
-	var frames := character.sprite_frames
-	var texture: AtlasTexture = frames.get_frame_texture(character.animation, mini(character.frame, frames.get_frame_count(character.animation) - 1))
-	var frame_data = preload("res://scripts/survivor_frames.gd")
-	var factor: float = frame_data.CHARACTER_HEIGHT / texture.region.size.y
-	character.scale = Vector2.ONE * factor
-	character.position = player + Vector2(0, 17 - (frame_data.BASELINE - frame_data.CANVAS.y / 2) * factor)
-
 func update_hud() -> void:
-	var text := "Inventario (I) · Crear (T) · Mapa (M)"
-	if hud.text != text:
-		hud.text = text
-		fit_hud()
-	# Feedback remains informational; no extra key instructions are shown.
 	interaction.text = feedback if feedback_time > 0 else ""
-	minimap.player = player
-	minimap.queue_redraw()
+	if styled_hud != null: styled_hud.refresh()

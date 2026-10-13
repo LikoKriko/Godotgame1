@@ -17,4 +17,4 @@ Godot 4.6.3, ejecución headless en este entorno. Se instancia `scenes/main.tscn
 
 Esta muestra reduce el tiempo de actualización de scripts aproximadamente un 21%. Es una escena en reposo con el reloj avanzando y el hacha equipada: no mide GPU, rasterizado, FPS ni rendimiento de todos los estados. El mayor zoom también reduce el área del mundo visible. El coste gráfico deberá medirse en el equipo del jugador.
 
-Las pruebas `clothing_volume.gd`, `tool_depth_render.gd` y `visual_integrity.gd` comprueban diversidad de poses, cachés acotadas, resolución interna, ocultación por píxeles y continuidad de partes. Las pruebas de sombras, movimiento, recolección, inventario y supervivencia completan la validación funcional.
+La implementación actual usa fotogramas completos y retira los rigs de extremidades en ejecución. `complete_sprite_pipeline.gd`, `tool_back_exports.gd`, `equipment_motion.gd` y `render_efficiency.gd` comprueban las secuencias exportadas, la ocultación por píxeles, el equipamiento mientras se camina y la reutilización de máscaras y terreno. Las mediciones de arriba corresponden a la revisión histórica indicada, no a esta implementación.

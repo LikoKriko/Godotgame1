@@ -21,13 +21,13 @@ func run_checks() -> void:
 	require(bag.slots.size() == 32 and bag.equipment.size() == 5, "32 objects and five equipment slots")
 	require(bag.held_id() == &"axe", "Axe initially equipped")
 	require(not bag.equip(0, &"head"), "Sword cannot occupy head slot")
-	require(bag.consume_use() and bag.equipment[&"hands"]["uses"] == 29, "One use consumed")
+	require(bag.consume_use() and bag.held_item()["uses"] == 29, "One use consumed")
 	bag.select_tool(&"pickaxe")
 	bag.select_tool(&"axe")
-	require(bag.equipment[&"hands"]["uses"] == 29, "Swaps preserve durability")
-	bag.equipment[&"hands"]["uses"] = 1
+	require(bag.held_item()["uses"] == 29, "Swaps preserve durability")
+	bag.held_item()["uses"] = 1
 	require(bag.consume_use() and not bag.usable(), "Last use breaks tool")
-	require(not bag.consume_use() and bag.equipment[&"hands"]["uses"] == 0, "Broken tool stays at zero")
+	require(not bag.consume_use() and bag.held_item()["uses"] == 0, "Broken tool stays at zero")
 	require(not bag.can_harvest("madera"), "Broken axe cannot gather")
 	bag.reset()
 	require(bag.add(&"madera", 120) and bag.count(&"madera") == 120, "Materials stack across slots")
@@ -37,7 +37,7 @@ func run_checks() -> void:
 	for i in 32:
 		bag.slots[i] = bag.make_item(&"madera", 99)
 	require(not bag.add(&"piedra", 1), "Full bag cannot accept new material")
-	require(not bag.unequip(&"hands") and bag.held_id() == &"axe", "Full bag cannot lose unequipped item")
+	require(bag.unequip(&"tool") and bag.held_id() == &"" and bag.quick_slots[5].id == &"axe", "A full bag cannot prevent putting away a physically stored quick tool")
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_process(false)
@@ -46,21 +46,21 @@ func run_checks() -> void:
 	require(game.start_work(aim), "Wrong tool can swing")
 	game.advance_work(game.work_duration)
 	require(game.resources.nodes[tree]["remaining"] == 3, "Pickaxe does not chop trees")
-	require(game.bag.equipment[&"hands"]["uses"] == 30, "Wrong use does not consume durability")
+	require(game.bag.held_item()["uses"] == 30, "Wrong use does not consume durability")
 	aim = Aim.approach(game, tree, &"axe")
 	require(game.start_work(aim), "Axe chops trees")
 	game.advance_work(0.1)
 	game.cancel_work()
-	require(game.bag.equipment[&"hands"]["uses"] == 30, "Cancel before impact preserves uses")
+	require(game.bag.held_item()["uses"] == 30, "Cancel before impact preserves uses")
 	game.start_work(aim)
 	game.advance_work(game.work_duration)
-	require(game.bag.equipment[&"hands"]["uses"] == 29, "Resource impact consumes one use")
+	require(game.bag.held_item()["uses"] == 29, "Resource impact consumes one use")
 	game.resources.nodes[tree]["remaining"] = 1
 	for i in 32:
 		game.bag.slots[i] = game.bag.make_item(&"piedra", 99)
 	game.start_work(aim)
 	game.advance_work(game.work_duration)
-	require(game.resources.nodes[tree]["remaining"] == 1 and game.bag.equipment[&"hands"]["uses"] == 29, "Full inventory preserves resource and last-hit durability")
+	require(game.resources.nodes[tree]["remaining"] == 1 and game.bag.held_item()["uses"] == 29, "Full inventory preserves resource and last-hit durability")
 	game.restart()
 	var rock: Vector2i = game.world.large_rocks.keys()[0]
 	aim = Aim.approach(game, rock, &"axe")
@@ -68,9 +68,9 @@ func run_checks() -> void:
 	game.advance_work(game.work_duration)
 	require(game.resources.nodes[rock]["remaining"] == 6, "Axe does not mine rocks")
 	aim = Aim.approach(game, rock, &"pickaxe")
-	require(game.start_work(aim) and str(game.character.animation).begins_with("work_"), "Mining uses the articulated body")
+	require(game.start_work(aim) and game.working, "Mining starts a complete-sprite action")
 	game.advance_work(game.work_duration)
-	require(game.bag.equipment[&"hands"]["uses"] == 29, "Mining consumes a pickaxe use")
+	require(game.bag.held_item()["uses"] == 29, "Mining consumes a pickaxe use")
 	for i in 5:
 		game.start_work(aim)
 		game.advance_work(game.work_duration)
@@ -84,13 +84,13 @@ func run_checks() -> void:
 	dummy.add_to_group("damageable")
 	game.progression.rng.seed = 42
 	require(game.use_weapon(Vector2(32, -12)), "Sword action")
-	require(dummy.damage_received == 24 and game.bag.equipment[&"hands"]["uses"] == 39, "Sword affects combat targets and uses")
+	require(dummy.damage_received == 24 and game.bag.held_item()["uses"] == 39, "Sword affects combat targets and uses")
 	require(not game.use_weapon(Vector2(32, -12)), "Weapon cooldown enforced")
 	game.bag.select_tool(&"bow")
 	game.weapon_timer = 0
 	require(game.use_weapon(Vector2(32, -12)), "Bow shoots")
 	var arrows := get_nodes_in_group("player_arrows")
-	require(arrows.size() == 1 and game.bag.equipment[&"hands"]["uses"] == 59, "One arrow per bow use")
+	require(arrows.size() == 1 and game.bag.held_item()["uses"] == 59, "One arrow per bow use")
 	var arrow = arrows[0]
 	game.inventory_panel.show()
 	var previous: Vector2 = arrow.position
@@ -104,11 +104,11 @@ func run_checks() -> void:
 	require(not game.use_weapon(Vector2(32, -12)), "Pickaxe cannot attack")
 	game.bag.select_tool(&"axe")
 	require(not game.use_weapon(Vector2(32, -12)), "Axe cannot attack")
-	game.bag.equipment[&"hands"]["uses"] = 0
+	game.bag.held_item()["uses"] = 0
 	game.player = game.resources.bounds(tree).position + Vector2(-24, 32)
 	require(not game.start_work(aim), "Broken equipped axe cannot start an action")
 	game.bag.select_tool(&"sword")
-	game.bag.equipment[&"hands"]["uses"] = 0
+	game.bag.held_item()["uses"] = 0
 	require(not game.use_weapon(Vector2(32, -12)), "Broken sword cannot attack")
 	game.bag.select_tool(&"axe")
 	game.inventory_panel.show()
@@ -121,17 +121,17 @@ func run_checks() -> void:
 	require(is_equal_approx(side.x, expected_side), "Inventory follows 60-percent target while fitting widescreen viewport")
 	var center: Vector2 = game.inventory_panel.panel.position + side / 2
 	require(center.is_equal_approx(viewport_size / 2), "Inventory is centered")
-	var sword_index := -1
-	for i in Bag.CAPACITY:
-		if game.bag.slots[i].get("id", &"") == &"sword":
-			sword_index = i
-	require(sword_index >= 0, "Sword preserved through equipment swaps")
-	game.inventory_panel.select_backpack(sword_index)
+	var sword_item: Dictionary = (game.bag.slots+game.bag.quick_slots).filter(func(item): return item.get("id") == &"sword")[0]
+	var sword_location: Dictionary = game.bag.location(sword_item.uid)
+	require(not sword_location.is_empty(), "Sword preserved through equipment swaps")
+	if sword_location.kind == &"quick": game.inventory_panel.select_quick(sword_location.index)
+	else: game.inventory_panel.select_backpack(sword_location.index)
 	game.inventory_panel.equip_selected()
 	require(game.bag.held_id() == &"sword", "UI equips selected object")
 	game.inventory_panel.select_gear(&"hands")
-	game.inventory_panel.remove_selected()
-	require(game.bag.held_id() == &"", "UI removes equipment")
+	require(game.inventory_panel.remove_button.disabled and game.bag.equipment[&"hands"].is_empty(), "Glove slot stays independent of the held weapon")
+	game.bag.unequip(&"tool")
+	require(game.bag.held_id() == &"", "Putting away a tool leaves hands free")
 	var before: Vector2 = game.player
 	game._process(1)
 	require(game.player == before, "Inventory pauses gameplay")

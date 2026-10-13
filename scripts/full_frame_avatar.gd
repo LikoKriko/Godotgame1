@@ -9,6 +9,8 @@ var game
 var catalogue: Dictionary
 var sheets: Dictionary = {}
 var sheet_order: Array[String] = []
+var cache_bytes := 0
+const CACHE_BYTES := 128*1024*1024
 var atlas := AtlasTexture.new()
 var phase := 0.0
 var state: StringName = &"idle"
@@ -38,23 +40,30 @@ func reset() -> void:
 	update_pose(0)
 
 func item_key() -> String:
-	return "bare" if game.bag.held_id() == &"" else String(game.bag.held_id())
+	var id := "bare" if game.bag.held_id() == &"" else String(game.bag.held_id())
+	var armor: StringName = game.bag.equipment[&"torso"].get("id",&"")
+	return String(armor)+"__"+id if catalogue.items.has(String(armor)+"__"+id) else id
 
 func data_for(clip: StringName) -> Dictionary:
 	return catalogue["items"][item_key()]["clips"][String(clip)]
 
-func sheet_for(data: Dictionary) -> Texture2D:
-	var path: String = data["path"]
+func sheet_for(data: Dictionary, progress: float = 0.0) -> Texture2D:
+	var path: String = data.paths[Clips.action_frame(progress,data.equip_frames)] if data.has("paths") else data["path"]
 	if not sheets.has(path):
 		var image: Texture2D = load(path)
 		var canvas := Vector2i(catalogue["canvas"][0],catalogue["canvas"][1])
 		if not Clips.validate_sheet(image,canvas,int(data["directions"]),int(data["frames"])):
 			push_error("Invalid complete-frame sheet: "+path)
 			return null
+		var bytes := image.get_width()*image.get_height()*4
+		while not sheet_order.is_empty() and cache_bytes+bytes > CACHE_BYTES:
+			var evicted: String = sheet_order.pop_front()
+			cache_bytes -= sheets[evicted].get_width()*sheets[evicted].get_height()*4
+			sheets.erase(evicted)
 		sheets[path] = image
-		sheet_order.append(path)
-		if sheet_order.size() > 4:
-			sheets.erase(sheet_order.pop_front())
+		cache_bytes += bytes
+	if path in sheet_order: sheet_order.erase(path)
+	sheet_order.append(path)
 	return sheets[path]
 
 func update_pose(delta: float) -> void:
@@ -63,20 +72,22 @@ func update_pose(delta: float) -> void:
 	var item: StringName = game.bag.held_id()
 	if item != selected_item:
 		selected_item = item
-		sheets.clear()
-		sheet_order.clear()
+
 	var clip: StringName = &"idle"
 	var progress := 0.0
 	if game.working:
 		clip = &"action"
 		progress = clampf(game.work_elapsed/game.work_duration,0,1)
 		was_moving = false
-	elif game.equipping:
-		clip = &"equip"
+	elif game.equipping and not game.locomotion.airborne() and not game.locomotion.sliding():
+		clip = &"crouch_equip" if game.locomotion.crouch > 0.95 else &"equip"
 		progress = clampf(game.equip_elapsed/(0.5 if game.bag.held_category() == &"pickaxe" else 0.42),0,1)
-		was_moving = false
+		if moving:
+			clip = &"equip_crouch_walk" if game.locomotion.crouch > 0.95 else (&"equip_run" if game.running else &"equip_walk")
+			phase = fposmod(phase+delta/(0.45 if game.running else WALK_SECONDS)*game.movement.speed_factor*game.locomotion.speed_factor()*game.nutrition.speed_multiplier()*game.progression.speed_multiplier(),1)
+		was_moving = moving
 	elif game.locomotion.airborne():
-		clip = &"jump"
+		clip = &"slide_jump" if game.locomotion.from_slide else &"jump"
 		progress = game.locomotion.jump_elapsed/game.locomotion.JUMP_SECONDS
 		was_moving = false
 	elif game.locomotion.sliding():
@@ -108,8 +119,8 @@ func update_pose(delta: float) -> void:
 			progress = phase
 	else:
 		if was_moving:
-			var prefix := "stop_run" if state in [&"run",&"start_run"] else "stop"
-			stop_clip = StringName((prefix+"_start_%02d" if state in [&"start",&"start_run"] else prefix+"_%02d") % frame_index)
+			var prefix := "stop_run" if state in [&"run",&"start_run",&"equip_run"] else "stop"
+			stop_clip = StringName((prefix+"_start_%02d" if state in [&"start",&"start_run"] else prefix+"_%02d") % (frame_index%12 if String(state).begins_with("equip_") else frame_index))
 			transition_elapsed = 0
 			state = &"stop"
 			was_moving = false
@@ -121,9 +132,12 @@ func update_pose(delta: float) -> void:
 	var data := data_for(clip)
 	var count: int = data["frames"]
 	direction = Clips.direction_index(game.movement.heading,int(data["directions"]))
-	frame_index = Clips.action_frame(progress,count)
+	if data.has("equip_frames"):
+		frame_index = Clips.action_frame(phase,data.gait_frames)
+	else:
+		frame_index = Clips.action_frame(progress,count)
 	var canvas := Vector2(catalogue["canvas"][0],catalogue["canvas"][1])
-	atlas.atlas = sheet_for(data)
+	atlas.atlas = sheet_for(data,progress)
 	atlas.region = Rect2(Vector2(frame_index*canvas.x,direction*canvas.y),canvas)
 	atlas.filter_clip = true
 	texture = atlas

@@ -18,10 +18,10 @@ func run() -> void:
 		require(is_equal_approx(factor*factor,0.4*(1+0.2*(level-1))),"Six size levels change area, not the percentage of each side")
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game); game.set_process(false)
-	require(game.hud.text == "Inventario (I) · Crear (T) · Mapa (M)","Only the three requested controls remain")
-	require(game.interaction.text == "" and not game.survival_status.skills_label.text.contains("Z ·") and not game.survival_status.skills_label.text.contains("X ·"),"Other lower prompts and skill hotkey hints are gone")
+	require(game.styled_hud.shortcuts.size() == 3,"Only the three requested controls remain")
+	require(game.interaction.text == "","Other lower prompts and skill hotkey hints are gone")
 	var overlay = game.styled_hud
-	require(not game.hud.visible and not game.minimap.visible and not game.survival_status.visible,"Old HUD widgets are replaced rather than duplicated")
+	require(game.get_children().filter(func(node): return node.get_script() != null and str(node.get_script().resource_path).contains("survival_status")).is_empty(),"Old HUD widgets are replaced rather than duplicated")
 	for dimensions in [Vector2i(1280,720),Vector2i(1920,1080),Vector2i(2560,1440)]:
 		root.size = dimensions
 		for level in range(1,7):
@@ -75,6 +75,6 @@ func run() -> void:
 	require(panel.pending.hud_size == 4 and panel.hud_value.text.contains("64%"),"Slider explains the selected level's occupied area")
 	game.gameplay_settings.values.hud_size = panel.pending.hud_size
 	game.gameplay_settings.changed.emit()
-	require(game.hud.scale.is_equal_approx(Vector2.ONE*Settings.hud_scale(4)),"Applied preferences resize the running game's HUD immediately")
+	require(game.styled_hud.map_frame.scale.is_equal_approx(Vector2.ONE*Settings.hud_scale(4)),"Applied preferences resize the running game's HUD immediately")
 	print("%s: %d HUD/map checks, %d failures" % ["PASS" if failures == 0 else "FAIL",checks,failures])
 	quit(1 if failures else 0)

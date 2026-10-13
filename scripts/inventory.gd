@@ -2,10 +2,10 @@ extends RefCounted
 const CAPACITY := 32
 const EQUIPMENT_SLOTS := [&"head", &"torso", &"legs", &"hands", &"feet"]
 const DEFINITIONS := {
-	&"sword": {"name": "Espada", "slot": &"hands", "category": &"sword", "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
-	&"bow": {"name": "Arco", "slot": &"hands", "category": &"bow", "uses": 60, "stack": 1, "purpose": "Disparar flechas"},
-	&"pickaxe": {"name": "Pico", "slot": &"hands", "category": &"pickaxe", "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
-	&"axe": {"name": "Hacha", "slot": &"hands", "category": &"axe", "uses": 30, "stack": 1, "purpose": "Cortar árboles"},
+	&"sword": {"name": "Espada", "slot": &"tool", "category": &"sword", "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
+	&"bow": {"name": "Arco", "slot": &"tool", "category": &"bow", "uses": 60, "stack": 1, "purpose": "Disparar flechas"},
+	&"pickaxe": {"name": "Pico", "slot": &"tool", "category": &"pickaxe", "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
+	&"axe": {"name": "Hacha", "slot": &"tool", "category": &"axe", "uses": 30, "stack": 1, "purpose": "Cortar árboles"},
 	&"madera": {"name": "Madera", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"mineral": {"name": "Mineral", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"chatarra": {"name": "Chatarra", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
@@ -22,17 +22,21 @@ const DEFINITIONS := {
 	&"trousers": {"name": "Pantalón corto", "slot": &"legs", "uses": 60, "stack": 1, "purpose": "Equipo de piernas"},
 	&"boots": {"name": "Botas", "slot": &"feet", "uses": 60, "stack": 1, "purpose": "Protección de pies"}
 	,&"hoja_bardana": {"name":"Hoja de bardana","slot":&"","uses":-1,"stack":99,"purpose":"Material para fabricar la primera armadura"}
-	,&"burdock_armor": {"name":"Armadura de hojas","slot":&"","uses":-1,"stack":1,"purpose":"Armadura tejida con hojas de bardana, fibra vegetal y cuerda."}
+	,&"burdock_armor": {"name":"Armadura de hojas","slot":&"torso","uses":-1,"stack":1,"purpose":"Armadura tejida con hojas de bardana, fibra vegetal y cuerda."}
 }
 var slots: Array[Dictionary] = []
 var equipment: Dictionary = {}
 var next_uid := 1
 var quick_slots: Array[Dictionary] = [{},{},{},{},{},{}]
 var active_quick_uid := -1
+# Compatibility only: retain an old save's carried tool when every storage slot is full.
+# New equipment always lives in the physical quick bar, independently of gloves.
+var held_tool: Dictionary = {}
 
 func reset() -> void:
 	quick_slots.assign([{},{},{},{},{},{}])
 	active_quick_uid = -1
+	held_tool = {}
 	slots.clear()
 	for i in CAPACITY:
 		slots.append({})
@@ -44,7 +48,8 @@ func reset() -> void:
 		add(id, 1)
 	# The new survivor starts shirtless and barefoot, wearing only shorts.
 	equipment[&"legs"] = make_item(&"trousers", 1)
-	equip(3, &"hands")
+	move_item(&"bag",3,&"quick",5)
+	activate_quick(5)
 
 func make_item(id: StringName, quantity: int) -> Dictionary:
 	var item := {"id": id, "quantity": quantity, "uses": DEFINITIONS[id]["uses"], "rarity": &"basico", "uid": next_uid}
@@ -90,28 +95,26 @@ func add(id: StringName, quantity: int) -> bool:
 	return true
 
 func equip(index: int, target: StringName) -> bool:
-	if index < 0 or index >= CAPACITY or slots[index].is_empty() or not equipment.has(target):
+	if index < 0 or index >= CAPACITY or slots[index].is_empty(): return false
+	if DEFINITIONS[slots[index].id].slot != target: return false
+	if target == &"tool":
+		for i in quick_slots.size():
+			if quick_slots[i].is_empty():
+				return move_item(&"bag",index,&"quick",i) and activate_quick(i)
 		return false
-	if DEFINITIONS[slots[index]["id"]]["slot"] != target:
-		return false
+	if not equipment.has(target): return false
 	var previous: Dictionary = equipment[target]
 	equipment[target] = slots[index]
 	slots[index] = previous
-	if target == &"hands": active_quick_uid = -1
 	return true
 
 func unequip(target: StringName) -> bool:
-	if target == &"hands" and active_quick_uid != -1:
-		var source := location(active_quick_uid)
-		return transfer_first(source.kind,source.index,&"bag") if not source.is_empty() else false
-	if not equipment.has(target) or equipment[target].is_empty():
-		return false
-	for i in CAPACITY:
-		if slots[i].is_empty():
-			slots[i] = equipment[target]
-			equipment[target] = {}
+	if target == &"tool":
+		if active_quick_uid != -1:
+			active_quick_uid = -1
 			return true
-	return false
+		return transfer_first(&"held",0,&"bag") if not held_tool.is_empty() else false
+	return transfer_first(&"gear",target,&"bag") if equipment.has(target) and not equipment[target].is_empty() else false
 
 func select_tool(id: StringName) -> bool:
 	if held_id() == id:
@@ -120,7 +123,7 @@ func select_tool(id: StringName) -> bool:
 		if quick_slots[i].get("id",&"") == id: return activate_quick(i)
 	for i in CAPACITY:
 		if slots[i].get("id", &"") == id:
-			return equip(i, &"hands")
+			return equip(i, &"tool")
 	return false
 
 func held_id() -> StringName:
@@ -129,10 +132,11 @@ func held_id() -> StringName:
 func held_item() -> Dictionary:
 	for item in quick_slots:
 		if item.get("uid",-1) == active_quick_uid and active_quick_uid != -1: return item
-	return equipment[&"hands"]
+	return held_tool
 
 func location(uid: int) -> Dictionary:
 	if uid < 1: return {}
+	if held_tool.get("uid",-1) == uid: return {"kind":&"held","index":0}
 	for pair in [[&"bag",slots],[&"quick",quick_slots]]:
 		for i in pair[1].size():
 			if pair[1][i].get("uid",-1) == uid: return {"kind":pair[0],"index":i}
@@ -141,16 +145,19 @@ func location(uid: int) -> Dictionary:
 	return {}
 
 func at(kind: StringName, index) -> Dictionary:
+	if kind == &"held": return held_tool if index == 0 else {}
 	if kind == &"gear": return equipment.get(index,{})
 	var storage: Array = quick_slots if kind == &"quick" else slots
 	return storage[index] if index is int and index >= 0 and index < storage.size() else {}
 
 func put(kind: StringName, index, item: Dictionary) -> void:
-	if kind == &"gear": equipment[index] = item
+	if kind == &"held": held_tool = item
+	elif kind == &"gear": equipment[index] = item
 	elif kind == &"quick": quick_slots[index] = item
 	else: slots[index] = item
 
 func accepts(kind: StringName, index, item: Dictionary) -> bool:
+	if kind == &"held": return index == 0 and (item.is_empty() or DEFINITIONS[item.id].slot == &"tool")
 	if kind == &"gear": return equipment.has(index) and (item.is_empty() or DEFINITIONS[item.id].slot == index)
 	return kind in [&"bag",&"quick"] and index is int and index >= 0 and index < (6 if kind == &"quick" else CAPACITY)
 
@@ -172,7 +179,7 @@ func move_item(source: StringName, from, destination: StringName, to) -> bool:
 		if item.quantity == 0: put(source,from,{})
 	else:
 		put(destination,to,item); put(source,from,other)
-	if destination == &"gear" and to == &"hands": active_quick_uid = -1
+	if destination == &"held": active_quick_uid = -1
 	var held := location(active_quick_uid)
 	if held.is_empty() or held.kind != &"quick": active_quick_uid = -1
 	return true
@@ -196,14 +203,17 @@ func shift_transfer(source: StringName, index) -> bool:
 	if item.is_empty(): return false
 	if source != &"bag": return transfer_first(source,index,&"bag")
 	var gear: StringName = DEFINITIONS[item.id].slot
-	if gear in [&"head",&"torso",&"legs",&"feet"] and equipment[gear].is_empty(): return move_item(source,index,&"gear",gear)
+	if gear in EQUIPMENT_SLOTS and equipment[gear].is_empty(): return move_item(source,index,&"gear",gear)
 	return transfer_first(source,index,&"quick")
 
 func activate_quick(index: int) -> bool:
 	var item := at(&"quick",index)
-	if item.is_empty() or DEFINITIONS[item.id].slot != &"hands": return false
-	if not equipment[&"hands"].is_empty() and not transfer_first(&"gear",&"hands",&"bag") and not transfer_first(&"gear",&"hands",&"quick"):
-		return move_item(&"quick",index,&"gear",&"hands")
+	if item.is_empty() or DEFINITIONS[item.id].slot != &"tool": return false
+	if active_quick_uid == item.uid:
+		active_quick_uid = -1
+		return true
+	if not held_tool.is_empty() and not transfer_first(&"held",0,&"bag") and not transfer_first(&"held",0,&"quick"):
+		return move_item(&"quick",index,&"held",0)
 	active_quick_uid = item.uid
 	return true
 
@@ -216,6 +226,7 @@ func fork():
 	copy.equipment = equipment.duplicate(true)
 	copy.quick_slots = quick_slots.duplicate(true)
 	copy.active_quick_uid = active_quick_uid
+	copy.held_tool = held_tool.duplicate(true)
 	copy.next_uid = next_uid
 	return copy
 
@@ -253,7 +264,7 @@ func item_by_uid(uid: int) -> Dictionary:
 	for item in slots+quick_slots:
 		if item.get("uid", -1) == uid:
 			return item
-	for item in equipment.values():
+	for item in equipment.values()+[held_tool]:
 		if item.get("uid", -1) == uid:
 			return item
 	return {}

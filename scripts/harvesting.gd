@@ -1,5 +1,5 @@
 extends RefCounted
-const Rig = preload("res://scripts/arm_rig.gd")
+const Rig = preload("res://scripts/tool_contact.gd")
 const REACH := 40.0
 const NONE := Vector2i(99999, 99999)
 const TYPES := {

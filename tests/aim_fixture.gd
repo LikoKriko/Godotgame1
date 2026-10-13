@@ -1,11 +1,11 @@
 extends RefCounted
-const Rig = preload("res://scripts/arm_rig.gd")
+const Rig = preload("res://scripts/tool_contact.gd")
 
 ## Find an opaque, reachable surface and a legal stance independently of the
 ## strike code, including the exposed flanks of the largest boulders.
 static func approach(game, cell: Vector2i, item: StringName) -> Vector2:
 	if item == &"":
-		game.bag.unequip(&"hands")
+		game.bag.unequip(&"tool")
 	else:
 		game.bag.select_tool(item)
 	var record: Dictionary = game.world_view.hit_meshes.targets[cell]

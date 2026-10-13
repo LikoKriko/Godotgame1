@@ -2,7 +2,7 @@ extends RefCounted
 ## Versioned data only: never deserialize executable objects. Replace the save
 ## atomically so interruption during writing leaves the last good game intact.
 const PATH := "user://day_zero_save.cfg"
-const VERSION := 2
+const VERSION := 3
 
 static func capture(game) -> Dictionary:
 	var remaining := {}
@@ -21,7 +21,7 @@ static func capture(game) -> Dictionary:
 		"health": game.progression.health, "day": game.day_cycle.day, "hour": game.day_cycle.hour,
 		"calories": game.nutrition.calories_today, "hydration": game.nutrition.hydration_ml,
 		"water_today": game.nutrition.water_today_ml, "quick_items": quick,
-		"quick_slots": game.bag.quick_slots.duplicate(true), "active_quick_uid": game.bag.active_quick_uid, "plant_layout_version":1
+		"held_tool": game.bag.held_tool.duplicate(true), "quick_slots": game.bag.quick_slots.duplicate(true), "active_quick_uid": game.bag.active_quick_uid, "plant_layout_version":1
 	}
 
 static func write(game, path: String = PATH) -> Error:
@@ -41,6 +41,7 @@ static func read_state(path: String = PATH) -> Dictionary:
 static func migrate(original: Dictionary) -> Dictionary:
 	var data := original.duplicate(true)
 	if data.get("collected") is Dictionary: data.collected["hoja_bardana"] = data.collected.get("hoja_bardana",0)
+	if data.get("version") == 2: return migrate_held_tool(data)
 	if data.get("version") != 1: return data
 	if not data.get("quick_items") is Array or data.quick_items.size() != 6 or not data.get("slots") is Array or not data.get("equipment") is Dictionary: return {}
 	data.quick_slots = [{},{},{},{},{},{}]
@@ -59,6 +60,26 @@ static func migrate(original: Dictionary) -> Dictionary:
 			if uid != -1 and data.equipment[gear].get("uid",-1) == uid:
 				data.quick_slots[i] = data.equipment[gear]; data.equipment[gear] = {}
 		if uid == old_held and uid != -1: data.active_quick_uid = uid
+	data.version = 2
+	return migrate_held_tool(data)
+
+static func migrate_held_tool(data: Dictionary) -> Dictionary:
+	if not data.get("equipment") is Dictionary: return {}
+	var hands = data.equipment.get(&"hands",{})
+	if not hands is Dictionary: return {}
+	var definitions: Dictionary = preload("res://scripts/inventory.gd").DEFINITIONS
+	data.held_tool = {}
+	if not hands.is_empty() and definitions.get(hands.get("id"),{}).get("slot") == &"tool":
+		data.held_tool = hands
+		data.equipment[&"hands"] = {}
+	if not data.held_tool.is_empty() and data.get("quick_slots") is Array and data.quick_slots.size() == 6 and data.get("quick_items") is Array and data.quick_items.size() == 6:
+		for i in 6:
+			if data.quick_slots[i] is Dictionary and data.quick_slots[i].is_empty():
+				data.quick_slots[i] = data.held_tool
+				data.quick_items[i] = data.held_tool.uid
+				data.active_quick_uid = data.held_tool.uid
+				data.held_tool = {}
+				break
 	data.version = VERSION
 	return data
 
@@ -76,6 +97,8 @@ static func valid(data: Dictionary) -> bool:
 	if not data.slots is Array or data.slots.size() != Bag.CAPACITY or not data.equipment is Dictionary: return false
 	if data.equipment.size() != Bag.EQUIPMENT_SLOTS.size(): return false
 	var uids := {}
+	if not valid_item(data.get("held_tool"),uids): return false
+	if not data.held_tool.is_empty() and Bag.DEFINITIONS[data.held_tool.id].slot != &"tool": return false
 	for item in data.slots:
 		if not valid_item(item, uids): return false
 	for slot in Bag.EQUIPMENT_SLOTS:
@@ -118,8 +141,8 @@ static func valid(data: Dictionary) -> bool:
 	if data.active_quick_uid != -1:
 		var held := false
 		for item in data.quick_slots:
-			if item.get("uid",-1) == data.active_quick_uid and Bag.DEFINITIONS[item.id].slot == &"hands": held = true
-		if not held or not data.equipment[&"hands"].is_empty(): return false
+			if item.get("uid",-1) == data.active_quick_uid and Bag.DEFINITIONS[item.id].slot == &"tool": held = true
+		if not held or not data.held_tool.is_empty(): return false
 	return true
 
 static func valid_item(item, uids: Dictionary) -> bool:
@@ -166,6 +189,7 @@ static func restore(game, data: Dictionary) -> bool:
 	game.resources.inventory = data.collected.duplicate()
 	game.bag.slots.assign(data.slots.duplicate(true))
 	game.bag.equipment = data.equipment.duplicate(true)
+	game.bag.held_tool = data.held_tool.duplicate(true)
 	game.bag.next_uid = data.next_uid
 	game.bag.quick_slots.assign(data.quick_slots.duplicate(true))
 	game.bag.active_quick_uid = data.active_quick_uid
@@ -183,10 +207,8 @@ static func restore(game, data: Dictionary) -> bool:
 	game.movement.heading = data.heading
 	game.last_tool_uid = game.bag.held_item().get("uid", -1)
 	game.camera.position = game.player
-	game.sync_character()
 	game.full_avatar.reset()
 	game.inventory_panel.refresh()
 	game.solar_lighting.update_light()
-	game.survival_status.update_status()
 	game.update_hud()
 	return true

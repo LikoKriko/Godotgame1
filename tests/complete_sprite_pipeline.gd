@@ -24,6 +24,18 @@ func run() -> void:
 			var picture := Image.load_from_file(ProjectSettings.globalize_path(data["path"]))
 			require(picture != null and picture.get_size() == Vector2i(192*int(data["frames"]),192*int(data["directions"])),"Export dimensions: "+String(item)+"/"+String(name))
 			require(data["grip_error"] <= 0.04,"Both grips stay on the actual tool")
+		for name in [&"equip_walk",&"equip_run",&"equip_crouch_walk"]:
+			if not clips.has(name): continue
+			var data: Dictionary = clips[name]
+			require(data.equip_frames == 6 and data.gait_frames == 12 and data.paths.size() == 6,"Moving equipment retains six drawing stages and twelve stride phases")
+			for path in data.paths:
+				var sheet := Image.load_from_file(ProjectSettings.globalize_path(path))
+				require(sheet.get_size() == Vector2i(2304,1536),"Equipment texture remains below common GPU size limits")
+			var end := Image.load_from_file(ProjectSettings.globalize_path(data.paths[5]))
+			var moving := Image.load_from_file(ProjectSettings.globalize_path(clips[String(name).trim_prefix("equip_")].path))
+			for row in 8:
+				for column in 12:
+					require(same(frame(end,column,row),frame(moving,column,row)),"Drawing ends at the exact corresponding moving pose")
 		var walk := Image.load_from_file(ProjectSettings.globalize_path(clips["walk"]["path"]))
 		var start := Image.load_from_file(ProjectSettings.globalize_path(clips["start"]["path"]))
 		var idle := Image.load_from_file(ProjectSettings.globalize_path(clips["idle"]["path"]))

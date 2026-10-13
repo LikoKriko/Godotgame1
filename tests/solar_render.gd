@@ -37,9 +37,11 @@ func run() -> void:
 				occupied += 1
 	require(occupied > 500,"Avatar shadow mask contains the complete opaque silhouette")
 	game.movement.step(Vector2.RIGHT,1,220)
-	game.character.play(&"walk_right")
-	game.character.frame = 1
-	game.gait.update_pose(0)
+	game.full_avatar.phase = 0.25
+	game.full_avatar.was_moving = true
+	game.full_avatar.state = &"walk"
+	game.move_player(Vector2.RIGHT,0.02)
+	game.full_avatar.update_pose(0.01)
 	shadows.mask.queue_redraw()
 	await capture()
 	var walk_mask: Image = shadows.mask_viewport.get_texture().get_image()
@@ -49,13 +51,11 @@ func run() -> void:
 			if absf(idle_mask.get_pixel(x,y).a-walk_mask.get_pixel(x,y).a) > 0.2:
 				pose_changes += 1
 	require(pose_changes > 100,"Unified shadow follows articulated walking instead of a static body")
-	game.character.play(&"idle_right")
-	game.gait.update_pose(0.09)
+	game.full_avatar.update_pose(0.09)
 	shadows.mask.queue_redraw()
 	await capture()
 	var faded_mask: Image = shadows.mask_viewport.get_texture().get_image()
 	require(not faded_mask.is_empty() and shadows.avatar.material.get_shader_parameter("opacity") == shadows.strength,"Stop transition keeps one shared projection opacity")
-	game.gait.cancel()
 	game.solar_lighting.shadows.hide()
 	var without: Image = await capture()
 	var changed := 0

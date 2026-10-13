@@ -165,6 +165,7 @@ func offset_for(cell: Vector2i) -> Vector2:
 
 func update_trees(player: Vector2, delta: float) -> void:
 	var had_effects := not impulses.is_empty() or not particles.is_empty()
+	var changed_props := impulses.keys()
 	for cell in impulses.keys():
 		impulses[cell]["time"] -= delta
 		if impulses[cell]["time"] <= 0:
@@ -198,8 +199,10 @@ func update_trees(player: Vector2, delta: float) -> void:
 		sprite.modulate = presentation(cell)["tint"].lerp(Color.WHITE,absf(impulse_wave(cell))*0.15)
 		sprite.modulate.a = alpha
 		hit_meshes.set_transform(cell,sprite.position,sprite.rotation,sprite.scale)
-	for cell in hit_meshes.targets:
-		if world.props.has(cell) and world.props[cell] not in [2,4]:
+	# Static prop surfaces already have their transform from add(). Only
+	# impacted props need updates, including the frame when an impulse ends.
+	for cell in changed_props:
+		if hit_meshes.targets.has(cell) and world.props.has(cell) and world.props[cell] not in [2,4]:
 			var record: Dictionary = hit_meshes.targets[cell]
 			var rest: Rect2 = record["rest"]
 			hit_meshes.set_transform(cell,rest.position+offset_for(cell),0,rest.size/record["texture_size"])

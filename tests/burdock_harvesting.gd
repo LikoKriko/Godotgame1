@@ -26,7 +26,7 @@ func run():
 		var aim: Vector2 = game.world_view.hit_meshes.nearest_surface(cell,base)
 		require(game.resources.target_at(aim) == cell,"Cursor chooses the visible leaf surface")
 		require(game.resources.hit(cell,game.player).get("reason") == "herramienta","Holding a tool cannot harvest the plant")
-		game.bag.unequip(&"hands")
+		game.bag.unequip(&"tool")
 		var result: Dictionary = game.resources.hit_at(aim,Vector2.ZERO,Vector2.ZERO,game.player)
 		var quantity := 5 if variant == 1 else 3
 		require(result.get("depleted",false) and result.get("amount") == quantity,"One bare-hand blow yields the exact variant quantity")

@@ -18,7 +18,7 @@ func run() -> void:
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_process(false)
-	game.bag.unequip(&"hands")
+	game.bag.unequip(&"tool")
 	game._process(0.01)
 	key(KEY_D,true)
 	for i in 10: game._process(0.05)

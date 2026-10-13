@@ -52,15 +52,3 @@ func facing() -> StringName:
 
 static func facing_at(angle: float) -> StringName:
 	return FACINGS[posmod(roundi(angle / (PI / 4.0)), 8)]
-
-func is_turning() -> bool:
-	return target_direction != Vector2.ZERO and duration > 0.00001 and elapsed < duration
-
-func turn_animation() -> StringName:
-	var from := facing_at(start_heading)
-	var to := facing_at(target_direction.angle())
-	return StringName("turn_%s_%s" % [from, to]) if from != to else &""
-
-func turn_progress() -> float:
-	var progress := 1.0 if duration < 0.00001 else elapsed / duration
-	return progress * progress * (3.0 - 2.0 * progress)

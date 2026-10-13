@@ -45,7 +45,7 @@ func run():
 	require(game.bag.quick_slots[0].is_empty() and game.bag.slots[10].get("uid") == uid,"Native drag returns the same instance")
 	var bow_uid: int = game.bag.slots[1].uid
 	await drag(ui.backpack_buttons[1],ui.gear_buttons[&"hands"])
-	require(game.bag.held_id() == &"bow" and game.bag.slots[1].get("id") == &"axe","Drag equips and safely swaps the previous weapon")
+	require(game.bag.slots[1].get("uid") == bow_uid and game.bag.equipment[&"hands"].is_empty(),"Glove slot rejects weapons without moving either item")
 	await shift_click(ui.backpack_buttons[10])
 	require(game.bag.slots[10].is_empty() and game.bag.quick_slots[0].get("uid") == uid,"Shift click moves to first free quick space")
 	await shift_click(quick[0])

@@ -4,10 +4,12 @@ signal consume_requested(index: int)
 const Model = preload("res://scripts/inventory.gd")
 const Icons = preload("res://scripts/item_icons.gd")
 const Workshop = preload("res://scripts/workshop.gd")
-const LABELS := {&"head": "Cabeza", &"torso": "Torso", &"legs": "Piernas", &"hands": "Manos", &"feet": "Pies"}
+const LABELS := {&"head": "Cabeza", &"torso": "Torso", &"legs": "Piernas", &"hands": "Guantes", &"feet": "Pies"}
 const ABBREV := {&"madera": "MAD", &"mineral": "MIN", &"piedra": "PIE", &"palo": "PAL", &"cuerda": "CUE", &"chatarra": "CHA", &"fibra": "FIB", &"helmet": "CAS", &"suit": "TRA", &"trousers": "PAN", &"boots": "BOT"}
 var model
 var game
+var portrait: TextureRect
+var portrait_key := ""
 var panel_heading: Label
 var navigation: TabBar
 var inventory_page: Control
@@ -63,7 +65,7 @@ func configure(inventory, owner_game = null) -> void:
 	close.pressed.connect(func(): hide())
 	content.add_child(close)
 	label("PERSONAJE", Vector2(16, 48), 13)
-	var portrait := TextureRect.new()
+	portrait = TextureRect.new()
 	var portrait_texture := AtlasTexture.new()
 	portrait_texture.atlas = load("res://assets/characters/complete/bare_idle.png")
 	var cell := Rect2i(0,4*192,192,192)
@@ -202,30 +204,39 @@ func show_item(button: Button, item: Dictionary, empty_label: String = "") -> vo
 func refresh() -> void:
 	if model == null:
 		return
+	var appearance := "burdock_armor__bare" if model.equipment[&"torso"].get("id") == &"burdock_armor" else "bare"
+	if appearance != portrait_key:
+		portrait_key = appearance
+		var image := AtlasTexture.new()
+		image.atlas = load("res://assets/characters/complete/"+appearance+"_idle.png")
+		var cell := Rect2i(0,4*192,192,192)
+		var used := image.atlas.get_image().get_region(cell).get_used_rect()
+		image.region = Rect2(used.position+cell.position,used.size)
+		portrait.texture = image
 	for i in Model.CAPACITY:
 		show_item(backpack_buttons[i], model.slots[i])
 		backpack_buttons[i].self_modulate = Color("d9bf72") if chosen == i else Color.WHITE
 	for slot in gear_buttons:
-		show_item(gear_buttons[slot], model.held_item() if slot == &"hands" else model.equipment[slot], "—")
+		show_item(gear_buttons[slot], model.equipment[slot], "—")
 		gear_buttons[slot].self_modulate = Color("d9bf72") if chosen_gear == slot else Color.WHITE
 	var item: Dictionary = {}
 	if chosen >= 0:
 		item = model.slots[chosen]
 	elif chosen_gear != &"":
-		item = model.held_item() if chosen_gear == &"hands" else model.equipment[chosen_gear]
+		item = model.equipment[chosen_gear]
 	elif chosen_quick >= 0:
 		item = model.quick_slots[chosen_quick]
 	var consumable: bool = not item.is_empty() and (Model.DEFINITIONS[item["id"]].has("kcal") or Model.DEFINITIONS[item["id"]].has("water_ml"))
-	equip_button.text = ("Beber" if item.get("id",&"") == &"water" else "Comer") if consumable else "Equipar"
+	equip_button.text = ("Beber" if item.get("id",&"") == &"water" else "Comer") if consumable else ("Guardar" if not item.is_empty() and item.get("uid") == model.held_item().get("uid",-1) else "Equipar")
 	equip_button.disabled = (chosen < 0 and chosen_quick < 0) or item.is_empty() or (not consumable and Model.DEFINITIONS[item.get("id", &"madera")]["slot"] == &"")
 	remove_button.disabled = chosen_gear == &"" or item.is_empty()
 	repair_button.disabled = item.is_empty() or not Workshop.REPAIRS.has(item.get("id",&""))
-	details.text = "Selecciona un objeto.\n\nHerramientas y armas: Manos.\nMateriales: Mochila."
+	details.text = "Selecciona un objeto.\n\nManos: solo guantes.\nHerramientas: barra rápida o en uso.\nMateriales: Mochila."
 	if not item.is_empty():
 		var definition: Dictionary = Model.DEFINITIONS[item["id"]]
 		details.text = "%s · Básico\n%s" % [definition["name"], definition["purpose"]]
 		if item["uses"] >= 0:
-			details.text += "\n%s: %d / %d%s" % ["Usos" if definition["slot"] == &"hands" else "Durabilidad",item["uses"], definition["uses"], " · ROTO" if item["uses"] == 0 else ""]
+			details.text += "\n%s: %d / %d%s" % ["Usos" if definition["slot"] == &"tool" else "Durabilidad",item["uses"], definition["uses"], " · ROTO" if item["uses"] == 0 else ""]
 		else:
 			details.text += "\nCantidad: %d" % item["quantity"]
 	if creation_page != null: creation_page.refresh()
@@ -255,15 +266,26 @@ func equip_selected() -> void:
 		else: consume_requested.emit(chosen)
 		refresh(); return
 	var destination: StringName = definition.slot
-	var success: bool = model.move_item(&"quick",chosen_quick,&"gear",destination) if chosen_quick >= 0 else model.equip(chosen,destination)
+	var success: bool
+	if destination == &"tool":
+		success = model.activate_quick(chosen_quick) if chosen_quick >= 0 else model.equip(chosen,destination)
+	else:
+		success = model.move_item(&"quick",chosen_quick,&"gear",destination) if chosen_quick >= 0 else model.equip(chosen,destination)
 	if success:
-		status.text = "Objeto equipado."
-		chosen = -1; chosen_quick = -1; chosen_gear = destination
+		status.text = "Objeto guardado." if model.held_id() == &"" and destination == &"tool" else "Objeto equipado."
+		if destination == &"tool":
+			var location: Dictionary = model.location(item.uid)
+			chosen = -1; chosen_gear = &""
+			chosen_quick = location.index if location.get("kind") == &"quick" else -1
+		else:
+			chosen = -1; chosen_quick = -1; chosen_gear = destination
 		equipment_changed.emit()
+	elif destination == &"tool":
+		status.text = "Libera un espacio de la barra rápida para equipar el arma."
 	refresh()
 
 func remove_selected() -> void:
-	var uid: int = (model.held_item() if chosen_gear == &"hands" else model.equipment.get(chosen_gear,{})).get("uid",-1)
+	var uid: int = (model.equipment.get(chosen_gear,{})).get("uid",-1)
 	if model.unequip(chosen_gear):
 		status.text = "Equipo guardado en la mochila."
 		chosen_gear = &""
@@ -280,7 +302,7 @@ func selected_item() -> Dictionary:
 	if chosen >= 0:
 		return model.slots[chosen]
 	if chosen_quick >= 0: return model.quick_slots[chosen_quick]
-	return model.held_item() if chosen_gear == &"hands" else model.equipment.get(chosen_gear,{})
+	return model.equipment.get(chosen_gear,{})
 
 func create_workshop() -> void:
 	close_workshop()

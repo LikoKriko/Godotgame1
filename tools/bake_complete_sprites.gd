@@ -7,6 +7,7 @@ var viewport: SubViewport
 var camera: Camera3D
 var actor: Node3D
 var failures := 0
+var armor_id: StringName = &""
 
 func _initialize() -> void: call_deferred("run")
 
@@ -54,9 +55,12 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 	for direction in directions:
 		var row := []
 		for frame in count:
+			var combined := String(state).begins_with("equip_")
+			var pose_frame := frame/12 if combined else frame
 			var phase := frame/float(count) if state in [&"walk",&"run",&"crouch_walk"] else (frame/float(count-1) if count > 1 else 0.0)
+			if combined: phase = pose_frame/5.0
 			if state == &"action": phase = frame/16.0 if frame <= 8 else 0.5+(frame-8)/14.0
-			actor.build(item,family,state,phase,direction*(16/directions),0.0 if from_start else (stop_frame/12.0 if stop_frame >= 0 else 0.20),smoothstep(0,1,stop_frame/5.0) if from_start else 1.0)
+			actor.build(item,family,state,phase,direction*(16/directions),(frame%12)/12.0 if combined else (0.0 if from_start else (stop_frame/12.0 if stop_frame >= 0 else 0.20)),smoothstep(0,1,stop_frame/5.0) if from_start else 1.0)
 			await protect_body(item,direction*(16/directions))
 			var grip: Vector3 = actor.last_pose["grip"]
 			var yaw := PI/2-direction*(16.0/directions)*TAU/16
@@ -74,22 +78,40 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 			result.blit_rect(picture,Rect2i(Vector2i.ZERO,CELL),Vector2i(frame*CELL.x,direction*CELL.y))
 		if not row.is_empty(): anchors.append(row)
 	var id := "bare" if item == &"" else String(item)
+	if armor_id != &"": id = String(armor_id)+"__"+id
 	var suffix := ("_start_%02d" if from_start else "_%02d") % stop_frame if stop_frame >= 0 else ""
 	var path := OUTPUT+id+"_"+String(state)+suffix+".png"
-	var error := result.save_png(path)
+	var error := OK
+	var paths := []
+	var combined := String(state).begins_with("equip_")
+	if combined:
+		# Six equip stages, each with twelve gait frames. Every texture remains
+		# below 4096 pixels instead of a 13824-pixel-wide GPU allocation.
+		for stage in 6:
+			var part_path := path.trim_suffix(".png")+"_%02d.png" % stage
+			var part := result.get_region(Rect2i(stage*12*CELL.x,0,12*CELL.x,directions*CELL.y))
+			var written := part.save_png(part_path)
+			if written != OK: error = written
+			paths.append(part_path)
+		path = paths[0]
+	else: error = result.save_png(path)
 	if error != OK or grip_error > 0.04:
 		failures += 1
 		push_error("Export %s: write=%s, grip_error=%s" % [path,error,grip_error])
 	print("BAKED %s: %d directions × %d frames; grip error %.5f" % [path,directions,count,grip_error])
-	var data := {"path":path,"frames":count,"directions":directions,"grip_error":snappedf(grip_error,0.00001)}
+	var data := {"path":path,"frames":12 if combined else count,"directions":directions,"grip_error":snappedf(grip_error,0.00001)}
+	if combined: data["equip_frames"] = 6; data["gait_frames"] = 12; data["paths"] = paths
 	if not anchors.is_empty(): data["release_anchors"] = anchors
-	if item == &"" and state == &"idle": data["body_height"] = result.get_region(Rect2i(0,4*CELL.y,CELL.x,CELL.y)).get_used_rect().size.y
+	if armor_id == &"" and item == &"" and state == &"idle": data["body_height"] = result.get_region(Rect2i(0,4*CELL.y,CELL.x,CELL.y)).get_used_rect().size.y
 	return data
 
 func run() -> void:
 	setup()
 	await frame_ready()
 	var arguments := OS.get_cmdline_user_args()
+	if "--armor" in arguments:
+		armor_id = StringName(arguments[arguments.find("--armor")+1])
+		actor.armor_id = armor_id
 	if "--probe" in arguments:
 		var contact := Image.create(CELL.x*8,CELL.y*4,false,Image.FORMAT_RGBA8)
 		for row in 4:
@@ -121,21 +143,22 @@ func run() -> void:
 	for item in items:
 		var family: StringName = Inventory.DEFINITIONS.get(item,{}).get("category",&"")
 		var clips := {}
+		var key := "bare" if item == &"" else String(item)
+		if armor_id != &"": key = String(armor_id)+"__"+key
 		if not selected_clips.is_empty():
-			var key := "bare" if item == &"" else String(item)
 			clips = manifest["items"][key]["clips"].duplicate(true)
 			for name in selected_clips:
-				if name not in ["jump","crouch","slide","crouch_walk"]:
+				if name not in ["jump","crouch","slide","slide_jump","crouch_walk","equip_walk","equip_run","equip_crouch_walk","crouch_equip"]:
 					push_error("Partial export currently supports jump,crouch,slide,crouch_walk only")
 					quit(1); return
-				clips[name] = await sheet(item,family,StringName(name),12 if name == "crouch_walk" else 6,8)
+				clips[name] = await sheet(item,family,StringName(name),72 if name.begins_with("equip_") else (12 if name == "crouch_walk" else 6),16 if name == "crouch_equip" else 8)
 			manifest["items"][key]["clips"] = clips
 			var partial := FileAccess.open(path,FileAccess.WRITE)
 			partial.store_string(JSON.stringify(manifest,"\t"))
 			partial.close()
 			continue
 		clips["idle"] = await sheet(item,family,&"idle",1,16)
-		if item == &"": manifest["pixels_per_world"] = clips["idle"]["body_height"]/64.0
+		if armor_id == &"" and item == &"": manifest["pixels_per_world"] = clips["idle"]["body_height"]/64.0
 		clips["walk"] = await sheet(item,family,&"walk",12,8)
 		clips["crouch_walk"] = await sheet(item,family,&"crouch_walk",12,8)
 		clips["run"] = await sheet(item,family,&"run",12,8)
@@ -150,10 +173,15 @@ func run() -> void:
 		for start_frame in 6:
 			clips["stop_start_%02d" % start_frame] = await sheet(item,family,&"stop",6,8,start_frame,true)
 		clips["action"] = await sheet(item,family,&"action",16,16)
-		clips["equip"] = await sheet(item,family,&"equip",6,16)
-		for state in [&"jump",&"crouch",&"slide"]:
+		if item != &"":
+			clips["equip"] = await sheet(item,family,&"equip",6,16)
+			clips["crouch_equip"] = await sheet(item,family,&"crouch_equip",6,16)
+		for state in [&"jump",&"crouch",&"slide",&"slide_jump"]:
 			clips[state] = await sheet(item,family,state,6,8)
-		manifest["items"]["bare" if item == &"" else String(item)] = {"category":String(family),"clips":clips}
+		if item != &"":
+			for state in [&"equip_walk",&"equip_run",&"equip_crouch_walk"]:
+				clips[state] = await sheet(item,family,state,72,8)
+		manifest["items"][key] = {"category":String(family),"armor":String(armor_id),"clips":clips}
 		var progress := FileAccess.open(path,FileAccess.WRITE)
 		progress.store_string(JSON.stringify(manifest,"\t"))
 		progress.close()

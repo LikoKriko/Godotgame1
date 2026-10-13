@@ -98,11 +98,12 @@ func run() -> void:
 		for phase in 12:
 			actor.build(&"",&"",state,phase/12.0,0)
 			var torso: Transform3D = actor.last_pose.body
-			var anchor := torso.basis*Vector3(0,56.4,0)+torso.origin*(1.0 if state == &"crouch_walk" else 0.45)
-			var expected := Basis(Vector3.UP,PI/2)*anchor+Vector3(0,0,4.2)
-			if not actor.head_center.is_equal_approx(expected):
+			var local_head := Basis(Vector3.UP,PI/2).inverse()*actor.head_center
+			var neck := torso*Vector3(0,48.5,0)
+			var offset := local_head-neck
+			if absf(offset.length()-7.9) > 0.02 or absf(offset.z) > 0.4 or absf(offset.x) > 0.4:
 				failures += 1
-				push_error("Head follows torso inclination without stretching the neck")
+				push_error("Skull stays attached to the neck without stretching or trailing the torso")
 	if actor.get_children().filter(func(node): return node is Sprite3D).size() != 1:
 		failures += 1
 		push_error("Only the tool may remain a Sprite3D: head and body must share a mesh")

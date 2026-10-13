@@ -40,6 +40,19 @@ static func gesture(rest: Vector3, windup: Vector3, impact: Vector3, phase: floa
 
 static func sample(family: StringName, state: StringName, phase: float, stop_phase: float = 0.20, stop_amplitude: float = 1.0, direction: int = -1) -> Dictionary:
 	phase = clampf(phase,0,1)
+	if state == &"crouch_equip": return sample(family,&"equip_crouch",phase,1,stop_amplitude,direction)
+	if String(state).begins_with("equip_"):
+		var locomotion_state := StringName(String(state).trim_prefix("equip_"))
+		var moving := sample(family,locomotion_state,stop_phase,0.2,1.0,direction)
+		if phase >= 1: return moving
+		var drawing := sample(family,&"equip",phase,0.2,1.0,direction)
+		var rest := sample(family,&"idle",0,0.2,1.0,direction)
+		var body: Transform3D = moving.body
+		moving.grip = body*drawing.grip+(moving.grip-body*rest.grip)*smoothstep(0,1,phase)
+		moving.shaft = (body.basis*drawing.shaft).normalized()
+		moving.hands[moving.active] = moving.grip
+		if family == &"bow": moving.hands[1] = body*drawing.hands[1]
+		return moving
 	var crouch_walking := state == &"crouch_walk"
 	if crouch_walking: state = &"walk"
 	var running := state == &"run" or String(state).ends_with("_run")
@@ -50,10 +63,11 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var amplitude := 1.0 if state == &"walk" else (1-smoothstep(0,1,phase) if state == &"stop" else (smoothstep(0,1,phase) if state == &"start" else 0.0))
 	var walk_phase := phase if state == &"walk" else (stop_phase if state == &"stop" else 0.0)
 	if state == &"stop": amplitude *= stop_amplitude
-	var bounce := -2.2-1.4*cos(walk_phase*TAU*2) if walking else 0.0
+	var bounce := -1.0-0.65*cos(walk_phase*TAU*2) if walking else 0.0
 	var compression := 6.0 if crouch_walking else (phase*6.0 if state == &"crouch" else 0.0)
 	if state == &"slide": compression = 8*sin(phase*PI)
 	if state == &"jump": compression = 1.4*sin(phase*PI)
+	if state == &"slide_jump": compression = 7*(1-smoothstep(0,0.35,phase))+2*sin(phase*PI)
 	var action := state == &"action"
 	var load := sin(phase*PI) if action else 0.0
 	var twist := -0.25*sin(phase*TAU) if action and family == &"axe" else 0.0
@@ -62,7 +76,10 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var lean := ((0.12+0.035*sin(walk_phase*TAU)) if running else 0.04*sin(walk_phase*TAU))*amplitude if walking else 0.0
 	if action: lean = -0.07*sin(phase*TAU)
 	if state == &"slide": lean = 0.4*sin(phase*PI)
-	var body := Transform3D(Basis.from_euler(Vector3(lean,twist,0)),Vector3(0,bounce*amplitude-compression-load*0.55,0))
+	if state == &"slide_jump": lean = 0.25*(1-smoothstep(0,0.55,phase))
+	var basis := Basis.from_euler(Vector3(lean,twist,0))
+	var pivot := Vector3(0,26.9,0)
+	var body := Transform3D(basis,Vector3(0,bounce*amplitude-compression-load*0.55,0)+pivot-basis*pivot)
 	var shoulders: Array[Vector3] = [body*Vector3(-7.6,45.7,0),body*Vector3(7.6,45.7,0)]
 	var hips: Array[Vector3] = [body*Vector3(-4.4,26.9,0),body*Vector3(4.4,26.9,0)]
 	var legs := []
@@ -70,7 +87,10 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 		var step := gait(walk_phase+side*0.5,amplitude,running)
 		var ankle := Vector3(-4.4 if side == 0 else 4.4,2+step["lift"],step["z"])
 		if state == &"slide": ankle += Vector3(0,0,(7 if side == 0 else -4)*sin(phase*PI))
-		if state == &"jump": ankle += Vector3(0,sin(phase*PI)*3,-sin(phase*PI)*2)
+		if state in [&"jump",&"slide_jump"]:
+			var tuck := sin(phase*PI)
+			var forward := (4 if side == 0 else -3)*tuck if state == &"slide_jump" else -tuck*2
+			ankle += Vector3(0,tuck*(5 if state == &"slide_jump" else 3),forward)
 		var leg := joint(hips[side],ankle,THIGH,SHIN,Vector3.BACK)
 		leg["pitch"] = step["pitch"]
 		legs.append(leg)
@@ -83,7 +103,8 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var active := 1
 	if family == &"bow":
 		active = 0
-		grip = body*Vector3(-3.5,36,13)
+		var side_clearance := maxf(0,-sin(direction*TAU/16))*5.5 if direction >= 0 else 0.0
+		grip = body*Vector3(-3.5-side_clearance,36,13)
 		shaft = Vector3.UP
 		hands[1] = grip+Vector3(0,1,-6)
 		if action:
