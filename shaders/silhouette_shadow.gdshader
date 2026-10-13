@@ -3,11 +3,13 @@ render_mode unshaded;
 uniform float opacity = 0.25;
 uniform float softness = 1.0;
 uniform float foot_uv_y = 1.0;
+uniform vec4 uv_rect = vec4(0.0,0.0,1.0,1.0);
 float inside_uv(vec2 uv) {
-	return step(0.0,uv.x)*step(uv.x,1.0)*step(0.0,uv.y)*step(uv.y,1.0);
+	return step(uv_rect.x,uv.x)*step(uv.x,uv_rect.z)*step(uv_rect.y,uv.y)*step(uv.y,uv_rect.w);
 }
 void fragment() {
-	float height = clamp((foot_uv_y-UV.y)/max(foot_uv_y,0.001),0.0,1.0);
+	float local_y = (UV.y-uv_rect.y)/max(uv_rect.w-uv_rect.y,0.001);
+	float height = clamp((foot_uv_y-local_y)/max(foot_uv_y,0.001),0.0,1.0);
 	// Screen derivatives preserve a restrained penumbra at every zoom/size.
 	vec2 dx = dFdx(UV)*softness*mix(0.35,1.4,height);
 	vec2 dy = dFdy(UV)*softness*mix(0.35,1.4,height);

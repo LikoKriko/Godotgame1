@@ -21,5 +21,8 @@ func _initialize() -> void:
 	var large := Style.normalized(texture,world_size*2)
 	if small.get_size() != Vector2(20,20) or large.get_size() != Vector2(40,40): failures += 1
 	if Style.normalized(texture,world_size) != small: failures += 1
+	var reduced := Style.normalized(texture,world_size,true,false,0.9)
+	if reduced.get_size() != Vector2(18,18) or Style.normalized(texture,world_size,true,false,0.9) != reduced: failures += 1
+	if Style.normalized(texture,world_size) != small: failures += 1
 	print("%s: shared contour policy, thick-border removal, preserved center pigment, one-pixel outline and scaled cache" % ("PASS" if failures == 0 else "FAIL"))
 	quit(1 if failures else 0)

@@ -11,7 +11,7 @@ var game
 var portrait: TextureRect
 var portrait_key := ""
 var panel_heading: Label
-var navigation: TabBar
+var navigation
 var inventory_page: Control
 var creation_page: Control
 var sections: Array[Control] = []
@@ -24,7 +24,6 @@ var status: Label
 var chosen := -1
 var chosen_gear: StringName = &""
 var equip_button: Button
-var remove_button: Button
 var repair_button: Button
 var craft_button: Button
 var workshop_dialog: Control
@@ -36,106 +35,90 @@ var workshop_message: Label
 var workshop_confirm: Button
 var repair_uid := -1
 var chosen_quick := -1
+var improve_button: Button
+var dismantle_button: Button
+var capacity_label: Label
+const Art = preload("res://scripts/inventory_art.gd")
 
 func configure(inventory, owner_game = null) -> void:
 	game = owner_game
 	theme = preload("res://scripts/ui_style.gd").theme()
 	model = inventory
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var veil := ColorRect.new()
-	veil.color = Color(0, 0, 0, 0.65)
-	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(veil)
-	panel = Panel.new()
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("20232b")
-	style.border_color = Color("6c6753")
-	style.set_border_width_all(1)
-	panel.add_theme_stylebox_override("panel", style)
-	add_child(panel)
-	content = Control.new()
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.size = Vector2(600,600)
-	panel.add_child(content)
-	panel_heading = label("INVENTARIO", Vector2(14, 12), 19)
-	var close := preload("res://scripts/menu_button.gd").new()
-	close.text = "×"
-	close.position = Vector2(548, 10)
-	close.size = Vector2(38, 30)
-	close.pressed.connect(func(): hide())
-	content.add_child(close)
-	label("PERSONAJE", Vector2(16, 48), 13)
-	portrait = TextureRect.new()
-	var portrait_texture := AtlasTexture.new()
-	portrait_texture.atlas = load("res://assets/characters/complete/bare_idle.png")
-	var cell := Rect2i(0,4*192,192,192)
-	var used := portrait_texture.atlas.get_image().get_region(cell).get_used_rect()
-	portrait_texture.region = Rect2(used.position+cell.position,used.size)
-	portrait.texture = portrait_texture
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var veil := ColorRect.new(); veil.color = Color(0,0,0,0.65)
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); add_child(veil)
+	panel = Panel.new(); panel.add_theme_stylebox_override("panel",StyleBoxEmpty.new()); add_child(panel)
+	content = Control.new(); content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.size = Art.SIZE; panel.add_child(content)
+	Art.patch(content,Rect2(Vector2.ZERO,Art.SIZE),Art.BOUNDS)
+	# Replace baked text with live buttons, retaining the original rim and texture.
+	Art.patch(content,Rect2(76,29,1232,87))
+	panel_heading = Label.new(); panel_heading.hide(); content.add_child(panel_heading)
+	inventory_page = Control.new(); inventory_page.size = Art.SIZE
+	inventory_page.mouse_filter = Control.MOUSE_FILTER_IGNORE; content.add_child(inventory_page)
+	var root_content := content
+	content = inventory_page
+	Art.patch(content,Rect2(61,647,852,278))
+	Art.patch(content,Rect2(790,604,105,42))
+	capacity_label = label("",Vector2(798,609),24)
+	capacity_label.size = Vector2(114,39); capacity_label.clip_text = true
+	capacity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var positions := {&"head":Vector2(139,184),&"hands":Vector2(139,329),&"feet":Vector2(139,470),&"torso":Vector2(527,184),&"legs":Vector2(527,364)}
+	for slot in Model.EQUIPMENT_SLOTS:
+		var button := make_button(positions[slot],Vector2(116,101))
+		button.pressed.connect(select_gear.bind(slot)); button.kind = &"gear"; button.slot = slot
+		gear_buttons[slot] = button
+	portrait = TextureRect.new(); portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.position = Vector2(68, 110)
-	portrait.size = Vector2(108, 118)
-	content.add_child(portrait)
-	var positions := {&"head": Vector2(98, 65), &"torso": Vector2(18, 123), &"hands": Vector2(18, 185), &"legs": Vector2(184, 185), &"feet": Vector2(98, 235)}
-	for slot in Model.EQUIPMENT_SLOTS:
-		var button := make_button(positions[slot], Vector2(44, 44))
-		button.pressed.connect(select_gear.bind(slot))
-		button.kind = &"gear"; button.slot = slot
-		gear_buttons[slot] = button
-		label(LABELS[slot], positions[slot] + Vector2(-2, -15), 11)
-	details = label("Selecciona un objeto", Vector2(260, 74), 16)
-	details.size = Vector2(320, 125)
-	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	equip_button = preload("res://scripts/menu_button.gd").new()
-	equip_button.text = "Equipar"
-	equip_button.position = Vector2(260, 211)
-	equip_button.size = Vector2(130, 34)
+	portrait.position = Vector2(299,169); portrait.size = Vector2(166,397); content.add_child(portrait)
+	details = label("Selecciona un objeto.",Vector2(970,664),18)
+	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; details.size = Vector2(310,205)
+	# The two undefined actions are deliberately disabled. Repair remains live.
+	for rect in [Rect2(831,190,415,108),Rect2(831,303,415,108),Rect2(831,416,415,108)]: Art.patch(content,rect,Art.ACTION_PAPER)
+	improve_button = action_button("MEJORAR",Vector2(834,194)); improve_button.disabled = true
+	improve_button.icon = Art.crop(Rect2(924,278,52,47))
+	improve_button.tooltip_text = "Las mejoras de objetos aún no están disponibles."
+	repair_button = action_button("REPARAR",Vector2(834,307)); repair_button.pressed.connect(open_repair)
+	repair_button.icon = Art.crop(Rect2(924,391,52,49))
+	dismantle_button = action_button("DESMONTAR",Vector2(834,420)); dismantle_button.disabled = true
+	dismantle_button.icon = Art.crop(Rect2(924,503,52,49))
+	dismantle_button.tooltip_text = "El desmontaje aún no está disponible."
+	# This action is exclusively for consumables; equipment moves by dragging.
+	equip_button = action_button("",Vector2(970,872)); equip_button.size = Vector2(309,46)
 	equip_button.pressed.connect(equip_selected)
-	content.add_child(equip_button)
-	remove_button = preload("res://scripts/menu_button.gd").new()
-	remove_button.text = "Desequipar"
-	remove_button.position = Vector2(400, 211)
-	remove_button.size = Vector2(174, 34)
-	remove_button.pressed.connect(remove_selected)
-	content.add_child(remove_button)
-	repair_button = preload("res://scripts/menu_button.gd").new()
-	repair_button.text = "Reparar"
-	repair_button.position = Vector2(260,254)
-	repair_button.size = Vector2(130,34)
-	repair_button.pressed.connect(open_repair)
-	content.add_child(repair_button)
-	craft_button = preload("res://scripts/menu_button.gd").new()
-	craft_button.text = "Fabricar"
-	craft_button.position = Vector2(400,254)
-	craft_button.size = Vector2(174,34)
-	craft_button.pressed.connect(open_crafting)
-	content.add_child(craft_button)
-	label("MOCHILA · 32 ESPACIOS", Vector2(16, 298), 14)
 	for i in Model.CAPACITY:
-		var button := make_button(Vector2(16 + (i % 8) * 71, 326 + (i / 8) * 52), Vector2(66, 47))
-		button.pressed.connect(select_backpack.bind(i))
-		button.kind = &"bag"; button.slot = i
+		var button := make_button(Vector2(194+(i%8)*72,648+(i/8)*72),Vector2(64,64))
+		button.pressed.connect(select_backpack.bind(i)); button.kind = &"bag"; button.slot = i
 		backpack_buttons.append(button)
-	status = label("Arrastra para mover · Shift + clic: transferir · I / Esc: cerrar", Vector2(16, 555), 12)
+	status = label("Arrastra para mover · Shift + clic: transferir",Vector2(834,543),14)
+	status.size = Vector2(409,28); status.clip_text = true
+	content = root_content
 	build_sections()
-	resized.connect(fit_panel)
-	fit_panel()
-	refresh()
+	var close := preload("res://scripts/menu_button.gd").new()
+	close.text = "×"; close.position = Vector2(1325,7); close.size = Vector2(36,36)
+	preload("res://scripts/ui_style.gd").set_font_size(close,24)
+	close.pressed.connect(hide); content.add_child(close)
+	resized.connect(fit_panel); fit_panel(); refresh()
 	visibility_changed.connect(func():
-		if not visible:
-			close_workshop()
+		if not visible: close_workshop()
 	)
 	hide()
+
+func action_button(text: String, point: Vector2) -> Button:
+	var button := preload("res://scripts/menu_button.gd").new()
+	button.text = text; button.position = point; button.size = Vector2(409,86)
+	button.expand_icon = true; button.add_theme_constant_override("icon_max_width",42)
+	preload("res://scripts/ui_style.gd").set_font_size(button,34)
+	Art.skin(button,Art.ACTION); content.add_child(button); return button
 
 func label(text: String, position_value: Vector2, font_size: int) -> Label:
 	var node := Label.new()
 	node.text = text
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	node.position = position_value
-	node.add_theme_font_size_override("font_size", font_size)
+	preload("res://scripts/ui_style.gd").set_font_size(node,font_size)
 	node.add_theme_color_override("font_color", Color("d9d6c9"))
 	content.add_child(node)
 	return node
@@ -145,7 +128,8 @@ func make_button(point: Vector2, dimensions: Vector2) -> Button:
 	button.game = game
 	button.position = point
 	button.size = dimensions
-	button.add_theme_font_size_override("font_size", 11)
+	preload("res://scripts/ui_style.gd").set_font_size(button,14)
+	Art.skin(button,Art.SLOT,true)
 	button.expand_icon = true
 	button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	button.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
@@ -156,13 +140,14 @@ func make_button(point: Vector2, dimensions: Vector2) -> Button:
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	button.add_child(icon)
 	var count := Label.new()
 	count.name = "Amount"
-	count.position = Vector2(3, dimensions.y - 17)
-	count.size = Vector2(dimensions.x - 7, 14)
+	count.position = Vector2(3, dimensions.y - 23)
+	count.size = Vector2(dimensions.x - 7, 22)
 	count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	count.add_theme_font_size_override("font_size", 11)
+	preload("res://scripts/ui_style.gd").set_font_size(count,14)
 	count.add_theme_color_override("font_shadow_color", Color.BLACK)
 	count.add_theme_constant_override("shadow_offset_x", 1)
 	count.add_theme_constant_override("shadow_offset_y", 1)
@@ -175,10 +160,10 @@ func fit_panel() -> void:
 	if panel == null:
 		return
 	var viewport_size := get_viewport_rect().size
-	var side := minf(sqrt(viewport_size.x * viewport_size.y * 0.6), minf(viewport_size.x, viewport_size.y) * 0.95)
-	panel.size = Vector2.ONE * side
-	panel.position = (viewport_size - panel.size) / 2
-	content.scale = Vector2.ONE * side / 600.0
+	var factor := minf(sqrt(viewport_size.x*viewport_size.y*0.6/(Art.SIZE.x*Art.SIZE.y)),minf(viewport_size.x*0.95/Art.SIZE.x,viewport_size.y*0.84/Art.SIZE.y))
+	panel.size = Art.SIZE*factor
+	panel.position = (viewport_size-panel.size)/2
+	content.scale = Vector2.ONE*factor
 
 func show_item(button: Button, item: Dictionary, empty_label: String = "") -> void:
 	button.icon = null
@@ -190,10 +175,12 @@ func show_item(button: Button, item: Dictionary, empty_label: String = "") -> vo
 	icon.texture = null
 	count.text = ""
 	if item.is_empty():
+		if button.kind == &"gear": icon.texture = Art.crop(Art.GEAR_ICONS[button.slot])
 		return
 	var id: StringName = item["id"]
 	var definition: Dictionary = Model.DEFINITIONS[id]
 	icon.texture = Icons.for_item(item)
+	if icon.texture == null and button.kind == &"gear": icon.texture = Art.crop(Art.GEAR_ICONS[button.slot])
 	button.text = "" if icon.texture != null else ABBREV.get(id, "")
 	count.text = str(item["quantity"])
 	button.tooltip_text = "%s · Básico\n%s" % [definition["name"], definition["purpose"]]
@@ -218,7 +205,7 @@ func refresh() -> void:
 		show_item(backpack_buttons[i], model.slots[i])
 		backpack_buttons[i].self_modulate = Color("d9bf72") if chosen == i else Color.WHITE
 	for slot in gear_buttons:
-		show_item(gear_buttons[slot], model.equipment[slot], "—")
+		show_item(gear_buttons[slot], model.equipment[slot])
 		gear_buttons[slot].self_modulate = Color("d9bf72") if chosen_gear == slot else Color.WHITE
 	var item: Dictionary = {}
 	if chosen >= 0:
@@ -228,9 +215,10 @@ func refresh() -> void:
 	elif chosen_quick >= 0:
 		item = model.quick_slots[chosen_quick]
 	var consumable: bool = not item.is_empty() and (item.id == &"botella" or Model.DEFINITIONS[item["id"]].has("kcal") or Model.DEFINITIONS[item["id"]].has("water_ml"))
-	equip_button.text = ("Beber" if item.get("id",&"") in [&"water",&"botella"] else "Comer") if consumable else ("Guardar" if not item.is_empty() and item.get("uid") == model.held_item().get("uid",-1) else "Equipar")
-	equip_button.disabled = (chosen < 0 and chosen_quick < 0) or item.is_empty() or (not consumable and Model.DEFINITIONS[item.get("id", &"madera")]["slot"] == &"")
-	remove_button.disabled = chosen_gear == &"" or item.is_empty()
+	equip_button.text = "Beber" if item.get("id",&"") in [&"water",&"botella"] else "Comer"
+	equip_button.visible = consumable
+	equip_button.disabled = not consumable
+	capacity_label.text = "%d / 32" % model.slots.filter(func(slot): return not slot.is_empty()).size()
 	repair_button.disabled = item.is_empty() or not Workshop.REPAIRS.has(item.get("id",&""))
 	details.text = "Selecciona un objeto.\n\nManos: solo guantes.\nHerramientas: barra rápida o en uso.\nMateriales: Mochila."
 	if not item.is_empty():
@@ -286,20 +274,6 @@ func equip_selected() -> void:
 		status.text = "Libera un espacio de la barra rápida para equipar el arma."
 	refresh()
 
-func remove_selected() -> void:
-	var uid: int = (model.equipment.get(chosen_gear,{})).get("uid",-1)
-	if model.unequip(chosen_gear):
-		status.text = "Equipo guardado en la mochila."
-		chosen_gear = &""
-		for i in Model.CAPACITY:
-			if model.slots[i].get("uid",-1) == uid:
-				chosen = i
-				break
-		equipment_changed.emit()
-	else:
-		status.text = "La mochila está llena."
-	refresh()
-
 func selected_item() -> Dictionary:
 	if chosen >= 0:
 		return model.slots[chosen]
@@ -327,7 +301,7 @@ func create_workshop() -> void:
 	box.add_theme_constant_override("separation",22)
 	margin.add_child(box)
 	workshop_title = Label.new()
-	workshop_title.add_theme_font_size_override("font_size",28)
+	preload("res://scripts/ui_style.gd").set_font_size(workshop_title,28)
 	box.add_child(workshop_title)
 	workshop_body = HBoxContainer.new()
 	workshop_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -339,12 +313,12 @@ func create_workshop() -> void:
 	workshop_body.add_child(left)
 	workshop_item = Label.new()
 	workshop_item.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	workshop_item.add_theme_font_size_override("font_size",22)
+	preload("res://scripts/ui_style.gd").set_font_size(workshop_item,22)
 	left.add_child(workshop_item)
 	workshop_materials = Label.new()
 	workshop_materials.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	workshop_materials.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	workshop_materials.add_theme_font_size_override("font_size",22)
+	preload("res://scripts/ui_style.gd").set_font_size(workshop_materials,22)
 	workshop_body.add_child(workshop_materials)
 	workshop_message = Label.new()
 	workshop_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -439,47 +413,37 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func build_sections() -> void:
-	inventory_page = Control.new()
-	inventory_page.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	inventory_page.position = Vector2(42,74)
-	inventory_page.scale = Vector2.ONE*0.86
-	inventory_page.size = Vector2(600,600)
-	var children := content.get_children()
-	content.add_child(inventory_page)
-	# Preserve the heading and close button; move the existing inventory as one
-	# uniformly scaled page so all its icons keep their proportions and hit areas.
-	for index in range(2,children.size()): children[index].reparent(inventory_page,false)
 	sections.append(inventory_page)
 	creation_page = preload("res://scripts/creation_page.gd").new()
-	creation_page.position = Vector2(16,86)
-	content.add_child(creation_page)
-	creation_page.configure(model)
+	content.add_child(creation_page); creation_page.configure(model)
 	creation_page.crafted.connect(func(text): status.text = text; refresh(); equipment_changed.emit())
 	sections.append(creation_page)
 	for is_ability in [true,false]:
 		var page := preload("res://scripts/trait_page.gd").new()
-		page.position = Vector2(16,86)
-		content.add_child(page)
-		page.configure(game,is_ability)
-		sections.append(page)
-	navigation = TabBar.new()
-	navigation.position = Vector2(16,42)
-	navigation.size = Vector2(568,32)
-	navigation.add_theme_font_size_override("font_size",16)
-	for title in ["Inventario","Creación","Habilidades","Perks"]: navigation.add_tab(title)
-	content.add_child(navigation)
-	navigation.tab_changed.connect(select_section)
-	select_section(0)
+		content.add_child(page); page.configure(game,is_ability); sections.append(page)
+	for page in sections.slice(1):
+		page.position = Vector2(245,147); page.scale = Vector2.ONE*1.55
+		var background := Art.patch(page,Rect2(-112,-8,792,505))
+		page.move_child(background,0)
+	var map_page := Control.new(); map_page.size = Art.SIZE; map_page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content.add_child(map_page); Art.patch(map_page,Rect2(69,132,1232,802))
+	var map_view = preload("res://scripts/world_map.gd").TerrainView.new()
+	map_view.name = "Terrain"; map_view.game = game; map_view.position = Vector2(99,148)
+	map_view.size = Vector2(1170,780); map_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	map_view.mouse_filter = Control.MOUSE_FILTER_IGNORE; map_page.add_child(map_view); sections.append(map_page)
+	navigation = preload("res://scripts/inventory_tabs.gd").new()
+	navigation.position = Vector2(82,32); content.add_child(navigation); navigation.configure()
+	craft_button = navigation.buttons[1]
+	navigation.tab_changed.connect(select_section); select_section(0)
 
 func select_section(index: int) -> void:
-	panel_heading.text = ["INVENTARIO","CREACIÓN","HABILIDADES","PERKS"][index]
+	if index < 0 or index >= sections.size(): return
+	panel_heading.text = ["INVENTARIO","CREACIÓN","HABILIDADES","PERKS","MAPA"][index]
 	close_workshop()
 	for i in sections.size(): sections[i].visible = i == index
 	if index == 1: creation_page.refresh()
-	if index >= 2: sections[index].refresh()
+	elif index in [2,3]: sections[index].refresh()
+	elif index == 4: sections[4].get_node("Terrain").refresh()
 
 func open_section(index: int) -> void:
-	refresh()
-	navigation.current_tab = index
-	select_section(index)
-	show()
+	refresh(); navigation.current_tab = index; select_section(index); show()

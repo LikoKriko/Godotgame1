@@ -5,8 +5,6 @@ var game: Node2D
 const Save = preload("res://scripts/save_game.gd")
 
 func _ready() -> void:
-	if get_tree().get_nodes_in_group("pointer_coordinates").is_empty():
-		add_child(preload("res://scripts/pointer_coordinates.gd").new())
 	settings.load_settings()
 	settings.apply(get_viewport())
 	var layer := CanvasLayer.new()

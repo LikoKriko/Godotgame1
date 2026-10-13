@@ -7,8 +7,8 @@ static var cache: Dictionary = {}
 static var cache_order: Array[String] = []
 const CACHE_LIMIT := 512
 
-static func normalized(texture: Texture2D,world_size: Vector2,outline: bool = true,clear_black: bool = false) -> Texture2D:
-	var target := Vector2i(maxi(3,roundi(world_size.x*PIXELS_PER_WORLD)),maxi(3,roundi(world_size.y*PIXELS_PER_WORLD)))
+static func normalized(texture: Texture2D,world_size: Vector2,outline: bool = true,clear_black: bool = false,resolution_factor: float = 1.0) -> Texture2D:
+	var target := Vector2i(maxi(3,roundi(world_size.x*PIXELS_PER_WORLD*resolution_factor)),maxi(3,roundi(world_size.y*PIXELS_PER_WORLD*resolution_factor)))
 	var key := "%s:%s:%s:%s" % [texture.get_rid().get_id(),target,outline,clear_black]
 	if cache.has(key): return cache[key]
 	var source := texture.get_image()

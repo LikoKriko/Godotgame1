@@ -2,7 +2,7 @@ extends RefCounted
 ## Versioned data only: never deserialize executable objects. Replace the save
 ## atomically so interruption during writing leaves the last good game intact.
 const PATH := "user://day_zero_save.cfg"
-const VERSION := 4
+const VERSION := 5
 
 static func capture(game) -> Dictionary:
 	var remaining := {}
@@ -11,7 +11,7 @@ static func capture(game) -> Dictionary:
 	for cell in game.resources.nodes:
 		remaining[cell] = game.resources.nodes[cell]["remaining"]
 	return {
-		"version": VERSION, "seed": game.world.seed_value,
+		"version": VERSION, "seed": game.world.seed_value, "combat": game.enemies.capture_state(),
 		"player": game.player, "heading": game.movement.heading,
 		"resources": remaining, "collected": game.resources.inventory.duplicate(),
 		"slots": game.bag.slots.duplicate(true), "equipment": game.bag.equipment.duplicate(true), "next_uid": game.bag.next_uid,
@@ -40,7 +40,7 @@ static func read_state(path: String = PATH) -> Dictionary:
 
 static func migrate(original: Dictionary) -> Dictionary:
 	var data := migrate_tools(original)
-	if original.get("version") not in [1,2,3]: return data
+	if original.get("version") not in [1,2,3,4]: return data
 	if not data.get("slots") is Array or not data.get("quick_slots") is Array or not data.get("next_uid") is int: return {}
 	# Split only when the entire old stack fits; otherwise keep it recoverable
 	# until a bottle can be unpacked while drinking. Preserve each original UID.
@@ -67,6 +67,8 @@ static func migrate(original: Dictionary) -> Dictionary:
 			var remaining: int = data.resources[cell]
 			if remaining < 1 or remaining > old_hits: return {}
 			data.resources[cell] = ceili(remaining/float(old_hits)*resources.nodes[cell].hits)
+	if data.get("resources") is Dictionary:
+		for cell in preload("res://scripts/test_world.gd").RETIRED_STRUCTURE_CELLS: data.resources.erase(cell)
 	data.version = VERSION; data.resource_layout_version = 2
 	return data
 
@@ -116,6 +118,7 @@ static func migrate_held_tool(data: Dictionary) -> Dictionary:
 	return data
 
 static func valid(data: Dictionary) -> bool:
+	if not preload("res://scripts/enemy_manager.gd").valid_state(data.get("combat",{})): return false
 	for key in ["version", "seed", "player", "heading", "resources", "collected", "slots", "equipment", "next_uid", "experience", "level", "points", "skills", "perks", "active", "cooldowns", "health", "day", "hour", "calories", "hydration", "water_today"]:
 		if not data.has(key): return false
 	if data.version != VERSION or not data.seed is int or not data.player is Vector2 or not data.player.is_finite(): return false
@@ -202,6 +205,8 @@ static func restore(game, data: Dictionary) -> bool:
 	var trial_resources = preload("res://scripts/harvesting.gd").new()
 	trial_resources.configure(trial)
 	if not trial.bounds.grow(-trial.PLAYER_RADIUS).has_point(data.player): return false
+	var combat: Dictionary = data.get("combat",{})
+	if not combat.is_empty() and not combat.enemy.is_empty() and not trial.bounds.grow(-9).has_point(combat.enemy.position): return false
 	for cell in data.resources:
 		if not trial_resources.nodes.has(cell) or data.resources[cell] > trial_resources.nodes[cell].hits: return false
 	game.world.seed_value = data.seed
@@ -238,6 +243,7 @@ static func restore(game, data: Dictionary) -> bool:
 	game.nutrition.hydration_ml = data.hydration
 	game.nutrition.water_today_ml = data.water_today
 	game.player = data.player if game.world.walkable(data.player) else Vector2.ZERO
+	game.enemies.restore_state(combat)
 	game.movement.heading = data.heading
 	game.last_tool_uid = game.bag.held_item().get("uid", -1)
 	game.camera.position = game.player

@@ -48,6 +48,12 @@ var level := 1
 var skill_points := 0
 var camera: Camera2D
 var movement = preload("res://scripts/turn_motion.gd").new()
+var interaction_motion = preload("res://scripts/interaction_motion.gd").new()
+var pickup_cell := Vector2i(99999,99999)
+var pickup_aim := Vector2.ZERO
+var pickup_committed := false
+var enemies = preload("res://scripts/enemy_manager.gd").new()
+var combat_effects: Node2D
 var quick_items: Array[int]:
 	get:
 		var ids: Array[int] = []
@@ -56,8 +62,6 @@ var quick_items: Array[int]:
 var styled_hud: Control
 
 func _ready() -> void:
-	if get_tree().get_nodes_in_group("pointer_coordinates").is_empty():
-		add_child(preload("res://scripts/pointer_coordinates.gd").new())
 	world.generate(WORLD_SEED)
 	world_view = preload("res://scripts/world_view.gd").new()
 	world_view.configure(world)
@@ -79,7 +83,7 @@ func _ready() -> void:
 	atmosphere.material = atmosphere_material
 	canvas.add_child(atmosphere)
 	interaction = Label.new()
-	interaction.add_theme_font_size_override("font_size", 22)
+	preload("res://scripts/ui_style.gd").set_font_size(interaction,22)
 	interaction.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas.add_child(interaction)
 	inventory_panel = preload("res://scripts/inventory_panel.gd").new()
@@ -105,6 +109,9 @@ func _ready() -> void:
 	add_child(solar_lighting)
 	solar_lighting.configure(self)
 	full_avatar.configure(self)
+	combat_effects = preload("res://scripts/combat_effects.gd").new()
+	combat_effects.game = self; combat_effects.z_index = 2; add_child(combat_effects)
+	enemies.configure(self)
 	restart()
 	fit_hud()
 	styled_hud = preload("res://scripts/styled_hud.gd").new()
@@ -134,6 +141,8 @@ func fit_hud() -> void:
 func restart() -> void:
 	running = false
 	locomotion.reset()
+	interaction_motion.reset()
+	pickup_cell = resources.NONE; pickup_committed = false
 	world.generate(world.seed_value)
 	world_view.refresh_ground()
 	bag.reset()
@@ -170,6 +179,8 @@ func restart() -> void:
 	if solar_lighting != null:
 		solar_lighting.update_light()
 		update_hud()
+	enemies.reset()
+	if combat_effects != null: combat_effects.flashes.clear(); combat_effects.queue_redraw()
 
 func buy_improvement(id: StringName, ability: bool) -> bool:
 	var spent: int = progression.purchase(id,ability,skill_points)
@@ -234,6 +245,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if event.keycode == KEY_E:
 		interact_at(cursor_world_position()); get_viewport().set_input_as_handled(); return
+	if event.keycode == KEY_F:
+		if not enemies.activate_parry(): feedback = "Parry: %.1f s" % enemies.parry.cooldown_remaining(); feedback_time = 1
+		return
 	if event.keycode in [KEY_Z,KEY_X]:
 		activate_skill(&"speed" if event.keycode == KEY_Z else &"power")
 		return
@@ -271,7 +285,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 func interact_at(aim: Vector2) -> bool:
-	if is_paused() or progression.health <= 0 or locomotion.airborne() or locomotion.sliding(): return false
+	if is_paused() or progression.health <= 0 or locomotion.airborne() or locomotion.sliding() or interaction_motion.picking_up(): return false
 	var result: Dictionary = {}
 	var water: Rect2 = world_view.water_at(aim)
 	if bag.held_id() == &"botella" and water.has_area():
@@ -289,15 +303,26 @@ func interact_at(aim: Vector2) -> bool:
 				result = {"ok":false,"message":"Acércate al objeto para recogerlo."}
 			else:
 				cancel_work()
-				var gathered: Dictionary = resources.hit(cell,player)
-				var ok: bool = gathered.get("depleted",false)
-				result = {"ok":ok,"message":"%s × %d recogido." % [bag.DEFINITIONS[StringName(gathered.material)].name,gathered.amount] if ok else "La mochila está llena."}
-				if ok: gain_experience(10); world_view.queue_redraw(); world_view.props_layer.queue_redraw()
+				pickup_cell = cell; pickup_aim = aim; pickup_committed = false
+				interaction_motion.pick_up()
+				result = {"ok":true,"message":"Recogiendo %s..." % resources.nodes[cell].name.to_lower()}
 		else:
 			result = {"ok":false,"message":"Apunta al agua para rellenar la botella." if bag.held_id() == &"botella" else "No hay un objeto para interactuar aquí."}
 	feedback = result.message; feedback_time = 2
 	inventory_panel.refresh(); full_avatar.update_pose(0); update_hud()
 	return result.ok
+
+func advance_pickup() -> void:
+	if pickup_cell == resources.NONE or pickup_committed or interaction_motion.pickup_phase() < 0.5: return
+	pickup_committed = true
+	if bag.held_id() != &"" or not resources.can_reach(pickup_cell,player) or progression.health <= 0:
+		feedback = "No se pudo recoger el objeto."; feedback_time = 2; return
+	var gathered: Dictionary = resources.hit(pickup_cell,player)
+	if gathered.get("depleted",false):
+		feedback = "%s × %d recogido." % [bag.DEFINITIONS[StringName(gathered.material)].name,gathered.amount]
+		gain_experience(10); world_view.queue_redraw(); world_view.props_layer.queue_redraw()
+	else: feedback = "La mochila está llena." if gathered.get("reason") == "mochila_llena" else "No se pudo recoger el objeto."
+	feedback_time = 2; inventory_panel.refresh(); update_hud()
 
 func assign_quick_item(index: int, uid: int) -> bool:
 	var source: Dictionary = bag.location(uid)
@@ -327,6 +352,7 @@ func start_jump() -> bool:
 	if progression.health <= 0 or is_paused() or not locomotion.jump(nutrition.speed_multiplier()*progression.speed_multiplier()):
 		return false
 	cancel_work()
+	interaction_motion.cancel_pickup(); pickup_cell = resources.NONE
 	equipping = false
 	return true
 
@@ -339,12 +365,17 @@ func start_slide() -> bool:
 	if progression.health <= 0 or is_paused() or not running or not locomotion.slide(input_direction):
 		return false
 	cancel_work()
+	interaction_motion.cancel_pickup(); pickup_cell = resources.NONE
 	equipping = false
 	return true
 
 func _process(delta: float) -> void:
 	if is_paused():
 		return
+	enemies.advance(delta)
+	combat_effects.advance(delta)
+	interaction_motion.advance(delta)
+	advance_pickup()
 	progression.advance(delta)
 	locomotion.advance(delta,Input.is_physical_key_pressed(KEY_CTRL) and not locomotion.sliding())
 	if day_cycle.advance(delta) > 0:
@@ -356,9 +387,11 @@ func _process(delta: float) -> void:
 	var uid: int = bag.held_item().get("uid",-1)
 	if uid != last_tool_uid:
 		cancel_work()
+		interaction_motion.cancel_pickup(); pickup_cell = resources.NONE
 		last_tool_uid = uid
 		equipping = bag.held_id() != &""
 		equip_elapsed = 0
+		if equipping: interaction_motion.draw_object()
 	var direction := Vector2(
 		float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT)) - float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
@@ -391,7 +424,7 @@ func cancel_work() -> void:
 	work_elapsed = 0.0
 
 func start_work(aim: Vector2) -> bool:
-	if progression.health <= 0 or is_paused() or working or equipping or locomotion.airborne() or locomotion.sliding():
+	if progression.health <= 0 or is_paused() or working or equipping or interaction_motion.picking_up() or locomotion.airborne() or locomotion.sliding():
 		return false
 	var item: StringName = bag.held_category()
 	if item == &"bottle": return false
@@ -480,8 +513,11 @@ func use_weapon(target: Vector2, from_strike: bool = false, pose: Dictionary = {
 	if id == &"sword":
 		for victim in get_tree().get_nodes_in_group("damageable"):
 			if victim is Node2D and victim.has_method("take_damage"):
-				if pose["reachable"] and victim.global_position.distance_to(target) <= 18 and clear_combat_path(victim.global_position):
+				var selected: bool = victim.contains_point(target) if victim.has_method("contains_point") else victim.global_position.distance_to(target) <= 18
+				var close: bool = victim.global_position.distance_to(player) <= resources.REACH+9
+				if selected and close and clear_combat_path(victim.global_position):
 					victim.take_damage(combat_damage(24.0))
+					if not victim.has_method("hit_center"): combat_effects.flash(victim.global_position,combat_aim)
 	else:
 		var arrow := preload("res://scripts/arrow.gd").new()
 		arrow.world = world
@@ -512,6 +548,7 @@ func move_player(direction: Vector2, delta: float) -> void:
 		movement.target_direction = Vector2.ZERO
 		movement.speed_factor = 1.0
 	velocity = locomotion.velocity(velocity,nutrition.speed_multiplier()*progression.speed_multiplier())
+	velocity *= interaction_motion.speed_multiplier()
 	var motion := velocity * delta
 	player = world.move_actor(player, motion)
 	camera.position = player

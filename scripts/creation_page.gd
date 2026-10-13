@@ -23,7 +23,7 @@ func configure(bag) -> void:
 	add_child(list)
 	var heading := Label.new()
 	heading.text = "RECETAS"
-	heading.add_theme_font_size_override("font_size",16)
+	preload("res://scripts/ui_style.gd").set_font_size(heading,16)
 	list.add_child(heading)
 	for id in Workshop.RECIPES:
 		var button := preload("res://scripts/menu_button.gd").new()
@@ -45,7 +45,7 @@ func configure(bag) -> void:
 	right.add_theme_constant_override("separation",10)
 	add_child(right)
 	object_name = Label.new()
-	object_name.add_theme_font_size_override("font_size",20)
+	preload("res://scripts/ui_style.gd").set_font_size(object_name,20)
 	right.add_child(object_name)
 	preview = TextureRect.new()
 	preview.custom_minimum_size = Vector2(130,110)
@@ -55,7 +55,7 @@ func configure(bag) -> void:
 	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	right.add_child(preview)
 	result_label = Label.new()
-	result_label.add_theme_font_size_override("font_size",13)
+	preload("res://scripts/ui_style.gd").set_font_size(result_label,13)
 	right.add_child(result_label)
 	materials = VBoxContainer.new()
 	materials.add_theme_constant_override("separation",8)
@@ -67,7 +67,7 @@ func configure(bag) -> void:
 	right.add_child(create_button)
 	message = Label.new()
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message.add_theme_font_size_override("font_size",13)
+	preload("res://scripts/ui_style.gd").set_font_size(message,13)
 	right.add_child(message)
 	refresh()
 
@@ -89,7 +89,7 @@ func refresh() -> void:
 		child.queue_free()
 	var heading := Label.new()
 	heading.text = "MATERIALES · DISPONIBLES / NECESARIOS"
-	heading.add_theme_font_size_override("font_size",12)
+	preload("res://scripts/ui_style.gd").set_font_size(heading,12)
 	materials.add_child(heading)
 	for id in Workshop.RECIPES[selected]:
 		var row := HBoxContainer.new()
@@ -105,7 +105,7 @@ func refresh() -> void:
 		var have: int = model.count(id)
 		var need: int = Workshop.RECIPES[selected][id]
 		amount.text = "%s: %d / %d%s" % [Model.DEFINITIONS[id]["name"],have,need," m" if id in [&"cuerda",&"hilo"] else ""]
-		amount.add_theme_font_size_override("font_size",14)
+		preload("res://scripts/ui_style.gd").set_font_size(amount,14)
 		amount.modulate = Color("c6d5a3") if have >= need else Color("d19c91")
 		row.add_child(amount)
 		materials.add_child(row)

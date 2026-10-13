@@ -391,6 +391,28 @@
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/bare_jump.png"
 				},
+				"pickup": {
+					"directions": 8.0,
+					"frames": 6.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bare_pickup.png"
+				},
+				"pickup_walk": {
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/bare_pickup_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/bare_pickup_walk_00.png",
+						"res://assets/characters/complete/bare_pickup_walk_01.png",
+						"res://assets/characters/complete/bare_pickup_walk_02.png",
+						"res://assets/characters/complete/bare_pickup_walk_03.png",
+						"res://assets/characters/complete/bare_pickup_walk_04.png",
+						"res://assets/characters/complete/bare_pickup_walk_05.png"
+					]
+				},
 				"run": {
 					"directions": 8.0,
 					"frames": 12.0,
@@ -2136,6 +2158,28 @@
 					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bare_jump.png"
+				},
+				"pickup": {
+					"directions": 8,
+					"frames": 6,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_pickup.png"
+				},
+				"pickup_walk": {
+					"directions": 8,
+					"equip_frames": 6,
+					"frames": 12,
+					"gait_frames": 12,
+					"grip_error": 0.0,
+					"path": "res://assets/characters/complete/burdock_armor__bare_pickup_walk_00.png",
+					"paths": [
+						"res://assets/characters/complete/burdock_armor__bare_pickup_walk_00.png",
+						"res://assets/characters/complete/burdock_armor__bare_pickup_walk_01.png",
+						"res://assets/characters/complete/burdock_armor__bare_pickup_walk_02.png",
+						"res://assets/characters/complete/burdock_armor__bare_pickup_walk_03.png",
+						"res://assets/characters/complete/burdock_armor__bare_pickup_walk_04.png",
+						"res://assets/characters/complete/burdock_armor__bare_pickup_walk_05.png"
+					]
 				},
 				"run": {
 					"directions": 8,

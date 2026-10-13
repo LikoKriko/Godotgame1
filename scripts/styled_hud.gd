@@ -64,11 +64,11 @@ func configure(owner_game) -> void:
 			if game.inventory_panel.visible: game.inventory_panel.select_quick(i)
 			else: game.use_quick_item(i)
 		)
-		button.add_theme_font_size_override("font_size",14)
+		preload("res://scripts/ui_style.gd").set_font_size(button,14)
 		var key := Label.new()
 		key.text = str(i+1); key.position = Vector2(4,1)
 		key.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		key.add_theme_font_size_override("font_size",12)
+		preload("res://scripts/ui_style.gd").set_font_size(key,12)
 		key.visible = source == null
 		button.add_child(key)
 		var icon := TextureRect.new()
@@ -81,7 +81,7 @@ func configure(owner_game) -> void:
 		var count := Label.new()
 		count.name = "Amount"; count.position = Vector2(4,39); count.size = Vector2(51,15)
 		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		count.add_theme_font_size_override("font_size",12)
+		preload("res://scripts/ui_style.gd").set_font_size(count,12)
 		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		button.add_child(count)
 		quick_buttons.append(button)
@@ -89,7 +89,7 @@ func configure(owner_game) -> void:
 	for i in 4:
 		var button := framed_button(["Z","X","—","—"][i],Rect2(),skill_bar,true)
 		button.position = Vector2(12+i*55,34); button.size = Vector2(50,54)
-		button.add_theme_font_size_override("font_size",16)
+		preload("res://scripts/ui_style.gd").set_font_size(button,16)
 		if source != null:
 			# Cover the printed example X, keeping the original slot's rim.
 			var empty := TextureRect.new()
@@ -105,13 +105,13 @@ func configure(owner_game) -> void:
 	life = framed_label(Vector2(156,40),Rect2(40,814,121,41))
 	food = framed_label(Vector2(180,40),Rect2(40,860,156,40))
 	water = framed_label(Vector2(180,40))
-	water.add_theme_font_size_override("font_size",14)
+	preload("res://scripts/ui_style.gd").set_font_size(water,14)
 	weight = framed_label(Vector2(100,28))
-	weight.add_theme_font_size_override("font_size",12)
+	preload("res://scripts/ui_style.gd").set_font_size(weight,12)
 	for pair in [["Inventario (I)",0],["Crear (T)",1],["Mapa (M)",2]]:
 		var button := framed_button(pair[0],Rect2())
 		button.size = Vector2(174,34)
-		button.add_theme_font_size_override("font_size",16)
+		preload("res://scripts/ui_style.gd").set_font_size(button,16)
 		button.pressed.connect(func(): open_shortcut(pair[1]))
 		shortcuts.append(button)
 	resized.connect(fit)
@@ -179,7 +179,7 @@ func framed_label(dimensions: Vector2, region: Rect2 = Rect2()) -> Label:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_size_override("font_size",16)
+	preload("res://scripts/ui_style.gd").set_font_size(label,16)
 	add_child(label)
 	# Labels must be live, not the example values printed in the reference.
 	var fill := StyleBoxFlat.new()
@@ -231,7 +231,7 @@ func bar(text: String, dimensions: Vector2, region: Rect2) -> Control:
 		label.text = text; label.position = Vector2(0,4); label.size = Vector2(dimensions.x,24)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		label.add_theme_font_size_override("font_size",14)
+		preload("res://scripts/ui_style.gd").set_font_size(label,14)
 		node.add_child(label)
 	return node
 

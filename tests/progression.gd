@@ -75,6 +75,8 @@ func run() -> void:
 	game.running = false
 	game._process(5.1)
 	require(game.progression.speed_multiplier() == 1,"Gameplay advances and expires burst")
+	# Isolate this damage-calculation fixture from the real pursuing creature.
+	game.player = Vector2.ZERO; game.enemies.reset()
 	game.skill_points = 1; game.buy_improvement(&"power",true)
 	key(KEY_X)
 	require(game.progression.active[&"power"] == 5,"X activates the unlocked power skill")

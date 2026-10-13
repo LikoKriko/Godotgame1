@@ -78,7 +78,12 @@ func update_pose(delta: float) -> void:
 
 	var clip: StringName = &"idle"
 	var progress := 0.0
-	if game.working:
+	if game.interaction_motion.picking_up():
+		clip = &"pickup_walk" if moving else &"pickup"
+		progress = game.interaction_motion.pickup_phase()
+		if moving: phase = fposmod(phase+delta/WALK_SECONDS*game.movement.speed_factor*game.interaction_motion.speed_multiplier(),1)
+		was_moving = moving
+	elif game.working:
 		clip = &"action"
 		progress = clampf(game.work_elapsed/game.work_duration,0,1)
 		was_moving = false
@@ -134,7 +139,8 @@ func update_pose(delta: float) -> void:
 	state = &"stop" if String(clip).begins_with("stop_") else clip
 	var data := data_for(clip)
 	var count: int = data["frames"]
-	direction = Clips.direction_index(game.movement.heading,int(data["directions"]))
+	var facing: float = game.player.direction_to(game.pickup_aim).angle() if game.interaction_motion.picking_up() else game.movement.heading
+	direction = Clips.direction_index(facing,int(data["directions"]))
 	if data.has("equip_frames"):
 		frame_index = Clips.action_frame(phase,data.gait_frames)
 	else:

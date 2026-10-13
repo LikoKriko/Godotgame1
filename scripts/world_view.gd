@@ -9,7 +9,7 @@ const Nature = preload("res://scripts/nature_variants.gd")
 const Imported = preload("res://scripts/imported_nature.gd")
 const TREE_FADED_ALPHA := 0.35
 var world
-var prop_textures: Array[AtlasTexture] = []
+var prop_textures: Dictionary = {}
 var forest_textures: Array[AtlasTexture] = []
 var detail_textures: Array[AtlasTexture] = []
 var grass_textures: Array[AtlasTexture] = []
@@ -38,8 +38,7 @@ func configure(map) -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	z_index = -10
 	var half := Vector2i(PROP_SHEET.get_width() / 2, PROP_SHEET.get_height() / 2)
-	for i in 4:
-		prop_textures.append(atlas(PROP_SHEET, Rect2i(Vector2i(i % 2, i / 2) * half, half)))
+	prop_textures[3] = atlas(PROP_SHEET,Rect2i(half,half))
 	for region in [Rect2i(0,0,650,676),Rect2i(0,676,640,FOREST_SHEET.get_height()-676)]:
 		forest_textures.append(atlas(FOREST_SHEET, region))
 	for region in DetailRegions.REGIONS:
@@ -79,7 +78,7 @@ func presentation(cell: Vector2i) -> Dictionary:
 	var kind: int = world.props[cell]
 	var large: bool = world.large_rocks.has(cell)
 	var center: Vector2 = world.center(cell) + (Vector2(32,32) if large else Vector2.ZERO)
-	var texture: Texture2D = burdock_textures[world.burdock[cell]-1] if kind == 5 else (detail_textures[1] if kind == 4 else prop_textures[kind])
+	var texture: Texture2D = burdock_textures[world.burdock[cell]-1] if kind == 5 else (detail_textures[1] if kind == 4 else prop_textures[3])
 	var dimensions := Vector2(64, 64 * texture.get_height() / texture.get_width())
 	var tint := Color(0.75,0.75,0.75)
 	if kind in [1,2]:
@@ -95,7 +94,7 @@ func presentation(cell: Vector2i) -> Dictionary:
 	elif kind == 5:
 		dimensions = Vector2(32*texture.get_width()/texture.get_height(),32)
 		tint = Color.WHITE
-	texture = Style.normalized(texture,dimensions,true,kind == 1)
+	texture = Style.normalized(texture,dimensions,true,kind == 1,0.9 if kind == 1 else 1.0)
 	var result := {"texture": texture, "size": dimensions, "tint": tint, "rect": Rect2(center + Vector2(-dimensions.x/2, (60 if large else 26)-dimensions.y), dimensions)}
 	presentation_cache[cell] = result
 	return result

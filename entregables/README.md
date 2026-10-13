@@ -1,11 +1,18 @@
 # Imágenes originales de Day Zero
 
-Sube aquí los PNG originales del menú, el HUD y la espada básica.
-Puedes llamarlos `menu.png`, `hud.png` y `espada.png`, aunque no es necesario cambiar sus nombres.
+Los originales se organizan por su función, conservando sus nombres y contenido:
 
-En GitHub, abre esta carpeta y pulsa **Add file → Upload files**.
-Arrastra los tres archivos, espera a que termine la carga y pulsa **Commit changes**.
-Elige guardar directamente en `main`.
+| Carpeta | Contenido |
+| --- | --- |
+| [armas](armas/) | Espadas, arcos y sus referencias |
+| [herramientas](herramientas/) | Hachas, picos y otras herramientas |
+| [armaduras](armaduras/) | Armaduras y guías de equipamiento |
+| [enemigos](enemigos/) | Vistas y diseños de enemigos |
+| [entorno](entorno/) | Césped, rocas, terreno y plantas, en subcarpetas |
+| [items](items/) | Materiales, alimentos y recipientes |
+| [personajes](personajes/) | Personaje principal y referencias |
+| [interfaces](interfaces/) | Menú, HUD, inventario y tipografía |
 
-Estos archivos sirven como originales para incorporar el arte al juego.
-Subirlos aquí no sustituye automáticamente los recursos del juego: Codex los integrará y comprobará sus animaciones y áreas de clic.
+En GitHub, entra en la carpeta correspondiente y pulsa **Add file → Upload files**. Arrastra los PNG, espera a que termine la carga y pulsa **Commit changes** en `main`.
+
+Son originales para incorporar al juego. Los recursos que utiliza Godot están en `assets/`; subir una imagen aquí no sustituye automáticamente esos recursos.

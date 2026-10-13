@@ -49,7 +49,7 @@ func configure(owner_game) -> void:
 	add_child(veil)
 	panel = Panel.new(); add_child(panel)
 	heading = Label.new(); heading.text = "MAPA · BOSQUE"
-	heading.add_theme_font_size_override("font_size",22)
+	preload("res://scripts/ui_style.gd").set_font_size(heading,22)
 	heading.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(heading)
 	close_button = preload("res://scripts/menu_button.gd").new()
@@ -62,7 +62,7 @@ func configure(owner_game) -> void:
 	var legend := Label.new()
 	legend.name = "Legend"
 	legend.text = "● Tu posición    ·    Tierra: senderos    ·    Gris: obstáculos y piedra    ·    Azul: charcos"
-	legend.add_theme_font_size_override("font_size",14)
+	preload("res://scripts/ui_style.gd").set_font_size(legend,14)
 	legend.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.add_child(legend)
 	get_viewport().size_changed.connect(fit)

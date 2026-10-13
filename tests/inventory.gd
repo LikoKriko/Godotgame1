@@ -115,9 +115,9 @@ func run_checks() -> void:
 	game.inventory_panel.fit_panel()
 	require(game.inventory_panel.backpack_buttons.size() == 32 and game.inventory_panel.gear_buttons.size() == 5, "Visible slot counts")
 	var side: Vector2 = game.inventory_panel.panel.size
-	require(is_equal_approx(side.x, side.y), "Inventory is square")
+	require(is_equal_approx(side.x/side.y,1370.0/960.0), "Inventory follows the supplied template aspect")
 	var viewport_size := root.get_visible_rect().size
-	var expected_side := minf(sqrt(viewport_size.x * viewport_size.y * 0.6), minf(viewport_size.x, viewport_size.y) * 0.95)
+	var expected_side := 1370*minf(sqrt(viewport_size.x*viewport_size.y*0.6/(1370*960)),minf(viewport_size.x*0.95/1370,viewport_size.y*0.84/960))
 	require(is_equal_approx(side.x, expected_side), "Inventory follows 60-percent target while fitting widescreen viewport")
 	var center: Vector2 = game.inventory_panel.panel.position + side / 2
 	require(center.is_equal_approx(viewport_size / 2), "Inventory is centered")
@@ -129,7 +129,7 @@ func run_checks() -> void:
 	game.inventory_panel.equip_selected()
 	require(game.bag.held_id() == &"sword", "UI equips selected object")
 	game.inventory_panel.select_gear(&"hands")
-	require(game.inventory_panel.remove_button.disabled and game.bag.equipment[&"hands"].is_empty(), "Glove slot stays independent of the held weapon")
+	require(not game.inventory_panel.equip_button.visible and game.bag.equipment[&"hands"].is_empty(), "Glove slot stays independent of the held weapon")
 	game.bag.unequip(&"tool")
 	require(game.bag.held_id() == &"", "Putting away a tool leaves hands free")
 	var before: Vector2 = game.player

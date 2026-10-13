@@ -24,7 +24,7 @@ func run() -> void:
 			var picture := Image.load_from_file(ProjectSettings.globalize_path(data["path"]))
 			require(picture != null and picture.get_size() == Vector2i(192*int(data["frames"]),192*int(data["directions"])),"Export dimensions: "+String(item)+"/"+String(name))
 			require(data["grip_error"] <= 0.04,"Both grips stay on the actual tool")
-		for name in [&"equip_walk",&"equip_run",&"equip_crouch_walk"]:
+		for name in [&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk"]:
 			if not clips.has(name): continue
 			var data: Dictionary = clips[name]
 			require(data.equip_frames == 6 and data.gait_frames == 12 and data.paths.size() == 6,"Moving equipment retains six drawing stages and twelve stride phases")
@@ -32,7 +32,7 @@ func run() -> void:
 				var sheet := Image.load_from_file(ProjectSettings.globalize_path(path))
 				require(sheet.get_size() == Vector2i(2304,1536),"Equipment texture remains below common GPU size limits")
 			var end := Image.load_from_file(ProjectSettings.globalize_path(data.paths[5]))
-			var moving := Image.load_from_file(ProjectSettings.globalize_path(clips[String(name).trim_prefix("equip_")].path))
+			var moving := Image.load_from_file(ProjectSettings.globalize_path(clips["walk" if name == &"pickup_walk" else String(name).trim_prefix("equip_")].path))
 			for row in 8:
 				for column in 12:
 					require(same(frame(end,column,row),frame(moving,column,row)),"Drawing ends at the exact corresponding moving pose")
@@ -40,6 +40,11 @@ func run() -> void:
 		var start := Image.load_from_file(ProjectSettings.globalize_path(clips["start"]["path"]))
 		var idle := Image.load_from_file(ProjectSettings.globalize_path(clips["idle"]["path"]))
 		var action := Image.load_from_file(ProjectSettings.globalize_path(clips["action"]["path"]))
+		if clips.has("pickup"):
+			require(clips.pickup.frames == 6 and clips.pickup.directions == 8,"Pickup has six full poses per movement direction")
+			var pickup := Image.load_from_file(ProjectSettings.globalize_path(clips.pickup.path))
+			for row in 8:
+				require(same(frame(pickup,0,row),frame(idle,0,row*2)) and same(frame(pickup,5,row),frame(idle,0,row*2)),"Pickup enters and leaves the exact idle pose")
 		for row in 8:
 			require(not same(frame(walk,0,row),frame(walk,6,row)),"Opposite half strides have visibly different poses")
 			for source in 12:

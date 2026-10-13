@@ -9,6 +9,7 @@ func _initialize() -> void:
 	for seed in [73129,42,1937,81280]:
 		var world = World.new()
 		world.generate(seed)
+		require(world.grass_tufts.size() == roundi(world.previous_grass_count*1.35),"Cover contains exactly 35 percent more groups than the previous seeded map")
 		var variants := {}
 		require(world.grass_tufts.size() > 2500,"Uniform cover populates the whole small map")
 		require(world.stone_patches.size() == 4,"Four exposed stone areas")

@@ -2,6 +2,8 @@ extends Node3D
 const Pose = preload("res://scripts/continuous_body_pose.gd")
 const Tools = preload("res://scripts/tool_sprites.gd")
 const SKIN := Color8(208,140,85)
+const MUSCLE_DETAIL := 0.90
+static var sphere_quads: Array[PackedVector3Array] = []
 const CLOTH := Color8(96,77,51)
 const HAIR_VIEWS = preload("res://assets/characters/complete/reference_views.png")
 const HEADS := [Vector2(250,64),Vector2(682,64),Vector2(1097,64),Vector2(1532,64),Vector2(246,480),Vector2(670,478),Vector2(1083,480),Vector2(1536,480)]
@@ -44,25 +46,24 @@ func _ready() -> void:
 	tool_material.shader = preload("res://shaders/baked_tool.gdshader")
 	tool.material_override = tool_material
 
-func vertex(point: Vector3, color: Color) -> void:
-	surface.set_uv(Vector2(surface_tag,0))
-	surface.set_uv2(Vector2.ZERO)
-	surface.set_color(color)
-	surface.add_vertex(point)
-
 func triangle(a: Vector3,b: Vector3,c: Vector3,color: Color) -> void:
-	vertex(a,color); vertex(b,color); vertex(c,color)
+	surface.set_uv(Vector2(surface_tag,0)); surface.set_uv2(Vector2.ZERO); surface.set_color(color)
+	surface.add_vertex(a); surface.add_vertex(b); surface.add_vertex(c)
 
 func ellipsoid(center: Vector3,size: Vector3,color: Color,basis: Basis = Basis.IDENTITY) -> void:
-	for row in 8:
-		for column in 12:
-			var p := []
-			for index in [[row,column],[row+1,column],[row+1,column+1],[row,column+1]]:
-				var latitude: float = index[0]*PI/8
-				var longitude: float = index[1]*TAU/12
-				p.append(center+basis*(Vector3(sin(latitude)*cos(longitude),cos(latitude),sin(latitude)*sin(longitude))*size))
-			triangle(p[0],p[1],p[2],color)
-			triangle(p[0],p[2],p[3],color)
+	if sphere_quads.is_empty():
+		for row in 8:
+			for column in 12:
+				var quad := PackedVector3Array()
+				for index in [[row,column],[row+1,column],[row+1,column+1],[row,column+1]]:
+					var latitude: float = index[0]*PI/8
+					var longitude: float = index[1]*TAU/12
+					quad.append(Vector3(sin(latitude)*cos(longitude),cos(latitude),sin(latitude)*sin(longitude)))
+				sphere_quads.append(quad)
+	for quad in sphere_quads:
+		var a := center+basis*(quad[0]*size); var b := center+basis*(quad[1]*size)
+		var c := center+basis*(quad[2]*size); var d := center+basis*(quad[3]*size)
+		triangle(a,b,c,color); triangle(a,c,d,color)
 
 func tube(joints: Array, radius_a: float,radius_b: float,color: Color,shorts: bool = false,steps: int = 12) -> void:
 	# One uninterrupted surface spans BOTH bones. There is no knee/elbow cut.
@@ -232,10 +233,10 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 		ellipsoid(torso*section[0],section[1],SKIN,torso.basis)
 	for side in [-1,1]:
 		ellipsoid(torso*Vector3(side*7.4,44.6,0),Vector3(2.6,2.9,2.7),SKIN,torso.basis)
-		ellipsoid(torso*Vector3(side*3.3,41,2.9),Vector3(3.6,2.9,1.2),SKIN,torso.basis)
-		ellipsoid(torso*Vector3(side*1.6,36.0,2.8),Vector3(1.7,2.1,0.55),SKIN.lightened(0.025),torso.basis)
-		ellipsoid(torso*Vector3(side*1.5,32.8,2.7),Vector3(1.55,1.6,0.4),SKIN,torso.basis)
-		ellipsoid(torso*Vector3(side*3.2,41.0,4.0),Vector3(0.35,0.3,0.18),SKIN.darkened(0.23),torso.basis)
+		ellipsoid(torso*Vector3(side*3.3,41,2.9),Vector3(3.6,2.9,1.2*MUSCLE_DETAIL),SKIN,torso.basis)
+		ellipsoid(torso*Vector3(side*1.6,36.0,2.8),Vector3(1.7,2.1,0.55*MUSCLE_DETAIL),SKIN.lightened(0.025*MUSCLE_DETAIL),torso.basis)
+		ellipsoid(torso*Vector3(side*1.5,32.8,2.7),Vector3(1.55,1.6,0.4*MUSCLE_DETAIL),SKIN,torso.basis)
+		ellipsoid(torso*Vector3(side*3.2,41.0,4.0),Vector3(0.35,0.3,0.18),SKIN.darkened(0.23*MUSCLE_DETAIL),torso.basis)
 	ellipsoid(torso*Vector3(0,27.7,0),Vector3(7.2,3.5,3.5),CLOTH,torso.basis)
 	if armor_id != &"":
 		ellipsoid(torso*Vector3(0,35.5,0),Vector3(7.1,9.0,3.9),Color8(92,72,41),torso.basis)

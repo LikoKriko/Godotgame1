@@ -5,6 +5,8 @@ const SIZE := Vector2i(48, 32)
 const FIRST := Vector2i(-24, -16)
 const PLAYER_RADIUS := 15.0
 const DIRECTIONS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
+const RETIRED_STRUCTURE_CELLS := [Vector2i(-8,-5),Vector2i(7,4)]
+var previous_grass_count := 0
 const Nature = preload("res://scripts/nature_variants.gd")
 var seed_value := 73129
 var terrain := FastNoiseLite.new()
@@ -20,10 +22,12 @@ var grass_tufts: Array[Dictionary] = []
 var puddles: Array[Dictionary] = []
 var stone_patches: Array[Rect2] = []
 var dirt_patches: Array[Rect2] = []
+var navigation_revision := 0
 var reachable: Array[Vector2i] = []
 var bounds := Rect2(Vector2(FIRST * TILE), Vector2(SIZE * TILE))
 
 func generate(new_seed: int) -> void:
+	navigation_revision += 1
 	seed_value = new_seed
 	terrain.seed = new_seed
 	terrain.frequency = 0.11
@@ -73,8 +77,9 @@ func generate(new_seed: int) -> void:
 	for cell in [Vector2i(-4, -3), Vector2i(-6, 3), Vector2i(4, 4)]:
 		props[cell] = 2
 		cells[cell]["blocked"] = true
-	# A small trace of abandoned equipment preserves scrap gathering in the woods.
-	for cell in [Vector2i(-8, -5), Vector2i(7, 4)]:
+	# Reserve the historical cells during seeded layout so existing plants and
+	# natural variants do not move, then release the retired structures below.
+	for cell in RETIRED_STRUCTURE_CELLS:
 		props[cell] = 0
 		cells[cell]["blocked"] = true
 	for cell in [Vector2i(-5, -5)]:
@@ -103,6 +108,11 @@ func generate(new_seed: int) -> void:
 	index_collisions()
 	generate_ground_details()
 	add_burdock()
+	for cell in RETIRED_STRUCTURE_CELLS:
+		props.erase(cell); prop_collisions.erase(cell); cells[cell].blocked = false
+		if not reachable.has(cell): reachable.append(cell)
+	index_collisions()
+	generate_grass_cover(bounds.grow(-96),roundi(previous_grass_count*1.35))
 
 func add_burdock() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -167,13 +177,38 @@ func generate_ground_details() -> void:
 		var center: Vector2 = quadrant*Vector2(soil_rng.randf_range(350,1250),soil_rng.randf_range(240,780))
 		var radius := Vector2(soil_rng.randf_range(65,125),soil_rng.randf_range(55,95))
 		dirt_patches.append(Rect2(center-radius,radius*2))
+	previous_grass_count = grass_baseline_count(inset,rng)
+
+func grass_baseline_count(inset: Rect2, rng: RandomNumberGenerator) -> int:
+	# Keep the requested increase exact relative to the previous seeded cover.
+	var baseline_count := 0
 	for y in range(int(inset.position.y),int(inset.end.y),22):
 		for x in range(int(inset.position.x),int(inset.end.x),24):
 			var point := Vector2(x+rng.randf_range(-9,9),y+rng.randf_range(-8,8))
 			var width := rng.randf_range(18,28)
 			var variant := rng.randi_range(0,preload("res://scripts/imported_nature.gd").GRASS.size()-1)
 			if rng.randf() < 0.60 and grass_allowed(point,grass_padding(width,variant)):
-				grass_tufts.append({"position": point,"width": width,"variant": variant})
+				baseline_count += 1
+
+	return baseline_count
+
+func generate_grass_cover(inset: Rect2, count: int) -> void:
+	grass_tufts.clear()
+	var cover_rng := RandomNumberGenerator.new(); cover_rng.seed = seed_value ^ 83717
+	var grouping := FastNoiseLite.new(); grouping.seed = seed_value ^ 38117; grouping.frequency = 0.018
+	var candidates: Array[Dictionary] = []
+	for y in range(int(inset.position.y),int(inset.end.y),18):
+		for x in range(int(inset.position.x),int(inset.end.x),20):
+			var point := Vector2(x+cover_rng.randf_range(-6,6),y+cover_rng.randf_range(-6,6))
+			var width := cover_rng.randf_range(18,28)
+			var variant := cover_rng.randi_range(0,preload("res://scripts/imported_nature.gd").GRASS.size()-1)
+			if not grass_allowed(point,grass_padding(width,variant)): continue
+			var density := exp(grouping.get_noise_2d(point.x,point.y)*3.0)
+			var rank := -log(maxf(0.000001,cover_rng.randf()))/density
+			candidates.append({"position":point,"width":width,"variant":variant,"rank":rank})
+	candidates.sort_custom(func(a,b): return a.rank < b.rank)
+	for i in mini(count,candidates.size()):
+		var tuft: Dictionary = candidates[i]; tuft.erase("rank"); grass_tufts.append(tuft)
 
 static func grass_padding(width: float, variant: int) -> float:
 	var region: Rect2 = preload("res://scripts/imported_nature.gd").GRASS[variant].rect
@@ -272,6 +307,7 @@ func index_collisions() -> void:
 				collision_cells[cell].append(anchor)
 
 func release_prop(cell: Vector2i) -> void:
+	if props.get(cell) != 5: navigation_revision += 1
 	props.erase(cell)
 	large_rocks.erase(cell)
 	prop_variants.erase(cell)

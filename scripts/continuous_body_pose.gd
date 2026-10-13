@@ -29,10 +29,11 @@ static func gait(phase: float, amplitude: float, running: bool = false) -> Dicti
 		"pitch":(0.12*sin(t*PI) if stance else -0.18*sin(t*PI))*amplitude}
 
 static func gesture(rest: Vector3, windup: Vector3, impact: Vector3, phase: float, family: StringName) -> Vector3:
-	if phase <= 0.30:
-		return rest.lerp(windup, smoothstep(0,0.30,phase))
+	var prepared := 0.18 if family == &"sword" else 0.30
+	if phase <= prepared:
+		return rest.lerp(windup, smoothstep(0,prepared,phase))
 	if phase <= CONTACT:
-		return windup.lerp(impact, pow(clampf((phase-0.30)/0.20,0,1),2.1))
+		return windup.lerp(impact, pow(clampf((phase-prepared)/(CONTACT-prepared),0,1),2.1))
 	var recovery := smoothstep(0.61,1,phase)
 	var recoil := sin(clampf((phase-CONTACT)/0.12,0,1)*PI)*exp(-(phase-CONTACT)*9)
 	var resistance := 0.65 if family == &"pickaxe" else 0.35
@@ -40,6 +41,9 @@ static func gesture(rest: Vector3, windup: Vector3, impact: Vector3, phase: floa
 
 static func sample(family: StringName, state: StringName, phase: float, stop_phase: float = 0.20, stop_amplitude: float = 1.0, direction: int = -1) -> Dictionary:
 	phase = clampf(phase,0,1)
+	var picking := state in [&"pickup",&"pickup_walk"]
+	var pickup_amount := sin(phase*PI) if picking else 0.0
+	if state == &"pickup_walk": state = &"walk"; phase = stop_phase
 	if state == &"crouch_equip": return sample(family,&"equip_crouch",phase,1,stop_amplitude,direction)
 	if String(state).begins_with("equip_"):
 		var locomotion_state := StringName(String(state).trim_prefix("equip_"))
@@ -65,6 +69,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	if state == &"stop": amplitude *= stop_amplitude
 	var bounce := -1.0-0.65*cos(walk_phase*TAU*2) if walking else 0.0
 	var compression := 6.0 if crouch_walking else (phase*6.0 if state == &"crouch" else 0.0)
+	if picking: compression += 12*pickup_amount
 	if state == &"slide": compression = 8*sin(phase*PI)
 	if state == &"jump": compression = 1.4*sin(phase*PI)
 	if state == &"slide_jump": compression = 7*(1-smoothstep(0,0.35,phase))+2*sin(phase*PI)
@@ -75,6 +80,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	if action and family == &"bow": twist = 0.70*smoothstep(0,0.26,phase)*(1-smoothstep(0.72,1,phase))
 	var lean := ((0.12+0.035*sin(walk_phase*TAU)) if running else 0.04*sin(walk_phase*TAU))*amplitude if walking else 0.0
 	if action: lean = -0.07*sin(phase*TAU)
+	if picking: lean += 0.38*pickup_amount
 	if state == &"slide": lean = 0.4*sin(phase*PI)
 	if state == &"slide_jump": lean = 0.25*(1-smoothstep(0,0.55,phase))
 	var basis := Basis.from_euler(Vector3(lean,twist,0))
@@ -97,7 +103,9 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var hands: Array[Vector3] = []
 	for side in 2:
 		var swing := -sin((walk_phase+side*0.5)*TAU)*(7.5 if running else 4.5)*amplitude
-		hands.append(body*Vector3(-11.0 if side == 0 else 11.0,28.0,swing+3.5))
+		var hand := Vector3(-11.0 if side == 0 else 11.0,28.0,swing+3.5)
+		if picking and side == 1: hand = hand.lerp(Vector3(8,28,8),pickup_amount)
+		hands.append(body*hand)
 	var grip := body*Vector3(4,32,6)
 	var shaft := Vector3(0,0.72,0.69).normalized()
 	var active := 1
@@ -123,6 +131,11 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 			shaft = gesture(Vector3(0,0.35,0.94),Vector3(0,0.6,-0.8),Vector3(-0.35,-0.2,0.9),phase,family).normalized()
 			hands[0] = hands[0].lerp(body*Vector3(-5.5,38,5),load)
 	elif family in [&"axe",&"pickaxe"]:
+		# In the actor's front view -X is anatomical right: this hand holds the
+		# butt of the handle. Anatomical left (+X) supports it near the head.
+		active = 0
+		grip = body*Vector3(-4,32,6)
+		shaft = body.basis*Vector3(0.42,0.72,0.55).normalized()
 		if action:
 			var windup := Vector3(3,47,0) if family == &"axe" else Vector3(1.5,49,4)
 			var impact := Vector3(4.5,35,13) if family == &"axe" else Vector3(1,31.5,13)
@@ -140,16 +153,20 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 		var openness := pow(absf(sin(direction*TAU/16)),0.8)
 		var open_grip := Vector3(7.5,34,8)
 		var open_axis := Vector3(0.5,0.7,0.65)
+		if family in [&"axe",&"pickaxe"]:
+			open_grip = Vector3(-4,32,8)
+			open_axis = Vector3(0.55,0.70,0.45)
 		if action:
 			var wind := Vector3(9,47,5)
 			var hit := Vector3(8,32,13)
 			var wind_axis := Vector3(0.55,0.82,-0.12)
 			var hit_axis := Vector3(0.6,-0.3,0.72)
+			if family in [&"axe",&"pickaxe"]: wind.x = -4; hit.x = -4
 			if family == &"pickaxe": hit_axis = Vector3(0.4,-0.68,0.6)
 			if family == &"sword": wind = Vector3(10,43,1); hit = Vector3(8,37,13); wind_axis = Vector3(0.75,0.6,-0.25)
 			if family == &"axe" and sin(direction*TAU/16) < -0.001:
-				wind = Vector3(11,49,4)
-				hit = Vector3(9,34.5,14)
+				wind = Vector3(-7,49,4)
+				hit = Vector3(-7,34.5,14)
 				wind_axis = Vector3(0.45,0.89,-0.08)
 				hit_axis = Vector3(0.72,-0.24,0.64)
 			open_grip = gesture(open_grip,wind,hit,phase,family)

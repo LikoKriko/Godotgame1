@@ -20,7 +20,8 @@ static func get_icon(id: StringName) -> Texture2D:
 		return textures[&"new_apple"]
 	if id == &"piedra":
 		var rock := preload("res://scripts/imported_nature.gd")
-		return preload("res://scripts/visual_style.gd").icon(rock.texture(rock.ROCKS[0]),id)
+		var stone: Texture2D = rock.texture(rock.ROCKS[0])
+		return preload("res://scripts/visual_style.gd").normalized(stone,stone.get_size()*24/maxf(stone.get_width(),stone.get_height()),true,true,0.9)
 	if id in [&"burdock_armor",&"hoja_bardana"]:
 		if not textures.has(id):
 			var atlas := AtlasTexture.new()

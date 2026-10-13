@@ -12,6 +12,9 @@ var armor_id: StringName = &""
 func _initialize() -> void: call_deferred("run")
 
 func setup() -> void:
+	# The export viewport stays 192×192; a small empty window avoids rendering
+	# a full-HD background for every authored pose on the cloud CPU renderer.
+	root.size = Vector2i(256,256)
 	viewport = SubViewport.new()
 	viewport.size = CELL
 	viewport.transparent_bg = true
@@ -55,7 +58,7 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 	for direction in directions:
 		var row := []
 		for frame in count:
-			var combined := String(state).begins_with("equip_")
+			var combined := String(state).begins_with("equip_") or state == &"pickup_walk"
 			var pose_frame := frame/12 if combined else frame
 			var phase := frame/float(count) if state in [&"walk",&"run",&"crouch_walk"] else (frame/float(count-1) if count > 1 else 0.0)
 			if combined: phase = pose_frame/5.0
@@ -83,7 +86,7 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 	var path := OUTPUT+id+"_"+String(state)+suffix+".png"
 	var error := OK
 	var paths := []
-	var combined := String(state).begins_with("equip_")
+	var combined := String(state).begins_with("equip_") or state == &"pickup_walk"
 	if combined:
 		# Six equip stages, each with twelve gait frames. Every texture remains
 		# below 4096 pixels instead of a 13824-pixel-wide GPU allocation.
@@ -149,10 +152,10 @@ func run() -> void:
 		if not selected_clips.is_empty():
 			clips = manifest["items"][key]["clips"].duplicate(true)
 			for name in selected_clips:
-				if name not in ["jump","crouch","slide","slide_jump","crouch_walk","equip_walk","equip_run","equip_crouch_walk","crouch_equip"]:
+				if name not in ["action","pickup","pickup_walk","jump","crouch","slide","slide_jump","crouch_walk","equip_walk","equip_run","equip_crouch_walk","crouch_equip"]:
 					push_error("Partial export currently supports jump,crouch,slide,crouch_walk only")
 					quit(1); return
-				clips[name] = await sheet(item,family,StringName(name),72 if name.begins_with("equip_") else (12 if name == "crouch_walk" else 6),16 if name == "crouch_equip" else 8)
+				clips[name] = await sheet(item,family,StringName(name),72 if name.begins_with("equip_") or name == "pickup_walk" else (16 if name == "action" else (12 if name == "crouch_walk" else 6)),16 if name in ["crouch_equip","action"] else 8)
 			manifest["items"][key]["clips"] = clips
 			var partial := FileAccess.open(path,FileAccess.WRITE)
 			partial.store_string(JSON.stringify(manifest,"\t"))
@@ -174,6 +177,9 @@ func run() -> void:
 		for start_frame in 6:
 			clips["stop_start_%02d" % start_frame] = await sheet(item,family,&"stop",6,8,start_frame,true)
 		clips["action"] = await sheet(item,family,&"action",16,16)
+		if item == &"":
+			clips["pickup"] = await sheet(item,family,&"pickup",6,8)
+			clips["pickup_walk"] = await sheet(item,family,&"pickup_walk",72,8)
 		if item != &"":
 			clips["equip"] = await sheet(item,family,&"equip",6,16)
 			clips["crouch_equip"] = await sheet(item,family,&"crouch_equip",6,16)

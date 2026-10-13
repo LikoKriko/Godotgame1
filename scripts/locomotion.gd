@@ -2,6 +2,7 @@ extends RefCounted
 const JUMP_SECONDS := 0.66
 const SLIDE_SECONDS := 0.46
 const MAX_AIR_TURN := deg_to_rad(70)
+const SLIDE_DISTANCE_FACTOR := 0.85
 var from_slide := false
 var jump_heading := 0.0
 var launch_heading := 0.0
@@ -22,7 +23,7 @@ func reset() -> void:
 func airborne() -> bool: return jump_elapsed < JUMP_SECONDS
 func sliding() -> bool: return slide_elapsed < SLIDE_SECONDS
 func slide_speed() -> float:
-	return lerpf(340,0,smoothstep(0,SLIDE_SECONDS,slide_elapsed))
+	return lerpf(340*SLIDE_DISTANCE_FACTOR,0,smoothstep(0,SLIDE_SECONDS,slide_elapsed))
 func jump(inertia_multiplier: float = 1.0) -> bool:
 	if airborne(): return false
 	from_slide = sliding()

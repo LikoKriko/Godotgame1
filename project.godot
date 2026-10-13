@@ -5,9 +5,6 @@ config/name="Day Zero"
 run/main_scene="res://scenes/day_zero.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
-[autoload]
-PointerCoordinates="*res://scripts/pointer_coordinates.gd"
-
 [display]
 window/size/viewport_width=1920
 window/size/viewport_height=1080

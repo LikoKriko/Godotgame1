@@ -27,7 +27,7 @@ func configure(model) -> void:
 	margin.add_child(box)
 	var heading := Label.new()
 	heading.text = "CONFIGURACIÓN"
-	heading.add_theme_font_size_override("font_size",30)
+	preload("res://scripts/ui_style.gd").set_font_size(heading,30)
 	box.add_child(heading)
 	var tabs := TabContainer.new()
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL

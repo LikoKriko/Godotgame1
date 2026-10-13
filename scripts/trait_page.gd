@@ -25,7 +25,7 @@ func configure(owner_game, is_ability: bool) -> void:
 		var button := preload("res://scripts/menu_button.gd").new()
 		button.position = Vector2(0,48+index*60)
 		button.size = Vector2(186,48)
-		button.add_theme_font_size_override("font_size",14)
+		preload("res://scripts/ui_style.gd").set_font_size(button,14)
 		button.pressed.connect(select.bind(id))
 		add_child(button)
 		entries[id] = button
@@ -51,7 +51,7 @@ func label(point: Vector2, extent: Vector2, font_size: int) -> Label:
 	var node := Label.new()
 	node.position = point; node.size = extent
 	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	node.add_theme_font_size_override("font_size",font_size)
+	preload("res://scripts/ui_style.gd").set_font_size(node,font_size)
 	add_child(node)
 	return node
 func select(id: StringName) -> void:

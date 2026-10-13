@@ -18,7 +18,9 @@ func _process(delta: float) -> void:
 			queue_free()
 			return
 		for target in get_tree().get_nodes_in_group("damageable"):
-			if target is Node2D and target.has_method("take_damage") and target.global_position.distance_to(global_position) < 18:
+			if not target is Node2D or not target.has_method("take_damage"): continue
+			var touching: bool = target.contains_point(global_position) if target.has_method("contains_point") else target.global_position.distance_to(global_position) < 18
+			if touching:
 				target.take_damage(game.combat_damage(damage) if game != null else damage)
 				queue_free()
 				return

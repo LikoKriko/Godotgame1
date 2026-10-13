@@ -25,7 +25,7 @@ func run_checks() -> void:
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	game.set_process(false)
-	check(not game.has_method("spawn_enemy") and not game.has_method("attack"), "Exploration contains no enemy spawning or combat")
+	check(is_instance_valid(game.enemies.enemy), "One young enemy is available for combat")
 	var initial_resources: Dictionary = game.resources.inventory.duplicate()
 	for i in 600:
 		game._process(0.1)
@@ -56,14 +56,8 @@ func run_checks() -> void:
 	check(game.level == 2 and game.skill_points == 1, "Gathering earns experience and a skill point")
 	game.buy_improvement(&"speed",true)
 	check(game.progression.skills[&"speed"] == 1 and game.skill_points == 0, "Shared level point unlocks an ability")
-	var machine: Vector2i = game.resources.NONE
-	for cell in game.resources.nodes:
-		if game.resources.nodes[cell]["material"] == "chatarra":
-			machine = cell
-			break
-	check(machine != game.resources.NONE, "Scrap source exists")
-	work(game, machine)
-	check(game.resources.inventory["chatarra"] == 3, "Scrap enters inventory")
+	for cell in game.world.RETIRED_STRUCTURE_CELLS:
+		check(not game.resources.nodes.has(cell) and game.world.walkable(game.world.center(cell)), "Retired scrap structures leave no harvest nodes or collisions")
 	game.restart()
 	check(game.resources.inventory["madera"] == 0 and game.resources.nodes.has(tree), "Reset restores resources and clears inventory")
 	game.player = game.resources.bounds(tree).position + Vector2(-24, 32)
@@ -80,5 +74,5 @@ func run_checks() -> void:
 	Input.parse_input_event(release)
 	Input.flush_buffered_events()
 	game.cancel_work()
-	print("%s: %d exploration checks: wood, minerals, scrap, animation, cancellation, range, inventory, progression, reset" % ["PASS" if failures == 0 else "FAIL", checks])
+	print("%s: %d exploration checks: wood, minerals, retired structures, animation, cancellation, range, inventory, progression, reset" % ["PASS" if failures == 0 else "FAIL", checks])
 	quit(0 if failures == 0 else 1)

@@ -10,6 +10,7 @@ var prop_masks: Dictionary = {}
 var mask_viewport: SubViewport
 var mask: Node2D
 var avatar: Node2D
+var enemy_projection: Node2D
 var colored_avatar: Sprite2D
 var last_direction := Vector2.INF
 var last_stretch := INF
@@ -32,6 +33,22 @@ class AvatarProjection:
 		draw_set_transform_matrix(host.projection(feet))
 		var rect := Rect2(feet-Mask.ORIGIN/Mask.SCALE,Vector2(Mask.SIZE)/Mask.SCALE)
 		draw_texture_rect(host.mask_viewport.get_texture(),rect,false)
+		draw_set_transform_matrix(Transform2D.IDENTITY)
+
+class EnemyProjection:
+	extends Node2D
+	var host
+	func _draw() -> void:
+		var enemy = host.game.enemies.enemy
+		if not is_instance_valid(enemy) or enemy.health <= 0 or enemy.sprite.texture == null: return
+		var atlas: AtlasTexture = enemy.sprite.texture
+		var size: Vector2 = atlas.atlas.get_size()
+		var a := atlas.region.position/size; var b := atlas.region.end/size
+		material.set_shader_parameter("uv_rect",Vector4(a.x,a.y,b.x,b.y))
+		material.set_shader_parameter("foot_uv_y",enemy.clips.foot[1]/enemy.clips.canvas[1])
+		var feet: Vector2 = enemy.position+Vector2(0,17)
+		draw_set_transform_matrix(host.projection(feet)*enemy.sprite.global_transform)
+		draw_texture_rect(atlas,Rect2(-atlas.get_size()/2,atlas.get_size()),false)
 		draw_set_transform_matrix(Transform2D.IDENTITY)
 
 func configure(owner_game) -> void:
@@ -66,17 +83,20 @@ func configure(owner_game) -> void:
 	avatar.material = shadow_material.duplicate()
 	avatar.material.set_shader_parameter("foot_uv_y",Mask.ORIGIN.y/Mask.SIZE.y)
 	add_child(avatar)
+	enemy_projection = EnemyProjection.new(); enemy_projection.host = self
+	enemy_projection.material = shadow_material.duplicate(); add_child(enemy_projection)
 
 func update_sun(state: Dictionary) -> void:
 	direction = state["direction"]
 	stretch = state["stretch"]
 	strength = state["shadow_alpha"]
 	var softness := lerpf(1.45,0.75,float(state["elevation"]))
-	for shader_material in [shadow_material,avatar.material]:
+	for shader_material in [shadow_material,avatar.material,enemy_projection.material]:
 		shader_material.set_shader_parameter("opacity",strength)
 		shader_material.set_shader_parameter("softness",softness)
 	visible = strength > 0.001
 	avatar.queue_redraw()
+	enemy_projection.queue_redraw()
 	var camera_position: Vector2 = game.camera.get_screen_center_position()
 	var impacts: bool = not game.world_view.impulses.is_empty()
 	if direction.distance_to(last_direction) > 0.00025 or absf(stretch-last_stretch) > 0.001 or camera_position.distance_to(last_camera) > 64 or game.world.props.size() != last_prop_count or impacts or had_impulses:

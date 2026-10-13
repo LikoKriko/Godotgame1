@@ -3,7 +3,6 @@ const Rig = preload("res://scripts/tool_contact.gd")
 const REACH := 40.0
 const NONE := Vector2i(99999, 99999)
 const TYPES := {
-	0: {"name": "Maquinaria", "material": "chatarra", "hits": 3, "yield": 3, "branch": 3},
 	1: {"name": "Roca", "material": "piedra", "hits": 3, "yield": 4, "branch": 1},
 	2: {"name": "Árbol", "material": "madera", "hits": 3, "yield": 4, "branch": 0},
 	4: {"name": "Arbolito joven", "material": "fibra", "hits": 2, "yield": 3, "branch": 0}

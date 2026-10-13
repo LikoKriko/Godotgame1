@@ -27,16 +27,6 @@ func boundaries(button: Control) -> void:
 func click(button: Control) -> void:
 	await native_pointer(button,button.size/2,1)
 	await native_pointer(button,button.size/2,0)
-func stale_event_click(button: Control) -> void:
-	await native_pointer(button,button.size/2)
-	var correct := button.get_global_rect().get_center()
-	for pressed in [true,false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT; event.pressed = pressed
-		event.position = correct+Vector2(28,24)
-		event.global_position = event.position
-		Input.parse_input_event(event); Input.flush_buffered_events()
-		await settle()
 
 func run() -> void:
 	if DisplayServer.get_name() != "X11": push_error("Requires X11 native-pointer runner"); quit(1); return
@@ -49,8 +39,8 @@ func run() -> void:
 		await settle()
 		await boundaries(app.menu.play_button)
 		await boundaries(app.menu.settings_button)
-		await stale_event_click(app.menu.settings_button)
-		require(is_instance_valid(app.menu.settings_panel),"Visible native cursor opens settings despite a stale event offset")
+		await click(app.menu.settings_button)
+		require(is_instance_valid(app.menu.settings_panel),"The real native cursor opens the rendered settings button")
 		if not is_instance_valid(app.menu.settings_panel): quit(1); return
 		var panel = app.menu.settings_panel
 		var buttons: Array[Node] = panel.find_children("*","Button",true,false)
@@ -66,9 +56,8 @@ func run() -> void:
 		await boundaries(inventory.backpack_buttons[0])
 		await click(inventory.backpack_buttons[0])
 		require(inventory.chosen == 0,"Native click selects the visible inventory slot")
-		await boundaries(inventory.equip_button)
-		await click(inventory.equip_button)
-		require(app.game.bag.held_id() == &"sword","Native click equips the selected item")
+		await boundaries(inventory.gear_buttons[&"hands"])
+		require(not inventory.equip_button.visible,"Weapons use dragging; the consumable action stays hidden")
 		inventory.hide(); app.show_pause()
 	print("%s: %d native mouse checks, %d failures" % ["PASS" if failures == 0 else "FAIL",checks,failures])
 	quit(1 if failures else 0)

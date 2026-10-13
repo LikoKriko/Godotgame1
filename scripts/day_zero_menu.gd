@@ -25,7 +25,7 @@ var confirmation: ConfirmationDialog
 var message: Label
 var mute_cover: TextureRect
 var pause_faces: Dictionary = {}
-var pause_font: Font = preload("res://assets/ui/pause_font.fnt")
+var pause_font: Font = preload("res://scripts/ui_style.gd").menu_font()
 const TEMPLATE_SIZE := Vector2(1672,941)
 
 func configure(model) -> void:
@@ -93,7 +93,7 @@ func button(label: String, area: Rect2, callback: Callable, baked: bool = true) 
 	node.clip_text = true
 	node.text = "" if exact_art and baked else label
 	node.tooltip_text = label
-	node.add_theme_font_size_override("font_size",32)
+	preload("res://scripts/ui_style.gd").set_font_size(node,32)
 	for state in ["normal","hover","pressed","focus","disabled"]:
 		var style := StyleBoxFlat.new()
 		if exact_art and baked:
@@ -198,7 +198,7 @@ func fit() -> void:
 		if not node.text.is_empty():
 			var width: float = pause_font.get_string_size(node.text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
 			if width > node.size.x-48*factor: font_size = maxi(12,floori(font_size*(node.size.x-48*factor)/width))
-		node.add_theme_font_size_override("font_size",font_size)
+		preload("res://scripts/ui_style.gd").set_font_size(node,font_size)
 		if pause_faces.has(node):
 			var cover: TextureRect = pause_faces[node]
 			cover.offset_left = 20*factor; cover.offset_right = -20*factor
@@ -208,7 +208,7 @@ func fit() -> void:
 		mute_cover.size = Vector2(22,32)*factor
 	message.position = Vector2(600,760)*factor
 	message.size = Vector2(550,28)*factor
-	message.add_theme_font_size_override("font_size",maxi(12,roundi(18*factor)))
+	preload("res://scripts/ui_style.gd").set_font_size(message,maxi(12,roundi(18*factor)))
 	title_area.position = Vector2(size.x*0.4,0)
 	title_area.size = Vector2(size.x*0.6,size.y)
 

@@ -13,7 +13,10 @@ func run() -> void:
 	require(not game.interact_at(aim) and game.resources.nodes.has(plant) and game.feedback.contains("manos libres"),"E with a tool preserves the plant and explains the free-hand requirement")
 	game.bag.unequip(&"tool")
 	var leaves: int = game.resources.nodes[plant].yield
-	require(game.interact_at(aim) and not game.resources.nodes.has(plant) and game.bag.count(&"hoja_bardana") == leaves,"E picks a nearby plant in one interaction")
+	require(game.interact_at(aim) and game.resources.nodes.has(plant),"E starts the six-frame pickup without granting leaves before contact")
+	game.interaction_motion.advance(0.18); game.advance_pickup()
+	require(not game.resources.nodes.has(plant) and game.bag.count(&"hoja_bardana") == leaves,"Leaves arrive at pickup contact")
+	game.interaction_motion.advance(0.18); game.advance_pickup()
 	var rock: Vector2i = game.resources.NONE
 	for cell in game.resources.nodes:
 		if game.resources.nodes[cell].hand_collectable: rock = cell; break
@@ -21,7 +24,10 @@ func run() -> void:
 	require(not game.interact_at(aim) and game.resources.hit(rock,game.player).get("reason") == "herramienta","Small stones cannot be picked while holding a pickaxe")
 	game.bag.unequip(&"tool")
 	var reward: int = game.resources.nodes[rock].yield
-	require(reward >= 1 and reward <= 3 and game.interact_at(aim) and game.bag.count(&"piedra") == reward,"E picks one to three stones with free hands")
+	require(reward >= 1 and reward <= 3 and game.interact_at(aim),"E starts picking one to three stones with free hands")
+	game.interaction_motion.advance(0.18); game.advance_pickup()
+	require(game.bag.count(&"piedra") == reward,"Stone pickup grants the resource only at contact")
+	game.interaction_motion.advance(0.18); game.advance_pickup()
 	var tree := Vector2i(-4,-3)
 	aim = Aim.approach(game,tree,&"axe")
 	var hits: int = game.resources.nodes[tree].remaining

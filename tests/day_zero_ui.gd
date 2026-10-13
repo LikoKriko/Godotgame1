@@ -28,6 +28,17 @@ func click(button: Control) -> void:
 		Input.flush_buffered_events()
 		await process_frame
 	await settle()
+func native_pointer(control: Control, local: Vector2, pressed: int = -1) -> void:
+	var point := root.get_final_transform()*control.get_global_transform_with_canvas()*local+Vector2(root.position)
+	var args := PackedStringArray([ProjectSettings.globalize_path("res://tests/native_pointer.py"),str(DisplayServer.window_get_native_handle(DisplayServer.WINDOW_HANDLE)),str(roundi(point.x)),str(roundi(point.y))])
+	if pressed >= 0: args.append(str(pressed))
+	require(OS.execute("python3",args) == 0,"Native inventory drag delivered")
+	await settle()
+func drag(source: Control,destination: Control) -> void:
+	await native_pointer(source,source.size/2,1)
+	await native_pointer(source,source.size/2+Vector2(20,0))
+	await native_pointer(destination,destination.size/2)
+	await native_pointer(destination,destination.size/2,0)
 func run_checks() -> void:
 	var had_config := FileAccess.file_exists(Settings.PATH)
 	var original: PackedByteArray = FileAccess.get_file_as_bytes(Settings.PATH) if had_config else PackedByteArray()
@@ -71,15 +82,14 @@ func run_checks() -> void:
 		inventory.show()
 		await settle()
 		await click(inventory.backpack_buttons[0])
-		require(inventory.chosen == 0 and not inventory.equip_button.disabled,"Mouse selects a weapon and enables Equip")
-		await click(inventory.equip_button)
-		require(game.bag.held_id() == &"sword" and game.bag.location(game.bag.held_item().uid).kind == &"quick","Mouse Equip transfers the tool into physical quick storage")
-		var active_slot: int = game.bag.location(game.bag.held_item().uid).index
-		inventory.select_quick(active_slot)
-		await click(inventory.equip_button)
-		game.bag.shift_transfer(&"quick",active_slot)
+		require(inventory.chosen == 0 and not inventory.equip_button.visible,"Mouse selects a weapon; its equipment action is drag-only")
+		var original_uid: int = game.bag.slots[0].uid
+		var destination = game.styled_hud.quick_buttons[0]
+		await drag(inventory.backpack_buttons[0],destination)
+		require(game.bag.quick_slots[0].get("uid") == original_uid and game.bag.slots[0].is_empty(),"Dragging moves the exact tool into physical quick storage")
+		await drag(destination,inventory.backpack_buttons[0])
 		inventory.refresh()
-		require(game.bag.held_id() == &"","Mouse Unequip returns the item to the backpack")
+		require(game.bag.slots[0].get("uid") == original_uid and game.bag.quick_slots[0].is_empty(),"Dragging returns the same tool to the backpack")
 		var sword_index := -1
 		var stone_index := -1
 		for i in game.bag.CAPACITY:
