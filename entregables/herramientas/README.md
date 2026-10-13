@@ -1,3 +1,3 @@
 # Herramientas
 
-Sube aquí los PNG originales de hachas, picos y otras herramientas. Esta carpeta queda visible en GitHub aunque todavía no tenga dibujos originales subidos.
+Sube aquí los PNG originales de hachas, picos y otras herramientas. Los diseños de hacha y pico, incluidas sus progresiones, se agrupan aquí.
