@@ -189,7 +189,7 @@ Los contornos comparten la política de [AGENTS.md](AGENTS.md): un píxel de ras
 
 En pantalla solo se muestran los atajos **Inventario (I), Crear (T) y Mapa (M)**, en marcos abajo a la derecha. La vida, las calorías y la hidratación están abajo a la izquierda; calorías y agua quedan pegadas. El peso aparece pequeño abajo a la derecha. El minimapa conserva el marco e icono de la segunda plantilla, con día y hora debajo. Ajustes y pausa están arriba a la izquierda. Las barras inferiores contienen seis accesos rápidos y cuatro espacios de habilidades (Z/X y dos vacíos). Solo se usan los elementos de interfaz de la segunda plantilla; el terreno sigue siendo el mapa procedural. M abre el mapa completo del terreno y muestra la posición actual sin niebla de exploración; M, Esc o × lo cierran. El mapa pausa el juego y no se superpone al inventario. Los avisos de recolección siguen siendo mensajes informativos, sin otros atajos. `tests/hud_map.gd` comprueba las seis áreas y anclajes; `tests/bow_back_occlusion.gd` revisa ambos brazos y la piel de la espalda en los PNG exportados. `tests/native_menu_input.gd` usa `native_pointer.py` y XTest para mover y pulsar el ratón del sistema en X11, incluyendo escalas de 100%, 125% y 150%.
 
-La resolución seleccionada establece el tamaño real del renderizado también en pantalla completa y sin bordes; se conserva la proporción de la imagen. Los cambios de tamaño, modo y posición se aplican mediante el nodo `Window`, para mantener sincronizados el renderizado y la entrada. `scripts/pointer_coordinates.gd` convierte la posición física del cursor mediante el mismo transformado del viewport y corrige los eventos desfasados antes de enviarlos a los menús. Apuntar en el mundo y dibujar el cursor usan esa misma posición. Los MSAA no admitidos se deshabilitan en el selector. `tests/settings_application.gd` comprueba cambios efectivos de HUD, audio, límite de FPS, modos, resolución, persistencia y clics nativos después de Aplicar. Las pruebas gráficas se ejecutan en X11; el funcionamiento en Windows requiere una comprobación en ese sistema.
+La resolución seleccionada establece el tamaño real del renderizado también en pantalla completa y sin bordes; se conserva la proporción de la imagen. Los cambios de tamaño, modo y posición se aplican mediante el nodo `Window`, para mantener sincronizados el renderizado y la entrada. `scripts/pointer_coordinates.gd` usa la posición del ratón que entrega el viewport, sin volver a transformar coordenadas del escritorio. Apuntar en el mundo y dibujar el cursor usan esa misma posición. Los MSAA no admitidos se deshabilitan en el selector. `tests/settings_application.gd` comprueba cambios efectivos de HUD, audio, límite de FPS, modos, resolución, persistencia y clics nativos después de Aplicar. Las pruebas gráficas se ejecutan en X11; el funcionamiento en Windows requiere una comprobación en ese sistema.
 
 En la pantalla X11 sin gestor de ventanas del entorno, la prueba de Aplicar verifica que pantalla completa cubra físicamente el escritorio y conserve resolución y clics. Solo se omite la confirmación del indicador EWMH de pantalla completa, que necesita ese gestor; se identifica como SKIP, no como prueba pasada.
 
@@ -305,3 +305,18 @@ inventar niveles, misiones ni recompensas.
 Los árboles recuperan sus líneas estructurales negras originales a un píxel
 de raster, sin modificar su silueta. La armadura de hojas ahora tiene una
 cobertura continua sobre todo el torso y los hombros, animada junto al cuerpo.
+
+### Cursor en Windows
+
+En Windows la mira se dibuja dentro de cada ventana, con las mismas coordenadas
+del viewport que reciben los botones y la selección del mundo. Conserva el PNG
+y su centro, con 24 píxeles de alto en pantalla independientemente de la
+resolución, el HUD o el zoom. Se oculta el cursor nativo para evitar dos miras.
+La confirmación de Nueva partida tiene su propia capa porque es otra ventana;
+solo la ventana con foco muestra la mira. Linux conserva el cursor nativo.
+
+`tests/software_cursor.gd` comprueba los bordes de los botones con el modo de
+cursor dibujado y la confirmación en una ventana separada.
+`tests/cursor_alignment.gd` comprueba el centro renderizado con cambios de escala,
+resolución, cámara y transformaciones. Estas comprobaciones se ejecutan en Linux;
+el desfase comunicado en Windows requiere verificar la nueva versión allí.

@@ -1,0 +1,28 @@
+extends "res://tests/native_menu_input.gd"
+const Overlay = preload("res://scripts/cursor_overlay.gd")
+func run() -> void:
+	require(not Overlay.use_native_cursor("Windows","Windows"),"Windows uses the GUI-coordinate cursor")
+	require(Overlay.use_native_cursor("Linux","X11"),"Linux retains its native cursor")
+	root.get_node("GameCursor").enable_canvas_cursor()
+	var app = load("res://scenes/day_zero.tscn").instantiate(); root.add_child(app)
+	for mode in [Window.CONTENT_SCALE_MODE_VIEWPORT,Window.CONTENT_SCALE_MODE_CANVAS_ITEMS]:
+		root.size = Vector2i(1280,720); root.content_scale_size = Vector2i(1920,1080)
+		root.content_scale_mode = mode; await settle()
+		await boundaries(app.menu.play_button); await boundaries(app.menu.settings_button)
+		require(Input.mouse_mode == Input.MOUSE_MODE_HIDDEN,"Only the canvas cursor is visible")
+	app.menu.set_saved_available(true); await click(app.menu.play_button); await settle()
+	var popup: Window = app.menu.confirmation
+	require(popup.visible and popup.has_meta("day_zero_canvas_cursor"),"Native confirmation has its own viewport cursor")
+	var cancel: Button = app.menu.confirmation.get_cancel_button()
+	var expected: Vector2 = cancel.get_global_transform_with_canvas()*(cancel.size/2)
+	var screen: Vector2 = popup.get_final_transform()*expected+Vector2(popup.position)
+	var args := PackedStringArray([ProjectSettings.globalize_path("res://tests/native_pointer.py"),str(DisplayServer.window_get_native_handle(DisplayServer.WINDOW_HANDLE,popup.get_window_id())),str(roundi(screen.x)),str(roundi(screen.y))])
+	require(OS.execute("python3",args) == 0,"OS pointer reaches the separate confirmation")
+	await settle()
+	require(popup.gui_get_hovered_control() == cancel,"Confirmation button matches its own cursor coordinates")
+	require(popup.get_mouse_position().distance_to(expected) < 2,"Popup cursor follows its own viewport")
+	popup.hide(); app.new_game(); app.game.set_process(false)
+	app.game.inventory_panel.open_section(0); await settle()
+	await boundaries(app.game.inventory_panel.backpack_buttons[0])
+	print("%s: %d software cursor/menu/popup checks, %d failures" % ["PASS" if failures == 0 else "FAIL",checks,failures])
+	quit(1 if failures else 0)
