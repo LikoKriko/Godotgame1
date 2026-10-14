@@ -24,6 +24,8 @@ var visual_override: Dictionary = {}
 var tool_material: ShaderMaterial
 var bow_ends: Array[Vector3] = []
 var view_direction := 0
+# Optional world-facing sample for a real 3D view; sprite authoring keeps its default.
+var pose_direction_override := -2
 var arrow_tip := Vector3.ZERO
 var tool_tip := Vector3.ZERO
 var tool_cutting_axis := Vector3.ZERO
@@ -215,8 +217,8 @@ func place_tool(data: Dictionary,grip: Vector3,shaft: Vector3,actor_basis: Basis
 func build(item: StringName,family: StringName,state: StringName,phase: float,direction: int,stop_phase: float = 0.20,stop_amplitude: float = 1.0) -> void:
 	view_direction = posmod(direction,16)
 	if state == &"draw": state = &"action"; phase *= 0.44
-	var pose := Pose.sample(family,state,phase,stop_phase,stop_amplitude,direction)
-	if state == &"action" and (phase <= 0 or phase >= 1): pose = Pose.sample(family,&"idle",0,0.20,1.0,direction)
+	var pose := Pose.sample(family,state,phase,stop_phase,stop_amplitude,pose_direction_override if pose_direction_override >= -1 else direction)
+	if state == &"action" and (phase <= 0 or phase >= 1): pose = Pose.sample(family,&"idle",0,0.20,1.0,pose_direction_override if pose_direction_override >= -1 else direction)
 	last_pose = pose
 	var yaw := PI/2-direction*TAU/16
 	var actor_basis := Basis(Vector3.UP,yaw)

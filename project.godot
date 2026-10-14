@@ -2,11 +2,11 @@ config_version=5
 
 [application]
 config/name="Day Zero"
-run/main_scene="res://scenes/day_zero.tscn"
+run/main_scene="res://scenes/prototype_3d/day_zero_3d.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [autoload]
-GameCursor="*res://scripts/cursor_overlay.gd"
+; The isolated 3D prototype captures the mouse; the 2D scene restores its own cursor.
 
 [display]
 window/size/viewport_width=1920

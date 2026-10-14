@@ -1,0 +1,39 @@
+# Prototipo 3D de Day Zero
+
+Esta primera prueba vive en `prototype/third-person-3d`. `main` conserva el juego
+2D. Descargar el ZIP **después de seleccionar esta rama**, importar
+`project.godot` en Godot 4.7.2 y ejecutar con F5.
+
+La escena inicial es `scenes/prototype_3d/day_zero_3d.tscn`. Incluye:
+
+- Personaje con cuerpo y ropa de superficies continuas, cabeza, cabello y rostro
+  con volumen. Conserva los colores, pantalones, barba y marca azul del diseño.
+- Hacha sólida con madera partida, cuerda cruzada y hoja de piedra extruida.
+- Cámara en perspectiva sobre el hombro derecho, inspirada en la vista de
+  Deadlock. El ratón gira cámara y orientación del personaje; WASD mueve respecto
+  a la cámara. Una esfera detecta paredes y árboles y acerca la cámara.
+- Caminata, carrera, salto básico y animaciones de sacar y usar el hacha.
+- Árboles con tronco, ramas, raíces y copa. Tres golpes cercanos, apuntando con
+  la mira al tronco, entregan cuatro unidades de madera al inventario existente.
+- Sombras 3D reales y un suelo que reutiliza la textura del terreno actual.
+
+**Controles:** WASD, ratón, Shift para correr, Espacio para saltar, 1 para alternar
+hacha/manos, clic para talar, Esc para pausa y liberar el ratón. Desde pausa puede
+abrirse la escena 2D original. Este prototipo no escribe ni modifica partidas 2D.
+
+Los modelos son una primera base para probar volumen, cámara y movimiento;
+todavía no representan la migración completa del juego. Inventario visual,
+campamento, criaturas, crafteo, guardado y generación del mundo se trasladarán
+tras revisar esta base.
+
+## Arquitectura
+
+`scripts/prototype_3d/` separa mundo, controlador físico, cámara y modelos.
+`survivor_model.gd` reutiliza anatomía e IK de `tools/continuous_actor.gd`; cambia
+la cabeza plana y las herramientas por superficies 3D y muestrea las poses sin
+correcciones dependientes de las direcciones de la cámara 2D. Una caché de 64
+poses limita memoria. La escala es 1,8 metros / 64 unidades del dibujo original.
+
+Cámara: distancia 3,6 m, hombro 0,60 m, FOV 75°, sensibilidad 0,0025 rad/píxel,
+inclinación −60° a +65°. Personaje: caminar 2 m/s y correr ×1,6. Árboles: tres
+impactos y alcance máximo de 2,4 m. Estos parámetros están en los controladores.
