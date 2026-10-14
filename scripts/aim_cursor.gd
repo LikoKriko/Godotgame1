@@ -10,9 +10,9 @@ func _ready() -> void:
 	cursor = load("res://assets/ui/cursor.png")
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/ui/cursor.json"))
 	hotspot = Vector2(data.hotspot[0],data.hotspot[1])
-	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+	if Input.mouse_mode != Input.MOUSE_MODE_HIDDEN: Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 func _process(_delta: float) -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
+	if Input.mouse_mode != Input.MOUSE_MODE_HIDDEN: Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 	queue_redraw()
 func _draw() -> void:
 	if cursor == null: return

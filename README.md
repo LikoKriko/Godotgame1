@@ -327,3 +327,8 @@ no solo la activación posterior, y comprueba que la capa tenga su dibujo real.
 Se han limpiado los avisos de GDScript comunicados para Godot 4.7.2: divisiones
 enteras explícitas, nombres locales sin conflictos, llamadas estáticas desde
 sus scripts y expresiones con tipos compatibles, sin desactivar advertencias.
+
+Los textos emergentes nativos y otras ventanas sin foco quedan fuera de la
+instalación del cursor dibujado. El modo del ratón se cambia solo si es necesario.
+`tests/cursor_shift_transfer.gd` verifica transferencias con Shift + clic real,
+con textos emergentes, y conserva la transformación de ventana y los clics.

@@ -12,6 +12,9 @@ x11.XFlush.argtypes = [ctypes.c_void_p]
 x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
 xtest.XTestFakeMotionEvent.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_ulong]
 xtest.XTestFakeButtonEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
+xtest.XTestFakeKeyEvent.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_int, ctypes.c_ulong]
+x11.XKeysymToKeycode.argtypes = [ctypes.c_void_p, ctypes.c_ulong]
+x11.XKeysymToKeycode.restype = ctypes.c_uint
 display = x11.XOpenDisplay(None)
 if not display:
     raise SystemExit("X11 display required")
@@ -55,7 +58,12 @@ window, x, y = map(int, sys.argv[1:4])
 x11.XRaiseWindow(display, window)
 x11.XSetInputFocus(display, window, 2, 0)
 xtest.XTestFakeMotionEvent(display, -1, x, y, 0)
+shift = len(sys.argv) > 5 and sys.argv[5] == "shift"
+if shift:
+    xtest.XTestFakeKeyEvent(display, x11.XKeysymToKeycode(display, 0xFFE1), 1, 0)
 if len(sys.argv) > 4:
     xtest.XTestFakeButtonEvent(display, 1, int(sys.argv[4]), 0)
+if shift:
+    xtest.XTestFakeKeyEvent(display, x11.XKeysymToKeycode(display, 0xFFE1), 0, 0)
 x11.XFlush(display)
 x11.XCloseDisplay(display)

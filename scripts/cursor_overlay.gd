@@ -23,6 +23,9 @@ func window_added(node: Node) -> void:
 	if node is Window: install_canvas_cursor.call_deferred(node)
 func install_canvas_cursor(window: Window) -> void:
 	if not is_instance_valid(window) or window.has_meta("day_zero_canvas_cursor"): return
+	# Tooltips and other noninteractive native windows must remain engine-owned.
+	# Adding a drawing canvas while they open/close can disturb their window state.
+	if window.get_flag(Window.FLAG_NO_FOCUS): return
 	window.set_meta("day_zero_canvas_cursor",true)
 	var overlay := CanvasLayer.new(); overlay.name = "DayZeroCursor"; overlay.layer = 4096; window.add_child(overlay)
 	overlay.add_child(preload("res://scripts/aim_cursor.gd").new())
