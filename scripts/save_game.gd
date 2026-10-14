@@ -3,6 +3,7 @@ extends RefCounted
 ## atomically so interruption during writing leaves the last good game intact.
 const PATH := "user://day_zero_save.cfg"
 const VERSION := 5
+const Inventory = preload("res://scripts/inventory.gd")
 
 static func capture(game) -> Dictionary:
 	var remaining := {}
@@ -11,7 +12,7 @@ static func capture(game) -> Dictionary:
 	for cell in game.resources.nodes:
 		remaining[cell] = game.resources.nodes[cell]["remaining"]
 	return {
-		"version": VERSION, "seed": game.world.seed_value, "combat": game.enemies.capture_state(),
+		"version": VERSION, "seed": game.world.seed_value, "workbenches":game.workbenches.snapshot(), "unlocked_recipes":game.bag.unlocked_recipes.duplicate(), "combat": game.enemies.capture_state(),
 		"hut": game.hut.snapshot(), "rock_support":game.rock_support, "player": game.player, "heading": game.movement.heading,
 		"resources": remaining, "collected": game.resources.inventory.duplicate(),
 		"slots": game.bag.slots.duplicate(true), "equipment": game.bag.equipment.duplicate(true), "next_uid": game.bag.next_uid,
@@ -118,6 +119,13 @@ static func migrate_held_tool(data: Dictionary) -> Dictionary:
 	return data
 
 static func valid(data: Dictionary) -> bool:
+	if not preload("res://scripts/workbenches.gd").valid_snapshot(data.get("workbenches",[])): return false
+	var recipes = data.get("unlocked_recipes",[])
+	if not recipes is Array or recipes.size() > Inventory.DEFINITIONS.size(): return false
+	var recipe_ids := {}
+	for recipe in recipes:
+		if not (recipe is String or recipe is StringName) or not Inventory.DEFINITIONS.has(StringName(recipe)) or recipe_ids.has(StringName(recipe)): return false
+		recipe_ids[StringName(recipe)] = true
 	if data.has("hut") and not preload("res://scripts/hut.gd").valid_snapshot(data.hut): return false
 	if not preload("res://scripts/enemy_manager.gd").valid_state(data.get("combat",{})): return false
 	for key in ["version", "seed", "player", "heading", "resources", "collected", "slots", "equipment", "next_uid", "experience", "level", "points", "skills", "perks", "active", "cooldowns", "health", "day", "hour", "calories", "hydration", "water_today"]:
@@ -146,6 +154,8 @@ static func valid(data: Dictionary) -> bool:
 		if not valid_item(item,uids): return false
 	for uid in uids:
 		if uid >= data.next_uid: return false
+	for table in data.get("workbenches",[]):
+		if table.uid >= data.next_uid or uids.has(table.uid): return false
 	var Progress = preload("res://scripts/progression.gd")
 	for pair in [["skills", Progress.SKILLS, Progress.SKILL_LIMIT], ["perks", Progress.PERKS, Progress.PERK_LIMIT]]:
 		if not data[pair[0]] is Dictionary or data[pair[0]].size() != pair[1].size(): return false
@@ -211,6 +221,8 @@ static func restore(game, data: Dictionary) -> bool:
 	elif not trial.bounds.grow(-trial.PLAYER_RADIUS).has_point(data.player): return false
 	var combat: Dictionary = data.get("combat",{})
 	if not combat.is_empty() and not combat.enemy.is_empty() and not trial.bounds.grow(-9).has_point(combat.enemy.position): return false
+	for table in data.get("workbenches",[]):
+		if not trial.bounds.grow(-16).encloses(preload("res://scripts/workbenches.gd").collider(table.point)): return false
 	for child in combat.get("additional",[]):
 		if not child.enemy.is_empty() and not trial.bounds.grow(-9).has_point(child.enemy.position): return false
 	for cell in data.resources:
@@ -252,6 +264,8 @@ static func restore(game, data: Dictionary) -> bool:
 	game.hut.inside = indoors
 	if data.has("hut"): game.hut.outside_player = data.hut.outside_player if game.world.walkable(data.hut.outside_player) else game.hut.door
 	game.enemies.restore_state(combat)
+	game.workbenches.restore(data.get("workbenches",[]))
+	game.bag.unlocked_recipes = data.get("unlocked_recipes",Inventory.DEFAULT_RECIPES).duplicate()
 	if data.get("rock_support") is Vector2i and game.world.props.get(data.rock_support) == 1 and game.world.physical_height(data.rock_support) <= game.world.JUMP_LIMIT and game.world.prop_collisions[data.rock_support].grow(game.world.PLAYER_RADIUS).has_point(data.player+Vector2(0,17)):
 		game.rock_support = data.rock_support; game.player = data.player
 	game.update_ground_support()

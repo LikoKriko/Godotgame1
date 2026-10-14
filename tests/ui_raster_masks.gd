@@ -29,7 +29,7 @@ func run():
  var panel = game.inventory_panel.content.get_child(0)
  require(panel.get_theme_stylebox("panel").edge == 24,"Inventory frame is three times the old eight-unit border")
  var tabs = game.inventory_panel.navigation
- require(tabs.position.y == 32 and tabs.buttons[0].position.y == 0,"Tabs sit eight pixels inside the enlarged top border")
+ require(tabs.position.y == 16 and tabs.buttons[0].position.y == 0,"Tabs sit a few pixels below the visible enlarged top border")
  var clock = preload("res://scripts/day_cycle.gd").new()
  for hour in [7.0,9.0,13.0,17.0,19.0]:
   clock.hour = hour; var sun := clock.sun_state()

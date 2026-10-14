@@ -15,6 +15,8 @@ var water: Label
 var clock: Label
 var weight: Label
 var level_label: Label
+var placement_bar: Panel
+var placement_fill: ColorRect
 var quick_bar: Control
 var skill_bar: Control
 var map_frame: Control
@@ -58,6 +60,13 @@ func configure(owner_game) -> void:
 	quick_layer.layer = 9
 	add_child(quick_layer)
 	quick_bar.reparent(quick_layer,false)
+	placement_bar = Panel.new(); placement_bar.position = Vector2(80,-30); placement_bar.size = Vector2(260,22)
+	placement_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	placement_bar.add_theme_stylebox_override("panel",preload("res://scripts/ui_style.gd").frame(&"game",true,6))
+	quick_bar.add_child(placement_bar)
+	placement_fill = ColorRect.new(); placement_fill.color = Color("c9e5b3")
+	placement_fill.position = Vector2(6,6); placement_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	placement_bar.add_child(placement_fill); placement_bar.hide()
 	for i in 6:
 		var button := framed_button("",Rect2(),quick_bar,true)
 		button.game = game; button.kind = &"quick"; button.slot = i
@@ -260,6 +269,9 @@ func refresh() -> void:
 		skill_buttons[i].tooltip_text = game.progression.SKILLS[id].name
 
 func _process(delta: float) -> void:
+	if game.workbenches != null:
+		placement_bar.visible = game.workbenches.placing()
+		placement_fill.size = Vector2(248*(1-game.workbenches.remaining/3.0),10)
 	quick_bar.visible = not game.world_map.visible
 	refresh_elapsed += delta
 	if refresh_elapsed >= 0.1:

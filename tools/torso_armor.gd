@@ -4,7 +4,8 @@ extends RefCounted
 const GUIDE = preload("res://assets/items/burdock_armor_guide.png")
 const PROFILES := {
 	&"burdock_armor": {"texture":GUIDE,"crop":Rect2(1080,290,368,634), "rings":[
-		[24.5,7.5,4.0],[28.5,7.8,4.2],[34.0,7.1,4.2],[40.0,9.0,4.8],[44.2,8.2,4.3],[46.0,6.9,3.4]
+		[24.5,7.8,4.2],[28.5,8.0,4.4],[34.0,7.8,4.6],[40.0,9.6,5.0],
+		[44.2,10.3,4.8],[46.0,10.0,4.3],[47.6,8.9,3.8],[49.0,2.7,2.2]
 	]}
 }
 static var textures: Dictionary = {}
@@ -18,6 +19,7 @@ static func texture_for(id: StringName) -> Texture2D:
 
 static func append(surface: SurfaceTool, torso: Transform3D, id: StringName) -> void:
 	var rings: Array = PROFILES[id].rings
+	append_backing(surface,torso,rings)
 	for row in rings.size()-1:
 		for column in 24:
 			var points: Array[Vector3] = []
@@ -28,9 +30,22 @@ static func append(surface: SurfaceTool, torso: Transform3D, id: StringName) -> 
 				var point := Vector3(sin(angle)*float(ring[1]),float(ring[0]),cos(angle)*float(ring[2]))
 				points.append(torso*point)
 				# Both sides receive the same leaf weave; side panels wrap continuously.
-				uv.append(Vector2(0.5+sin(angle)*0.49,1-(point.y-24.5)/(46.0-24.5)))
+				uv.append(Vector2(0.5+sin(angle)*0.49,1-(point.y-24.5)/(49.0-24.5)))
 			for corner in [0,1,2,0,2,3]:
 				surface.set_uv(Vector2(5,0))
 				surface.set_uv2(uv[corner])
 				surface.set_color(Color.WHITE)
 				surface.add_vertex(points[corner])
+
+static func append_backing(surface: SurfaceTool, torso: Transform3D, rings: Array) -> void:
+	# The woven frame under the leaves follows the same complete torso and
+	# shoulder shell. Texture cut-outs expose cordage, not uncovered chest skin.
+	for row in rings.size()-1:
+		for column in 24:
+			var points: Array[Vector3] = []
+			for corner in [[row,column],[row+1,column],[row+1,column+1],[row,column+1]]:
+				var ring: Array = rings[corner[0]]; var angle: float = corner[1]*TAU/24
+				points.append(torso*Vector3(sin(angle)*(float(ring[1])-0.2),float(ring[0]),cos(angle)*(float(ring[2])-0.2)))
+			for corner in [0,1,2,0,2,3]:
+				surface.set_uv(Vector2.ZERO); surface.set_uv2(Vector2.ZERO)
+				surface.set_color(Color8(92,72,41)); surface.add_vertex(points[corner])

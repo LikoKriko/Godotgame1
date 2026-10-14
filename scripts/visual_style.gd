@@ -9,7 +9,9 @@ const CACHE_LIMIT := 512
 
 static func normalized(texture: Texture2D,world_size: Vector2,outline: bool = true,clear_black: bool = false,resolution_factor: float = 1.0) -> Texture2D:
 	var target := Vector2i(maxi(3,roundi(world_size.x*PIXELS_PER_WORLD*resolution_factor)),maxi(3,roundi(world_size.y*PIXELS_PER_WORLD*resolution_factor)))
-	var key := "%s:%s:%s:%s" % [texture.get_rid().get_id(),target,outline,clear_black]
+	var atlas := texture as AtlasTexture
+	var crop := str(atlas.region)+":"+str(atlas.margin) if atlas != null else ""
+	var key := "%s:%s:%s:%s:%s" % [texture.get_rid().get_id(),crop,target,outline,clear_black]
 	if cache.has(key): return cache[key]
 	var source := texture.get_image()
 	# AtlasTexture.get_image returns its own isolated region.

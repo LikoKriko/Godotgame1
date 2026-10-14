@@ -437,7 +437,7 @@ func build_sections() -> void:
 		empty.position = Vector2(110,190); page.add_child(empty); sections.append(page)
 
 	navigation = preload("res://scripts/inventory_tabs.gd").new()
-	navigation.position = Vector2(82,32); content.add_child(navigation); navigation.configure()
+	navigation.position = Vector2(82,16); content.add_child(navigation); navigation.configure()
 	craft_button = navigation.buttons[1]
 	navigation.tab_changed.connect(select_section); select_section(0)
 

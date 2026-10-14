@@ -42,6 +42,7 @@ var world = preload("res://scripts/test_world.gd").new()
 var terrain = world.terrain
 var world_view: Node2D
 var hut: Node2D
+var workbenches: Node2D
 var world_map: Control
 var item_catalog: Control
 var previously_airborne := false
@@ -115,6 +116,7 @@ func _ready() -> void:
 	combat_effects.game = self; combat_effects.z_index = 2; add_child(combat_effects)
 	enemies.configure(self)
 	hut = preload("res://scripts/hut.gd").new(); add_child(hut); hut.configure(self)
+	workbenches = preload("res://scripts/workbenches.gd").new(); add_child(workbenches); workbenches.configure(self,canvas)
 	restart()
 	fit_hud()
 	styled_hud = preload("res://scripts/styled_hud.gd").new()
@@ -123,6 +125,7 @@ func _ready() -> void:
 	canvas.move_child(inventory_panel,canvas.get_child_count()-1)
 	canvas.move_child(world_map,canvas.get_child_count()-1)
 	canvas.move_child(item_catalog,canvas.get_child_count()-1)
+	canvas.move_child(workbenches.window,canvas.get_child_count()-1)
 
 func consume_item(index: int, quick: bool = false) -> void:
 	var result: Dictionary = nutrition.consume(bag,index,quick)
@@ -142,6 +145,7 @@ func fit_hud() -> void:
 	if styled_hud != null: styled_hud.fit()
 
 func restart() -> void:
+	if workbenches != null: workbenches.reset()
 	running = false
 	locomotion.reset()
 	interaction_motion.reset()
@@ -230,27 +234,30 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not event.is_pressed() or event.is_echo():
 		return
 	if event.keycode == KEY_ESCAPE:
+		if workbenches.placing():
+			workbenches.cancel_placement(); get_viewport().set_input_as_handled(); return
 		menu_requested.emit()
 		get_viewport().set_input_as_handled()
 		return
 	if event.keycode == KEY_K:
 		cancel_work(); inventory_panel.hide(); world_map.hide()
-		item_catalog.open_catalog(); get_viewport().set_input_as_handled(); return
+		workbenches.window.hide(); item_catalog.open_catalog(); get_viewport().set_input_as_handled(); return
 	if event.keycode == KEY_M:
 		cancel_work()
 		item_catalog.hide()
 		inventory_panel.hide()
-		world_map.open_map()
+		workbenches.window.hide(); world_map.open_map()
 		get_viewport().set_input_as_handled()
 		return
 	if event.keycode in [KEY_I,KEY_T,KEY_TAB]:
 		cancel_work()
 		item_catalog.hide()
 		world_map.hide()
+		workbenches.window.hide()
 		inventory_panel.open_section(1 if event.keycode == KEY_T else (2 if event.keycode == KEY_TAB else 0))
 		update_hud()
 		return
-	if inventory_panel.visible or world_map.visible or item_catalog.visible:
+	if workbenches.window.visible or inventory_panel.visible or world_map.visible or item_catalog.visible:
 		return
 	if event.keycode == KEY_E:
 		interact_at(cursor_world_position()); get_viewport().set_input_as_handled(); return
@@ -281,13 +288,15 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	update_hud()
 
 func is_paused() -> bool:
-	return menu_open or inventory_panel.visible or world_map.visible or (item_catalog != null and item_catalog.visible)
+	return menu_open or (workbenches != null and workbenches.window.visible) or inventory_panel.visible or world_map.visible or (item_catalog != null and item_catalog.visible)
 
 func cursor_world_position() -> Vector2:
 	return get_canvas_transform().affine_inverse()*preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
 
 func _unhandled_input(event: InputEvent) -> void:
 	if is_paused() or not event is InputEventMouseButton or not event.pressed or event.button_index != MOUSE_BUTTON_LEFT: return
+	if bag.held_id() == &"basic_workbench":
+		workbenches.begin_placement(cursor_world_position()); get_viewport().set_input_as_handled(); return
 	if bag.held_id() == &"botella":
 		var location: Dictionary = bag.location(bag.active_quick_uid)
 		if location.get("kind") == &"quick": consume_item(location.index,true)
@@ -295,6 +304,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func interact_at(aim: Vector2) -> bool:
 	if is_paused() or progression.health <= 0 or locomotion.airborne() or locomotion.sliding() or interaction_motion.picking_up(): return false
+	if workbenches != null and workbenches.interact(aim): return true
 	if hut != null and hut.interact(): return true
 	if hut != null and hut.inside:
 		feedback = "Acércate a la puerta para salir con E."; feedback_time = 2; return false
@@ -419,7 +429,7 @@ func _process(delta: float) -> void:
 	focused = resources.target_at(aim)
 	var hovered := get_viewport().gui_get_hovered_control()
 	var over_hud: bool = hovered != null and styled_hud != null and styled_hud.is_ancestor_of(hovered)
-	var pressed := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not over_hud and bag.held_category() != &"bottle"
+	var pressed := Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not over_hud and bag.held_category() not in [&"bottle",&"workbench"]
 	if over_hud: focused = resources.NONE
 	if direction == Vector2.ZERO and not working and not equipping and pressed:
 		start_work(aim)
@@ -432,6 +442,7 @@ func _process(delta: float) -> void:
 	interaction.text = feedback if feedback_time > 0 else ""
 
 func cancel_work() -> void:
+	if workbenches != null: workbenches.cancel_placement()
 	bow_draw_uid = -1
 	working = false
 	work_elapsed = 0.0
@@ -565,6 +576,7 @@ func clear_combat_path(target: Vector2) -> bool:
 	return true
 
 func move_player(direction: Vector2, delta: float) -> void:
+	if workbenches != null and workbenches.placing(): return
 	var velocity: Vector2 = movement.step(direction, delta, 70.0*progression.speed_multiplier()*nutrition.speed_multiplier()*(RUN_MULTIPLIER if running else 1.0))
 	if locomotion.sliding():
 		movement.step(locomotion.slide_direction,delta,220)

@@ -1,5 +1,10 @@
 extends RefCounted
 const RECIPES := {
+	&"sword": {&"palo":2,&"piedra":1,&"cuerda":1},
+	&"bow": {&"palo":1,&"cuerda":2},
+	&"leaf_boots": {&"cuerda":2,&"hoja_bardana":4},
+	&"leaf_helmet": {&"hoja_bardana":2,&"cuerda":1},
+	&"basic_workbench": {&"palo":12,&"cuerda":5},
 	&"pickaxe": {&"piedra": 2, &"palo": 2, &"cuerda": 1},
 	&"axe": {&"piedra": 1, &"palo": 2, &"cuerda": 1},
 	&"cuerda": {&"fibra": 3},
@@ -7,7 +12,7 @@ const RECIPES := {
 	&"botella": {&"cuero":3,&"hilo":1},
 	&"flecha": {&"palo":1,&"piedra":1,&"cuerda":1},
 }
-const CREATION_TIMES := {&"pickaxe":2.0,&"axe":2.0,&"cuerda":2.0,&"burdock_armor":2.0,&"botella":2.0,&"flecha":2.0}
+const CREATION_TIMES := {&"pickaxe":2.0,&"axe":2.0,&"cuerda":2.0,&"burdock_armor":2.0,&"botella":2.0,&"flecha":2.0,&"sword":2.0,&"bow":2.0,&"leaf_boots":2.0,&"leaf_helmet":2.0,&"basic_workbench":2.0}
 const OUTPUT_COUNTS := {&"flecha":5}
 const REPAIRS := {
 	&"pickaxe": {&"piedra": 1, &"palo": 1},
@@ -26,9 +31,11 @@ static func affordable(bag, cost: Dictionary) -> bool:
 			return false
 	return true
 
-static func craft(bag, id: StringName) -> String:
+static func craft(bag, id: StringName, station_level: int = 0) -> String:
 	if not RECIPES.has(id):
-		return "No hay receta para ese objeto."
+		return "La receta todavía no está definida."
+	if id not in bag.unlocked_recipes: return "Esta receta no está desbloqueada."
+	if station_level < required_station(bag,id): return "Necesitas una mesa de fabricación básica."
 	if not affordable(bag,RECIPES[id]):
 		return "Faltan materiales."
 	# Consume and add in a trial backpack: a failed craft never loses inputs,
@@ -57,3 +64,19 @@ static func repair(bag, uid: int) -> String:
 		bag.remove_amount(material,cost[material])
 	item["uses"] = maximum
 	return ""
+
+static func required_station(bag, id: StringName) -> int:
+	return required_station_for(bag.DEFINITIONS.get(id,{}))
+
+static func required_station_for(definition: Dictionary) -> int:
+	var nonbasic_tool: bool = definition.get("slot",&"") == &"tool" and definition.get("category",&"") not in [&"bottle",&"workbench"] and not definition.get("basic_tool",false)
+	return maxi(1 if nonbasic_tool else 0,int(definition.get("required_station",0)))
+
+static func recipe_ids(bag, station_level: int = 0) -> Array:
+	var result := []
+	for id in bag.unlocked_recipes:
+		if not bag.DEFINITIONS.has(id) or (not RECIPES.has(id) and id != &"cuero"): continue
+		if required_station(bag,id) > station_level: continue
+		if station_level > 0 and id == &"basic_workbench": continue
+		result.append(id)
+	return result

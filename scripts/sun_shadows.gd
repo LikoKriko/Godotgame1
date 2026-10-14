@@ -106,11 +106,12 @@ func update_sun(state: Dictionary) -> void:
 	enemy_projection.queue_redraw()
 	var camera_position: Vector2 = game.camera.get_screen_center_position()
 	var impacts: bool = not game.world_view.impulses.is_empty()
-	if direction.distance_to(last_direction) > 0.00025 or absf(stretch-last_stretch) > 0.001 or camera_position.distance_to(last_camera) > 64 or game.world.props.size() != last_prop_count or impacts or had_impulses:
+	var object_count: int = game.world.props.size()+(game.workbenches.tables.size() if game.workbenches != null else 0)
+	if direction.distance_to(last_direction) > 0.00025 or absf(stretch-last_stretch) > 0.001 or camera_position.distance_to(last_camera) > 64 or object_count != last_prop_count or impacts or had_impulses:
 		last_direction = direction
 		last_stretch = stretch
 		last_camera = camera_position
-		last_prop_count = game.world.props.size()
+		last_prop_count = object_count
 		had_impulses = impacts
 		prop_redraws += 1
 		queue_redraw()
@@ -180,6 +181,15 @@ func _draw() -> void:
 		var base := transform*Vector2(texture.get_width()/2.0,texture.get_height())
 		draw_set_transform_matrix(projection(base)*transform)
 		draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
+	if game.workbenches != null:
+		for table in game.workbenches.tables:
+			var sprite: Sprite2D = table.sprite
+			var info := shadow_info(sprite.texture,6)
+			var texture: Texture2D = info.texture
+			var transform := sprite.global_transform
+			var base := transform*Vector2(texture.get_width()/2.0,texture.get_height())
+			draw_set_transform_matrix(projection(base)*transform)
+			draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 
 func add_enemy_projection(creature: Node2D) -> void:

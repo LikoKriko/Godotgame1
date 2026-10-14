@@ -92,7 +92,7 @@ func presentation(cell: Vector2i) -> Dictionary:
 	elif kind == 5:
 		dimensions = Vector2(32*texture.get_width()/texture.get_height(),32)
 		tint = Color.WHITE
-	texture = Style.normalized(texture,dimensions,true,kind == 1,0.9 if kind == 1 else 1.0)
+	texture = preload("res://scripts/tree_art.gd").texture(texture,dimensions) if kind == 2 else Style.normalized(texture,dimensions,true,kind == 1,0.9 if kind == 1 else 1.0)
 	var result := {"texture": texture, "size": dimensions, "tint": tint, "rect": Rect2(center + Vector2(-dimensions.x/2, (60 if large else 26)-dimensions.y), dimensions)}
 	presentation_cache[cell] = result
 	return result

@@ -1,6 +1,7 @@
 extends Button
 const Frame = preload("res://scripts/ui_frame.gd")
 @export var minimum_left_padding := 0.0
+@export var icon_display_width := 0.0
 @export var fit_horizontal := Control.SIZE_SHRINK_CENTER
 ## The visible rectangle is the complete hit area: no expansion or offset.
 func _has_point(point: Vector2) -> bool:
@@ -20,6 +21,7 @@ func fit_text() -> void:
 	var metrics := font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size)
 	if icon != null:
 		var width := minf(icon.get_width(),get_theme_constant("icon_max_width")) if get_theme_constant("icon_max_width") > 0 else float(icon.get_width())
+		if icon_display_width > 0: width = icon_display_width
 		metrics.x += width+get_theme_constant("h_separation")
 		metrics.y = maxf(metrics.y,width*icon.get_height()/icon.get_width())
 	custom_minimum_size = metrics+Vector2(maxf(padding,minimum_left_padding)+padding,padding*2)

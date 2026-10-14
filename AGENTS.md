@@ -1,6 +1,6 @@
 # Day Zero: regla visual permanente del usuario
 
-Todos los dibujos del juego deben usar contornos tan finos como los del personaje principal. Se aplica a personajes, animales, árboles, rocas, césped, objetos, armas, armaduras, materiales y a sus representaciones en inventario, fabricación, reparación y cualquier interfaz o mecánica futura. No incorporar nuevos dibujos con bordes gruesos.
+Todos los dibujos del juego deben usar contornos tan finos como los del personaje principal. Se aplica a personajes, animales, árboles, rocas, césped, objetos, armas, armaduras, materiales y a sus representaciones en inventario, fabricación, reparación y cualquier interfaz o mecánica futura. No incorporar nuevos dibujos con bordes gruesos. Excepción de interfaz solicitada por el usuario: el marco exterior del inventario tiene tres veces su grosor anterior, conservando las esquinas del sprite.
 
 El grosor de referencia es un píxel de la rasterización del personaje completo (192×192 por celda, ~1,5 píxeles de raster por unidad del mundo). El contorno escala con el dibujo y el zoom; no mantiene un ancho fijo en pantalla. Usar `scripts/visual_style.gd` para normalizar dibujos e iconos. La exportación del personaje y sus herramientas debe compartir esta política, evitando añadir dos contornos consecutivos. Eliminar solo el borde oscuro exterior grueso; preservar sombreado y detalles interiores.
 
@@ -24,3 +24,18 @@ No solucionar una orientación incorrecta con inversiones aisladas de frames o
 direcciones. La estela de la espada debe tomar la punta exportada en cada sprite.
 Revisar todas las direcciones y poses completas, también con armadura; validar
 agarres, oclusión, márgenes y continuidad antes de publicar los atlas.
+
+## Fabricación y vestimenta
+
+Toda herramienta o arma nueva que no sea básica necesita como mínimo una mesa
+de fabricación básica y no debe aparecer en Crear desde el inventario. Marcar
+las básicas mediante `basic_tool`; el requisito se comprueba también al fabricar,
+no solo en la interfaz. Las recetas de mesa deben respetar los desbloqueos.
+
+Conservar las líneas negras interiores finas de ramas, troncos y separaciones
+de hojas, tomando las ramitas como referencia. Normalizar el contorno exterior
+no debe borrar esas líneas ni aumentar su grosor.
+
+Las armaduras normales acompañan la transformación completa del torso; la de
+hojas cubre pecho, abdomen, espalda y hombros, dejando abierto el cuello. No
+recortar la cobertura a una pequeña pechera.

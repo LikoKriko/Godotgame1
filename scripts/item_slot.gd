@@ -45,4 +45,6 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 func crafting_locked() -> bool:
-	return game != null and game.inventory_panel != null and game.inventory_panel.creation_page != null and game.inventory_panel.creation_page.is_crafting()
+	if game == null: return false
+	if game.workbenches != null and (game.workbenches.placing() or game.workbenches.window.page.is_crafting()): return true
+	return game.inventory_panel != null and game.inventory_panel.creation_page != null and game.inventory_panel.creation_page.is_crafting()

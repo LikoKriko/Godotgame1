@@ -278,3 +278,30 @@ sin dibujar rectángulos por fuera; los iconos de ajustes y pausa tienen contorn
 Las sombras parten de la última fila visible del dibujo; el alargamiento adicional
 con sol bajo se reduce un 20%. La espada usa el mismo gesto anatómico en todas
 las direcciones, tomando la vista hacia la derecha como referencia.
+
+### Mesa de fabricación básica
+
+En Crear, fabrica la mesa con **12 palos y 5 m de cuerda**. Pásala a la barra
+rápida, selecciónala y haz clic sobre suelo libre cercano. El personaje permanece
+quieto durante **3 segundos** mientras se llena la barra verde sobre el acceso
+rápido. Esc cancela sin perder el objeto. Una colocación completa consume la
+mesa de la barra; su posición, colisión y sombra se conservan al guardar.
+
+Apunta a una parte visible de la mesa y pulsa **E** estando cerca para abrir
+su ventana. El primer tercio contiene las recetas desbloqueadas; el segundo,
+los materiales; el tercero, Crear. La mitad inferior de los dos últimos tercios
+se reserva para futuras animaciones. Las herramientas no básicas requieren
+como mínimo una mesa y quedan fuera de Crear del inventario; `basic_tool` y
+`required_station` documentan el requisito en las definiciones.
+
+Las recetas nuevas son: espada (2 palos, 1 piedra, 1 m de cuerda), arco (1 palo,
+2 m de cuerda), botas de hojas (4 hojas de bardana, 2 m de cuerda) y casco de
+hojas (2 hojas de bardana, 1 m de cuerda). El cuero aparece como receta pendiente
+y no se fabrica gratis. Botas y casco aún no tienen sprites propios. Todas
+estas creaciones tardan 2 segundos y conservan la reserva y cancelación existentes.
+Los desbloqueos se guardan; `bag.unlock_recipe(id)` permite ampliarlos sin
+inventar niveles, misiones ni recompensas.
+
+Los árboles recuperan sus líneas estructurales negras originales a un píxel
+de raster, sin modificar su silueta. La armadura de hojas ahora tiene una
+cobertura continua sobre todo el torso y los hombros, animada junto al cuerpo.

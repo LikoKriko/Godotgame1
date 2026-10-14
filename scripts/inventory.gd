@@ -2,10 +2,10 @@ extends RefCounted
 const CAPACITY := 32
 const EQUIPMENT_SLOTS := [&"head", &"torso", &"legs", &"hands", &"feet"]
 const DEFINITIONS := {
-	&"sword": {"name": "Espada", "slot": &"tool", "category": &"sword", "damage": 3.0, "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
-	&"bow": {"name": "Arco", "slot": &"tool", "category": &"bow", "damage": 3.0, "uses": 60, "stack": 1, "purpose": "Requiere flechas · un uso por tensado"},
-	&"pickaxe": {"name": "Pico", "slot": &"tool", "category": &"pickaxe", "damage": 1.0, "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
-	&"axe": {"name": "Hacha", "slot": &"tool", "category": &"axe", "damage": 1.0, "uses": 30, "stack": 1, "purpose": "Cortar árboles"},
+	&"sword": {"name": "Espada", "slot": &"tool", "category": &"sword", "basic_tool":true, "damage": 3.0, "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
+	&"bow": {"name": "Arco", "slot": &"tool", "category": &"bow", "basic_tool":true, "damage": 3.0, "uses": 60, "stack": 1, "purpose": "Requiere flechas · un uso por tensado"},
+	&"pickaxe": {"name": "Pico", "slot": &"tool", "category": &"pickaxe", "basic_tool":true, "damage": 1.0, "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
+	&"axe": {"name": "Hacha", "slot": &"tool", "category": &"axe", "basic_tool":true, "damage": 1.0, "uses": 30, "stack": 1, "purpose": "Cortar árboles"},
 	&"flecha": {"name":"Flecha básica","slot":&"","uses":-1,"stack":99,"purpose":"Munición para arcos · se consume una por disparo"},
 	&"madera": {"name": "Madera", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
 	&"mineral": {"name": "Mineral", "slot": &"", "uses": -1, "stack": 99, "purpose": "Material de fabricación"},
@@ -28,7 +28,12 @@ const DEFINITIONS := {
 	&"boots": {"name": "Botas", "slot": &"feet", "uses": 60, "stack": 1, "purpose": "Protección de pies"}
 	,&"hoja_bardana": {"name":"Hoja de bardana","slot":&"","uses":-1,"stack":99,"purpose":"Material para fabricar la primera armadura"}
 	,&"burdock_armor": {"name":"Armadura de hojas","slot":&"torso","uses":-1,"stack":1,"purpose":"Armadura tejida con hojas de bardana, fibra vegetal y cuerda."}
+	,&"leaf_boots": {"name":"Botas de hojas","slot":&"feet","uses":-1,"stack":1,"purpose":"Equipo de hojas; apariencia pendiente de su sprite."}
+	,&"leaf_helmet": {"name":"Casco de hojas","slot":&"head","uses":-1,"stack":1,"purpose":"Equipo de hojas; apariencia pendiente de su sprite."}
+	,&"basic_workbench": {"name":"Mesa de fabricación básica","slot":&"tool","category":&"workbench","uses":-1,"stack":1,"purpose":"Seleccionar en la barra rápida y colocar con clic · 3 segundos"}
 }
+const DEFAULT_RECIPES := [&"botella",&"pickaxe",&"axe",&"sword",&"bow",&"cuero",&"cuerda",&"flecha",&"burdock_armor",&"leaf_boots",&"leaf_helmet",&"basic_workbench"]
+var unlocked_recipes: Array = DEFAULT_RECIPES.duplicate()
 var slots: Array[Dictionary] = []
 var equipment: Dictionary = {}
 var next_uid := 1
@@ -39,6 +44,7 @@ var active_quick_uid := -1
 var held_tool: Dictionary = {}
 
 func reset() -> void:
+	unlocked_recipes = DEFAULT_RECIPES.duplicate()
 	quick_slots.assign([{},{},{},{},{},{}])
 	active_quick_uid = -1
 	held_tool = {}
@@ -234,6 +240,7 @@ func fork():
 	copy.active_quick_uid = active_quick_uid
 	copy.held_tool = held_tool.duplicate(true)
 	copy.next_uid = next_uid
+	copy.unlocked_recipes = unlocked_recipes.duplicate()
 	return copy
 
 func remove_amount(id: StringName, quantity: int) -> bool:
@@ -295,3 +302,6 @@ func can_harvest(material: String) -> bool:
 	if material in ["chatarra", "fibra", "hoja_bardana"]:
 		return held_id() == &""
 	return usable() and held_category() == (&"axe" if material == "madera" else &"pickaxe")
+
+func unlock_recipe(id: StringName) -> void:
+	if DEFINITIONS.has(id) and id not in unlocked_recipes: unlocked_recipes.append(id)
