@@ -30,7 +30,7 @@ func advance(delta: float) -> void:
 		if phase >= 0.18 and phase <= 0.60 and tip.is_finite():
 			if trail.is_empty() or trail.back().point.distance_to(tip) > 0.05: trail.append({"point":tip,"left":0.09})
 		trail_layer.z_as_relative = false
-		trail_layer.z_index = -1 if sin(game.movement.heading) <= 0 else 1
+		trail_layer.z_index = preload("res://scripts/world_depth.gd").layer(game.player.y+17)+(-1 if sin(game.movement.heading) <= 0 else 1)
 	if trail_layer != null and (had_trail or not trail.is_empty() or sword or had_sword): trail_layer.queue_redraw()
 	if dirty or sword or had_sword: queue_redraw()
 	had_sword = sword

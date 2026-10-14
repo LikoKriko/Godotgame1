@@ -15,7 +15,7 @@ func require(condition: bool,message: String) -> void:
 func run() -> void:
 	var clock = Cycle.new()
 	clock.hour = 23.9
-	require(clock.advance(12) == 1 and clock.day == 2 and is_equal_approx(clock.hour,0.1),"Midnight advances one day without discarding overflow time")
+	require(clock.advance(Cycle.DAY_SECONDS/120.0) == 1 and clock.day == 2 and is_equal_approx(clock.hour,0.1),"Midnight advances one day without discarding overflow time")
 	require(clock.advance(3*Cycle.DAY_SECONDS) == 3 and clock.day == 5,"Long frames count all elapsed days")
 	clock.reset()
 	require(clock.hour == 8 and clock.day == 1,"New game starts at 08:00 on day one")
@@ -86,6 +86,8 @@ func run() -> void:
 			break
 	require(game.inventory_panel.equip_button.text == "Comer" and not game.inventory_panel.equip_button.disabled,"Inventory exposes eating through its action button")
 	game.inventory_panel.equip_selected()
+	require(game.nutrition.calories_today == 0,"Eating does not consume before its animation ends")
+	game.life.advance(1.2)
 	require(game.nutrition.calories_today == 400,"Inventory action reaches the gameplay nutrition system")
 	game.restart()
 	require(game.day_cycle.day == 1 and game.day_cycle.hour == 8 and game.nutrition.calories_today == 0 and game.nutrition.hydration_ml == 2000,"Restart restores survival state")

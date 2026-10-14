@@ -7,13 +7,11 @@ func require(ok: bool,message: String):
  checks += 1
  if not ok: failures += 1; push_error(message)
 func _initialize():
- var source := preload("res://assets/environment/basic_forest_props.png")
  var restored := 0
- for region in [Rect2i(0,0,650,676),Rect2i(0,676,640,source.get_height()-676)]:
-  var texture := AtlasTexture.new(); texture.atlas = source
-  var used := source.get_image().get_region(region).get_used_rect(); texture.region = Rect2(region.position+used.position,used.size)
-  for height in [102.0,120.0,142.0,166.0,188.0]:
-   var dimensions := Vector2(height*texture.get_width()/texture.get_height(),height)
+ for design in 9:
+  var texture: Texture2D = preload("res://scripts/large_tree_art.gd").texture(design)
+  for multiplier in [1.0]:
+   var dimensions: Vector2 = preload("res://scripts/large_tree_art.gd").dimensions(design)*multiplier
    var picture := TreeArt.raster(texture,dimensions)
    var original := texture.get_image(); original.resize(picture.get_width(),picture.get_height(),Image.INTERPOLATE_NEAREST)
    var previous := Style.outlined(Style.clean_border(original))

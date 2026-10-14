@@ -59,6 +59,7 @@ func build_game(restoring: bool, seed_value: int) -> void:
 	if DisplayServer.get_name() != "headless": await RenderingServer.frame_post_draw
 	# Prepare shared raster masks on the render thread; the worker only builds data.
 	preload("res://scripts/raised_ground.gd").prepare()
+	preload("res://scripts/camp_art.gd").prepare()
 	game = preload("res://scenes/main.tscn").instantiate()
 	game.gameplay_settings = settings
 	var job = preload("res://scripts/world_build_job.gd").new()
@@ -76,6 +77,7 @@ func build_game(restoring: bool, seed_value: int) -> void:
 	await get_tree().process_frame
 	game.menu_open = true; add_child(game)
 	game.menu_requested.connect(show_pause)
+	game.main_menu_requested.connect(func(): return_to_title(); menu.show())
 	game.settings_requested.connect(func(): show_pause(); menu.open_settings())
 	loading_screen.set_progress(0.85)
 
@@ -96,6 +98,7 @@ func save_current_game() -> void:
 	if result == OK: menu.set_saved_available(true)
 
 func show_pause() -> void:
+	if is_instance_valid(game) and game.life != null and game.life.dying(): return
 	game.menu_open = true
 	game.cancel_work()
 	menu.set_resume(true)

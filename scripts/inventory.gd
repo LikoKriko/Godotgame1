@@ -2,6 +2,10 @@ extends RefCounted
 const CAPACITY := 32
 const EQUIPMENT_SLOTS := [&"head", &"torso", &"legs", &"hands", &"feet"]
 const DEFINITIONS := {
+	&"cuero_curtido": {"name":"Cuero curtido","slot":&"","uses":-1,"stack":99,"required_station":1,"purpose":"Cuero trabajado con sal y cuchillo"},
+	&"cuero_sin_refinar": {"name":"Cuero sin refinar","slot":&"","uses":-1,"stack":99,"purpose":"Piel para curtir en la mesa básica"},
+	&"saco_sal": {"name":"Bolsa de sal","slot":&"","uses":12,"stack":1,"purpose":"12 usos · uno por pieza de cuero curtido"},
+	&"knife": {"name":"Cuchillo","slot":&"","uses":40,"stack":1,"purpose":"Herramienta de curtido · 3 usos por pieza; sprite y combate pendientes"},
 	&"sword": {"name": "Espada", "slot": &"tool", "category": &"sword", "basic_tool":true, "damage": 3.0, "uses": 40, "stack": 1, "purpose": "Combate cuerpo a cuerpo"},
 	&"bow": {"name": "Arco", "slot": &"tool", "category": &"bow", "basic_tool":true, "damage": 3.0, "uses": 60, "stack": 1, "purpose": "Requiere flechas · un uso por tensado"},
 	&"pickaxe": {"name": "Pico", "slot": &"tool", "category": &"pickaxe", "basic_tool":true, "damage": 1.0, "uses": 30, "stack": 1, "purpose": "Extraer piedra de rocas"},
@@ -32,7 +36,7 @@ const DEFINITIONS := {
 	,&"leaf_helmet": {"name":"Casco de hojas","slot":&"head","uses":-1,"stack":1,"purpose":"Equipo de hojas; apariencia pendiente de su sprite."}
 	,&"basic_workbench": {"name":"Mesa de fabricación básica","slot":&"tool","category":&"workbench","uses":-1,"stack":1,"purpose":"Seleccionar en la barra rápida y colocar con clic · 3 segundos"}
 }
-const DEFAULT_RECIPES := [&"botella",&"pickaxe",&"axe",&"sword",&"bow",&"cuero",&"cuerda",&"flecha",&"burdock_armor",&"leaf_boots",&"leaf_helmet",&"basic_workbench"]
+const DEFAULT_RECIPES := [&"cuero_curtido",&"botella",&"pickaxe",&"axe",&"sword",&"bow",&"cuero",&"cuerda",&"flecha",&"burdock_armor",&"leaf_boots",&"leaf_helmet",&"basic_workbench"]
 var unlocked_recipes: Array = DEFAULT_RECIPES.duplicate()
 var slots: Array[Dictionary] = []
 var equipment: Dictionary = {}

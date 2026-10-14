@@ -82,8 +82,11 @@ func chase_direction(origin: Vector2, target: Vector2) -> Vector2:
 
 func capture_state() -> Dictionary:
 	var creature := {}
-	if is_instance_valid(enemy) and not defeated and enemy.health > 0:
+	if is_instance_valid(enemy):
 		for key in ["position","heading","health","attack_elapsed","impact_done","punch_left","stun_remaining","walk_phase","state","standing","entering_attack","lower_elapsed"]: creature[key] = enemy.get(key)
+		creature["death_elapsed"] = enemy.death_elapsed
+		creature["corpse_expires"] = enemy.corpse_expires
+		creature["loot_slots"] = enemy.loot_slots.duplicate(true)
 		creature["effects"] = enemy.effects.active.duplicate(true)
 		creature["stun_clip"] = enemy.stun_clip
 		creature["behavior"] = enemy.behavior.snapshot()
@@ -112,12 +115,20 @@ static func valid_state(data) -> bool:
 		if not hit is Dictionary or hit.get("damage") != Enemy.DAMAGE or not (hit.get("impact") is float or hit.get("impact") is int): return false
 		if not is_finite(float(hit.impact)) or hit.impact < 0 or hit.impact > data.time or data.time-hit.impact > Parry.DAMAGE_DELAY: return false
 	var creature: Dictionary = data.enemy
-	if data.defeated: return creature.is_empty()
+	if data.defeated and creature.is_empty(): return true
+	if data.defeated:
+		if creature.get("health") != 0 or not creature.get("position") is Vector2 or not creature.position.is_finite(): return false
+		if not creature.get("death_elapsed") is float or creature.death_elapsed < 0 or creature.death_elapsed > 2: return false
+		if not creature.get("corpse_expires") is float or not is_finite(creature.corpse_expires): return false
+		if not creature.get("loot_slots") is Array or creature.loot_slots.size() != 8: return false
+		var uids := {}
+		for item in creature.loot_slots:
+			if not preload("res://scripts/save_game.gd").valid_item(item,uids): return false
 	if creature.is_empty(): return true
 	if not creature.get("position") is Vector2 or not creature.position.is_finite(): return false
 	for key in ["heading","health","attack_elapsed","stun_remaining","walk_phase"]:
 		if not (creature.get(key) is float or creature.get(key) is int) or not is_finite(float(creature[key])): return false
-	if creature.health <= 0 or creature.health > Enemy.MAX_HEALTH or creature.attack_elapsed < -1 or creature.attack_elapsed >= Enemy.ATTACK_PERIOD: return false
+	if creature.health < 0 or (creature.health == 0 and not data.defeated) or creature.health > Enemy.MAX_HEALTH or creature.attack_elapsed < -1 or creature.attack_elapsed >= Enemy.ATTACK_PERIOD: return false
 	if creature.stun_remaining < 0 or creature.stun_remaining > Parry.STUN_SECONDS or creature.walk_phase < 0 or creature.walk_phase >= 1: return false
 	if not creature.get("impact_done") is bool or not creature.get("punch_left") is bool: return false
 	if creature.has("standing") and not creature.standing is bool: return false
@@ -128,7 +139,7 @@ static func valid_state(data) -> bool:
 		if absf(creature.effects.get(&"stun",{}).get("remaining",0)-creature.stun_remaining) > 0.00001: return false
 	if creature.has("stun_clip") and creature.stun_clip not in ["stun_fall","stun_fall_left","stun_fall_right"]: return false
 	if creature.has("behavior") and not preload("res://scripts/creature_behavior.gd").valid_snapshot(creature.behavior): return false
-	return creature.get("state") in [&"idle",&"walk",&"run",&"attack",&"feed",&"sit_down",&"sit",&"sit_up"]
+	return creature.get("state") in [&"idle",&"walk",&"run",&"attack",&"feed",&"sit_down",&"sit",&"sit_up",&"death",&"corpse"]
 
 func restore_state(data: Dictionary) -> void:
 	if data.is_empty(): return
@@ -137,18 +148,20 @@ func restore_state(data: Dictionary) -> void:
 	additional.clear()
 	for saved in data.get("additional",[]):
 		var child = get_script().new(); child.configure(game)
-		if not saved.defeated:
+		if not saved.defeated or not saved.enemy.is_empty():
 			child.enemy = Enemy.new(); game.add_child(child.enemy); child.enemy.configure(game,child)
 		child.restore_state(saved); additional.append(child)
 		if is_instance_valid(child.enemy): game.solar_lighting.shadows.add_enemy_projection(child.enemy)
 	defeated = data.defeated
-	if defeated and is_instance_valid(enemy): enemy.free(); enemy = null
+	if defeated and data.enemy.is_empty() and is_instance_valid(enemy): enemy.free(); enemy = null
 	if is_instance_valid(enemy) and not data.enemy.is_empty():
 		for key in data.enemy:
-			if key not in ["effects","behavior"]: enemy.set(key,data.enemy[key])
+			if key == "loot_slots": enemy.loot_slots.assign(data.enemy[key])
+			elif key not in ["effects","behavior"]: enemy.set(key,data.enemy[key])
 		if data.enemy.has("effects"): enemy.effects.active = data.enemy.effects.duplicate(true)
 		if data.enemy.has("behavior"): enemy.behavior.restore(data.enemy.behavior)
 		if not data.enemy.has("standing"): enemy.standing = enemy.state == &"attack"
+		if defeated: enemy.remove_from_group("damageable")
 		enemy.update_sprite()
 	parry.time = data.time; parry.last_activation = data.last_activation; parry.used = data.used; parry.pending.clear()
 	for hit in data.pending: parry.pending.append({"attacker":enemy,"damage":hit.damage,"impact":hit.impact})

@@ -1,5 +1,4 @@
 extends Node2D
-const FOREST_SHEET = preload("res://assets/environment/basic_forest_props.png")
 const DETAILS_SHEET = preload("res://assets/environment/forest_details.png")
 const DetailRegions = preload("res://assets/environment/forest_details_regions.gd")
 const Style = preload("res://scripts/visual_style.gd")
@@ -8,7 +7,6 @@ const Imported = preload("res://scripts/imported_nature.gd")
 static var soil_palette_cache: Dictionary = {}
 const TREE_FADED_ALPHA := 0.35
 var world
-var forest_textures: Array[AtlasTexture] = []
 var detail_textures: Array[AtlasTexture] = []
 var grass_textures: Array[AtlasTexture] = []
 var burdock_textures: Array[AtlasTexture] = []
@@ -23,6 +21,7 @@ var tree_records: Dictionary = {}
 var fading_trees: Dictionary = {}
 var last_tree_player := Vector2.INF
 var last_tree_props := -1
+var last_creature_signature := 0
 var hit_meshes = preload("res://scripts/hit_meshes.gd").new()
 var impulses: Dictionary = {}
 var particles: Array[Dictionary] = []
@@ -41,8 +40,6 @@ func configure(map) -> void:
 	world = map
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	z_index = -10
-	for region in [Rect2i(0,0,650,676),Rect2i(0,676,640,FOREST_SHEET.get_height()-676)]:
-		forest_textures.append(atlas(FOREST_SHEET, region))
 	for region in DetailRegions.REGIONS:
 		detail_textures.append(atlas(DETAILS_SHEET, region, false))
 	for index in 5: sapling_textures.append(load("res://assets/environment/imported/sapling_%02d.png" % (index+1)))
@@ -81,8 +78,8 @@ func presentation(cell: Vector2i) -> Dictionary:
 	if kind in [1,2]:
 		var variant: int = world.prop_variants[cell]
 		var profile := Nature.profile(kind, variant)
-		texture = forest_textures[profile.shape] if kind == 2 else Imported.texture(Imported.ROCKS[profile.size_index*2+profile.shape])
-		dimensions = Nature.dimensions(kind, variant, texture.get_size())
+		texture = preload("res://scripts/large_tree_art.gd").texture(world.tree_designs.get(cell,posmod(cell.x*31+cell.y*17,9))) if kind == 2 else Imported.texture(Imported.ROCKS[profile.size_index*2+profile.shape])
+		dimensions = world.tree_dimensions(cell) if kind == 2 else Nature.dimensions(kind, variant, texture.get_size())
 		tint = profile["tint"]
 	elif kind == 4:
 		texture = sapling_textures[posmod(cell.x*31+cell.y*17,5)]
@@ -149,7 +146,7 @@ func rebuild_trees() -> void:
 		var texture: Texture2D = data["texture"]
 		var rect: Rect2 = data["rect"]
 		hit_meshes.add(cell, texture, rect, world.prop_collisions[cell].end.y)
-		if world.props[cell] not in [2,4]:
+		if world.props[cell] not in [1,2,4]:
 			continue
 		var sprite := Sprite2D.new()
 		sprite.texture = texture
@@ -196,8 +193,11 @@ func update_trees(player: Vector2, delta: float) -> void:
 		particles[i]["velocity"].y += 60 * delta
 		if particles[i]["time"] <= 0:
 			particles.remove_at(i)
-	var character_rect := Rect2(player+Vector2(-28,-53),Vector2(56,76))
-	var visibility_dirty: bool = player != last_tree_player or world.props.size() != last_tree_props
+	var creatures := get_tree().get_nodes_in_group("creatures")
+	var locations := []
+	for creature in creatures: locations.append([creature.get_instance_id(),creature.position,creature.ground_height,creature.visible])
+	var signature := hash(locations)
+	var visibility_dirty: bool = player != last_tree_player or world.props.size() != last_tree_props or signature != last_creature_signature
 	var active: Array = tree_sprites.keys() if visibility_dirty else fading_trees.keys()
 	if not visibility_dirty:
 		for cell in changed_props:
@@ -225,11 +225,9 @@ func update_trees(player: Vector2, delta: float) -> void:
 			sprite.position = base - Vector2(rest.size.x/2,rest.size.y).rotated(sway_angle)
 			hit_meshes.set_transform(cell,sprite.position,sprite.rotation,sprite.scale)
 			record.initialized = true
-		var behind: bool = player.y+17 < world.prop_collisions[cell].end.y
-		var occludes_player: bool = behind and rest.intersects(character_rect)
-		var z := 1 if behind else -1
+		var z := preload("res://scripts/world_depth.gd").layer(rest.end.y)
 		if sprite.z_index != z: sprite.z_index = z
-		var target := TREE_FADED_ALPHA if occludes_player else 1.0
+		var target := preload("res://scripts/world_depth.gd").opacity(get_parent(),rest,rest.end.y,creatures,player)
 		var alpha := lerpf(sprite.modulate.a,target,fade_factor)
 		var tint: Color = record.tint.lerp(Color.WHITE,absf(wave)*0.15)
 		tint.a = alpha
@@ -237,11 +235,11 @@ func update_trees(player: Vector2, delta: float) -> void:
 		# Keep the original floating-point interpolation, without snapping alpha.
 		if tint.a != Color(0,0,0,target).a: fading_trees[cell] = true
 		else: fading_trees.erase(cell)
-	last_tree_player = player; last_tree_props = world.props.size()
+	last_tree_player = player; last_tree_props = world.props.size(); last_creature_signature = signature
 	# Static prop surfaces already have their transform from add(). Only
 	# impacted props need updates, including the frame when an impulse ends.
 	for cell in changed_props:
-		if hit_meshes.targets.has(cell) and world.props.has(cell) and world.props[cell] not in [2,4]:
+		if hit_meshes.targets.has(cell) and world.props.has(cell) and world.props[cell] not in [1,2,4]:
 			var record: Dictionary = hit_meshes.targets[cell]
 			var rest: Rect2 = record["rest"]
 			hit_meshes.set_transform(cell,rest.position+offset_for(cell),0,rest.size/record["texture_size"])
@@ -290,7 +288,7 @@ func water_at(point: Vector2) -> Rect2:
 
 func draw_props() -> void:
 	for cell in world.props:
-		if world.props[cell] not in [2,4]:
+		if world.props[cell] not in [1,2,4]:
 			var data := presentation(cell)
 			var rect: Rect2 = data["rect"]
 			rect.position += offset_for(cell)

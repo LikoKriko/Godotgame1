@@ -15,11 +15,11 @@ func run() -> void:
 	actor = preload("res://tools/enemy/young_volume.gd").new(); viewport.add_child(actor)
 	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(OUTPUT+"manifest.json")) if FileAccess.file_exists(OUTPUT+"manifest.json") else {}
 	manifest.merge({"authoring":"continuous_actor_surfaces_two_bone_ik", "locomotion":"four_leg_walk_run_seated_rest_tree_feeding_standing_punch", "version":4,"canvas":[CELL.x,CELL.y],"foot":[camera.unproject_position(Vector3.ZERO).x,camera.unproject_position(Vector3.ZERO).y],"pixels_per_world":1.5,"world_height":32,"source":"Day_Zero_Enemigo_Joven_4_Vistas.png"},true)
-	var states := ["idle","walk","run","sit","sit_down","sit_up","feed","attack_left","attack_right","enter_left","enter_right","lower","stun_fall","stun_fall_left","stun_fall_right","stun_hold","stun_rise"]
+	var states := ["death","corpse","idle","walk","run","sit","sit_down","sit_up","feed","attack_left","attack_right","enter_left","enter_right","lower","stun_fall","stun_fall_left","stun_fall_right","stun_hold","stun_rise"]
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--states="): states = Array(argument.trim_prefix("--states=").split(","))
 	for name in states:
-		var count := 1 if name in ["idle","stun_hold"] else (4 if name == "sit" else (8 if name == "feed" else (12 if name in ["walk","run"] else (6 if name in ["lower","sit_down","sit_up"] or name.begins_with("stun_") else 16))))
+		var count := 1 if name in ["idle","stun_hold","corpse"] else (4 if name == "sit" else (8 if name == "feed" else (12 if name in ["walk","run"] else (6 if name in ["lower","sit_down","sit_up"] or name.begins_with("stun_") else 16))))
 		var tops := []
 		var sheet := Image.create(CELL.x*count,CELL.y*16,false,Image.FORMAT_RGBA8)
 		for direction in 16:

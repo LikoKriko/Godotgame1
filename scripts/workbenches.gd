@@ -80,7 +80,8 @@ func _process(delta: float) -> void:
 	if not game.is_paused(): advance_placement(delta)
 	for table in tables:
 		table.sprite.visible = not game.hut.inside
-		table.sprite.z_index = 1 if game.player.y+17 < table.point.y else -1
+		table.sprite.z_index = preload("res://scripts/world_depth.gd").layer(table.point.y)
+		table.sprite.modulate.a = preload("res://scripts/world_depth.gd").opacity(game,Rect2(table.sprite.position,table.sprite.texture.get_size()*table.sprite.scale),table.point.y)
 	if game.bag.held_id() == &"basic_workbench" or placing(): queue_redraw()
 func _draw() -> void:
 	if game == null or game.is_paused() or game.hut.inside: return

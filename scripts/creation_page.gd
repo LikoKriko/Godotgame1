@@ -124,7 +124,13 @@ func refresh() -> void:
 		amount.text = "%s: %d / %d%s" % [Model.DEFINITIONS[id].name,have,need," m" if id in [&"cuerda",&"hilo"] else ""]
 		Style.set_font_size(amount,13); amount.modulate = Color("c6d5a3") if have >= need else Color("d19c91")
 		row.add_child(amount); materials.add_child(row)
-	create_button.disabled = is_crafting() or not known or not Workshop.affordable(model,Workshop.RECIPES.get(selected,{}))
+	for tool in Workshop.USE_COSTS.get(selected,{}):
+		var label := Label.new()
+		var item := Workshop.usage_item(reservation if is_crafting() else model,tool,Workshop.USE_COSTS[selected][tool])
+		label.text = "%s: %d usos disponibles / %d usados" % [Model.DEFINITIONS[tool].name,item.get("uses",0),Workshop.USE_COSTS[selected][tool]]
+		Style.set_font_size(label,13); label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		materials.add_child(label)
+	create_button.disabled = is_crafting() or not known or not Workshop.can_craft_inputs(model,selected)
 	create_button.tooltip_text = "Receta pendiente de definir." if not known else ("Faltan materiales." if create_button.disabled and not is_crafting() else "Fabricar en 2 segundos y guardar en la mochila.")
 	cancel_button.visible = is_crafting(); progress.visible = is_crafting()
 
@@ -134,7 +140,7 @@ func create_selected() -> void:
 	var error := Workshop.craft(trial,selected,station_level)
 	if not error.is_empty(): message.text = error; return
 	reservation = model.fork(); pending = selected
-	for material_id in Workshop.RECIPES[pending]: model.remove_amount(material_id,Workshop.RECIPES[pending][material_id])
+	Workshop.reserve_inputs(model,pending)
 	creation_seconds = Workshop.CREATION_TIMES[pending]; progress.max_value = creation_seconds
 	remaining = creation_seconds; progress.value = 0
 	message.text = "Creando · 2,0 s"; refresh(); crafted.emit(message.text)

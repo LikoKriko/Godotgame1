@@ -1,5 +1,6 @@
 extends Node2D
 signal menu_requested
+signal main_menu_requested
 signal settings_requested
 var menu_open := false
 var world_prepared := false
@@ -8,6 +9,8 @@ var nutrition = preload("res://scripts/nutrition.gd").new()
 var solar_lighting: Node
 var gameplay_settings = preload("res://scripts/game_settings.gd").new()
 var progression = preload("res://scripts/progression.gd").new()
+var life: Node
+var loot: Node2D
 var running := false
 const RUN_MULTIPLIER := 1.6
 var full_avatar: Sprite2D
@@ -25,6 +28,7 @@ var inventory_panel: Control
 var work_item_uid := -1
 var bow_draw_uid := -1
 var work_aim := Vector2.ZERO
+var work_heading := 0.0
 var work_contact_aim := Vector2(INF,INF)
 var weapon_timer := 0.0
 var combat_aim := Vector2.RIGHT
@@ -115,7 +119,7 @@ func _ready() -> void:
 	solar_lighting.configure(self)
 	full_avatar.configure(self)
 	combat_effects = preload("res://scripts/combat_effects.gd").new()
-	combat_effects.game = self; combat_effects.z_index = 2; add_child(combat_effects)
+	combat_effects.game = self; combat_effects.z_index = 4090; add_child(combat_effects)
 	enemies.configure(self)
 	hut = preload("res://scripts/hut.gd").new(); add_child(hut); hut.configure(self)
 	workbenches = preload("res://scripts/workbenches.gd").new(); add_child(workbenches); workbenches.configure(self,canvas)
@@ -128,8 +132,14 @@ func _ready() -> void:
 	canvas.move_child(world_map,canvas.get_child_count()-1)
 	canvas.move_child(item_catalog,canvas.get_child_count()-1)
 	canvas.move_child(workbenches.window,canvas.get_child_count()-1)
+	loot = preload("res://scripts/corpse_loot.gd").new(); add_child(loot); loot.configure(self,canvas)
+	life = preload("res://scripts/life_cycle.gd").new(); add_child(life); life.configure(self,canvas)
 
 func consume_item(index: int, quick: bool = false) -> void:
+	var selected_storage: Array = bag.quick_slots if quick else bag.slots
+	if index >= 0 and index < selected_storage.size() and not selected_storage[index].is_empty() and bag.DEFINITIONS[selected_storage[index].id].get("kcal",0) > 0:
+		if life != null and life.eat(index,quick): feedback = "Comiendo..."; feedback_time = 1.2
+		return
 	var result: Dictionary = nutrition.consume(bag,index,quick)
 	inventory_panel.status.text = result["message"]
 	inventory_panel.refresh()
@@ -148,6 +158,8 @@ func fit_hud() -> void:
 	if styled_hud != null: styled_hud.fit()
 
 func restart(regenerate: bool = true) -> void:
+	if life != null: life.reset()
+	if loot != null: loot.reset()
 	if workbenches != null: workbenches.reset()
 	running = false
 	locomotion.reset()
@@ -213,7 +225,7 @@ func combat_damage(base: float) -> float:
 
 func take_damage(amount: float) -> void:
 	progression.take_damage(amount)
-	if progression.health <= 0: cancel_work(); running = false
+	if progression.health <= 0 and life != null: life.die()
 
 func gain_experience(amount: int, source: StringName = &"") -> bool:
 	if amount <= 0 or not preload("res://scripts/experience_sources.gd").accepts(source): return false
@@ -232,6 +244,10 @@ func walkable(point: Vector2) -> bool:
 	return world.walkable(point)
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if life != null and life.dying(): return
+	if loot != null and loot.window.visible:
+		if event.is_pressed() and event.keycode == KEY_ESCAPE: loot.close_window(); get_viewport().set_input_as_handled()
+		return
 	if menu_open:
 		return
 	if not event.is_pressed() or event.is_echo():
@@ -294,7 +310,7 @@ func request_settings() -> void:
 	settings_requested.emit()
 
 func is_paused() -> bool:
-	return menu_open or (workbenches != null and workbenches.window.visible) or inventory_panel.visible or world_map.visible or (item_catalog != null and item_catalog.visible)
+	return (life != null and life.dying()) or (loot != null and loot.window.visible) or menu_open or (workbenches != null and workbenches.window.visible) or inventory_panel.visible or world_map.visible or (item_catalog != null and item_catalog.visible)
 
 func cursor_world_position() -> Vector2:
 	return get_canvas_transform().affine_inverse()*preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
@@ -310,6 +326,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func interact_at(aim: Vector2) -> bool:
 	if is_paused() or progression.health <= 0 or locomotion.airborne() or locomotion.sliding() or interaction_motion.picking_up(): return false
+	if loot != null and loot.interact(aim): return true
+	if life != null and life.eating(): return false
 	if workbenches != null and workbenches.interact(aim): return true
 	if hut != null and hut.interact(): return true
 	if hut != null and hut.inside:
@@ -341,6 +359,7 @@ func interact_at(aim: Vector2) -> bool:
 	return result.ok
 
 func advance_pickup() -> void:
+	if loot != null: loot.advance_pickup()
 	if pickup_cell == resources.NONE or pickup_committed or interaction_motion.pickup_phase() < 0.5: return
 	pickup_committed = true
 	if bag.held_id() != &"" or not resources.can_reach(pickup_cell,player) or progression.health <= 0:
@@ -377,6 +396,7 @@ func use_quick_item(index: int) -> bool:
 	return true
 
 func start_jump() -> bool:
+	if life != null and (life.eating() or life.dying()): return false
 	if progression.health <= 0 or is_paused() or not locomotion.jump(nutrition.speed_multiplier()*progression.speed_multiplier()):
 		return false
 	cancel_work()
@@ -385,6 +405,7 @@ func start_jump() -> bool:
 	return true
 
 func start_slide() -> bool:
+	if life != null and (life.eating() or life.dying()): return false
 	var input_direction := Vector2(
 		float(Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT))-float(Input.is_physical_key_pressed(KEY_A) or Input.is_physical_key_pressed(KEY_LEFT)),
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN))-float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
@@ -398,8 +419,12 @@ func start_slide() -> bool:
 	return true
 
 func _process(delta: float) -> void:
+	if life != null and life.dying():
+		life.advance(delta); solar_lighting.update_light(); return
+	if progression.health <= 0 and life != null: life.die(); return
 	if is_paused():
 		return
+	if life != null: life.advance(delta)
 	if hut == null or not hut.inside: enemies.advance(delta)
 	interaction_motion.advance(delta)
 	advance_pickup()
@@ -424,7 +449,7 @@ func _process(delta: float) -> void:
 		float(Input.is_physical_key_pressed(KEY_S) or Input.is_physical_key_pressed(KEY_DOWN)) - float(Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP)))
 	if direction != Vector2.ZERO and working:
 		cancel_work()
-	running = progression.health > 0 and direction != Vector2.ZERO and not working and not locomotion.airborne() and not locomotion.sliding() and locomotion.crouch < 0.01 and (gameplay_settings.values["auto_run"] or Input.is_physical_key_pressed(KEY_SHIFT))
+	running = not (life != null and life.eating()) and progression.health > 0 and direction != Vector2.ZERO and not working and not locomotion.airborne() and not locomotion.sliding() and locomotion.crouch < 0.01 and (gameplay_settings.values["auto_run"] or Input.is_physical_key_pressed(KEY_SHIFT))
 	if not working and progression.health > 0:
 		move_player(direction, delta)
 	if equipping:
@@ -454,6 +479,7 @@ func cancel_work() -> void:
 	work_elapsed = 0.0
 
 func start_work(aim: Vector2) -> bool:
+	if life != null and (life.eating() or life.dying()): return false
 	if progression.health <= 0 or is_paused() or working or equipping or interaction_motion.picking_up() or locomotion.airborne() or locomotion.sliding():
 		return false
 	var item: StringName = bag.held_category()
@@ -476,28 +502,27 @@ func start_work(aim: Vector2) -> bool:
 	work_elapsed = 0.0
 	hit_applied = false
 	work_duration = preload("res://scripts/action_motion.gd").DURATION.get(item,HARVEST_TIME)
-	movement.heading = (resources.visual_aim(aim,player) - player).angle()
+	work_heading = (aim-player).angle()
+	movement.heading = work_heading
 	movement.target_direction = Vector2.ZERO
 	return true
 
-func advance_work(delta: float, aim: Vector2 = Vector2(INF, INF)) -> void:
+func advance_work(delta: float, _aim: Vector2 = Vector2(INF, INF)) -> void:
 	if not working:
 		return
 	if bag.held_item().get("uid", -1) != work_item_uid:
 		cancel_work()
 		return
-	if is_finite(aim.x) and is_finite(aim.y):
-		work_aim = aim
 	work_elapsed += delta
 	var target: Vector2 = work_contact_aim if hit_applied and work_contact_aim.is_finite() else resources.visual_aim(work_aim,player)
-	movement.heading = (target-player).angle()
+	movement.heading = work_heading
 	var item: StringName = bag.held_category()
-	var pose: Dictionary = preload("res://scripts/tool_contact.gd").contact(player,target,item)
+	var pose: Dictionary = preload("res://scripts/tool_contact.gd").contact(player,target,item,preload("res://scripts/turn_motion.gd").facing_at(work_heading))
 	if not hit_applied and work_elapsed >= preload("res://scripts/action_motion.gd").contact_time(item,work_duration):
 		work_contact_aim = resources.visual_aim(work_aim,player)
 		hit_applied = true
 		# Resolve the contact pose even when a long frame crosses the impact moment.
-		pose = preload("res://scripts/tool_contact.gd").contact(player,resources.visual_aim(work_aim,player),item)
+		pose = preload("res://scripts/tool_contact.gd").contact(player,resources.visual_aim(work_aim,player),item,preload("res://scripts/turn_motion.gd").facing_at(work_heading))
 		if item in [&"sword", &"bow"]:
 			use_weapon(work_aim, true, pose)
 		else:

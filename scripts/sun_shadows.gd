@@ -34,6 +34,7 @@ class AvatarVisual:
 	var game
 	func _process(_delta: float) -> void:
 		position = game.player+Vector2(0,17-game.ground_height)-Mask.ORIGIN/Mask.SCALE
+		z_index = preload("res://scripts/world_depth.gd").layer(game.player.y+17)
 
 class AvatarProjection:
 	extends Node2D
@@ -51,7 +52,7 @@ class EnemyProjection:
 	var target
 	func _draw() -> void:
 		var enemy = target if target != null else host.game.enemies.enemy
-		if not is_instance_valid(enemy) or enemy.health <= 0 or enemy.sprite.texture == null: return
+		if not is_instance_valid(enemy) or not enemy.visible or enemy.sprite.texture == null: return
 		var atlas: AtlasTexture = enemy.sprite.texture
 		var size: Vector2 = atlas.atlas.get_size()
 		var a := atlas.region.position/size; var b := atlas.region.end/size
@@ -110,7 +111,7 @@ func update_sun(state: Dictionary) -> void:
 		shader_material.set_shader_parameter("opacity",strength)
 		shader_material.set_shader_parameter("softness",softness)
 	for node in extra_projections.duplicate():
-		if not is_instance_valid(node.target) or node.target.health <= 0:
+		if not is_instance_valid(node.target):
 			extra_projections.erase(node); node.queue_free(); continue
 		node.material.set_shader_parameter("opacity",strength)
 		node.material.set_shader_parameter("softness",softness); node.queue_redraw()
@@ -190,9 +191,10 @@ func draw_props(surface: Node2D) -> void:
 		if not viewport_world.intersects(view.presentation(cell)["rect"]): continue
 		var data := prop_geometry(cell)
 		draw_ground_shadow(surface,data.texture,data.rect,data.transform)
-	if game.hut != null and game.hut.exterior.visible:
-		var sprite: Sprite2D = game.hut.exterior
-		draw_ground_shadow(surface,sprite.texture,Rect2(Vector2.ZERO,sprite.texture.get_size()),sprite.global_transform,game.hut.SHADOW_CONTACTS)
+	if game.hut != null:
+		for building in game.hut.buildings:
+			var sprite: Sprite2D = building.sprite
+			if sprite.visible: draw_ground_shadow(surface,sprite.texture,Rect2(Vector2.ZERO,sprite.texture.get_size()),sprite.global_transform,game.hut.SHADOW_CONTACTS if building.id == 0 else PackedVector2Array())
 	if game.workbenches != null:
 		for table in game.workbenches.tables:
 			var sprite: Sprite2D = table.sprite

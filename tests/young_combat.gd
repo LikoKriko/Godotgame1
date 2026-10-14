@@ -65,7 +65,7 @@ func run() -> void:
 	for i in 3:
 		game.weapon_timer = 0; game.use_weapon(enemy.hit_center())
 	require(enemy.health == 0 and game.enemies.defeated,"Four basic sword strikes defeat the ten-HP creature")
-	state = Save.capture(game); require(Save.valid(state) and Save.restore(game,state) and not is_instance_valid(game.enemies.enemy),"A defeated enemy stays defeated after continuing a saved game")
+	state = Save.capture(game); require(Save.valid(state) and Save.restore(game,state) and is_instance_valid(game.enemies.enemy) and game.enemies.enemy.health == 0 and not game.enemies.enemy.is_in_group("damageable"),"A defeated enemy restores as a noncombat corpse")
 	enemy = encounter()
 	var arrow = preload("res://scripts/arrow.gd").new(); arrow.world = game.world; arrow.game = game
 	game.add_child(arrow); arrow.set_process(false); arrow.position = enemy.hit_center()-Vector2(3,0); arrow.velocity = Vector2(60,0); arrow._process(0.05)

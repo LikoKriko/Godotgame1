@@ -113,14 +113,21 @@ func integrated_head(torso: Transform3D,actor_basis: Basis,direction: int,pose_s
 	# Counter-rotate the skull gently about the neck so running lean cannot
 	# stretch the face or pull it backwards away from the shoulders.
 	var neck := torso*Vector3(0,48.5,0)
-	var stable_up := Vector3.UP.lerp(torso.basis*Vector3.UP,0.12).normalized()
-	var center := actor_basis*(neck+stable_up*7.9)
+	var stable_up := (torso.basis*Vector3.UP).normalized() if pose_state == &"death" else Vector3.UP.lerp(torso.basis*Vector3.UP,0.12).normalized()
+	var skull_lift := Vector3.UP*7.0*smoothstep(0.12,0.85,last_pose.phase) if pose_state == &"death" else Vector3.ZERO
+	var center := actor_basis*(neck+stable_up*7.9+skull_lift)
 	head_center = center
 	var inverse := actor_basis.inverse()
 	var join := inverse*(center-camera_up*7.5)
 	tube([torso*Vector3(0,46.8,0),(torso*Vector3(0,46.8,0)).lerp(join,0.5),join],1.85,1.65,SKIN,false,4)
-	var half_x := Vector3.RIGHT*(210.0/130*18.5*0.72/2)
-	var half_y := camera_up*(18.5/2)
+	var portrait_right := Vector3.RIGHT
+	var portrait_up := camera_up
+	if pose_state == &"death":
+		var tilt := -PI/2*cos(direction*TAU/16)*smoothstep(0.12,0.85,last_pose.phase)
+		portrait_up = camera_up*cos(tilt)+Vector3.RIGHT*sin(tilt)
+		portrait_right = Vector3.RIGHT*cos(tilt)-camera_up*sin(tilt)
+	var half_x := portrait_right*(210.0/130*18.5*0.72/2)
+	var half_y := portrait_up*(18.5/2)
 	# Move the painted head toward the camera along its depth axis. Projection
 	# and skull size stay fixed, while opaque hair/beard correctly cover the neck.
 	var plane_center := center+Vector3.RIGHT.cross(camera_up).normalized()*4.4
@@ -135,6 +142,9 @@ func integrated_head(torso: Transform3D,actor_basis: Basis,direction: int,pose_s
 
 func tool_geometry(item: StringName) -> Dictionary:
 	var data: Dictionary = visual_override.duplicate() if not visual_override.is_empty() else Tools.geometry(item).duplicate()
+	if item in [&"apple",&"berries",&"ration"]:
+		var food: Texture2D = preload("res://scripts/item_icons.gd").get_icon(item)
+		data = {"texture":food,"grip":food.get_size()*Vector2(0.5,0.75),"contact":food.get_size()*Vector2(0.5,0.25),"display_size":8.0}
 	if data.is_empty(): return data
 	if visual_override.is_empty():
 		if Tools.DATA.has(item):

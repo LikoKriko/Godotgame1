@@ -53,8 +53,29 @@ static func detailed_texture(variant: int, dimensions: Vector2) -> Texture2D:
  if not detail_cache.has(key):
   if detail_cache.size() >= 64: detail_cache.clear()
   var style = preload("res://scripts/visual_style.gd")
-  var raster: Texture2D = style.normalized(textures[variant],dimensions,true,false,2.0)
-  # Twice the sampling density preserves the small soil marks; a second
-  # contour raster keeps its physical width equal to other world drawings.
-  detail_cache[key] = ImageTexture.create_from_image(style.outlined(raster.get_image()))
+  # Stone sampling is half the previous width/height. Soil keeps a
+  # separate fine raster, so reducing the slabs never enlarges soil pixels.
+  var stone: Texture2D = style.normalized(textures[variant],dimensions,false,false,1.0)
+  var result := stone.get_image()
+  result.resize(roundi(dimensions.x*style.PIXELS_PER_WORLD*2),roundi(dimensions.y*style.PIXELS_PER_WORLD*2),Image.INTERPOLATE_NEAREST)
+  var soil := textures[variant].get_image()
+  soil.convert(Image.FORMAT_RGBA8)
+  soil.resize(result.get_width(),result.get_height(),Image.INTERPOLATE_BILINEAR)
+  var silhouette := textures[variant].get_image()
+  silhouette.resize(result.get_width(),result.get_height(),Image.INTERPOLATE_NEAREST)
+  var grain := FastNoiseLite.new()
+  grain.seed = 8107+variant
+  grain.frequency = 0.32
+  for y in result.get_height():
+   for x in result.get_width():
+    var original := silhouette.get_pixel(x,y)
+    # Brown earth only: slab faces, moss and stone cracks retain crisp pixels.
+    if original.a < 0.8 or original.r < original.g*1.18 or original.g < original.b*1.25: continue
+    var paint := soil.get_pixel(x,y)
+    if paint.a < 0.8: continue
+    var variation := 1.0+grain.get_noise_2d(x,y)*0.045
+    paint.r *= variation; paint.g *= variation; paint.b *= variation
+    paint.a = original.a
+    result.set_pixel(x,y,paint)
+  detail_cache[key] = ImageTexture.create_from_image(style.outlined(result))
  return detail_cache[key]

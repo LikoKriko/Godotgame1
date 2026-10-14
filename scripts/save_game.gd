@@ -12,7 +12,7 @@ static func capture(game) -> Dictionary:
 	for cell in game.resources.nodes:
 		remaining[cell] = game.resources.nodes[cell]["remaining"]
 	return {
-		"version": VERSION, "seed": game.world.seed_value, "workbenches":game.workbenches.snapshot(), "unlocked_recipes":game.bag.unlocked_recipes.duplicate(), "combat": game.enemies.capture_state(),
+		"world_layout_version":3, "ground_drops":game.loot.drops.duplicate(true) if game.loot != null else [], "version": VERSION, "seed": game.world.seed_value, "workbenches":game.workbenches.snapshot(), "unlocked_recipes":game.bag.unlocked_recipes.duplicate(), "combat": game.enemies.capture_state(),
 		"hut": game.hut.snapshot(), "rock_support":game.rock_support, "player": game.player, "heading": game.movement.heading,
 		"resources": remaining, "collected": game.resources.inventory.duplicate(),
 		"slots": game.bag.slots.duplicate(true), "equipment": game.bag.equipment.duplicate(true), "next_uid": game.bag.next_uid,
@@ -41,6 +41,15 @@ static func read_state(path: String = PATH) -> Dictionary:
 
 static func migrate(original: Dictionary) -> Dictionary:
 	var data := migrate_tools(original)
+	if data.get("world_layout_version",0) < 3 and data.get("seed") is int and data.get("resources") is Dictionary:
+		var world = preload("res://scripts/test_world.gd").new(); world.generate(data.seed)
+		var nodes = preload("res://scripts/harvesting.gd").new(); nodes.configure(world)
+		var remaining := {}
+		for cell in nodes.nodes: remaining[cell] = nodes.nodes[cell].remaining
+		for cell in data.resources:
+			if not cell is Vector2i or not data.resources[cell] is int: return {}
+			if nodes.nodes.has(cell): remaining[cell] = mini(data.resources[cell],nodes.nodes[cell].remaining)
+		data.resources = remaining; data.world_layout_version = 3
 	if original.get("version") not in [1,2,3,4]: return data
 	if not data.get("slots") is Array or not data.get("quick_slots") is Array or not data.get("next_uid") is int: return {}
 	# Split only when the entire old stack fits; otherwise keep it recoverable
@@ -119,6 +128,9 @@ static func migrate_held_tool(data: Dictionary) -> Dictionary:
 	return data
 
 static func valid(data: Dictionary) -> bool:
+	if not data.get("ground_drops",[]) is Array or data.get("ground_drops",[]).size() > 4096: return false
+	for drop in data.get("ground_drops",[]):
+		if not drop is Dictionary or not drop.get("point") is Vector2 or not drop.point.is_finite() or not valid_item(drop.get("item"),{}): return false
 	if not preload("res://scripts/workbenches.gd").valid_snapshot(data.get("workbenches",[])): return false
 	var recipes = data.get("unlocked_recipes",[])
 	if not recipes is Array or recipes.size() > Inventory.DEFINITIONS.size(): return false
@@ -262,11 +274,15 @@ static func restore(game, data: Dictionary, prepared_world = null) -> bool:
 	game.nutrition.hydration_ml = data.hydration
 	game.nutrition.water_today_ml = data.water_today
 	game.player = data.player if indoors or game.world.walkable(data.player) else Vector2.ZERO
+	game.hut.active_building = clampi(int(data.get("hut",{}).get("active_building",0)),0,game.hut.buildings.size()-1)
+	game.hut.choose_location()
 	game.hut.inside = indoors
+	game.loot.drops.assign(data.get("ground_drops",[])); game.loot.queue_redraw()
 	if data.has("hut"): game.hut.outside_player = data.hut.outside_player if game.world.walkable(data.hut.outside_player) else game.hut.door
 	game.enemies.restore_state(combat)
 	game.workbenches.restore(data.get("workbenches",[]))
 	game.bag.unlocked_recipes = data.get("unlocked_recipes",Inventory.DEFAULT_RECIPES).duplicate()
+	if &"cuero_curtido" not in game.bag.unlocked_recipes: game.bag.unlocked_recipes.append(&"cuero_curtido")
 	if data.get("rock_support") is Vector2i and game.world.props.get(data.rock_support) == 1 and game.world.physical_height(data.rock_support) <= game.world.JUMP_LIMIT and game.world.prop_collisions[data.rock_support].grow(game.world.PLAYER_RADIUS).has_point(data.player+Vector2(0,17)):
 		game.rock_support = data.rock_support; game.player = data.player
 	game.update_ground_support()

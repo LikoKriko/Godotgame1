@@ -42,15 +42,17 @@ func reset() -> void:
 
 func item_key() -> String:
 	var id := "bare" if game.bag.held_id() == &"" else String(game.bag.held_id())
+	if game.life != null and game.life.eating(): id = String(game.life.food_id)
+	if game.life != null and game.life.dying(): id = "bare"
 	if id == "bow" and game.bag.count(&"flecha") == 0 and catalogue.items.has("bow_unloaded"): id = "bow_unloaded"
 	if id == "botella": id = "bottle_full" if game.bag.held_item().get("water_ml",0) > 0 else "bottle_empty"
 	if not catalogue.items.has(id): id = "bare"
-	var armor: StringName = game.bag.equipment[&"torso"].get("id",&"")
+	var armor: StringName = game.life.death_armor if game.life != null and game.life.dying() else game.bag.equipment[&"torso"].get("id",&"")
 	return String(armor)+"__"+id if catalogue.items.has(String(armor)+"__"+id) else id
 
 func data_for(clip: StringName) -> Dictionary:
 	var clips: Dictionary = catalogue["items"][item_key()]["clips"]
-	return clips.get(String(clip),clips["idle"])
+	return clips.get(String(clip),clips.get("idle",clips.values()[0]))
 
 func sheet_for(data: Dictionary, progress: float = 0.0) -> Texture2D:
 	var path: String = data.paths[Clips.action_frame(progress,data.equip_frames)] if data.has("paths") else data["path"]
@@ -80,7 +82,14 @@ func update_pose(delta: float) -> void:
 
 	var clip: StringName = &"idle"
 	var progress := 0.0
-	if game.interaction_motion.picking_up():
+	if game.life != null and game.life.dying():
+		clip = &"death"; progress = clampf(game.life.death_elapsed/game.life.DEATH_SECONDS,0,1); was_moving = false
+	elif game.life != null and game.life.eating():
+		clip = &"eat_walk" if moving else &"eat"
+		progress = game.life.food_elapsed/game.life.EAT_SECONDS
+		if moving: phase = fposmod(phase+delta/WALK_SECONDS,1)
+		was_moving = moving
+	elif game.interaction_motion.picking_up():
 		clip = &"pickup_walk" if moving else &"pickup"
 		progress = game.interaction_motion.pickup_phase()
 		if moving: phase = fposmod(phase+delta/WALK_SECONDS*game.movement.speed_factor*game.interaction_motion.speed_multiplier(),1)

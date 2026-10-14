@@ -32,7 +32,7 @@ func run_checks() -> void:
 			var data := Nature.profile(kind, id)
 			unique[str(data["shape"]) + ":" + str(data["size"]) + ":" + str(data["tint"])] = true
 			sizes[data["size"]] = true
-			var texture: Texture2D = game.world_view.forest_textures[data["shape"]] if kind == 2 else preload("res://scripts/imported_nature.gd").texture(preload("res://scripts/imported_nature.gd").ROCKS[data.size_index*2+data.shape])
+			var texture: Texture2D = preload("res://scripts/large_tree_art.gd").texture(data["shape"]) if kind == 2 else preload("res://scripts/imported_nature.gd").texture(preload("res://scripts/imported_nature.gd").ROCKS[data.size_index*2+data.shape])
 			var dimensions := Nature.dimensions(kind, id, texture.get_size())
 			var rect := Rect2(Vector2(-dimensions.x / 2, 26 - dimensions.y), dimensions)
 			var body := Nature.collision(Vector2.ZERO, kind, id, false)
@@ -63,7 +63,10 @@ func run_checks() -> void:
 	require(shown[2].size() == 30, "Initial map exposes all thirty tree variants")
 	require(shown[1].size() == 30, "Initial map exposes all thirty rock variants")
 	require(small != game.resources.NONE, "Initial map includes tiny pebbles")
-	var tree_body: Rect2 = map.prop_collisions[Vector2i(-4, -3)]
+	var chosen_tree: Vector2i = map.NO_SUPPORT
+	for cell in map.props:
+		if map.props[cell] == 2: chosen_tree = cell; break
+	var tree_body: Rect2 = map.prop_collisions[chosen_tree]
 	require(map.walkable(tree_body.get_center() + Vector2(tree_body.size.x / 2 + map.PLAYER_RADIUS + 2, 0)), "Player can walk beside trunk beneath canopy")
 	if small != game.resources.NONE:
 		var body: Rect2 = map.prop_collisions[small]
@@ -88,7 +91,7 @@ func run_checks() -> void:
 			require(not entries.has(small), "Spatial index contains no stale harvested collider")
 	game.restart()
 	require(game.world.prop_collisions.has(small), "Reset restores collected stone and collider")
-	var tree := Vector2i(-4, -3)
+	var tree: Vector2i = chosen_tree
 	var sprite: Sprite2D = game.world_view.tree_sprites[tree]
 	var under_canopy: Vector2 = game.world.prop_collisions[tree].position + Vector2(-24, -20)
 	require(map.walkable(under_canopy), "Can pass under canopy outside tree base")
@@ -96,9 +99,9 @@ func run_checks() -> void:
 	game._process(0.02)
 	require(sprite.modulate.a < 1 and sprite.modulate.a > 0.35, "Tree fades smoothly instead of snapping")
 	game.world_view.update_trees(under_canopy, 1.0)
-	require(absf(sprite.modulate.a - 0.35) < 0.01 and sprite.z_index == 1, "Occluding tree is translucent above character")
+	require(absf(sprite.modulate.a - 0.35) < 0.01 and sprite.z_index > preload("res://scripts/world_depth.gd").layer(under_canopy.y+17), "Occluding tree is translucent above character")
 	game.world_view.update_trees(game.world.prop_collisions[tree].end + Vector2(0, 40), 1.0)
-	require(sprite.modulate.a > 0.99 and sprite.z_index == -1, "Tree restores opacity and goes behind character in front")
+	require(sprite.modulate.a > 0.99 and sprite.z_index < preload("res://scripts/world_depth.gd").layer(game.world.prop_collisions[tree].end.y+57), "Tree restores opacity and goes behind character in front")
 	game.bag.select_tool(&"axe")
 	var approach: Vector2 = game.world.prop_collisions[tree].position + Vector2(-24, 4)
 	for i in 3:

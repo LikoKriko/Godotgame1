@@ -10,6 +10,9 @@ const CLIPS_PATH := "res://assets/enemies/first/manifest.json"
 var game
 var manager
 var health := MAX_HEALTH
+var death_elapsed := -1.0
+var corpse_expires := 0.0
+var loot_slots: Array[Dictionary] = [{},{},{},{},{},{},{},{}]
 var ground_height := 0.0
 var heading := PI/2
 var attack_elapsed := -1.0
@@ -69,7 +72,11 @@ func take_damage(amount: float) -> void:
 	health = maxf(0,health-maxf(amount,0))
 	game.combat_effects.flash(hit_center(),game.player.direction_to(position))
 	if health == 0:
-		manager.defeated = true; remove_from_group("damageable"); hide(); queue_free()
+		manager.defeated = true; remove_from_group("damageable")
+		death_elapsed = 0; corpse_expires = Time.get_unix_time_from_system()+2.0+180.0
+		attack_elapsed = -1; effects.active.clear(); state = &"death"
+		loot_slots[0] = game.bag.make_item(&"cuero_sin_refinar",1)
+		update_sprite()
 func advance(delta: float) -> void:
 	if health <= 0 or game.progression.health <= 0: return
 	var was_stunned := stun_remaining > 0
@@ -139,6 +146,7 @@ func update_sprite() -> void:
 	if state == &"run" and behavior.rise_remaining > 0: clip_name = "sit_up"
 	if stun_remaining > 0:
 		clip_name = stun_clip if effects.elapsed(&"stun") < STUN_FALL_SECONDS else ("stun_rise" if stun_remaining <= STUN_RISE_SECONDS+0.000001 else "stun_hold")
+	if health <= 0: clip_name = "death" if death_elapsed < 2 else "corpse"
 	var clip: Dictionary = clips.get(clip_name,clips.idle)
 	if not sheets.has(clip.path):
 		sheets[clip.path] = load(clip.path)
@@ -149,6 +157,7 @@ func update_sprite() -> void:
 	if state == &"run" and behavior.rise_remaining > 0: phase = 1-behavior.rise_remaining/personality.posture_seconds
 	if stun_remaining > 0:
 		phase = effects.elapsed(&"stun")/STUN_FALL_SECONDS if clip_name == stun_clip else (1-stun_remaining/STUN_RISE_SECONDS if clip_name == "stun_rise" else 0.0)
+	if health <= 0: phase = clampf(death_elapsed/2.0,0,1)
 	var frame := preload("res://scripts/complete_sprite_clips.gd").action_frame(phase,clip.frames)
 	var direction := preload("res://scripts/complete_sprite_clips.gd").direction_index(heading,int(clip.directions))
 	var cell: Vector2 = Vector2(clips.canvas[0],clips.canvas[1])
@@ -162,5 +171,14 @@ func update_sprite() -> void:
 		else:
 			var image: Image = sheets[clip.path].get_image().get_region(Rect2i(atlas.region))
 			silhouette_tops[key] = image.get_used_rect().position.y
+	status_indicator.visible = health > 0
 	status_indicator.refresh(sprite.position+Vector2(0,(float(silhouette_tops[key])-cell.y/2)/clips.pixels_per_world))
-	z_index = 1 if position.y > game.player.y else -1
+	z_index = preload("res://scripts/world_depth.gd").layer(position.y+17)
+
+func _process(delta: float) -> void:
+	if health > 0: return
+	death_elapsed = minf(2.0,death_elapsed+maxf(0,delta))
+	update_sprite()
+	if Time.get_unix_time_from_system() >= corpse_expires:
+		if game.loot != null and game.loot.corpse == self: game.loot.close_window()
+		queue_free()

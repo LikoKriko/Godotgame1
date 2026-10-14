@@ -1,6 +1,6 @@
 extends RefCounted
 ## One authoritative clock drives sunlight and the daily nutrition ledger.
-const DAY_SECONDS := 1440.0
+const DAY_SECONDS := 960.0
 const START_HOUR := 8.0
 var day := 1
 var hour := START_HOUR

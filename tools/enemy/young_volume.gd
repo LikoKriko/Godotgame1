@@ -53,9 +53,11 @@ func pose(state: String,phase: float,direction: int,left: bool = true) -> void:
 	head_yaw = sin(phase*TAU)*0.12*seated
 	var entering := state == "enter_attack"
 	var attacking := state in ["attack","enter_attack"]
+	var dead := state in ["death","corpse"]
 	var falling := state.begins_with("stun_fall")
 	var recovering := state == "stun_rise"
 	var fallen := smoothstep(0,1,phase) if falling else (1.0-smoothstep(0,1,phase) if recovering else (1.0 if state == "stun_hold" else 0.0))
+	if dead: fallen = smoothstep(0,0.85,phase) if state == "death" else 1.0
 	var standing := 1.0 if attacking else 0.0
 	if falling and state != "stun_fall": standing = 1.0-fallen
 	if entering: standing = smoothstep(0,0.25,phase)
@@ -67,10 +69,11 @@ func pose(state: String,phase: float,direction: int,left: bool = true) -> void:
 	lean = lerpf(lean,0.14,seated)
 	var pivot := Vector3(0,8.5,-2.5)
 	var body_basis := Basis(Vector3.RIGHT,lean)
-	if fallen > 0: body_basis = Basis(Vector3.BACK,1.2*fallen)*body_basis
+	if dead: body_basis = Basis(Vector3.RIGHT,lerpf(lean,1.45,fallen))
+	elif fallen > 0: body_basis = Basis(Vector3.BACK,1.2*fallen)*body_basis
 	if walking: body_basis = Basis(Vector3.BACK,0.025*sin(phase*TAU))*body_basis
-	var body := Transform3D(body_basis,pivot-body_basis*pivot+Vector3(0,bob-0.8*fallen-3.0*seated,0))
-	head_look_adjust = lean*(1.0-standing)*(1-seated)+(0.045*sin(phase*TAU*2) if state == "feed" else 0.0)
+	var body := Transform3D(body_basis,pivot-body_basis*pivot+Vector3(0,bob-(3.5 if dead else 0.8)*fallen-3.0*seated,0))
+	head_look_adjust = lean*(1.0-standing)*(1-seated)*(1-fallen if dead else 1.0)+(0.045*sin(phase*TAU*2) if state == "feed" else 0.0)
 	volume(Vector3(0,11.5,-1.5),Vector3(9.3*ABDOMEN_WIDTH_SCALE,8.5,7),FUR,0,body)
 	head_volume(Vector3(0,21,2.5),Vector3(9.5,8.6,7.8),FUR,0,body)
 	# A narrow digging muzzle and tiny folded ears, retaining the reference

@@ -6,6 +6,10 @@ const FIRST := Vector2i(-24, -16)
 const PLAYER_RADIUS := 15.0
 const DIRECTIONS := [Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT, Vector2i.UP]
 const RETIRED_STRUCTURE_CELLS := [Vector2i(-8,-5),Vector2i(7,4),Vector2i(-5,-5)]
+var camp_buildings: Array[Dictionary] = []
+var reserved_areas: Array[Rect2] = []
+var tree_groups: Array = []
+var tree_designs: Dictionary = {}
 var previous_grass_count := 0
 const Nature = preload("res://scripts/nature_variants.gd")
 var seed_value := 73129
@@ -46,6 +50,11 @@ func generate(new_seed: int, on_progress: Callable = Callable()) -> void:
 	physical_heights.clear()
 	props.clear()
 	building_collisions.clear()
+	camp_buildings = preload("res://scripts/camp_art.gd").layout()
+	reserved_areas.clear()
+	for building in camp_buildings:
+		reserved_areas.append(building.rect.grow(20))
+		building_collisions.append_array(building.walls)
 	platforms.clear()
 	large_rocks.clear()
 	prop_variants.clear()
@@ -96,6 +105,7 @@ func generate(new_seed: int, on_progress: Callable = Callable()) -> void:
 		cells[cell]["blocked"] = true
 	ensure_nature_variety()
 	if on_progress.is_valid(): on_progress.call(0.30)
+	generate_tree_groups()
 	add_saplings(rng)
 	var visited := {Vector2i.ZERO: true}
 	var queue: Array[Vector2i] = [Vector2i.ZERO]
@@ -114,7 +124,16 @@ func generate(new_seed: int, on_progress: Callable = Callable()) -> void:
 		if not cells[cell]["blocked"] and not visited.has(cell):
 			cells[cell]["blocked"] = true
 			props[cell] = 1
+	for cell in props.keys():
+		if in_reserved_area(center(cell),64):
+			if large_rocks.has(cell):
+				for y in 2:
+					for x in 2: cells[cell+Vector2i(x,y)].blocked = false
+			props.erase(cell); large_rocks.erase(cell); saplings.erase(cell)
+			cells[cell].blocked = false
 	assign_variants(rng)
+	clear_camp_overlap()
+	complete_rock_variety()
 	if on_progress.is_valid(): on_progress.call(0.50)
 	index_collisions()
 	generate_ground_details()
@@ -143,7 +162,7 @@ func add_burdock() -> void:
 		var covered := false
 		for anchor in props:
 			if props[anchor] != 2: continue
-			var height: float = Nature.profile(2,prop_variants[anchor]).size
+			var height: float = tree_dimensions(anchor).y
 			if Rect2(center(anchor)+Vector2(-height/2,26-height),Vector2(height,height)).grow(26).has_point(base): covered = true; break
 		if covered: continue
 		props[cell] = 5
@@ -176,7 +195,7 @@ func generate_ground_details() -> void:
 		if puddles.size() >= count:
 			break
 		var point := Vector2(rng.randf_range(inset.position.x, inset.end.x), rng.randf_range(inset.position.y, inset.end.y)).snapped(Vector2(2, 2))
-		if not walkable(point, 32):
+		if in_reserved_area(point,48) or not walkable(point, 32):
 			continue
 		var separated := true
 		for puddle in puddles:
@@ -233,6 +252,7 @@ static func grass_padding(width: float, variant: int) -> float:
 	return maxf(width*0.55,width*region.size.y/region.size.x)
 
 func grass_allowed(point: Vector2, padding: float = 0.0, exclude_dirt: bool = true, exclude_bases: bool = true) -> bool:
+	if in_reserved_area(point,padding): return false
 	for platform in platforms:
 		if platform.rect.grow(padding).has_point(point): return false
 	var horizontal := 24*sin(point.x/210)+10*sin(point.x/93)
@@ -300,6 +320,12 @@ func assign_variants(rng: RandomNumberGenerator) -> void:
 		prop_variants[cell] = id
 		var position := center(cell) + (Vector2(32, 32) if large_rocks.has(cell) else Vector2.ZERO)
 		prop_collisions[cell] = Nature.collision(position, kind, id, large_rocks.has(cell))
+		if kind == 2:
+			var height := tree_dimensions(cell).y
+			prop_collisions[cell] = Rect2(position+Vector2(-height*0.055,26-height*0.10),Vector2(height*0.11,height*0.10))
+		elif Nature.profile(1,id).size >= 64*0.65:
+			var width: float = Nature.profile(1,id).size*0.72
+			prop_collisions[cell] = Rect2(position+Vector2(-width/2,(60 if large_rocks.has(cell) else 26)-12),Vector2(width,12))
 
 func shuffle_ids(ids: Array[int], rng: RandomNumberGenerator) -> void:
 	for i in range(ids.size() - 1, 0, -1):
@@ -385,6 +411,7 @@ func physical_height(cell: Vector2i) -> float:
 		var source: Rect2 = preload("res://scripts/imported_nature.gd").ROCKS[profile.size_index*2+profile.shape].rect
 		physical_heights[cell] = Nature.dimensions(1,prop_variants[cell],source.size).y
 		return physical_heights[cell]
+	if props.get(cell) == 2: return tree_dimensions(cell).y
 	return 42.0 if props.get(cell) == 4 else 100.0
 
 func generate_platforms() -> void:
@@ -409,3 +436,83 @@ func surface_height(point: Vector2) -> float:
 	for platform in platforms:
 		if preload("res://scripts/raised_ground.gd").contains(platform,point): return platform.height
 	return 0.0
+
+func in_reserved_area(point: Vector2, padding: float = 0.0) -> bool:
+	for area in reserved_areas:
+		if area.grow(padding).has_point(point): return true
+	return false
+
+func tree_dimensions(cell: Vector2i) -> Vector2:
+	return preload("res://scripts/large_tree_art.gd").dimensions(tree_designs.get(cell,posmod(cell.x*31+cell.y*17,9)))
+
+func generate_tree_groups() -> void:
+	for cell in props.keys():
+		if props[cell] == 2: props.erase(cell); cells[cell].blocked = false
+	tree_groups.clear(); tree_designs.clear()
+	var rng := RandomNumberGenerator.new(); rng.seed = seed_value ^ 33281
+	var centers: Array[Vector2] = []
+	for attempt in 1000:
+		if tree_groups.size() >= 10: break
+		var anchor := Vector2i(rng.randi_range(FIRST.x+3,FIRST.x+SIZE.x-4),rng.randi_range(FIRST.y+3,FIRST.y+SIZE.y-4))
+		var point := center(anchor)
+		var separated := true
+		for previous in centers:
+			if point.distance_to(previous) < 430: separated = false
+		if not separated or in_reserved_area(point,180): continue
+		var candidates: Array[Vector2i] = []
+		for y in range(-2,3):
+			for x in range(-2,3):
+				var cell := anchor+Vector2i(x,y)
+				if not cells.has(cell) or cells[cell].road or props.has(cell) or cells[cell].blocked or in_reserved_area(center(cell),85): continue
+				if center(cell).distance_to(point) > 155: continue
+				candidates.append(cell)
+		for i in range(candidates.size()-1,0,-1):
+			var other := rng.randi_range(0,i); var saved := candidates[i]; candidates[i] = candidates[other]; candidates[other] = saved
+		var count := mini(rng.randi_range(3,15),candidates.size())
+		if count < 3: continue
+		var group: Array[Vector2i] = []
+		for i in count:
+			var cell := candidates[i]; props[cell] = 2; cells[cell].blocked = true
+			tree_designs[cell] = posmod(i+tree_groups.size()*3,9); group.append(cell)
+		tree_groups.append(group); centers.append(point)
+
+func clear_camp_overlap() -> void:
+	for cell in props.keys():
+		if props[cell] not in [1,2]: continue
+		var kind: int = props[cell]
+		var dimensions: Vector2
+		if kind == 2: dimensions = tree_dimensions(cell)
+		else:
+			var profile := Nature.profile(1,prop_variants[cell])
+			var source: Rect2 = preload("res://scripts/imported_nature.gd").ROCKS[profile.size_index*2+profile.shape].rect
+			dimensions = Nature.dimensions(1,prop_variants[cell],source.size)
+		var point := center(cell)+(Vector2(32,32) if large_rocks.has(cell) else Vector2.ZERO)
+		var visual := Rect2(point+Vector2(-dimensions.x/2,(60 if large_rocks.has(cell) else 26)-dimensions.y),dimensions)
+		var overlaps := false
+		for area in reserved_areas:
+			if visual.intersects(area): overlaps = true; break
+		if not overlaps: continue
+		if large_rocks.has(cell):
+			for y in 2:
+				for x in 2: cells[cell+Vector2i(x,y)].blocked = false
+		props.erase(cell); large_rocks.erase(cell); prop_variants.erase(cell); prop_collisions.erase(cell); cells[cell].blocked = false
+
+func complete_rock_variety() -> void:
+	var shown := {}
+	for cell in props:
+		if props[cell] == 1: shown[prop_variants[cell]] = true
+	for id in Nature.COUNT:
+		if shown.has(id): continue
+		for cell in cells:
+			if cells[cell].road or cells[cell].blocked or props.has(cell) or in_reserved_area(center(cell),130): continue
+			var separated := true
+			for other in props:
+				var point := center(other)+(Vector2(32,32) if large_rocks.has(other) else Vector2.ZERO)
+				if center(cell).distance_to(point) < 150: separated = false; break
+			if not separated: continue
+			props[cell] = 1; prop_variants[cell] = id; cells[cell].blocked = true
+			prop_collisions[cell] = Nature.collision(center(cell),1,id,false)
+			var width: float = Nature.profile(1,id).size*0.72
+			if Nature.profile(1,id).size >= 64*0.65:
+				prop_collisions[cell] = Rect2(center(cell)+Vector2(-width/2,14),Vector2(width,12))
+			break

@@ -63,10 +63,10 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 		var row := []
 		var tips := []
 		for frame in count:
-			var combined := String(state).begins_with("equip_") or state == &"pickup_walk"
+			var combined := String(state).begins_with("equip_") or state in [&"pickup_walk",&"eat_walk"]
 			var pose_frame := frame/12 if combined else frame
 			var phase := frame/float(count) if state in [&"walk",&"run",&"crouch_walk"] else (frame/float(count-1) if count > 1 else 0.0)
-			if combined: phase = pose_frame/5.0
+			if combined: phase = pose_frame/(11.0 if state == &"eat_walk" else 5.0)
 			if state == &"action": phase = frame/16.0 if frame <= 8 else 0.5+(frame-8)/14.0
 			actor.build(item,family,state,phase,direction*(16/directions),(frame%12)/12.0 if combined else (0.0 if from_start else (stop_frame/12.0 if stop_frame >= 0 else 0.20)),smoothstep(0,1,stop_frame/5.0) if from_start else 1.0)
 			await protect_body(item,direction*(16/directions))
@@ -95,11 +95,11 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 	var path := OUTPUT+id+"_"+String(state)+suffix+".png"
 	var error := OK
 	var paths := []
-	var combined := String(state).begins_with("equip_") or state == &"pickup_walk"
+	var combined := String(state).begins_with("equip_") or state in [&"pickup_walk",&"eat_walk"]
 	if combined:
 		# Six equip stages, each with twelve gait frames. Every texture remains
 		# below 4096 pixels instead of a 13824-pixel-wide GPU allocation.
-		for stage in 6:
+		for stage in (12 if state == &"eat_walk" else 6):
 			var part_path := path.trim_suffix(".png")+"_%02d.png" % stage
 			var part := result.get_region(Rect2i(stage*12*CELL.x,0,12*CELL.x,directions*CELL.y))
 			var written := part.save_png(part_path)
@@ -112,7 +112,7 @@ func sheet(item: StringName,family: StringName,state: StringName,count: int,dire
 		push_error("Export %s: write=%s, grip_error=%s" % [path,error,grip_error])
 	print("BAKED %s: %d directions × %d frames; grip error %.5f" % [path,directions,count,grip_error])
 	var data := {"path":path,"frames":12 if combined else count,"directions":directions,"grip_error":snappedf(grip_error,0.00001)}
-	if combined: data["equip_frames"] = 6; data["gait_frames"] = 12; data["paths"] = paths
+	if combined: data["equip_frames"] = 12 if state == &"eat_walk" else 6; data["gait_frames"] = 12; data["paths"] = paths
 	if not anchors.is_empty(): data["release_anchors"] = anchors
 	if not tip_anchors.is_empty(): data["tip_anchors"] = tip_anchors
 	if armor_id == &"" and item == &"" and state == &"idle": data["body_height"] = result.get_region(Rect2i(0,4*CELL.y,CELL.x,CELL.y)).get_used_rect().size.y
@@ -153,21 +153,30 @@ func run() -> void:
 		manifest["items"] = previous["items"]
 		manifest["pixels_per_world"] = previous.get("pixels_per_world",1.0)
 	var selected_clips := PackedStringArray()
+	if "--running" in arguments:
+		selected_clips = PackedStringArray(["run","start_run","equip_run"])
+		for i in 12: selected_clips.append("stop_run_%02d" % i)
+		for i in 6: selected_clips.append("stop_run_start_%02d" % i)
 	if "--clips" in arguments:
 		selected_clips = arguments[arguments.find("--clips")+1].split(",")
 	for item in items:
-		var family: StringName = Inventory.DEFINITIONS.get(item,{}).get("category",&"")
+		var family: StringName = &"food" if item in [&"apple",&"berries",&"ration"] else Inventory.DEFINITIONS.get(item,{}).get("category",&"")
 		if String(item).begins_with("bottle_"): family = &"bottle"
 		var clips := {}
 		var key := "bare" if item == &"" else ("bow_unloaded" if unloaded_bow and item == &"bow" else String(item))
 		if armor_id != &"": key = String(armor_id)+"__"+key
 		if not selected_clips.is_empty():
-			clips = manifest["items"][key]["clips"].duplicate(true)
+			clips = manifest["items"].get(key,{"clips":{}})["clips"].duplicate(true)
 			for name in selected_clips:
-				if name not in ["draw","action","pickup","pickup_walk","jump","crouch","slide","slide_jump","crouch_walk","equip_walk","equip_run","equip_crouch_walk","crouch_equip"]:
-					push_error("Partial export currently supports jump,crouch,slide,crouch_walk only")
-					quit(1); return
-				clips[name] = await sheet(item,family,StringName(name),72 if name.begins_with("equip_") or name == "pickup_walk" else (16 if name == "action" else (12 if name == "crouch_walk" else 6)),16 if name in ["draw","crouch_equip","action"] else 8)
+				if name.begins_with("stop_run_"):
+					var from_start := name.begins_with("stop_run_start_")
+					clips[name] = await sheet(item,family,&"stop_run",6,8,int(name.get_slice("_",3 if from_start else 2)),from_start)
+				else:
+					var combined := name.begins_with("equip_") or name in ["pickup_walk","eat_walk"]
+					var frames := (144 if name == "eat_walk" else 72) if combined else (16 if name == "death" else (16 if name == "action" else (12 if name in ["eat","run","walk","crouch_walk"] else 6)))
+					clips[name] = await sheet(item,family,StringName(name),frames,16 if name in ["draw","crouch_equip","action","eat","eat_walk","death"] else 8)
+
+			if not manifest["items"].has(key): manifest["items"][key] = {"clips":{}}
 			manifest["items"][key]["clips"] = clips
 			var partial := FileAccess.open(path,FileAccess.WRITE)
 			partial.store_string(JSON.stringify(manifest,"\t"))

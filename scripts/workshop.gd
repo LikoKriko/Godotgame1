@@ -1,5 +1,6 @@
 extends RefCounted
 const RECIPES := {
+	&"cuero_curtido": {&"cuero_sin_refinar":1},
 	&"sword": {&"palo":2,&"piedra":1,&"cuerda":1},
 	&"bow": {&"palo":1,&"cuerda":2},
 	&"leaf_boots": {&"cuerda":2,&"hoja_bardana":4},
@@ -12,7 +13,7 @@ const RECIPES := {
 	&"botella": {&"cuero":3,&"hilo":1},
 	&"flecha": {&"palo":1,&"piedra":1,&"cuerda":1},
 }
-const CREATION_TIMES := {&"pickaxe":2.0,&"axe":2.0,&"cuerda":2.0,&"burdock_armor":2.0,&"botella":2.0,&"flecha":2.0,&"sword":2.0,&"bow":2.0,&"leaf_boots":2.0,&"leaf_helmet":2.0,&"basic_workbench":2.0}
+const CREATION_TIMES := {&"cuero_curtido":2.0,&"pickaxe":2.0,&"axe":2.0,&"cuerda":2.0,&"burdock_armor":2.0,&"botella":2.0,&"flecha":2.0,&"sword":2.0,&"bow":2.0,&"leaf_boots":2.0,&"leaf_helmet":2.0,&"basic_workbench":2.0}
 const OUTPUT_COUNTS := {&"flecha":5}
 const REPAIRS := {
 	&"pickaxe": {&"piedra": 1, &"palo": 1},
@@ -36,13 +37,12 @@ static func craft(bag, id: StringName, station_level: int = 0) -> String:
 		return "La receta todavía no está definida."
 	if id not in bag.unlocked_recipes: return "Esta receta no está desbloqueada."
 	if station_level < required_station(bag,id): return "Necesitas una mesa de fabricación básica."
-	if not affordable(bag,RECIPES[id]):
+	if not can_craft_inputs(bag,id):
 		return "Faltan materiales."
 	# Consume and add in a trial backpack: a failed craft never loses inputs,
 	# and materials can free the slot occupied by the crafted object.
 	var trial = bag.fork()
-	for material in RECIPES[id]:
-		trial.remove_amount(material,RECIPES[id][material])
+	reserve_inputs(trial,id)
 	if not trial.add(id,OUTPUT_COUNTS.get(id,1)):
 		return "La mochila está llena."
 	bag.slots = trial.slots
@@ -80,3 +80,20 @@ static func recipe_ids(bag, station_level: int = 0) -> Array:
 		if station_level > 0 and id == &"basic_workbench": continue
 		result.append(id)
 	return result
+
+const USE_COSTS := {&"cuero_curtido":{&"saco_sal":1,&"knife":3}}
+static func usage_item(bag, id: StringName, needed: int) -> Dictionary:
+	for item in bag.slots+bag.quick_slots:
+		if item.get("id") == id and item.get("uses",0) >= needed: return item
+	return {}
+static func can_craft_inputs(bag, id: StringName) -> bool:
+	if not affordable(bag,RECIPES.get(id,{})): return false
+	for tool in USE_COSTS.get(id,{}):
+		if usage_item(bag,tool,USE_COSTS[id][tool]).is_empty(): return false
+	return true
+static func reserve_inputs(bag, id: StringName) -> bool:
+	if not can_craft_inputs(bag,id): return false
+	for material in RECIPES[id]: bag.remove_amount(material,RECIPES[id][material])
+	for tool in USE_COSTS.get(id,{}):
+		var item := usage_item(bag,tool,USE_COSTS[id][tool]); item.uses -= USE_COSTS[id][tool]
+	return true

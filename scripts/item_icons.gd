@@ -9,6 +9,11 @@ static func for_item(item: Dictionary) -> Texture2D:
 	return get_icon(item.get("id",&""))
 
 static func get_icon(id: StringName) -> Texture2D:
+	if id in [&"cuero_curtido",&"cuero_sin_refinar",&"saco_sal"]:
+		if not textures.has(id):
+			var source: Texture2D = load("res://assets/items/"+{&"cuero_curtido":"tanned_leather",&"cuero_sin_refinar":"raw_hide",&"saco_sal":"salt_bag"}[id]+".png")
+			textures[id] = preload("res://scripts/visual_style.gd").icon(source,id)
+		return textures[id]
 	if id == &"basic_workbench": return preload("res://scripts/workbench_art.gd").icon()
 	if id == &"flecha": return preload("res://scripts/arrow_art.gd").data().texture
 	if id in [&"botella",&"water",&"cuero",&"hilo"]:

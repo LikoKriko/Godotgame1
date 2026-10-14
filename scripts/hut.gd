@@ -15,6 +15,8 @@ var base := Vector2.ZERO
 var door := Vector2.ZERO
 var footprint := Rect2()
 var exterior: Sprite2D
+var buildings: Array[Dictionary] = []
+var active_building := 0
 var room: Node2D
 var timber: Texture2D
 var image: Texture2D
@@ -22,10 +24,8 @@ var image: Texture2D
 func configure(owner_game) -> void:
 	game = owner_game
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	image = Style.normalized(load("res://assets/environment/imported/hut_01.png"),DRAW_SIZE)
+	preload("res://scripts/camp_art.gd").prepare()
 	timber = load("res://assets/environment/imported/hut_timber.png")
-	exterior = Sprite2D.new(); exterior.centered = false; exterior.texture = image
-	exterior.scale = DRAW_SIZE/image.get_size(); exterior.z_index = -1; add_child(exterior)
 	reset()
 
 func reset() -> void:
@@ -33,42 +33,39 @@ func reset() -> void:
 	if is_instance_valid(room): room.free(); room = null
 	game.world_view.show()
 	choose_location()
-	exterior.position = base+Vector2(-DRAW_SIZE.x/2,17-DRAW_SIZE.y)
-	exterior.show()
+	for record in buildings:
+		record.sprite.free()
+	buildings.clear()
+	for data in game.world.camp_buildings:
+		var record: Dictionary = data.duplicate(true)
+		var sprite := Sprite2D.new()
+		sprite.centered = false; sprite.texture = preload("res://scripts/camp_art.gd").textures[data.id]
+		sprite.position = data.rect.position; sprite.scale = data.rect.size/sprite.texture.get_size()
+		sprite.z_as_relative = false; sprite.z_index = -1
+		add_child(sprite); record["sprite"] = sprite; buildings.append(record)
+	active_building = 0
+	choose_location()
 	outside_player = door+Vector2(0,28)
 
 func choose_location() -> void:
-	# Reserve a natural clearing close to the initial crossroads. Do not remove props.
-	var found := false
-	for y in range(-120,-601,-32):
-		for x in range(180,701,32):
-			var candidate := Vector2(x,y)
-			var occupied := Rect2(candidate+Vector2(-140,-170),Vector2(280,220))
-			var clear := true
-			for platform in game.world.platforms:
-				if occupied.intersects(platform.rect.grow(16)): clear = false
-			for cell in game.world.props:
-				if game.world_view.presentation(cell).rect.grow(12).intersects(occupied): clear = false; break
-			for puddle in game.world.puddles:
-				if occupied.grow(puddle.width).has_point(puddle.position): clear = false
-			if clear and game.world.walkable(candidate+Vector2(40,42),24):
-				base = candidate; found = true; break
-		if found: break
-	footprint = Rect2(base+Vector2(-96,-62),Vector2(192,67))
-	# Source doorway sits slightly right of the facade center.
-	door = base+Vector2(40,-17)
-	game.world.building_collisions.clear()
-	var opening_left := door.x-26; var opening_right := door.x+26
-	game.world.building_collisions.append(Rect2(footprint.position,Vector2(opening_left-footprint.position.x,footprint.size.y)))
-	game.world.building_collisions.append(Rect2(Vector2(opening_right,footprint.position.y),Vector2(footprint.end.x-opening_right,footprint.size.y)))
-	game.world.building_collisions.append(Rect2(footprint.position,Vector2(footprint.size.x,28)))
-	game.world.navigation_revision += 1
+	if buildings.is_empty(): return
+	var record: Dictionary = buildings[active_building]
+	base = record.base; door = record.door; footprint = record.footprint
+	exterior = record.sprite; image = exterior.texture
 	if game.world_view.terrain_chunks != null:
-		game.world_view.terrain_chunks.sampler.add_influence(&"hut",&"dirt",footprint.grow(18),1.0)
+		for building in buildings:
+			game.world_view.terrain_chunks.sampler.add_influence(StringName("camp_%d" % building.id),&"dirt",building.footprint.grow(18),1.0)
 		game.world_view.terrain_chunks.refresh_influences()
 
 func near_door(point: Vector2) -> bool:
-	return point.distance_to(ROOM_DOOR if inside else door) <= 48
+	if inside: return point.distance_to(ROOM_DOOR) <= 48
+	var closest := 48.000001; var selected := -1
+	for building in buildings:
+		var distance := point.distance_to(building.door)
+		if distance < closest: closest = distance; selected = building.id
+	if selected < 0: return false
+	active_building = selected; choose_location()
+	return true
 
 func interact() -> bool:
 	if not near_door(game.player): return false
@@ -85,14 +82,15 @@ func interact() -> bool:
 	return true
 
 func apply_visibility() -> void:
-	exterior.visible = not inside; game.world_view.visible = not inside
+	for building in buildings: building.sprite.visible = not inside
+	game.world_view.visible = not inside
 	if inside:
 		if not is_instance_valid(room):
-			room = ROOM_SCENE.instantiate(); room.host = self; add_child(room)
+			room = ROOM_SCENE.instantiate(); room.host = self; room.z_index = -10; add_child(room)
 		room.show()
 	elif is_instance_valid(room):
 		room.queue_free(); room = null
-	if is_instance_valid(game.enemies.enemy): game.enemies.enemy.visible = not inside
+	for creature in get_tree().get_nodes_in_group("creatures"): creature.visible = not inside
 	var bounds: Rect2 = ROOM_BOUNDS.grow(120) if inside else game.world.bounds
 	game.camera.limit_left = floori(bounds.position.x); game.camera.limit_top = floori(bounds.position.y)
 	game.camera.limit_right = ceili(bounds.end.x); game.camera.limit_bottom = ceili(bounds.end.y)
@@ -123,15 +121,13 @@ func draw_room(surface: Node2D) -> void:
 	surface.draw_texture_rect(timber,Rect2(ROOM_CENTER.x-24,floor_rect.end.y,48,16),false,Color("c2ac86"))
 
 func snapshot() -> Dictionary:
-	return {"inside":inside,"outside_player":outside_player}
+	return {"inside":inside,"outside_player":outside_player,"active_building":active_building}
 static func valid_snapshot(data) -> bool:
-	return data is Dictionary and data.get("inside") is bool and data.get("outside_player") is Vector2 and data.outside_player.is_finite()
+	return data is Dictionary and data.get("inside") is bool and data.get("outside_player") is Vector2 and data.outside_player.is_finite() and data.get("active_building",0) is int and data.get("active_building",0) >= 0 and data.get("active_building",0) < 6
 
 func _process(_delta: float) -> void:
 	if inside: return
-	var in_doorway: bool = absf(game.player.x-door.x) < 26 and game.player.y > base.y-34
-	exterior.z_index = 1 if game.player.y+17 < base.y and not in_doorway else -1
-
-	var hidden_body := Rect2(game.player+Vector2(-15,-53-game.ground_height),Vector2(30,70))
-	var visual := Rect2(exterior.position,DRAW_SIZE)
-	exterior.modulate.a = 0.35 if exterior.z_index > 0 and visual.intersects(hidden_body) else 1.0
+	for building in buildings:
+		var sprite: Sprite2D = building.sprite
+		sprite.z_index = preload("res://scripts/world_depth.gd").layer(building.rect.end.y)
+		sprite.modulate.a = preload("res://scripts/world_depth.gd").opacity(game,building.rect,building.rect.end.y)

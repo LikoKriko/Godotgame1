@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b4pibxsiao7ed"
-path="res://.godot/imported/basic_forest_props.png-e335d60c131952f3fabb346e519e0b8b.ctex"
+uid="uid://bssredwlyiawy"
+path="res://.godot/imported/apple_eat_walk_05.png-71a2345235df39a8d381bc21634fd2a7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/basic_forest_props.png"
-dest_files=["res://.godot/imported/basic_forest_props.png-e335d60c131952f3fabb346e519e0b8b.ctex"]
+source_file="res://assets/characters/complete/apple_eat_walk_05.png"
+dest_files=["res://.godot/imported/apple_eat_walk_05.png-71a2345235df39a8d381bc21634fd2a7.ctex"]
 
 [params]
 

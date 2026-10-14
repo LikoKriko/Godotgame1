@@ -45,6 +45,9 @@ static func gesture(rest: Vector3, windup: Vector3, impact: Vector3, phase: floa
 
 static func sample(family: StringName, state: StringName, phase: float, stop_phase: float = 0.20, stop_amplitude: float = 1.0, direction: int = -1) -> Dictionary:
 	phase = clampf(phase,0,1)
+	var eating := state in [&"eat",&"eat_walk"]
+	var eat_amount := smoothstep(0,0.25,phase)*(1-smoothstep(0.8,1,phase)) if eating else 0.0
+	if state == &"eat_walk": state = &"walk"; phase = stop_phase
 	var picking := state in [&"pickup",&"pickup_walk"]
 	var pickup_amount := sin(phase*PI) if picking else 0.0
 	if state == &"pickup_walk": state = &"walk"; phase = stop_phase
@@ -74,6 +77,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var bounce := -1.0-0.65*cos(walk_phase*TAU*2) if walking else 0.0
 	var compression := 6.0 if crouch_walking else (phase*6.0 if state == &"crouch" else 0.0)
 	if picking: compression += 12*pickup_amount
+	if state == &"death": compression = 5.0*smoothstep(0,0.35,phase)
 	if state == &"slide": compression = 8*sin(phase*PI)
 	if state == &"jump": compression = 1.4*sin(phase*PI)
 	if state == &"slide_jump": compression = 7*(1-smoothstep(0,0.35,phase))+2*sin(phase*PI)
@@ -82,7 +86,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var twist := -0.25*sin(phase*TAU) if action and family == &"axe" else 0.0
 	if action and family == &"sword": twist = -0.30*sin(phase*TAU)
 	if action and family == &"bow": twist = 0.70*smoothstep(0,0.26,phase)*(1-smoothstep(0.72,1,phase))
-	var lean := ((0.12+0.035*sin(walk_phase*TAU)) if running else 0.04*sin(walk_phase*TAU))*amplitude if walking else 0.0
+	var lean := ((0.18+0.025*sin(walk_phase*TAU)) if running else 0.04*sin(walk_phase*TAU))*amplitude if walking else 0.0
 	if action: lean = -0.07*sin(phase*TAU)
 	if picking: lean += 0.38*pickup_amount
 	if state == &"slide": lean = 0.4*sin(phase*PI)
@@ -96,6 +100,7 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	for side in 2:
 		var step := gait(walk_phase+side*0.5,amplitude,running)
 		var ankle := Vector3(-4.4 if side == 0 else 4.4,2+step["lift"],step["z"])
+		if state == &"death": ankle += Vector3(0,0,4.0*smoothstep(0.20,0.8,phase))
 		if state == &"slide": ankle += Vector3(0,0,(7 if side == 0 else -4)*sin(phase*PI))
 		if state in [&"jump",&"slide_jump"]:
 			var tuck := sin(phase*PI)
@@ -107,13 +112,22 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 	var hands: Array[Vector3] = []
 	for side in 2:
 		var swing := -sin((walk_phase+side*0.5)*TAU)*(7.5 if running else 4.5)*amplitude
-		var hand := Vector3(-11.0 if side == 0 else 11.0,28.0,swing+3.5)
+		# Lift the relaxed running wrist toward the chest to retain a bent elbow
+		# throughout the swing. The torso transform carries both arm roots and
+		# targets, so the shoulder remains attached during the forward lean.
+		var arm_lift := 3.5*amplitude if running else 0.0
+		var arm_forward := 2.0*amplitude if running else 0.0
+		var hand := Vector3(-11.0 if side == 0 else 11.0,28.0+arm_lift,swing+3.5+arm_forward)
+		if state == &"death": hand = hand.lerp(Vector3(-14.0 if side == 0 else 14.0,31,6),smoothstep(0.15,0.75,phase))
 		if picking and side == 1: hand = hand.lerp(Vector3(8,28,8),pickup_amount)
 		hands.append(body*hand)
 	var grip := body*Vector3(4,32,6)
 	var shaft := Vector3(0,0.72,0.69).normalized()
 	var active := 1
-	if family == &"bottle":
+	if family == &"food":
+		grip = body*Vector3(8,32,8).lerp(Vector3(4.5,49,9.5),eat_amount)
+		shaft = body.basis*Vector3.UP
+	elif family == &"bottle":
 		grip = hands[1]
 		shaft = body.basis*Vector3.UP
 	elif family == &"bow":
@@ -202,4 +216,13 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 		if state == &"equip":
 			grip = (body*Vector3(8,28,1.5)).lerp(grip,smoothstep(0,1,phase))
 		hands[active] = grip
+	if state == &"death":
+		var falling := smoothstep(0.12,0.85,phase)
+		var rotation := Basis(Vector3.RIGHT,falling*PI/2)
+		var floor := Transform3D(rotation,Vector3(0,3.0*falling,0))
+		body = floor*body
+		for side in 2:
+			shoulders[side] = floor*shoulders[side]; hips[side] = floor*hips[side]; hands[side] = floor*hands[side]
+			for joint_name in ["root","joint","end"]: legs[side][joint_name] = floor*legs[side][joint_name]
+		grip = floor*grip; shaft = rotation*shaft
 	return {"body":body,"shoulders":shoulders,"hips":hips,"legs":legs,"hands":hands,"grip":grip,"shaft":shaft,"active":active,"state":state,"phase":phase}
