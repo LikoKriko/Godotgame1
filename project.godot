@@ -14,8 +14,8 @@ window/size/viewport_height=1080
 window/size/window_width_override=1920
 window/size/window_height_override=1080
 window/stretch/mode="disabled"
-; Native tooltips avoid consuming pointer motion while closing embedded popups.
-window/subwindows/embed_subwindows=false
+; Keep option lists in the same render/input space as the game window.
+window/subwindows/embed_subwindows=true
 
 [rendering]
 renderer/rendering_method="gl_compatibility"

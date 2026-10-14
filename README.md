@@ -312,11 +312,11 @@ En Windows la mira se dibuja dentro de cada ventana, con las mismas coordenadas
 del viewport que reciben los botones y la selección del mundo. Conserva el PNG
 y su centro, con 24 píxeles de alto en pantalla independientemente de la
 resolución, el HUD o el zoom. Se oculta el cursor nativo para evitar dos miras.
-La confirmación de Nueva partida tiene su propia capa porque es otra ventana;
-solo la ventana con foco muestra la mira. Linux conserva el cursor nativo.
+Nueva partida usa un panel dentro del juego; no abre una ventana del sistema.
+Linux conserva el cursor nativo.
 
 `tests/software_cursor.gd` comprueba los bordes de los botones con el modo de
-cursor dibujado y la confirmación en una ventana separada.
+cursor dibujado y la confirmación dentro del juego.
 `tests/cursor_alignment.gd` comprueba el centro renderizado con cambios de escala,
 resolución, cámara y transformaciones. Estas comprobaciones se ejecutan en Linux;
 el desfase comunicado en Windows requiere verificar la nueva versión allí.
@@ -332,3 +332,12 @@ Los textos emergentes nativos y otras ventanas sin foco quedan fuera de la
 instalación del cursor dibujado. El modo del ratón se cambia solo si es necesario.
 `tests/cursor_shift_transfer.gd` verifica transferencias con Shift + clic real,
 con textos emergentes, y conserva la transformación de ventana y los clics.
+
+Los desplegables de configuración se muestran como ventanas integradas en el
+viewport (`embed_subwindows=true`), manteniendo la lista y el cursor en la misma
+ventana. Aplicar FPS, audio, HUD o sincronización vertical no reconstruye el
+modo de pantalla. Cambiar resolución o modo actualiza la ventana y resincroniza
+una vez el cursor de Windows tras asentarse el nuevo tamaño.
+`tests/settings_cursor_popups.gd` comprueba selección real de opciones, el centro
+dibujado de la mira sobre las listas, los clics tras cambiar resolución y que
+Nueva partida y Cancelar funcionan en un panel interno.

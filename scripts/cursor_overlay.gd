@@ -29,6 +29,15 @@ func install_canvas_cursor(window: Window) -> void:
 	window.set_meta("day_zero_canvas_cursor",true)
 	var overlay := CanvasLayer.new(); overlay.name = "DayZeroCursor"; overlay.layer = 4096; window.add_child(overlay)
 	overlay.add_child(preload("res://scripts/aim_cursor.gd").new())
+func resync_after_display_change() -> void:
+	if native_cursor: return
+	# Let the native window resize and the viewport transform settle first.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# Windows can reset the OS cursor on display changes while Input still caches
+	# HIDDEN. Resynchronize once here, rather than toggling it every frame.
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	Input.mouse_mode = Input.MOUSE_MODE_HIDDEN
 func _exit_tree() -> void:
 	if native_cursor:
 		for shape in range(Input.CURSOR_ARROW,Input.CURSOR_HELP+1): Input.set_custom_mouse_cursor(null,shape)

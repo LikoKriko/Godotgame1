@@ -21,7 +21,7 @@ var settings_panel: PanelContainer
 var settings_backdrop: ColorRect
 var art: TextureRect
 var rects: Dictionary = {}
-var confirmation: ConfirmationDialog
+var confirmation: Control
 var message: Label
 var pause_font: Font = preload("res://scripts/ui_style.gd").menu_font()
 const TEMPLATE_SIZE := Vector2(1672,941)
@@ -65,12 +65,7 @@ func configure(model) -> void:
 	title.text = "DAY\nZERO"
 	title.hide()
 	title_area.add_child(title)
-	confirmation = ConfirmationDialog.new()
-	confirmation.theme = theme
-	confirmation.title = "Nueva partida"
-	confirmation.dialog_text = "¿Iniciar una nueva partida? Los cambios sin guardar de la partida abierta se perderán. El guardado anterior se conserva hasta que guardes la nueva partida."
-	confirmation.ok_button_text = "Nueva partida"
-	confirmation.cancel_button_text = "Cancelar"
+	confirmation = preload("res://scripts/confirmation_panel.gd").new()
 	confirmation.confirmed.connect(func(): new_game_requested.emit())
 	add_child(confirmation)
 	resized.connect(fit)
@@ -171,6 +166,7 @@ func close_settings() -> void:
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if visible and event.is_pressed() and event.keycode == KEY_ESCAPE:
-		if is_instance_valid(settings_panel): close_settings()
+		if confirmation.visible: confirmation.hide()
+		elif is_instance_valid(settings_panel): close_settings()
 		elif resumed: play_requested.emit()
 		get_viewport().set_input_as_handled()
