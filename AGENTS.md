@@ -1,5 +1,23 @@
 # Day Zero: regla visual permanente del usuario
 
+## Acabado permanente de todas las texturas
+
+Todas las texturas nuevas o adaptadas deben tener acabado pixel art de muy alta
+resolución: píxeles definidos, paleta controlada y detalle moderado, sin acabado
+fotográfico ni pinceladas borrosas. Incluye texturas generadas, adaptadas de
+imágenes o sprites del usuario y sus versiones para modelos 3D, objetos e
+interfaz. Esta indicación sustituye el acabado pintado suavizado de la primera
+prueba 3D. Conservar contornos finos y usar muestreo que preserve los píxeles;
+el tamaño grande de un atlas no justifica ruido ni exceso de contraste.
+
+El superviviente 3D representa un hombre estilizado de 1,75 m y 60 kg, delgado,
+con articulaciones identificables y definición anatómica discreta. Compartir
+anatomía y pesos de piel en todas las animaciones. La tela holgada acompaña las
+piernas con inercia pequeña. Cada golpe tiene preparación, acción, retroceso y
+recuperación. El golpe apunta al punto de mira fijado al iniciarlo, con alcance
+limitado por brazos y herramienta. Las nuevas herramientas usan los anclajes
+del catálogo de poses, sin duplicar o separar brazos del cuerpo.
+
 Todos los dibujos del juego deben usar contornos tan finos como los del personaje principal. Se aplica a personajes, animales, árboles, rocas, césped, objetos, armas, armaduras, materiales y a sus representaciones en inventario, fabricación, reparación y cualquier interfaz o mecánica futura. No incorporar nuevos dibujos con bordes gruesos. Excepción de interfaz solicitada por el usuario: los marcos de ventanas y botones tienen un contorno cuatro veces más grueso, manteniendo sus rectángulos, zonas de clic y adornos originales.
 
 El grosor de referencia es un píxel de la rasterización del personaje completo (192×192 por celda, ~1,5 píxeles de raster por unidad del mundo). El contorno escala con el dibujo y el zoom; no mantiene un ancho fijo en pantalla. Usar `scripts/visual_style.gd` para normalizar dibujos e iconos. La exportación del personaje y sus herramientas debe compartir esta política, evitando añadir dos contornos consecutivos. Eliminar solo el borde oscuro exterior grueso; preservar sombreado y detalles interiores.

@@ -5,6 +5,7 @@ const Model = preload("res://scripts/inventory.gd")
 const Icons = preload("res://scripts/item_icons.gd")
 const Style = preload("res://scripts/ui_style.gd")
 var creation_seconds := 2.0
+var icon_provider = Icons
 var model
 var station_level := 0
 var selected: StringName = &"pickaxe"
@@ -43,7 +44,7 @@ func configure(bag, level: int = 0) -> void:
 		Style.set_font_size(button,15)
 		button.minimum_left_padding = button.get_theme_font("font").get_string_size("M",HORIZONTAL_ALIGNMENT_LEFT,-1,15).x*0.5
 		button.fit_horizontal = Control.SIZE_SHRINK_BEGIN
-		button.icon = Icons.get_icon(id); button.expand_icon = true
+		button.icon = icon_provider.get_icon(id); button.expand_icon = true
 		if button.icon != null: button.icon_display_width = 65*button.icon.get_width()/maxf(button.icon.get_width(),button.icon.get_height())
 		button.add_theme_constant_override("icon_max_width",ceili(button.icon_display_width))
 		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -104,7 +105,7 @@ func refresh() -> void:
 		return
 	var known := Workshop.RECIPES.has(selected)
 	object_name.text = Model.DEFINITIONS[selected].name
-	preview.texture = Icons.get_icon(selected)
+	preview.texture = icon_provider.get_icon(selected)
 	result_label.text = "Resultado: %s × %d" % [Model.DEFINITIONS[selected].name,Workshop.OUTPUT_COUNTS.get(selected,1)] if known else "Receta pendiente de definir."
 	if selected == &"cuerda": result_label.text = "Resultado: 1 metro de cuerda"
 	elif selected == &"botella": result_label.text = "Resultado: 1 botella vacía · capacidad 500 ml"
@@ -116,7 +117,7 @@ func refresh() -> void:
 	var heading := Label.new(); heading.text = "RESERVADOS / NECESARIOS" if is_crafting() else "DISPONIBLES / NECESARIOS"; Style.set_font_size(heading,12); materials.add_child(heading)
 	for id in Workshop.RECIPES.get(selected,{}):
 		var row := HBoxContainer.new(); row.add_theme_constant_override("separation",10)
-		var icon := TextureRect.new(); icon.texture = Icons.get_icon(id); icon.custom_minimum_size = Vector2(65,65)
+		var icon := TextureRect.new(); icon.texture = icon_provider.get_icon(id); icon.custom_minimum_size = Vector2(65,65)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE; icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST; icon.mouse_filter = Control.MOUSE_FILTER_IGNORE; row.add_child(icon)
 		var amount := Label.new(); amount.size_flags_horizontal = Control.SIZE_EXPAND_FILL; amount.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

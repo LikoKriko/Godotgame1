@@ -12,7 +12,8 @@ func run():
  require(world.player is CharacterBody3D and world.camera_rig.camera is Camera3D,"Prototype uses real 3D physics and perspective camera")
  require(world.player.model.axe.get_child_count()>5,"Axe contains solid blade, wooden shaft and rope geometry")
  var bind_mesh: Mesh = world.player.model.mesh_node.mesh
- require(world.player.model.rig.skeleton.get_bone_count()==16,"Humanoid has a reusable articulated skeleton")
+ require(world.player.model.rig.skeleton.get_bone_count()==20,"Humanoid has an articulated skeleton with four cloth controls")
+ require(absf(world.player.model.mesh_node.mesh.get_aabb().size.y*world.player.model.scale.y-1.75)<0.001,"Survivor standing height is exactly 1.75 metres")
  var arrays: Array = bind_mesh.surface_get_arrays(0)
  var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
  var normalized_weights := not weights.is_empty()
@@ -24,7 +25,7 @@ func run():
  var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
  var outward_torso := false
  for i in vertices.size():
-  if absf(vertices[i].x)<0.001 and vertices[i].y>39 and vertices[i].y<44 and vertices[i].z>3:
+  if absf(vertices[i].x)<0.001 and vertices[i].y>39 and vertices[i].y<44 and vertices[i].z>2.5:
    outward_torso = normals[i].z>0.5
    break
  require(outward_torso,"Torso normals face outward for correct lighting")
@@ -46,10 +47,12 @@ func run():
  var original:float=world.camera_rig.yaw;world.camera_rig.look(Vector2(100,100000))
  require(world.camera_rig.yaw!=original and world.camera_rig.pitch<=deg_to_rad(65),"Mouse orbit and pitch limits work")
  world.camera_rig.pitch = -0.12; world.camera_rig.yaw = 0
- world.player.position = Vector3(-0.6,0,0); world.camera_rig.update(1.0)
+ world.player.position = Vector3(-0.6,0,-0.65); world.camera_rig.update(1.0)
  await physics_frame
  require(not world.camera_rig.target().is_empty(),"Reticle selects a real trunk with a physics ray")
  var selected: Dictionary = world.camera_rig.target()
+ var toward: Vector3=selected.position-world.player.global_position
+ world.player.model.rotation.y=atan2(toward.x,toward.z)
  var before: int = world.bag.held_item().uses
  require(world.resolve_hit(selected) and world.bag.held_item().uses==before-1,"Successful axe contact spends one use")
  world.player.position = Vector3(0.6,0,8)

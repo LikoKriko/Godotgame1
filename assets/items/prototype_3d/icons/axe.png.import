@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://x3luk0fir4m1"
-path="res://.godot/imported/painted_materials.png-755191939ca2ef1c604bec79a7f38ab7.ctex"
+uid="uid://b48uuux4dg8j7"
+path="res://.godot/imported/axe.png-1912156f37d7ec34ed79b1e4c8d82d6e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/characters/prototype_3d/painted_materials.png"
-dest_files=["res://.godot/imported/painted_materials.png-755191939ca2ef1c604bec79a7f38ab7.ctex"]
+source_file="res://assets/items/prototype_3d/icons/axe.png"
+dest_files=["res://.godot/imported/axe.png-1912156f37d7ec34ed79b1e4c8d82d6e.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

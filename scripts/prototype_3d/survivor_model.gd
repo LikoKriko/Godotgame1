@@ -3,27 +3,45 @@ extends "res://tools/continuous_actor.gd"
 ## shorts and anatomical IK remain the same continuous authoring geometry.
 const HAIR := Color8(66,43,30)
 const GRIP_HEIGHT := 4.0
+const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
+const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
+const Aim = preload("res://scripts/prototype_3d/tool_aim.gd")
+const Profiles = preload("res://scripts/prototype_3d/held_profiles.gd")
 var axe: Node3D
 var rig = preload("res://scripts/prototype_3d/humanoid_rig.gd").new()
 var displayed_pose: Dictionary = {}
+var family_override: StringName = &"default"
+var aim_contact := Vector3.INF
+var tool_frame := Basis.IDENTITY
+var grip_socket := Node3D.new()
+var support_socket := Node3D.new()
+var tip_socket := Node3D.new()
+var parry_pulse: Node3D
 func _ready() -> void:
  super._ready()
  pose_direction_override = -1
  body_material.shader = preload("res://shaders/prototype_3d/skin.gdshader")
- body_material.set_shader_parameter("painted_materials",load("res://assets/characters/prototype_3d/painted_materials.png"))
+ body_material.set_shader_parameter("painted_materials",load("res://assets/characters/prototype_3d/pixel_materials.png"))
  body_material.set_shader_parameter("use_painted_materials",true)
  var outline := ShaderMaterial.new(); outline.shader = preload("res://shaders/prototype_3d/outline.gdshader")
  body_material.next_pass = outline
  tool.hide()
  axe = preload("res://scripts/prototype_3d/stone_axe.gd").new(); add_child(axe)
+ for socket in [grip_socket,support_socket,tip_socket]: add_child(socket)
+ grip_socket.name="ObjectGrip";support_socket.name="SupportHand";tip_socket.name="ObjectTip"
+ parry_pulse=preload("res://scripts/prototype_3d/parry_pulse.gd").new();add_child(parry_pulse)
  # Build the unarmed bind mesh once; animation only updates its skeleton.
  build(&"",&"",&"idle",0,4)
  rig.initialize(self,mesh_node)
  core_mesh.hide()
+func tube(joints: Array,radius_a: float,radius_b: float,color: Color,shorts: bool = false,steps: int = 12) -> void:
+ if color==SKIN: radius_a*=0.8;radius_b*=0.82
+ super.tube(joints,radius_a,radius_b,color,shorts,steps)
 func triangle(a: Vector3,b: Vector3,c: Vector3,color: Color) -> void:
  surface.set_smooth_group(0)
  super.triangle(a,b,c,color)
 func ellipsoid(center: Vector3,size: Vector3,color: Color,basis: Basis = Basis.IDENTITY) -> void:
+ if center.y<4 and is_equal_approx(size.x,2.5):size.x=1.8
  # One continuous torso avoids the necklace-like outlines produced by
  # overlapping chest/abdomen spheres in the original sprite-authoring model.
  if center.is_equal_approx(Vector3(0,35,0)) and size.is_equal_approx(Vector3(6.5,8.5,3)):
@@ -53,6 +71,7 @@ func append_torso() -> void:
    triangle(rings[row][i],rings[row+1][next],rings[row+1][i],SKIN)
    triangle(rings[row][i],rings[row][next],rings[row+1][next],SKIN)
 func integrated_head(torso: Transform3D, _actor_basis: Basis, _direction: int, _pose_state: StringName) -> void:
+ surface_tag=3
  var center := torso*Vector3(0,55.1,0)
  head_center = center
  ellipsoid(center,Vector3(6.0,7.1,5.1),SKIN,torso.basis)
@@ -72,30 +91,20 @@ func integrated_head(torso: Transform3D, _actor_basis: Basis, _direction: int, _
  ellipsoid(torso*Vector3(0,50.8,3.8),Vector3(3.3,2.0,1.35),HAIR,torso.basis)
  ellipsoid(torso*Vector3(0,52.6,4.8),Vector3(2.55,0.48,0.4),HAIR,torso.basis)
  ellipsoid(torso*Vector3(-3.8,54.8,4.2),Vector3(0.35,2.0,0.38),Color("697e87"),torso.basis)
+ surface_tag=0
 func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: Basis, _item: StringName) -> Dictionary:
  var y_axis := (actor_basis*shaft).normalized()
- var x_axis := actor_basis*Vector3.RIGHT
+ var x_axis := actor_basis*tool_frame.x
  x_axis = (x_axis-y_axis*y_axis.dot(x_axis)).normalized()
  var z_axis := x_axis.cross(y_axis).normalized()
  axe.basis = Basis(x_axis,y_axis,z_axis)
  axe.position = actor_basis*grip-y_axis*GRIP_HEIGHT
- tool_tip = axe.position+x_axis*9.0+y_axis*25.0
+ tool_tip = actor_basis*grip+axe.basis*Profiles.profile(_item).tip
  tool_cutting_axis = x_axis
- return {"grip":grip,"support":grip+shaft*7.25}
+ return {"grip":grip,"support":grip+shaft*Profiles.profile(_item).support}
 func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0, movement_phase: float = 0.0, movement: Vector3 = Vector3.ZERO) -> void:
- var item: StringName = &"axe" if equipped else &""
- var target := Pose.sample(item,state,phase,movement_phase,1.0,-1)
- # A shoulder camera allows backing up and strafing while facing the reticle.
- # Rotate the foot trajectory in body space rather than playing forward steps.
- if not movement.is_zero_approx() and state not in [&"slide",&"jump",&"slide_jump"]:
-  var travel := Vector3(movement.x,0,movement.z).normalized()
-  var walk_pose := Pose.sample(item,&"walk",movement_phase) if state==&"action" else target
-  for side in 2:
-   var ankle: Vector3 = walk_pose.legs[side].end
-   var across := -4.4 if side==0 else 4.4
-   var stride_scale := lerpf(1.0,0.65,absf(travel.x))
-   target.legs[side].end = Vector3(across,ankle.y,0)+travel*ankle.z*stride_scale
-   target.legs[side].pitch *= travel.z
+ var item: StringName = (&"axe" if equipped else &"") if family_override==&"default" else family_override
+ var target := Clips.sample(item,state,phase,movement_phase,movement,aim_contact)
  if displayed_pose.is_empty() or delta <= 0:
   displayed_pose = target.duplicate(true)
  else:
@@ -111,31 +120,48 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   displayed_pose.shaft = displayed_pose.shaft.lerp(target.shaft,blend).normalized()
   displayed_pose.active = target.active
   displayed_pose.state = target.state; displayed_pose.phase = target.phase
+  displayed_pose.family=target.family;displayed_pose.clip_state=target.clip_state
+ displayed_pose.tool_basis=target.get("tool_basis",Aim.frame(target.shaft))
+ if state in [&"action",&"draw",&"death"]:
+  displayed_pose.body=target.body;displayed_pose.grip=target.grip;displayed_pose.shaft=target.shaft
  last_pose = displayed_pose
  # Re-solve the limbs after blending targets: interpolation must not shorten
  # a thigh or detach a shoulder from the moving torso.
  for side in 2:
   var body: Transform3D = last_pose.body
-  last_pose.shoulders[side] = body*Vector3(-7.6 if side==0 else 7.6,45.7,0)
-  last_pose.hips[side] = body*Vector3(-4.4 if side==0 else 4.4,26.9,0)
-  var foot_pitch: float = last_pose.legs[side].pitch
-  last_pose.legs[side] = Pose.joint(last_pose.hips[side],last_pose.legs[side].end,Pose.THIGH,Pose.SHIN,Vector3.BACK)
-  last_pose.legs[side].pitch = foot_pitch
+  last_pose.shoulders[side] = body*Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,45.7,0)
+  last_pose.hips[side] = body*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,26.9,0)
+ Clips.solve_legs(last_pose)
  var hands: Array[Vector3] = last_pose.hands.duplicate()
  grip_error = 0
- if equipped:
+ tool_frame=last_pose.tool_basis
+ if item!=&"":
+  var profile:=Profiles.profile(item)
   var grip: Vector3 = last_pose.grip
   # Project onto the intersection of both arms' reachable volumes.
   for attempt in 24:
-   var support: Vector3 = grip+last_pose.shaft*7.25
-   for center in [last_pose.shoulders[0],last_pose.shoulders[1]-(support-grip)]:
+   var support: Vector3 = grip+last_pose.shaft*profile.support
+   var active: int = last_pose.active
+   var centers: Array = [last_pose.shoulders[active]]
+   if profile.two_hands: centers.append(last_pose.shoulders[1-active]-(support-grip))
+   for center in centers:
     if center.distance_to(grip)>18.8: grip = center+center.direction_to(grip)*18.8
     elif center.distance_to(grip)<8.15: grip = center+center.direction_to(grip)*8.15
   var placement := place_tool({},grip,last_pose.shaft,Basis.IDENTITY,item)
-  hands[0] = grip; hands[1] = placement.support
+  hands[last_pose.active] = grip
+  if profile.two_hands: hands[1-last_pose.active] = placement.support
   for side in 2:
    var arm := Pose.joint(last_pose.shoulders[side],hands[side],Pose.UPPER_ARM,Pose.FOREARM,Vector3(-0.35 if side==0 else 0.35,-1,0))
-   grip_error = maxf(grip_error,arm.end.distance_to(hands[side]))
- rig.apply(last_pose,hands)
- axe.visible = equipped
+   if side==last_pose.active or profile.two_hands: grip_error = maxf(grip_error,arm.end.distance_to(hands[side]))
+  grip_socket.transform=Transform3D(axe.basis,grip)
+  support_socket.position=hands[1-last_pose.active]
+  tip_socket.position=tool_tip
+ rig.apply(last_pose,hands,delta)
+ parry_pulse.update_hands([rig.posed[6].origin,rig.posed[9].origin])
+ axe.visible = equipped and item==&"axe"
  tool.hide(); core_mesh.hide()
+func can_reach_contact(point: Vector3) -> bool:
+ var contact_pose := Clips.sample(&"axe",&"action",0.5)
+ return not Aim.solve(point,contact_pose.shoulders).is_empty()
+func confirm_parry() -> void:
+ parry_pulse.play()

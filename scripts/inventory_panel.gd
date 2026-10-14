@@ -6,6 +6,7 @@ const Icons = preload("res://scripts/item_icons.gd")
 const Workshop = preload("res://scripts/workshop.gd")
 const LABELS := {&"head": "Cabeza", &"torso": "Torso", &"legs": "Piernas", &"hands": "Guantes", &"feet": "Pies"}
 const ABBREV := {&"madera": "MAD", &"mineral": "MIN", &"piedra": "PIE", &"palo": "PAL", &"cuerda": "CUE", &"chatarra": "CHA", &"fibra": "FIB", &"helmet": "CAS", &"suit": "TRA", &"trousers": "PAN", &"boots": "BOT"}
+var icon_provider = Icons
 var model
 var game
 var portrait: TextureRect
@@ -176,7 +177,7 @@ func show_item(button: Button, item: Dictionary, empty_label: String = "") -> vo
 		return
 	var id: StringName = item["id"]
 	var definition: Dictionary = Model.DEFINITIONS[id]
-	icon.texture = Icons.for_item(item)
+	icon.texture = icon_provider.for_item(item)
 	if icon.texture == null and button.kind == &"gear": icon.texture = Art.crop(Art.GEAR_ICONS[button.slot])
 	button.text = "" if icon.texture != null else ABBREV.get(id, "")
 	count.text = str(item["quantity"])
@@ -190,15 +191,7 @@ func show_item(button: Button, item: Dictionary, empty_label: String = "") -> vo
 func refresh() -> void:
 	if model == null:
 		return
-	var appearance := "burdock_armor__bare" if model.equipment[&"torso"].get("id") == &"burdock_armor" else "bare"
-	if appearance != portrait_key:
-		portrait_key = appearance
-		var image := AtlasTexture.new()
-		image.atlas = load("res://assets/characters/complete/"+appearance+"_idle.png")
-		var cell := Rect2i(0,4*192,192,192)
-		var used := image.atlas.get_image().get_region(cell).get_used_rect()
-		image.region = Rect2(used.position+cell.position,used.size)
-		portrait.texture = image
+	update_portrait()
 	for i in Model.CAPACITY:
 		show_item(backpack_buttons[i], model.slots[i])
 		backpack_buttons[i].self_modulate = Color("d9bf72") if chosen == i else Color.WHITE
@@ -229,6 +222,17 @@ func refresh() -> void:
 		if definition.has("damage"): details.text += "\nDaño base: %d" % definition.damage
 		if item.id == &"botella": details.text += "\nContenido: %d / 500 ml" % item.get("water_ml",0)
 	if creation_page != null: creation_page.refresh()
+
+func update_portrait() -> void:
+	var appearance := "burdock_armor__bare" if model.equipment[&"torso"].get("id") == &"burdock_armor" else "bare"
+	if appearance != portrait_key:
+		portrait_key = appearance
+		var image := AtlasTexture.new()
+		image.atlas = load("res://assets/characters/complete/"+appearance+"_idle.png")
+		var cell := Rect2i(0,4*192,192,192)
+		var used := image.atlas.get_image().get_region(cell).get_used_rect()
+		image.region = Rect2(used.position+cell.position,used.size)
+		portrait.texture = image
 
 func select_backpack(index: int) -> void:
 	chosen = index
@@ -414,7 +418,7 @@ func _input(event: InputEvent) -> void:
 func build_sections() -> void:
 	sections.append(inventory_page)
 	creation_page = preload("res://scripts/creation_page.gd").new()
-	content.add_child(creation_page); creation_page.configure(model)
+	content.add_child(creation_page); creation_page.icon_provider = icon_provider; creation_page.configure(model)
 	creation_page.crafted.connect(func(text): status.text = text; refresh(); equipment_changed.emit())
 	sections.append(creation_page)
 	for is_ability in [true,false]:
@@ -425,7 +429,7 @@ func build_sections() -> void:
 		page.position = Vector2(245,147); page.scale = Vector2.ONE*1.55
 	var map_page := Control.new(); map_page.size = Art.SIZE; map_page.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(map_page)
-	var map_view = preload("res://scripts/world_map.gd").TerrainView.new()
+	var map_view = make_map_view()
 	map_view.name = "Terrain"; map_view.game = game; map_view.position = Vector2(99,148)
 	map_view.size = Vector2(1170,780); map_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	map_view.mouse_filter = Control.MOUSE_FILTER_IGNORE; map_page.add_child(map_view); sections.append(map_page)
@@ -453,3 +457,6 @@ func select_section(index: int) -> void:
 
 func open_section(index: int) -> void:
 	refresh(); navigation.current_tab = index; select_section(index); show()
+
+func make_map_view() -> Control:
+	return preload("res://scripts/world_map.gd").TerrainView.new()

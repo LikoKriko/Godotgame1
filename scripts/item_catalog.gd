@@ -1,6 +1,7 @@
 extends Control
 const Model = preload("res://scripts/inventory.gd")
 const Icons = preload("res://scripts/item_icons.gd")
+var icon_provider = Icons
 var game
 var panel: Panel
 var entries: GridContainer
@@ -41,7 +42,7 @@ func configure(owner_game) -> void:
 		button.custom_minimum_size = Vector2(140,126)
 		button.tooltip_text = Model.DEFINITIONS[id].name
 		var artwork := TextureRect.new(); artwork.name = "Artwork"
-		artwork.texture = Icons.get_icon(id); artwork.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		artwork.texture = icon_provider.get_icon(id); artwork.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		artwork.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		artwork.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		artwork.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)

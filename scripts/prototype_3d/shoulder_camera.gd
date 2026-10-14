@@ -38,5 +38,11 @@ func target(max_distance: float = 30.0) -> Dictionary:
  var center := get_viewport().get_visible_rect().size/2
  var from := camera.project_ray_origin(center)
  var direction := camera.project_ray_normal(center)
- var query := PhysicsRayQueryParameters3D.create(from,from+direction*max_distance,1,[player.get_rid()])
+ var query := PhysicsRayQueryParameters3D.create(from,from+direction*max_distance,25,[player.get_rid()])
+ query.collide_with_areas=true
  return get_world_3d().direct_space_state.intersect_ray(query)
+func aim_point() -> Vector3:
+ var result:=target()
+ if not result.is_empty():return result.position
+ var center:=get_viewport().get_visible_rect().size/2
+ return camera.project_ray_origin(center)+camera.project_ray_normal(center)*30

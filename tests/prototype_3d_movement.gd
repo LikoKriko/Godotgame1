@@ -4,6 +4,7 @@ func key(code:int,pressed:bool):
  var event:=InputEventKey.new();event.keycode=code;event.physical_keycode=code;event.pressed=pressed;Input.parse_input_event(event)
 func run():
  var world=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();root.add_child(world)
+ world.settings.values.auto_run=false
  world.player.position=Vector3(10,0.1,10)
  for i in 30:await physics_frame
  key(KEY_W,true);key(KEY_SHIFT,true)

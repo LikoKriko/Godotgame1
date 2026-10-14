@@ -1,5 +1,7 @@
 extends Node3D
 ## Split wood, crossed rope and an extruded stone blade use the reference palette.
+const GRIP:=Vector3(0,4,0)
+const CONTACT:=Vector3(11,24,0)
 func material(color: Color) -> StandardMaterial3D:
  var result := StandardMaterial3D.new(); result.albedo_color = color; result.roughness = 0.95
  var outline := ShaderMaterial.new(); outline.shader = preload("res://shaders/prototype_3d/outline.gdshader"); result.next_pass = outline

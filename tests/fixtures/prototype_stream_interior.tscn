@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[node name="InteriorFragment" type="Node3D"]
+
+[node name="InteriorMarker" type="Marker3D" parent="."]
+position = Vector3(0, 0.5, -1)

@@ -1,63 +1,126 @@
 # Prototipo 3D de Day Zero
 
-Esta primera prueba vive en `prototype/third-person-3d`. `main` conserva el juego
-2D. Descargar el ZIP **después de seleccionar esta rama**, importar
-`project.godot` en Godot 4.7.2 y ejecutar con F5.
+Rama `prototype/third-person-3d`; `main` conserva el juego 2D. Seleccionar esta
+rama antes de descargar el ZIP, importar `project.godot` en Godot 4.7.2 y pulsar
+F5. La escena inicial es `scenes/prototype_3d/day_zero_3d.tscn`.
 
-La escena inicial es `scenes/prototype_3d/day_zero_3d.tscn`. Incluye:
+## Incluido en esta integración
 
-- Personaje con cuerpo y ropa de superficies continuas, cabeza, cabello y rostro
-  con volumen. Conserva los colores, pantalones, barba y marca azul del diseño.
-- Hacha sólida con madera partida, cuerda cruzada y hoja de piedra extruida.
-- Cámara en perspectiva sobre el hombro derecho, inspirada en la vista de
-  Deadlock. El ratón gira cámara y orientación del personaje; WASD mueve respecto
-  a la cámara. Una esfera detecta paredes y árboles y acerca la cámara.
-- Caminata, carrera, agacharse, caminar agachado, deslizamiento y salto, con
-  transiciones suaves. Sacar el hacha permite seguir desplazándose.
-- Árboles con tronco, ramas, raíces y copa. Tres golpes cercanos, apuntando con
-  la mira al tronco, entregan cuatro unidades de madera al inventario existente.
-- Sombras 3D reales y un suelo que reutiliza la textura del terreno actual.
+- Cámara sobre el hombro derecho: distancia 3,6 m, desplazamiento 0,60 m, FOV
+  75°, sensibilidad 0,0025 rad/píxel, inclinación −60° a +65°. Una esfera evita
+  atravesar paredes y copas. Movimiento relativo a la cámara.
+- Superviviente estilizado de 1,75 m y 60 kg, delgado, con piel continua,
+  articulaciones estables y pantalón holgado con inercia ligera. El esqueleto
+  tiene veinte huesos, incluidos cuatro para los bajos de la tela.
+- Atlas de alta resolución con acabado pixel art, paleta limitada y muestreo
+  nearest con mipmaps. Ojos, barba y marca azul conservan el diseño original.
+- Catálogo de 29 estados para manos libres y siete familias de objetos: caminar,
+  correr, agacharse, deslizamiento, saltos, transiciones, equipar en movimiento,
+  gestos de herramientas/armas, tensado, recogida, comer, beber, parry, daño y
+  muerte. Las animaciones son continuas y se pueden revisar desde cualquier
+  ángulo; no dependen de direcciones discretas de sprites.
+- El hacha existente tiene volumen, dos agarres y alcance anatómico. El punto
+  de mira se fija al iniciar el golpe y los brazos acompañan al mango. El
+  resto del catálogo prepara anclajes y poses para los objetos posteriores;
+  **sus modelos físicos y sus acciones de combate aún no están conectados**.
+- Joven topo de 0,875 m, esqueleto propio de catorce huesos: cuatro apoyos al
+  caminar/correr, levantarse para alternar puños, sentarse, comer de árboles,
+  stun y muerte. Persigue al 85% de la caminata del jugador y deambula al 42,5%.
+  Guarda la última posición vista y la investiga antes de volver a su rutina.
+- Parry con ventanas de 0,5 s antes / 0,2 s después, daño diferido 0,35 s,
+  enfriamiento 4 s y stun 1,5 s. Solo un bloqueo conseguido produce el pulso
+  blanco alrededor de las manos. Indicador de stun circular reutilizable.
+- HUD con vida, calorías, hidratación, peso, día/hora, nivel, mapa y seis huecos
+  rápidos. Configuración integrada: correr automático y seis tamaños del HUD.
+- Inventario de 32 huecos, cinco espacios de armadura, seis huecos rápidos
+  físicos, arrastre, Shift + clic, reparación y retrato renderizado en 3D.
+  Iconos de 256×256 a partir de los originales; símbolo provisional compartido
+  para diseños inexistentes.
+- Creación con recetas originales, reserva de materiales, duración de 2 s y
+  devolución exacta al cancelar. Habilidades y perks comparten puntos; los
+  costes, límites y efectos son los del juego 2D. Las misiones y logros siguen
+  vacíos y solo se admiten las cinco fuentes de experiencia ya aprobadas.
+- Comer/beber aplica el consumo al terminar la animación de 1,2 s y permite
+  caminar, evitando correr. Día de 16 minutos y nutrición reutilizados del 2D.
+- Catálogo K con búsqueda, cantidades, +1 nivel y aparición de un joven.
+- Terreno continuo con las cuatro texturas originales, semilla, regiones, máscaras
+  orgánicas, precarga, descarga y caché de chunks. Consultas de tipo/densidad y
+  suelo desnudo junto a los árboles. El mapa usa la misma semilla y regiones.
+- Muerte del jugador en 3 s y reaparición sin objetos ni perks, a nivel 1,
+  conservando las habilidades desbloqueadas en su primer nivel.
 
-**Controles:** WASD, ratón, Shift para correr, Ctrl para agacharse (o deslizarse
-si estás corriendo), Espacio para saltar, 1 para alternar
-hacha/manos, clic para talar, Esc para pausa y liberar el ratón. Desde pausa puede
-abrirse la escena 2D original. Este prototipo no escribe ni modifica partidas 2D.
+Este es un prototipo en migración, no el juego 2D trasladado por completo. El
+escenario de pruebas sigue siendo una superficie limitada de 48×48 m renderizada por chunks con cuatro
+árboles y una pared; edificios, generación por chunks y otras mecánicas se
+registran en [MIGRATION_3D.md](MIGRATION_3D.md).
 
-Los modelos son una primera base para probar volumen, cámara y movimiento;
-todavía no representan la migración completa del juego. Inventario visual,
-campamento, criaturas, crafteo, guardado y generación del mundo se trasladarán
-tras revisar esta base.
+## Controles y escenas de revisión
 
-## Arquitectura
+WASD y ratón; Shift correr; Ctrl agacharse o deslizarse mientras corres; Espacio
+saltar; 1 alternar hacha/manos; clic golpear; F parry; I inventario; T crear;
+M mapa; K catálogo; Z/X habilidades; Esc pausa/cerrar. Desde pausa puede abrirse
+la versión 2D. El prototipo no escribe partidas 2D.
 
-`scripts/prototype_3d/` separa mundo, controlador físico, cámara y modelos.
-`survivor_model.gd` reutiliza anatomía e IK de `tools/continuous_actor.gd`; cambia
-la cabeza plana y las herramientas por superficies 3D. `humanoid_rig.gd` crea
-una única malla con pesos normalizados y un `Skeleton3D` de 16 articulaciones;
-las poses animan los huesos, sin reconstruir geometría. Los objetivos se mezclan
-de forma continua y después se resuelven las extremidades para conservar su
-longitud. Se reutiliza `locomotion.gd` para Ctrl y la inercia del salto encadenado.
-La escala es 1,8 metros / 64 unidades del dibujo original.
+Para revisar poses sin alterar la partida, abrir una de estas escenas y usar F6:
 
-El personaje utiliza un atlas de materiales pintados: piel, tela, pelo y cuerda.
-Las coordenadas se calculan una vez en la pose de reposo y permanecen unidas a
-la piel durante la animación. Los rasgos de la cara conservan sus colores propios.
-El torso es una superficie continua, sin las esferas separadas de músculo de
-la primera prueba. Estas animaciones son una primera pasada para revisar.
+- `scenes/prototype_3d/animation_review.tscn`: familias y animaciones del jugador.
+- `scenes/prototype_3d/young_review.tscn`: acciones y manos alternas del joven.
+- `scenes/prototype_3d/icon_review.tscn`: catálogo de iconos originales/provisionales.
 
-Cámara: distancia 3,6 m, hombro 0,60 m, FOV 75°, sensibilidad 0,0025 rad/píxel,
-inclinación −60° a +65°. Personaje: caminar 2 m/s y correr ×1,6. Árboles: tres
-impactos y alcance máximo de 2,4 m. Estos parámetros están en los controladores.
+En las dos primeras, arrastrar con botón derecho gira la cámara; hay cámara lenta.
+Los anclajes ObjectGrip, SupportHand y ObjectTip se expresan en el espacio del
+modelo. Cada perfil de objeto declara punta y segundo agarre en `held_profiles.gd`.
 
-## Comprobaciones
+## Arquitectura y comprobaciones
 
-Ejecutar con Godot 4.7.2:
+`scripts/prototype_3d/` separa anatomía, catálogo de poses, IK de herramientas,
+rig humano, rig del topo, decisiones de criatura, física, cámara e interfaz.
+Una sola malla por personaje conserva pesos y UV durante toda la animación;
+no se regeneran sprites ni superficies cada frame. La personalidad usa
+`creature_profile.gd`; la memoria y los objetivos están en `creature_brain.gd`.
+
+Las ventanas 3D heredan la interfaz 2D con proveedores de iconos, mapa y retrato
+sustituibles. Los valores por defecto del 2D permanecen intactos. La fabricación,
+almacenamiento, reparación, nutrición, progresión y parry comparten sus reglas
+originales. La captura del ratón se libera únicamente al abrir interfaces;
+no se convierte la posición del cursor manualmente ni se abren ventanas nativas.
+
+Pruebas con Godot 4.7.2:
 
 ```sh
 godot --headless --path . --script tests/prototype_3d.gd
+godot --headless --path . --script tests/prototype_3d_animation_catalog.gd
 godot --headless --path . --script tests/prototype_3d_movement.gd
+godot --headless --path . --script tests/prototype_3d_creature.gd
+godot --headless --path . --script tests/prototype_3d_systems.gd
 ```
 
-Comprueban pesos de piel, longitud de huesos, agarres, persistencia de malla,
-desplazamiento lateral y hacia atrás, alcance, desgaste, cámara y controles con
-la física real. El renderizado de las poses también se revisa en modo gráfico.
+Cubren longitud de huesos y agarres en todo el catálogo, separación de pies en
+16 rumbos, persistencia de malla, alcance, memoria sin visión, parry temprano y
+daño diferido, HUD, almacenamiento, reserva/devolución de materiales, consumo al
+terminar la animación y puntos compartidos. Las escenas también se renderizan
+para revisar geometría, capas y distribución. Las comprobaciones automáticas
+no sustituyen la revisión artística final ni las pruebas en el Windows del usuario.
+
+El componente `building_stream.gd` prepara interiores en el mismo mundo, con
+carga por proximidad, prioridad junto a la puerta y descarga con histéresis.
+Su prueba aislada es `tests/prototype_3d_building_stream.gd`; los edificios del
+campamento todavía tienen que modelarse y conectarse a este componente.
+
+## Terreno por chunks
+
+`terrain_profile.gd` conserva los parámetros del 2D: 512 unidades originales por
+chunk (14 m con escala 1,75/64), dos chunks progresivos por actualización, una
+corona de precarga, dos de retención y 96 en caché. Las proporciones iniciales
+son 67,5% normal, 10,5% oscuro, 12% vegetación y 10% tierra. Región 720 unidades,
+transición 0,028, muestra de textura 144 unidades y paso de píxel 1.
+
+El renderer 3D comparte `terrain_sampler.gd` con el 2D. Las posiciones globales
+se convierten una sola vez a las unidades del sampler. Los planos comparten
+malla/texturas y las máscaras no dependen del chunk. `configure(seed,profile)`
+permite terreno sin límite; el escenario usa un Rect2 de prueba de 48×48 m.
+Caminos y distribución completa de elementos todavía deben conectarse.
+
+La prueba gráfica `tests/prototype_3d_terrain.gd` compara cada píxel entre varios
+chunks y un único plano, también en coordenadas negativas y lejanas. Comprueba
+además la reproducción exacta al descargar/regresar y el límite de la caché.
