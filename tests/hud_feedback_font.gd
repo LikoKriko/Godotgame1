@@ -16,7 +16,7 @@ func run():
 	check(app.menu.options.visible and app.menu.settings_button.text == caption,"Settings keeps the live pause captions visible over the baked background")
 	check(app.menu.settings_button.get_theme_font("font") == before,"Opening settings cannot swap the underlying pause font")
 	check(app.menu.settings_backdrop.mouse_filter == Control.MOUSE_FILTER_STOP,"Settings blocks the still-visible background buttons")
-	for button in app.menu.pause_faces: check(app.menu.pause_faces[button].visible,"The old text baked into the template remains covered")
+	check(app.menu.play_button.find_children("*","TextureRect",true,false).is_empty(),"Buttons no longer require covers for old baked text")
 	app.menu.close_settings(); app.menu.hide(); app.game.menu_open = false
 	var game = app.game
 	for size in [Vector2i(1280,720),Vector2i(1920,1080)]:

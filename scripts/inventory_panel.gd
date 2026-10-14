@@ -433,6 +433,13 @@ func build_sections() -> void:
 	map_view.name = "Terrain"; map_view.game = game; map_view.position = Vector2(99,148)
 	map_view.size = Vector2(1170,780); map_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	map_view.mouse_filter = Control.MOUSE_FILTER_IGNORE; map_page.add_child(map_view); sections.append(map_page)
+	for title in ["misiones","logros"]:
+		var page := Control.new(); page.size = Art.SIZE; page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		content.add_child(page); Art.patch(page,Rect2(69,132,1232,802))
+		var empty := Label.new(); empty.text = "No hay %s disponibles todavía." % title
+		preload("res://scripts/ui_style.gd").set_font_size(empty,24)
+		empty.position = Vector2(110,190); page.add_child(empty); sections.append(page)
+
 	navigation = preload("res://scripts/inventory_tabs.gd").new()
 	navigation.position = Vector2(82,32); content.add_child(navigation); navigation.configure()
 	craft_button = navigation.buttons[1]
@@ -440,7 +447,7 @@ func build_sections() -> void:
 
 func select_section(index: int) -> void:
 	if index < 0 or index >= sections.size(): return
-	panel_heading.text = ["INVENTARIO","CREACIÓN","HABILIDADES","PERKS","MAPA"][index]
+	panel_heading.text = ["INVENTARIO","CREACIÓN","HABILIDADES","PERKS","MAPA","MISIONES","LOGROS"][index]
 	close_workshop()
 	for i in sections.size(): sections[i].visible = i == index
 	if index == 1: creation_page.refresh()

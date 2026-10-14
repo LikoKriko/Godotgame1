@@ -41,8 +41,12 @@ var interaction: Label
 var world = preload("res://scripts/test_world.gd").new()
 var terrain = world.terrain
 var world_view: Node2D
+var hut: Node2D
 var world_map: Control
 var item_catalog: Control
+var previously_airborne := false
+var ground_height := 0.0
+var rock_support := Vector2i(99999,99999)
 var player := Vector2.ZERO
 var experience := 0
 var level := 1
@@ -110,6 +114,7 @@ func _ready() -> void:
 	combat_effects = preload("res://scripts/combat_effects.gd").new()
 	combat_effects.game = self; combat_effects.z_index = 2; add_child(combat_effects)
 	enemies.configure(self)
+	hut = preload("res://scripts/hut.gd").new(); add_child(hut); hut.configure(self)
 	restart()
 	fit_hud()
 	styled_hud = preload("res://scripts/styled_hud.gd").new()
@@ -158,6 +163,7 @@ func restart() -> void:
 	weapon_timer = 0.0
 	bow_draw_uid = -1
 	player = Vector2.ZERO
+	ground_height = 0; rock_support = world.NO_SUPPORT; previously_airborne = false
 	movement.reset()
 	experience = 0
 	level = 1
@@ -179,6 +185,7 @@ func restart() -> void:
 		solar_lighting.update_light()
 		update_hud()
 	enemies.reset()
+	if hut != null: hut.reset(); hut.apply_visibility()
 	if combat_effects != null: combat_effects.flashes.clear(); combat_effects.trail.clear(); combat_effects.queue_redraw(); combat_effects.trail_layer.queue_redraw()
 
 func buy_improvement(id: StringName, ability: bool) -> bool:
@@ -201,12 +208,15 @@ func take_damage(amount: float) -> void:
 	progression.take_damage(amount)
 	if progression.health <= 0: cancel_work(); running = false
 
-func gain_experience(amount: int) -> void:
+func gain_experience(amount: int, source: StringName = &"") -> bool:
+	if amount <= 0 or not preload("res://scripts/experience_sources.gd").accepts(source): return false
 	experience += amount
 	while experience >= level * 20:
 		experience -= level * 20
 		level += 1
 		skill_points += 1
+	update_hud()
+	return true
 
 func biome_at(cell: Vector2i) -> int:
 	return world.biome_at(cell)
@@ -285,6 +295,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func interact_at(aim: Vector2) -> bool:
 	if is_paused() or progression.health <= 0 or locomotion.airborne() or locomotion.sliding() or interaction_motion.picking_up(): return false
+	if hut != null and hut.interact(): return true
+	if hut != null and hut.inside:
+		feedback = "Acércate a la puerta para salir con E."; feedback_time = 2; return false
 	var result: Dictionary = {}
 	var water: Rect2 = world_view.water_at(aim)
 	if bag.held_id() == &"botella" and water.has_area():
@@ -319,7 +332,7 @@ func advance_pickup() -> void:
 	var gathered: Dictionary = resources.hit(pickup_cell,player)
 	if gathered.get("depleted",false):
 		feedback = "%s × %d recogido." % [bag.DEFINITIONS[StringName(gathered.material)].name,gathered.amount]
-		gain_experience(10); world_view.queue_redraw(); world_view.props_layer.queue_redraw()
+		world_view.queue_redraw(); world_view.props_layer.queue_redraw()
 	else: feedback = "La mochila está llena." if gathered.get("reason") == "mochila_llena" else "No se pudo recoger el objeto."
 	feedback_time = 2; inventory_panel.refresh(); update_hud()
 
@@ -371,7 +384,7 @@ func start_slide() -> bool:
 func _process(delta: float) -> void:
 	if is_paused():
 		return
-	enemies.advance(delta)
+	if hut == null or not hut.inside: enemies.advance(delta)
 	interaction_motion.advance(delta)
 	advance_pickup()
 	progression.advance(delta)
@@ -540,7 +553,7 @@ func resolve_melee_contact(target: Vector2, pose: Dictionary) -> bool:
 	elif result.get("depleted",false):
 		feedback = "+%d %s" % [result.amount,result.material]
 		if result.material == "fibra": feedback += " · +2 palos"
-		feedback_time = 2; gain_experience(10); focused = resources.NONE
+		feedback_time = 2; focused = resources.NONE
 		world_view.queue_redraw()
 	update_hud(); return true
 
@@ -563,8 +576,23 @@ func move_player(direction: Vector2, delta: float) -> void:
 	velocity = locomotion.velocity(velocity,nutrition.speed_multiplier()*progression.speed_multiplier())
 	velocity *= interaction_motion.speed_multiplier()
 	var motion := velocity * delta
-	player = world.move_actor(player, motion)
+	player = hut.move_inside(player,motion) if hut != null and hut.inside else world.move_actor(player,motion,world.PLAYER_RADIUS,ground_height+locomotion.height(),rock_support)
+	update_ground_support()
 	camera.position = player
 func update_hud() -> void:
 	interaction.text = feedback if feedback_time > 0 else ""
 	if styled_hud != null: styled_hud.refresh()
+
+func update_ground_support() -> void:
+	if hut != null and hut.inside: ground_height = 0; rock_support = world.NO_SUPPORT; return
+	if locomotion.airborne(): previously_airborne = true; return
+	var platform_height: float = world.surface_height(player)
+	if rock_support != world.NO_SUPPORT and (not world.props.has(rock_support) or not world.prop_collisions[rock_support].grow(world.PLAYER_RADIUS).has_point(player+Vector2(0,17))):
+		rock_support = world.NO_SUPPORT
+	if rock_support == world.NO_SUPPORT:
+		for cell in world.collision_cells.get(world.cell_at(player+Vector2(0,17)),[]):
+			if world.props[cell] != 1 or world.physical_height(cell) > world.JUMP_LIMIT: continue
+			if world.prop_collisions[cell].has_point(player+Vector2(0,17)) and previously_airborne:
+				rock_support = cell; break
+	ground_height = maxf(platform_height,world.physical_height(rock_support) if world.props.has(rock_support) and world.prop_collisions[rock_support].has_point(player+Vector2(0,17)) else 0)
+	previously_airborne = false

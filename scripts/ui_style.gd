@@ -12,39 +12,35 @@ static func set_font_size(control: Control, size: int) -> void:
 	control.add_theme_font_size_override("font_size",size)
 	control.add_theme_font_override("font",ThemeDB.fallback_font if size <= SMALL_TEXT_MAX else menu_font())
 
-static func theme() -> Theme:
-	if shared != null: return shared
-	shared = Theme.new()
-	shared.default_font = menu_font()
-	shared.default_font_size = 16
+static var menu_theme: Theme
+static func frame(scope: StringName = &"game", button: bool = false, padding: float = 8.0, state: String = "normal") -> StyleBox:
+	var box = preload("res://scripts/ui_frame.gd").new()
+	box.rim = load("res://assets/ui/styles/%s_%s.png" % ["menu" if scope == &"menu" else "game","button" if button else "frame"])
+	box.fill = null if state == "focus" else preload("res://assets/ui/styles/fill.png")
+	box.edge = padding; box.button = button
+	box.tint = Color(1.22,1.22,1.12) if state in ["hover","focus"] else (Color(0.55,0.55,0.55) if state == "disabled" else (Color(0.8,0.8,0.8) if state == "pressed" else Color.WHITE))
+	for side in [SIDE_LEFT,SIDE_RIGHT,SIDE_TOP,SIDE_BOTTOM]: box.set_content_margin(side,padding)
+	return box
+
+static func skin_button(control: Button, scope: StringName = &"game") -> void:
+	var font := control.get_theme_font("font")
+	var height := font.get_height(control.get_theme_font_size("font_size"))
+	for state in ["normal","hover","pressed","disabled","focus"]:
+		control.add_theme_stylebox_override(state,frame(scope,true,height*0.15,state))
+
+static func theme(scope: StringName = &"game") -> Theme:
+	if scope == &"menu" and menu_theme != null: return menu_theme
+	if scope != &"menu" and shared != null: return shared
+	var result := Theme.new()
+	result.default_font = menu_font(); result.default_font_size = 16
 	for type in ["Button","OptionButton","CheckButton","CheckBox"]:
-		for state in ["normal","hover","pressed","disabled","focus"]:
-			var box := StyleBoxFlat.new()
-			box.bg_color = Color("222820") if state == "normal" else Color("353d2d")
-			box.border_color = Color("676952") if state == "normal" else Color("aaa681")
-			box.set_border_width_all(1)
-			box.set_corner_radius_all(2)
-			box.content_margin_left = 8
-			box.content_margin_right = 8
-			box.content_margin_top = 4
-			box.content_margin_bottom = 4
-			if state == "focus": box.bg_color = Color.TRANSPARENT
-			shared.set_stylebox(state,type,box)
-	for type in ["Panel","PanelContainer","TabContainer","PopupMenu"]:
-		var box := StyleBoxFlat.new()
-		box.bg_color = Color("20251f")
-		box.border_color = Color("676952")
-		box.set_border_width_all(1)
-		shared.set_stylebox("panel",type,box)
+		for state in ["normal","hover","pressed","disabled","focus","normal_pressed","hover_pressed","disabled_pressed"]:
+			var appearance: String = "pressed" if state.ends_with("_pressed") else state
+			if state == "disabled_pressed": appearance = "disabled"
+			result.set_stylebox(state,type,frame(scope,true,menu_font().get_height(16)*0.15,appearance))
+	for type in ["Panel","PanelContainer","TabContainer","PopupMenu"]: result.set_stylebox("panel",type,frame(scope))
 	for state in ["tab_selected","tab_unselected","tab_hovered","tab_disabled"]:
-		var box := StyleBoxFlat.new()
-		box.bg_color = Color("353d2d") if state == "tab_selected" else Color("222820")
-		box.border_color = Color("676952")
-		box.set_border_width_all(1)
-		box.content_margin_left = 12
-		box.content_margin_right = 12
-		box.content_margin_top = 6
-		box.content_margin_bottom = 6
-		shared.set_stylebox(state,"TabContainer",box)
-		shared.set_stylebox(state,"TabBar",box)
-	return shared
+		for type in ["TabContainer","TabBar"]: result.set_stylebox(state,type,frame(scope,true,menu_font().get_height(16)*0.15,"hover" if state == "tab_selected" else "normal"))
+	if scope == &"menu": menu_theme = result
+	else: shared = result
+	return result

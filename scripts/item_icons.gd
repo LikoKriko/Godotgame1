@@ -28,7 +28,7 @@ static func get_icon(id: StringName) -> Texture2D:
 			var atlas := AtlasTexture.new()
 			atlas.atlas = preload("res://assets/items/burdock_armor_guide.png") if id == &"burdock_armor" else preload("res://assets/items/burdock_leaf.png")
 			atlas.region = Rect2(1080,270,368,674) if id == &"burdock_armor" else Rect2(57,156,1142,945)
-			textures[id] = preload("res://scripts/visual_style.gd").normalized(atlas,atlas.get_size()*28/maxf(atlas.get_width(),atlas.get_height()),true,true)
+			textures[id] = preload("res://scripts/leaf_armor_art.gd").texture(atlas,atlas.get_size()*28/maxf(atlas.get_width(),atlas.get_height())) if id == &"burdock_armor" else preload("res://scripts/visual_style.gd").normalized(atlas,atlas.get_size()*28/maxf(atlas.get_width(),atlas.get_height()),true,true)
 		return textures[id]
 	if StoneTools.DATA.has(id):
 		return preload("res://scripts/visual_style.gd").icon(StoneTools.icon(id),id)

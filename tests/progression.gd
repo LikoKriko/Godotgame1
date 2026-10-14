@@ -50,7 +50,7 @@ func run() -> void:
 	require(close_to(progress.combat_damage(10,0.9),12),"Unused powered hit expires after five seconds")
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game); game.set_process(false)
-	game.gain_experience(60)
+	game.gain_experience(60,&"main_quest")
 	require(game.level == 3 and game.skill_points == 2,"Each of two levels grants exactly one shared point")
 	var inventory = game.inventory_panel
 	inventory.open_section(3)
@@ -58,7 +58,7 @@ func run() -> void:
 	perks_page.select(&"life"); perks_page.purchase()
 	require(game.skill_points == 0 and game.progression.perks[&"life"] == 1 and game.progression.max_health() == 22,"Perks page spends shared points and applies real health")
 	require(perks_page.purchase_button.disabled,"Button cannot spend unavailable points")
-	game.gain_experience(60)
+	game.gain_experience(60,&"main_quest")
 	inventory.open_section(2)
 	var abilities = inventory.sections[2]
 	abilities.select(&"speed"); abilities.purchase(); abilities.activate()

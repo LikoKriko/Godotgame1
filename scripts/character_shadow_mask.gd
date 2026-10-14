@@ -37,6 +37,6 @@ func draw_sprite(sprite: Sprite2D) -> void:
 
 func _draw() -> void:
 	if game == null or game.full_avatar == null: return
-	source_transform = Transform2D(0,-game.player-Vector2(0,17))*game.global_transform.affine_inverse()
+	source_transform = Transform2D(0,-game.player-Vector2(0,17-game.ground_height))*game.global_transform.affine_inverse()
 	draw_sprite(game.full_avatar)
 	draw_set_transform_matrix(Transform2D.IDENTITY)

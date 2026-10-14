@@ -14,12 +14,12 @@ func _initialize() -> void:
 		var parry = Parry.new(); parry.advance(1)
 		require(parry.activate(),"A ready attempt activates")
 		parry.advance(before)
-		require(parry.impact(attacker,2) and attacker.stunned == 0.75 and parry.pending.is_empty(),"An attempt up to exactly 0.5 seconds early deflects and stuns")
+		require(parry.impact(attacker,2) and attacker.stunned == 1.5 and parry.pending.is_empty(),"An attempt up to exactly 0.5 seconds early deflects and stuns")
 	for after in [0.0,0.1,0.2]:
 		var parry = Parry.new(); parry.advance(1); attacker.stunned = 0
 		require(not parry.impact(attacker,2),"Unprotected contact queues damage")
 		require(parry.advance(after).is_empty(),"Damage does not apply inside the post-contact window")
-		require(parry.activate() and parry.pending.is_empty() and attacker.stunned == 0.75,"An attempt up to exactly 0.2 seconds late cancels the pending hit")
+		require(parry.activate() and parry.pending.is_empty() and attacker.stunned == 1.5,"An attempt up to exactly 0.2 seconds late cancels the pending hit")
 		require(parry.advance(1).is_empty(),"Cancelled contact cannot later apply damage")
 	var late = Parry.new(); late.advance(1); late.impact(attacker,2); late.advance(0.201)
 	require(late.activate() and late.pending.size() == 1,"A late attempt spends its cooldown and cannot erase the hit")

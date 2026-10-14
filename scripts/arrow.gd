@@ -37,4 +37,6 @@ func _process(delta: float) -> void:
 		if game != null and game.resources.target_at(global_position) != game.resources.NONE:
 			game.combat_effects.flash(global_position,velocity.normalized())
 			queue_free(); return
-		if not world.walkable(position,2): queue_free(); return
+		if game != null and game.hut != null and game.hut.inside:
+			if not game.hut.ROOM_BOUNDS.grow(-2).has_point(position): queue_free(); return
+		elif not world.walkable(position,2): queue_free(); return

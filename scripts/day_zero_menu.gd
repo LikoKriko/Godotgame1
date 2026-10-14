@@ -20,23 +20,19 @@ var title: Label
 var settings_panel: PanelContainer
 var settings_backdrop: ColorRect
 var art: TextureRect
-var exact_art := false
 var rects: Dictionary = {}
 var confirmation: ConfirmationDialog
 var message: Label
-var mute_cover: TextureRect
-var pause_faces: Dictionary = {}
 var pause_font: Font = preload("res://scripts/ui_style.gd").menu_font()
 const TEMPLATE_SIZE := Vector2(1672,941)
 
 func configure(model) -> void:
-	theme = preload("res://scripts/ui_style.gd").theme()
+	theme = preload("res://scripts/ui_style.gd").theme(&"menu")
 	settings = model
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	art = TextureRect.new()
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	exact_art = true
-	art.texture = preload("res://assets/ui/title_template.png")
+	art.texture = load("res://assets/ui/title_background.png")
 	art.stretch_mode = TextureRect.STRETCH_SCALE
 	art.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -54,17 +50,10 @@ func configure(model) -> void:
 	shop_button.tooltip_text = "La tienda todavía no está disponible."
 	mute_button = button("Silenciar",Rect2(1527,786,95,94),toggle_mute)
 	mute_button.toggle_mode = true
-	if exact_art:
-		mute_cover = TextureRect.new()
-		var clean := AtlasTexture.new()
-		clean.atlas = art.texture
-		clean.region = Rect2(1542,801,10,10)
-		mute_cover.texture = clean
-		mute_cover.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		mute_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		mute_button.add_child(mute_cover)
-	return_button = button("Menú principal",Rect2(132,690,445,64),func(): main_menu_requested.emit(),false)
-	save_button = button("Guardar partida",Rect2(651,690,365,64),func(): save_requested.emit(),false)
+	mute_button.icon = load("res://assets/ui/styles/mute_icon.png")
+	mute_button.expand_icon = true
+	return_button = button("Menú principal",Rect2(132,690,445,64),func(): main_menu_requested.emit())
+	save_button = button("Guardar partida",Rect2(651,690,365,64),func(): save_requested.emit())
 	message = Label.new()
 	message.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -77,6 +66,7 @@ func configure(model) -> void:
 	title.hide()
 	title_area.add_child(title)
 	confirmation = ConfirmationDialog.new()
+	confirmation.theme = theme
 	confirmation.title = "Nueva partida"
 	confirmation.dialog_text = "¿Iniciar una nueva partida? Los cambios sin guardar de la partida abierta se perderán. El guardado anterior se conserva hasta que guardes la nueva partida."
 	confirmation.ok_button_text = "Nueva partida"
@@ -89,63 +79,11 @@ func configure(model) -> void:
 	refresh_audio()
 	fit()
 
-func button(label: String, area: Rect2, callback: Callable, baked: bool = true) -> Button:
+func button(label: String, area: Rect2, callback: Callable) -> Button:
 	var node := preload("res://scripts/menu_button.gd").new()
-	node.clip_text = true
-	node.text = "" if exact_art and baked else label
-	node.tooltip_text = label
-	preload("res://scripts/ui_style.gd").set_font_size(node,32)
-	for state in ["normal","hover","pressed","focus","disabled"]:
-		var style := StyleBoxFlat.new()
-		if exact_art and baked:
-			style.bg_color = Color(0.6,0.8,0.65,0.14) if state in ["hover","pressed"] else Color(0,0,0,0.4 if state == "disabled" else 0)
-			style.border_color = Color("d4cca1")
-			style.set_border_width_all(1 if state == "focus" else 0)
-		else:
-			style.bg_color = Color("161e19") if state == "normal" else Color("2c392b")
-			style.border_color = Color("797c56")
-			style.set_border_width_all(1)
-		node.add_theme_stylebox_override(state,style)
-	node.pressed.connect(callback)
-	options.add_child(node)
-	rects[node] = area
+	node.text = label.to_upper(); node.tooltip_text = label
+	node.pressed.connect(callback); options.add_child(node); rects[node] = area
 	node.set_meta("caption",label)
-	node.set_meta("baked",baked)
-	if baked and label != "Silenciar":
-		var blank := AtlasTexture.new()
-		blank.atlas = art.texture
-		blank.region = Rect2(173,194,40,35)
-		var cover := TextureRect.new()
-		cover.texture = blank
-		cover.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		cover.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cover.show_behind_parent = true
-		cover.hide()
-		node.add_child(cover)
-		pause_faces[node] = cover
-	if exact_art and not baked:
-		var border_texture := AtlasTexture.new()
-		border_texture.atlas = art.texture
-		border_texture.region = Rect2(135,160,442,114)
-		var fill_texture := AtlasTexture.new()
-		fill_texture.atlas = art.texture
-		fill_texture.region = Rect2(173,194,40,35)
-		var fill := TextureRect.new()
-		fill.texture = fill_texture
-		fill.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		fill.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		fill.show_behind_parent = true
-		node.add_child(fill)
-		for state in ["normal","hover","pressed","focus","disabled"]:
-			var rim := StyleBoxTexture.new()
-			rim.texture = border_texture
-			rim.texture_margin_left = 20; rim.texture_margin_right = 20
-			rim.texture_margin_top = 16; rim.texture_margin_bottom = 16
-			rim.draw_center = false
-			rim.modulate_color = Color(1.25,1.35,1.15) if state in ["hover","pressed","focus"] else Color.WHITE
-			node.add_theme_stylebox_override(state,rim)
 	return node
 
 func set_resume(active: bool) -> void:
@@ -159,7 +97,6 @@ func set_resume(active: bool) -> void:
 		if node == mute_button: continue
 		node.add_theme_font_override("font",pause_font)
 		node.text = String(node.get_meta("caption")).to_upper()
-		if pause_faces.has(node): pause_faces[node].visible = true
 	fit()
 
 func set_saved_available(available: bool) -> void:
@@ -180,9 +117,13 @@ func refresh_audio() -> void:
 	if mute_button == null: return
 	mute_button.tooltip_text = "Activar sonido" if settings.values["muted"] else "Silenciar juego"
 	mute_button.modulate = Color("91b9a3") if settings.values["muted"] else Color.WHITE
+	var icon: Texture2D = load("res://assets/ui/styles/mute_icon.png")
+	if not settings.values["muted"]:
+		var speaker := AtlasTexture.new(); speaker.atlas = icon; speaker.region = Rect2(0,0,icon.get_width()*0.60,icon.get_height()); icon = speaker
+	mute_button.icon = icon
 	mute_button.set_pressed_no_signal(settings.values["muted"])
-	if mute_cover != null: mute_cover.visible = not settings.values["muted"]
-	if not exact_art: mute_button.text = "♫×" if settings.values["muted"] else "♫"
+	mute_button.text = ""
+	fit()
 
 func fit() -> void:
 	var factor := minf(size.x/TEMPLATE_SIZE.x,size.y/TEMPLATE_SIZE.y)
@@ -192,20 +133,14 @@ func fit() -> void:
 	options.position = offset
 	options.size = TEMPLATE_SIZE*factor
 	for node in rects:
-		node.position = rects[node].position*factor
-		node.size = rects[node].size*factor
-		var font_size := maxi(12,roundi((38 if rects[node].size.y > 90 and resumed else 30)*factor))
-		if not node.text.is_empty():
-			var width: float = pause_font.get_string_size(node.text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
-			if width > node.size.x-48*factor: font_size = maxi(12,floori(font_size*(node.size.x-48*factor)/width))
+		var font_size := maxi(12,roundi(30*factor))
 		preload("res://scripts/ui_style.gd").set_font_size(node,font_size)
-		if pause_faces.has(node):
-			var cover: TextureRect = pause_faces[node]
-			cover.offset_left = 20*factor; cover.offset_right = -20*factor
-			cover.offset_top = 16*factor; cover.offset_bottom = -16*factor
-	if mute_cover != null:
-		mute_cover.position = Vector2(57,31)*factor
-		mute_cover.size = Vector2(22,32)*factor
+		preload("res://scripts/ui_style.gd").skin_button(node,&"menu")
+		var metrics: Vector2 = Vector2.ONE*font_size if node == mute_button else node.get_theme_font("font").get_string_size(node.text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size)
+		var padding: float = node.get_theme_font("font").get_height(font_size)*0.15
+		node.custom_minimum_size = metrics+Vector2.ONE*padding*2
+		node.size = node.custom_minimum_size
+		node.position = (rects[node].position+rects[node].size/2)*factor-node.size/2
 	message.position = Vector2(600,760)*factor
 	message.size = Vector2(550,28)*factor
 	preload("res://scripts/ui_style.gd").set_font_size(message,maxi(12,roundi(18*factor)))
@@ -214,8 +149,7 @@ func fit() -> void:
 
 func open_settings() -> void:
 	if is_instance_valid(settings_panel): return
-	# Keep the live font covers visible: hiding them reveals the old text
-	# baked into the background template. A backdrop blocks underlying input.
+	# Keep the live pause captions visible; the backdrop blocks their input.
 	settings_backdrop = ColorRect.new()
 	settings_backdrop.color = Color(0,0,0,0.35)
 	settings_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -161,7 +161,7 @@ func update_pose(delta: float) -> void:
 	var factor: float = 1.0/catalogue["pixels_per_world"]
 	scale = Vector2.ONE*factor
 	var foot := Vector2(catalogue["foot"][0],catalogue["foot"][1])
-	position = game.player+Vector2(0,17-game.locomotion.height())-foot*factor
+	position = game.player+Vector2(0,17-game.ground_height-game.locomotion.height())-foot*factor
 	show()
 
 func shot_origin() -> Vector2:
@@ -171,7 +171,7 @@ func shot_origin() -> Vector2:
 	var facing := Clips.direction_index(game.movement.heading,16)
 	var point: Array = data["release_anchors"][facing]
 	var foot := Vector2(catalogue["foot"][0],catalogue["foot"][1])
-	return game.player+Vector2(0,17)+(Vector2(point[0],point[1])-foot)/float(catalogue["pixels_per_world"])
+	return game.player+Vector2(0,17-game.ground_height)+(Vector2(point[0],point[1])-foot)/float(catalogue["pixels_per_world"])
 
 func held_tip() -> Vector2:
 	if not active_data.has("tip_anchors"): return Vector2.INF

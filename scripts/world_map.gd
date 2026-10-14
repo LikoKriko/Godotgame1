@@ -32,7 +32,7 @@ class TerrainView:
 		for puddle in game.world.puddles:
 			var point := world_to_map(puddle["position"])
 			draw_circle(point,2.5,Color("657b82"))
-		var player := world_to_map(game.player)
+		var player := world_to_map(game.hut.outside_player if game.hut != null and game.hut.inside else game.player)
 		draw_circle(player,5,Color("292c22"))
 		draw_circle(player,3.5,Color("ffe078"))
 		draw_rect(Rect2(Vector2.ZERO,size),Color("8b896b"),false,1)

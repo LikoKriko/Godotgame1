@@ -21,6 +21,14 @@ var burdock: Dictionary = {}
 var grass_tufts: Array[Dictionary] = []
 var puddles: Array[Dictionary] = []
 var dirt_patches: Array[Rect2] = []
+const JUMP_LIMIT := 19.2
+const NO_SUPPORT := Vector2i(99999,99999)
+var physical_heights: Dictionary = {}
+var terrain_influences: Array[Dictionary] = []
+var ground_sampler = preload("res://scripts/terrain_sampler.gd").new()
+var ground_profile = preload("res://scripts/terrain_profile.gd").new()
+var platforms: Array[Dictionary] = []
+var building_collisions: Array[Rect2] = []
 var navigation_revision := 0
 var reachable: Array[Vector2i] = []
 var bounds := Rect2(Vector2(FIRST * TILE), Vector2(SIZE * TILE))
@@ -28,12 +36,16 @@ var bounds := Rect2(Vector2(FIRST * TILE), Vector2(SIZE * TILE))
 func generate(new_seed: int) -> void:
 	navigation_revision += 1
 	seed_value = new_seed
+	ground_sampler.configure(new_seed,ground_profile); ground_sampler.existing_paths = true
 	terrain.seed = new_seed
 	terrain.frequency = 0.11
 	var rng := RandomNumberGenerator.new()
 	rng.seed = new_seed
 	cells.clear()
+	physical_heights.clear()
 	props.clear()
+	building_collisions.clear()
+	platforms.clear()
 	large_rocks.clear()
 	prop_variants.clear()
 	prop_collisions.clear()
@@ -108,6 +120,10 @@ func generate(new_seed: int) -> void:
 		props.erase(cell); prop_collisions.erase(cell); cells[cell].blocked = false
 		if not reachable.has(cell): reachable.append(cell)
 	index_collisions()
+	terrain_influences.clear()
+	for cell in props:
+		if props[cell] in [1,2,4]: terrain_influences.append({"id":StringName(str(cell)),"rect":prop_collisions[cell].grow(12 if props[cell] in [2,4] else 8)})
+	generate_platforms()
 	generate_grass_cover(bounds.grow(-96),roundi(previous_grass_count*1.35))
 
 func add_burdock() -> void:
@@ -199,7 +215,7 @@ func generate_grass_cover(inset: Rect2, count: int) -> void:
 			var width := cover_rng.randf_range(18,28)
 			var variant := cover_rng.randi_range(0,preload("res://scripts/imported_nature.gd").GRASS.size()-1)
 			if not grass_allowed(point,grass_padding(width,variant)): continue
-			var density := exp(grouping.get_noise_2d(point.x,point.y)*3.0)
+			var density := exp(grouping.get_noise_2d(point.x,point.y)*3.0)*maxf(0.05,ground_sampler.vegetation_density(point))
 			var rank := -log(maxf(0.000001,cover_rng.randf()))/density
 			candidates.append({"position":point,"width":width,"variant":variant,"rank":rank})
 	candidates.sort_custom(func(a,b): return a.rank < b.rank)
@@ -211,6 +227,8 @@ static func grass_padding(width: float, variant: int) -> float:
 	return maxf(width*0.55,width*region.size.y/region.size.x)
 
 func grass_allowed(point: Vector2, padding: float = 0.0, exclude_dirt: bool = true, exclude_bases: bool = true) -> bool:
+	for platform in platforms:
+		if platform.rect.grow(padding).has_point(point): return false
 	var horizontal := 24*sin(point.x/210)+10*sin(point.x/93)
 	var vertical := 24*sin(point.y/245)-10*sin(point.y/110)
 	if minf(absf(point.y-horizontal),absf(point.x-vertical)) < 82+padding:
@@ -301,6 +319,7 @@ func index_collisions() -> void:
 func release_prop(cell: Vector2i) -> void:
 	if props.get(cell) != 5: navigation_revision += 1
 	props.erase(cell)
+	physical_heights.erase(cell)
 	large_rocks.erase(cell)
 	prop_variants.erase(cell)
 	prop_collisions.erase(cell)
@@ -318,7 +337,9 @@ func cell_at(point: Vector2) -> Vector2i:
 func center(cell: Vector2i) -> Vector2:
 	return Vector2(cell * TILE) + Vector2(32, 32)
 
-func walkable(point: Vector2, radius: float = PLAYER_RADIUS) -> bool:
+func walkable(point: Vector2, radius: float = PLAYER_RADIUS, clearance: float = 0, support: Vector2i = NO_SUPPORT) -> bool:
+	for rect in building_collisions:
+		if point.distance_squared_to(point.clamp(rect.position,rect.end)) < radius*radius: return false
 	if not bounds.grow(-radius).has_point(point):
 		return false
 	var first := cell_at(point - Vector2.ONE * radius)
@@ -333,18 +354,52 @@ func walkable(point: Vector2, radius: float = PLAYER_RADIUS) -> bool:
 				if nearest.distance_squared_to(point) < radius * radius:
 					return false
 			for anchor in collision_cells.get(cell, []):
+				var height := physical_height(anchor)
+				if anchor == support or (height <= JUMP_LIMIT and clearance >= height): continue
 				var rect: Rect2 = prop_collisions[anchor]
 				if point.distance_squared_to(point.clamp(rect.position, rect.end)) < radius * radius:
 					return false
 	return true
 
-func move_actor(point: Vector2, displacement: Vector2, radius: float = PLAYER_RADIUS) -> Vector2:
+func move_actor(point: Vector2, displacement: Vector2, radius: float = PLAYER_RADIUS, clearance: float = 0, support: Vector2i = NO_SUPPORT) -> Vector2:
 	# Substeps prevent crossing a wall on a slow frame or with upgraded speed.
 	var steps := maxi(1, ceili(displacement.length() / 8.0))
 	var step := displacement / steps
 	for i in steps:
-		if walkable(point + Vector2(step.x, 0), radius):
+		if walkable(point + Vector2(step.x, 0), radius,clearance,support):
 			point.x += step.x
-		if walkable(point + Vector2(0, step.y), radius):
+		if walkable(point + Vector2(0, step.y), radius,clearance,support):
 			point.y += step.y
 	return point
+
+func physical_height(cell: Vector2i) -> float:
+	if physical_heights.has(cell): return physical_heights[cell]
+	if props.get(cell) == 1:
+		var profile := Nature.profile(1,prop_variants[cell])
+		var source: Rect2 = preload("res://scripts/imported_nature.gd").ROCKS[profile.size_index*2+profile.shape].rect
+		physical_heights[cell] = Nature.dimensions(1,prop_variants[cell],source.size).y
+		return physical_heights[cell]
+	return 42.0 if props.get(cell) == 4 else 100.0
+
+func generate_platforms() -> void:
+	var rng := RandomNumberGenerator.new(); rng.seed = seed_value ^ 29183
+	var art = preload("res://scripts/raised_ground.gd"); art.prepare()
+	for attempt in 10000:
+		if platforms.size() == 4: break
+		var center := Vector2(rng.randf_range(-1100,1100),rng.randf_range(-700,700))
+		var width := rng.randf_range(Nature.CHARACTER_WIDTH*2,Nature.CHARACTER_WIDTH*3); var variant := platforms.size()%3
+		var texture: Texture2D = art.textures[variant]
+		var size := Vector2(width,width*texture.get_height()/texture.get_width())
+		var rect := Rect2(center-size/2,size)
+		if not grass_allowed(center,size.length()/2) or not walkable(center,size.length()/2+24): continue
+		var clear := true
+		for cell in props:
+			if props[cell] in [2,4,5] and center.distance_to(self.center(cell)) < 150: clear = false; break
+		for platform in platforms:
+			if platform.rect.grow(48).intersects(rect): clear = false
+		if clear: platforms.append({"variant":variant,"rect":rect,"height":art.HEIGHT})
+
+func surface_height(point: Vector2) -> float:
+	for platform in platforms:
+		if preload("res://scripts/raised_ground.gd").contains(platform,point): return platform.height
+	return 0.0

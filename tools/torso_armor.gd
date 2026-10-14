@@ -13,7 +13,7 @@ static func texture_for(id: StringName) -> Texture2D:
 		var source := AtlasTexture.new()
 		source.atlas = PROFILES[id].texture
 		source.region = PROFILES[id].crop
-		textures[id] = preload("res://scripts/visual_style.gd").normalized(source,Vector2(30,44),true,true)
+		textures[id] = preload("res://scripts/leaf_armor_art.gd").texture(source,Vector2(30,44))
 	return textures[id]
 
 static func append(surface: SurfaceTool, torso: Transform3D, id: StringName) -> void:

@@ -75,6 +75,8 @@ func capture_state() -> Dictionary:
 	var creature := {}
 	if is_instance_valid(enemy) and not defeated and enemy.health > 0:
 		for key in ["position","heading","health","attack_elapsed","impact_done","punch_left","stun_remaining","walk_phase","state","standing","entering_attack","lower_elapsed"]: creature[key] = enemy.get(key)
+		creature["effects"] = enemy.effects.active.duplicate(true)
+		creature["stun_clip"] = enemy.stun_clip
 	var hits := []
 	for hit in parry.pending: hits.append({"damage":hit.damage,"impact":hit.impact})
 	return {"defeated":defeated,"enemy":creature,"time":parry.time,"last_activation":parry.last_activation,"used":parry.used,"pending":hits}
@@ -103,6 +105,10 @@ static func valid_state(data) -> bool:
 	if creature.has("standing") and not creature.standing is bool: return false
 	if creature.has("entering_attack") and not creature.entering_attack is bool: return false
 	if creature.has("lower_elapsed") and (not creature.lower_elapsed is float or not is_finite(creature.lower_elapsed) or creature.lower_elapsed < -1 or creature.lower_elapsed > 0.18): return false
+	if creature.has("effects"):
+		if not preload("res://scripts/status_effects.gd").valid_snapshot(creature.effects): return false
+		if absf(creature.effects.get(&"stun",{}).get("remaining",0)-creature.stun_remaining) > 0.00001: return false
+	if creature.has("stun_clip") and creature.stun_clip not in ["stun_fall","stun_fall_left","stun_fall_right"]: return false
 	return creature.get("state") in [&"idle",&"walk",&"attack"]
 
 func restore_state(data: Dictionary) -> void:
@@ -110,7 +116,9 @@ func restore_state(data: Dictionary) -> void:
 	defeated = data.defeated
 	if defeated and is_instance_valid(enemy): enemy.free(); enemy = null
 	if is_instance_valid(enemy) and not data.enemy.is_empty():
-		for key in data.enemy: enemy.set(key,data.enemy[key])
+		for key in data.enemy:
+			if key != "effects": enemy.set(key,data.enemy[key])
+		if data.enemy.has("effects"): enemy.effects.active = data.enemy.effects.duplicate(true)
 		if not data.enemy.has("standing"): enemy.standing = enemy.state == &"attack"
 		enemy.update_sprite()
 	parry.time = data.time; parry.last_activation = data.last_activation; parry.used = data.used; parry.pending.clear()

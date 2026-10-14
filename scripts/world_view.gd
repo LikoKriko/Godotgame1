@@ -2,10 +2,10 @@ extends Node2D
 const FOREST_SHEET = preload("res://assets/environment/basic_forest_props.png")
 const DETAILS_SHEET = preload("res://assets/environment/forest_details.png")
 const DetailRegions = preload("res://assets/environment/forest_details_regions.gd")
-const GROUND_SHADER = preload("res://shaders/quarantine_ground.gdshader")
 const Style = preload("res://scripts/visual_style.gd")
 const Nature = preload("res://scripts/nature_variants.gd")
 const Imported = preload("res://scripts/imported_nature.gd")
+static var soil_palette_cache: Dictionary = {}
 const TREE_FADED_ALPHA := 0.35
 var world
 var forest_textures: Array[AtlasTexture] = []
@@ -15,7 +15,7 @@ var burdock_textures: Array[AtlasTexture] = []
 var sapling_textures: Array[Texture2D] = []
 var grass_floor: Node2D
 var props_layer: Node2D
-var ground: Polygon2D
+var terrain_chunks: Node2D
 var ground_material: ShaderMaterial
 var scuffs: Array[PackedVector2Array] = []
 var tree_sprites: Dictionary = {}
@@ -26,6 +26,7 @@ var last_tree_props := -1
 var hit_meshes = preload("res://scripts/hit_meshes.gd").new()
 var impulses: Dictionary = {}
 var particles: Array[Dictionary] = []
+var platform_nodes: Array[Node2D] = []
 var presentation_cache: Dictionary = {}
 var water_presentations: Dictionary = {}
 
@@ -48,23 +49,17 @@ func configure(map) -> void:
 	hit_meshes.configure(self)
 	burdock_textures.append(atlas(preload("res://assets/environment/burdock1.png"),Rect2i(108,255,1032,710),false))
 	burdock_textures.append(atlas(preload("res://assets/environment/burdock2.png"),Rect2i(140,160,1020,915),false))
-	ground = Polygon2D.new()
-	ground.z_index = -1
-	ground.polygon = PackedVector2Array([world.bounds.position, Vector2(world.bounds.end.x, world.bounds.position.y), world.bounds.end, Vector2(world.bounds.position.x, world.bounds.end.y)])
-	ground_material = ShaderMaterial.new()
-	ground_material.shader = GROUND_SHADER
-	ground_material.set_shader_parameter("grass_reference",preload("res://assets/environment/imported/terreno1.png"))
-	ground_material.set_shader_parameter("soil_reference",preload("res://assets/environment/imported/terreno2.png"))
-	ground_material.set_shader_parameter("dirt_reference_a",preload("res://assets/environment/imported/terreno6.png"))
-	ground_material.set_shader_parameter("dirt_reference_b",preload("res://assets/environment/imported/terreno7.png"))
-	ground.material = ground_material
-	add_child(ground)
+	terrain_chunks = preload("res://scripts/terrain_chunks.gd").new()
+	terrain_chunks.z_index = -2; add_child(terrain_chunks)
+	terrain_chunks.configure(world.seed_value,world.ground_profile,world.bounds)
+	ground_material = terrain_chunks.shared_material
 	refresh_ground()
 	for record in Imported.GRASS: grass_textures.append(Imported.texture(record))
 	grass_floor = Node2D.new()
 	grass_floor.z_index = -1
 	var foliage_material := ShaderMaterial.new()
 	foliage_material.shader = preload("res://shaders/ground_foliage.gdshader")
+	foliage_material.set_shader_parameter("soil_palette",soil_palette(terrain_chunks.textures[0]))
 	grass_floor.material = foliage_material
 	add_child(grass_floor)
 	grass_floor.draw.connect(draw_floor_grass)
@@ -103,12 +98,26 @@ func presentation(cell: Vector2i) -> Dictionary:
 	return result
 
 func refresh_ground() -> void:
+	for node in platform_nodes: node.queue_free()
+	platform_nodes.clear()
+	var platforms = preload("res://scripts/raised_ground.gd")
+	platforms.prepare()
+	for data in world.platforms:
+		var node := MeshInstance2D.new(); node.mesh = platforms.make_mesh(data); node.texture = Style.normalized(platforms.textures[data.variant],data.rect.size)
+		node.z_index = -1; add_child(node); platform_nodes.append(node)
 	presentation_cache.clear()
 	water_presentations.clear()
-	ground_material.set_shader_parameter("map_seed", float(world.seed_value))
-	for i in world.dirt_patches.size():
-		var patch: Rect2 = world.dirt_patches[i]
-		ground_material.set_shader_parameter("dirt_patch_%d" % i,Vector4(patch.get_center().x,patch.get_center().y,patch.size.x/2,patch.size.y/2))
+	if terrain_chunks != null:
+		terrain_chunks.configure(world.seed_value,world.ground_profile,world.bounds)
+		ground_material = terrain_chunks.shared_material
+		terrain_chunks.sampler.existing_paths = true
+		terrain_chunks.sampler = world.ground_sampler
+		for i in world.dirt_patches.size(): terrain_chunks.sampler.add_influence(StringName("clearing_%d" % i),&"dirt",world.dirt_patches[i],0.8)
+		for influence in world.terrain_influences: terrain_chunks.sampler.add_influence(influence.id,&"dirt",influence.rect,0.45)
+		var owner_game := get_parent()
+		if owner_game != null and owner_game.get("hut") != null:
+			terrain_chunks.sampler.add_influence(&"hut",&"dirt",owner_game.hut.footprint.grow(18),1.0)
+		terrain_chunks.update_window(Vector2.ZERO,(get_viewport_rect().size if is_inside_tree() else Vector2(1920,1080))/1.95,true)
 	if grass_floor != null:
 		grass_floor.queue_redraw()
 	if props_layer != null:
@@ -286,3 +295,20 @@ func draw_props() -> void:
 			var rect: Rect2 = data["rect"]
 			rect.position += offset_for(cell)
 			props_layer.draw_texture_rect(data["texture"],rect,false,data["tint"].lerp(Color.WHITE,absf(impulse_wave(cell))*0.15))
+
+func _process(_delta: float) -> void:
+	if terrain_chunks == null or not visible: return
+	var camera := get_viewport().get_camera_2d()
+	if camera != null: terrain_chunks.update_window(camera.get_screen_center_position(),get_viewport_rect().size/camera.zoom)
+
+static func soil_palette(texture: Texture2D) -> Vector3:
+	var key := texture.get_rid().get_id()
+	if soil_palette_cache.has(key): return soil_palette_cache[key]
+	var pixels := texture.get_image(); var color := Vector3.ZERO; var count := 0
+	for y in 32:
+		for x in 32:
+			var paint := pixels.get_pixel(mini(pixels.get_width()-1,x*pixels.get_width()/32),mini(pixels.get_height()-1,y*pixels.get_height()/32))
+			if paint.a < 0.8: continue
+			color += Vector3(paint.r,paint.g,paint.b); count += 1
+	color /= maxf(1,count); soil_palette_cache[key] = color
+	return color

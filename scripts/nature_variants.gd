@@ -2,6 +2,7 @@ extends RefCounted
 ## Two silhouettes × five sizes × three restrained tones for each natural prop.
 const COUNT := 30
 const CHARACTER_HEIGHT := 64.0
+const CHARACTER_WIDTH := 25.6
 const TREE_HEIGHTS := [102.0, 120.0, 142.0, 166.0, 188.0]
 const ROCK_RATIOS := [0.2, 0.4, 0.7, 1.2, 2.0]
 const TREE_TONES := [Color(0.94, 1.0, 0.95), Color.WHITE, Color(1.0, 0.97, 0.92)]

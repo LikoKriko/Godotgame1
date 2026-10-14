@@ -23,13 +23,13 @@ class AvatarVisual:
 	extends Sprite2D
 	var game
 	func _process(_delta: float) -> void:
-		position = game.player+Vector2(0,17)-Mask.ORIGIN/Mask.SCALE
+		position = game.player+Vector2(0,17-game.ground_height)-Mask.ORIGIN/Mask.SCALE
 
 class AvatarProjection:
 	extends Node2D
 	var host
 	func _draw() -> void:
-		var feet: Vector2 = host.game.player+Vector2(0,17)
+		var feet: Vector2 = host.game.player+Vector2(0,17-host.game.ground_height)
 		draw_set_transform_matrix(host.projection(feet))
 		var rect := Rect2(feet-Mask.ORIGIN/Mask.SCALE,Vector2(Mask.SIZE)/Mask.SCALE)
 		draw_texture_rect(host.mask_viewport.get_texture(),rect,false)
@@ -46,7 +46,7 @@ class EnemyProjection:
 		var a := atlas.region.position/size; var b := atlas.region.end/size
 		material.set_shader_parameter("uv_rect",Vector4(a.x,a.y,b.x,b.y))
 		material.set_shader_parameter("foot_uv_y",enemy.clips.foot[1]/enemy.clips.canvas[1])
-		var feet: Vector2 = enemy.position+Vector2(0,17)
+		var feet: Vector2 = enemy.position+Vector2(0,17-enemy.ground_height)
 		draw_set_transform_matrix(host.projection(feet)*enemy.sprite.global_transform)
 		draw_texture_rect(atlas,Rect2(-atlas.get_size()/2,atlas.get_size()),false)
 		draw_set_transform_matrix(Transform2D.IDENTITY)
@@ -168,9 +168,18 @@ func _draw() -> void:
 	if game == null or strength <= 0.001: return
 	var view: Node2D = game.world_view
 	var viewport_world := Rect2(game.camera.get_screen_center_position()-game.get_viewport_rect().size/game.camera.zoom/2,game.get_viewport_rect().size/game.camera.zoom).grow(850)
+	if game.hut != null and game.hut.inside: return
 	for cell in game.world.props:
 		if not viewport_world.intersects(view.presentation(cell)["rect"]): continue
 		var data := prop_geometry(cell)
 		draw_set_transform_matrix(projection(data["base"])*data["transform"])
 		draw_texture_rect(data["texture"],data["rect"],false)
+	if game.hut != null and game.hut.exterior.visible:
+		var sprite: Sprite2D = game.hut.exterior
+		var info := shadow_info(sprite.texture,2)
+		var texture: Texture2D = info.texture
+		var transform := sprite.global_transform
+		var base := transform*Vector2(texture.get_width()/2.0,texture.get_height())
+		draw_set_transform_matrix(projection(base)*transform)
+		draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
 	draw_set_transform_matrix(Transform2D.IDENTITY)

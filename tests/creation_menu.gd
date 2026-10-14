@@ -20,7 +20,7 @@ func run() -> void:
 	root.add_child(game)
 	game.set_process(false)
 	var inventory = game.inventory_panel
-	require(inventory.navigation.tab_count == 5,"Five sections are present, including the embedded map")
+	require(inventory.navigation.tab_count == 7,"Seven sections include the embedded map, quests and achievements")
 	for i in 4:
 		require(inventory.navigation.get_tab_title(i) == ["Inventario","Creación","Habilidades","Perks"][i],"Correct section names and order")
 	key(KEY_T)

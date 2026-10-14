@@ -53,7 +53,8 @@ func run_checks() -> void:
 	for y in 2:
 		for x in 2:
 			check(game.world.walkable(game.world.center(rock + Vector2i(x, y))), "Entire rock footprint released")
-	check(game.level == 2 and game.skill_points == 1, "Gathering earns experience and a skill point")
+	check(game.level == 1 and game.skill_points == 0 and game.experience == 0, "Gathering no longer grants experience")
+	check(game.gain_experience(20,&"main_quest"), "A configured eligible source can grant XP")
 	game.buy_improvement(&"speed",true)
 	check(game.progression.skills[&"speed"] == 1 and game.skill_points == 0, "Shared level point unlocks an ability")
 	for cell in game.world.RETIRED_STRUCTURE_CELLS:

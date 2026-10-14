@@ -14,10 +14,13 @@ func run() -> void:
 	camera.position = Vector3(0,61,200); viewport.add_child(camera); camera.look_at(Vector3(0,17,0))
 	actor = preload("res://tools/enemy/young_volume.gd").new(); viewport.add_child(actor)
 	var manifest := {"authoring":"continuous_actor_surfaces_two_bone_ik", "locomotion":"four_leg_heavy_walk_standing_punch", "version":3,"canvas":[CELL.x,CELL.y],"foot":[camera.unproject_position(Vector3.ZERO).x,camera.unproject_position(Vector3.ZERO).y],"pixels_per_world":1.5,"world_height":32,"source":"Day_Zero_Enemigo_Joven_4_Vistas.png"}
-	for name in ["idle","walk","attack_left","attack_right","enter_left","enter_right","lower"]:
-		var count := 1 if name == "idle" else (12 if name == "walk" else (6 if name == "lower" else 16))
+	for name in ["idle","walk","attack_left","attack_right","enter_left","enter_right","lower","stun_fall","stun_fall_left","stun_fall_right","stun_hold","stun_rise"]:
+		var count := 1 if name in ["idle","stun_hold"] else (12 if name == "walk" else (6 if name == "lower" or name.begins_with("stun_") else 16))
+		var tops := []
 		var sheet := Image.create(CELL.x*count,CELL.y*16,false,Image.FORMAT_RGBA8)
 		for direction in 16:
+			var row := []
+			tops.append(row)
 			for frame in count:
 				var phase := frame/float(count) if name == "walk" else (frame/float(count-1) if count > 1 else 0.0)
 				# Runtime contact at 0.5 s matches the peak at frame eight.
@@ -25,10 +28,11 @@ func run() -> void:
 				actor.pose("enter_attack" if name.begins_with("enter") else ("attack" if name.begins_with("attack") else name),phase,direction,not name.ends_with("right"))
 				await process_frame; await RenderingServer.frame_post_draw
 				var picture := preload("res://scripts/visual_style.gd").outlined(viewport.get_texture().get_image())
+				row.append(picture.get_used_rect().position.y)
 				sheet.blit_rect(picture,Rect2i(Vector2i.ZERO,CELL),Vector2i(frame*CELL.x,direction*CELL.y))
 		var path: String = OUTPUT+name+".png"
 		if sheet.save_png(path) != OK: push_error("Enemy export failed: "+path); quit(1); return
-		manifest[name] = {"path":path,"frames":count,"directions":16}
+		manifest[name] = {"path":path,"frames":count,"directions":16,"tops":tops}
 		print("BAKED young ",name,": 16 directions × ",count," frames")
 	var file := FileAccess.open(OUTPUT+"manifest.json",FileAccess.WRITE)
 	file.store_string(JSON.stringify(manifest,"\t")); file.close()

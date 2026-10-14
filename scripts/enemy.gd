@@ -10,11 +10,20 @@ const CLIPS_PATH := "res://assets/enemies/first/manifest.json"
 var game
 var manager
 var health := MAX_HEALTH
+var ground_height := 0.0
 var heading := PI/2
 var attack_elapsed := -1.0
 var impact_done := false
 var punch_left := true
-var stun_remaining := 0.0
+var effects = preload("res://scripts/status_effects.gd").new()
+var stun_remaining: float:
+	get: return effects.remaining(&"stun")
+	set(value): effects.set_remaining(&"stun",value)
+var stun_clip := "stun_fall"
+const STUN_FALL_SECONDS := 0.24
+const STUN_RISE_SECONDS := 0.24
+var status_indicator = preload("res://scripts/enemy_status_indicator.gd").new()
+var silhouette_tops: Dictionary = {}
 var walk_phase := 0.0
 var state: StringName = &"idle"
 var standing := false
@@ -33,12 +42,15 @@ func configure(owner_game, owner_manager) -> void:
 	game = owner_game; manager = owner_manager
 	add_to_group("damageable")
 	add_child(sprite); sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	add_child(status_indicator); status_indicator.configure(effects)
 	if artwork_ready(): clips = JSON.parse_string(FileAccess.get_file_as_string(CLIPS_PATH))
 	update_sprite()
 func stun(seconds: float) -> void:
-	stun_remaining = maxf(stun_remaining,seconds)
+	if stun_remaining <= 0:
+		stun_clip = "stun_fall_"+("left" if punch_left else "right") if standing else "stun_fall"
+	effects.apply(&"stun",seconds)
 	attack_elapsed = -1; impact_done = true; state = &"idle"
-	begin_lower()
+	lower_elapsed = -1
 func begin_lower() -> void:
 	if standing and lower_elapsed < 0: lower_elapsed = 0
 	entering_attack = false
@@ -56,12 +68,16 @@ func take_damage(amount: float) -> void:
 		manager.defeated = true; remove_from_group("damageable"); hide(); queue_free()
 func advance(delta: float) -> void:
 	if health <= 0 or game.progression.health <= 0: return
+	var was_stunned := stun_remaining > 0
+	effects.advance(delta)
+	if was_stunned:
+		state = &"idle"
+		if stun_remaining <= 0: standing = false; entering_attack = false
+		return
 	if lower_elapsed >= 0:
 		lower_elapsed += delta
 		if lower_elapsed >= LOWER_SECONDS: lower_elapsed = -1; standing = false
-		else: state = &"idle"; stun_remaining = maxf(0,stun_remaining-delta); return
-	if stun_remaining > 0:
-		stun_remaining = maxf(0,stun_remaining-delta); state = &"idle"; return
+		else: state = &"idle"; return
 	var distance: float = position.distance_to(game.player)
 	if attack_elapsed >= 0:
 		attack_elapsed += delta
@@ -97,6 +113,8 @@ func update_sprite() -> void:
 	if clips.is_empty(): return
 	var attack_name := ("enter_" if entering_attack else "attack_")+("left" if punch_left else "right")
 	var name := "lower" if lower_elapsed >= 0 else (attack_name if state == &"attack" else String(state))
+	if stun_remaining > 0:
+		name = stun_clip if effects.elapsed(&"stun") < STUN_FALL_SECONDS else ("stun_rise" if stun_remaining <= STUN_RISE_SECONDS+0.000001 else "stun_hold")
 	var clip: Dictionary = clips.get(name,clips.idle)
 	if not sheets.has(clip.path):
 		sheets[clip.path] = load(clip.path)
@@ -104,10 +122,20 @@ func update_sprite() -> void:
 		alpha_masks[clip.path] = mask
 	current_sheet = clip.path
 	var phase := lower_elapsed/LOWER_SECONDS if lower_elapsed >= 0 else (walk_phase if state == &"walk" else (clampf(attack_elapsed/ATTACK_PERIOD,0,1) if state == &"attack" else 0.0))
+	if stun_remaining > 0:
+		phase = effects.elapsed(&"stun")/STUN_FALL_SECONDS if name == stun_clip else (1-stun_remaining/STUN_RISE_SECONDS if name == "stun_rise" else 0.0)
 	var frame := preload("res://scripts/complete_sprite_clips.gd").action_frame(phase,clip.frames)
 	var direction := preload("res://scripts/complete_sprite_clips.gd").direction_index(heading,int(clip.directions))
 	var cell: Vector2 = Vector2(clips.canvas[0],clips.canvas[1])
 	atlas.atlas = sheets[clip.path]; atlas.region = Rect2(Vector2(frame,direction)*cell,cell); atlas.filter_clip = true
 	sprite.texture = atlas; sprite.scale = Vector2.ONE/clips.pixels_per_world
-	sprite.position = Vector2(0,17)-Vector2(clips.foot[0],clips.foot[1])/clips.pixels_per_world+cell/(2*clips.pixels_per_world)
+	ground_height = game.world.surface_height(position)
+	sprite.position = Vector2(0,17-ground_height)-Vector2(clips.foot[0],clips.foot[1])/clips.pixels_per_world+cell/(2*clips.pixels_per_world)
+	var key := "%s:%d:%d" % [clip.path,direction,frame]
+	if not silhouette_tops.has(key):
+		if clip.has("tops"): silhouette_tops[key] = clip.tops[direction][frame]
+		else:
+			var image: Image = sheets[clip.path].get_image().get_region(Rect2i(atlas.region))
+			silhouette_tops[key] = image.get_used_rect().position.y
+	status_indicator.refresh(sprite.position+Vector2(0,(float(silhouette_tops[key])-cell.y/2)/clips.pixels_per_world))
 	z_index = 1 if position.y > game.player.y else -1

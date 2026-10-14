@@ -27,7 +27,7 @@ func run() -> void:
 	game.progression.activate(&"speed")
 	game.progression.advance(1)
 	game.progression.take_damage(4)
-	game.gain_experience(31)
+	game.gain_experience(31,&"main_quest")
 	game.day_cycle.advance(550)
 	game.nutrition.calories_today = 1800
 	game.nutrition.hydration_ml = 1999.1234567891011

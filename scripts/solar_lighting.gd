@@ -22,6 +22,7 @@ func configure(owner_game) -> void:
 func update_light() -> void:
 	state = game.day_cycle.sun_state()
 	ambient.color = state["ambient"]
+	game.world_view.terrain_chunks.set_ambient(ambient.color)
 	game.world_view.ground_material.set_shader_parameter("ambient_tint",Vector3(ambient.color.r,ambient.color.g,ambient.color.b))
 	if game.world_view.grass_floor != null:
 		game.world_view.grass_floor.material.set_shader_parameter("ambient_tint",Vector3(ambient.color.r,ambient.color.g,ambient.color.b))

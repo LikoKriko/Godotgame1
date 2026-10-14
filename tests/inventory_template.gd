@@ -9,15 +9,15 @@ func run() -> void:
 	var game = load("res://scenes/main.tscn").instantiate(); root.add_child(game); game.set_process(false)
 	var ui = game.inventory_panel
 	ui.open_section(0)
-	require(ui.navigation.tab_count == 5 and ui.sections.size() == 5,"The template has Inventory, Creation, Abilities, Perks and Map")
+	require(ui.navigation.tab_count == 7 and ui.sections.size() == 7,"The template has Inventory, Creation, Abilities, Perks, Map, Quests and Achievements")
 	for i in 32:
 		var button: Button = ui.backpack_buttons[i]
 		require(button.position == Vector2(194+(i%8)*72,648+(i/8)*72) and button.size == Vector2(64,64),"All 32 slots form four rows of eight within the backpack frame")
 	require(ui.improve_button.disabled and ui.dismantle_button.disabled,"Undefined item actions remain disabled")
-	for i in 5:
+	for i in 7:
 		ui.navigation.buttons[i].pressed.emit()
 		require(ui.navigation.current_tab == i and ui.sections[i].visible,"Each template tab opens its own page")
-		for other in 5:
+		for other in 7:
 			if other != i: require(not ui.sections[other].visible,"Previous pages cannot block the visible page")
 	var map = ui.sections[4].get_node("Terrain")
 	require(map.ground != null and not game.world_map.visible and game.is_paused(),"The map appears inside the inventory and pauses gameplay")
@@ -34,7 +34,7 @@ func run() -> void:
 	ui.select_gear(&"hands")
 	require(ui.gear_buttons[&"hands"].get_node("ItemIcon").texture != null,"Empty equipment slots use the template's silhouette icons")
 	require(ui.details.size.x <= 310 and ui.capacity_label.size.x <= 114,"Descriptions and capacity stay within their frames")
-	for i in range(4):
+	for i in range(6):
 		var a: Button = ui.navigation.buttons[i]; var b: Button = ui.navigation.buttons[i+1]
 		require(a.position.x+a.size.x <= b.position.x,"Tab text cannot enlarge controls over their neighbours")
 	print("%s: %d inventory template checks, %d failures" % ["PASS" if failures == 0 else "FAIL",checks,failures])

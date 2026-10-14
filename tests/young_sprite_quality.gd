@@ -22,19 +22,19 @@ func run():
 	for direction in 16:
 		var rest := idle.get_region(Rect2i(0,direction*96,96,96))
 		directions[hash(rest.get_data())] = true
-		for clip in ["walk","attack_left","attack_right"]:
+		for clip in ["walk","attack_left","attack_right","stun_fall","stun_fall_left","stun_fall_right","stun_hold","stun_rise"]:
 			var image := Image.load_from_file("res://assets/enemies/first/"+clip+".png")
-			var count := 12 if clip == "walk" else 16
+			var count := 12 if clip == "walk" else (1 if clip == "stun_hold" else (6 if clip.begins_with("stun_") else 16))
 			var poses := {}
 			for frame in count:
 				var picture := image.get_region(Rect2i(frame*96,direction*96,96,96))
 				var bounds := picture.get_used_rect()
 				require(bounds.position.x >= 3 and bounds.position.y >= 3 and bounds.end.x < 93 and bounds.end.y < 93,"No body, fist or toes clipped by the export cell")
-				require(bounds.size.y >= 28 and bounds.size.y <= 58,"Young creature keeps its compact 32-unit height")
+				require(bounds.size.y >= (12 if clip.begins_with("stun_") else 28) and bounds.size.y <= 58,"Young creature keeps its compact 32-unit height")
 				poses[hash(picture.get_data())] = true
 				if clip.begins_with("attack") and frame == 15:
 					require(picture.get_data() == image.get_region(Rect2i(0,direction*96,96,96)).get_data(),"Repeated punches recover in the exact standing guard")
-			require(poses.size() >= 8,"Walk/punch contains distinct full-body poses in every direction")
+			require(poses.size() >= (1 if clip == "stun_hold" else (5 if clip.begins_with("stun_") else 8)),"Walk/punch contains distinct full-body poses in every direction")
 		var entering := enter.get_region(Rect2i(0,direction*96,96,96))
 		var lowered := lower.get_region(Rect2i(5*96,direction*96,96,96))
 		require(entering.get_data() == rest.get_data() and lowered.get_data() == rest.get_data(),"Entering and lowering connect exactly with the four-legged idle pose")

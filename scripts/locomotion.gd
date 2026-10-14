@@ -3,6 +3,7 @@ const JUMP_SECONDS := 0.66
 const SLIDE_SECONDS := 0.46
 const MAX_AIR_TURN := deg_to_rad(70)
 const SLIDE_DISTANCE_FACTOR := 0.85
+const SLIDE_JUMP_DISTANCE_FACTOR := 0.70
 var from_slide := false
 var jump_heading := 0.0
 var launch_heading := 0.0
@@ -28,7 +29,7 @@ func jump(inertia_multiplier: float = 1.0) -> bool:
 	if airborne(): return false
 	from_slide = sliding()
 	if from_slide:
-		jump_speed = slide_speed()*inertia_multiplier
+		jump_speed = slide_speed()*inertia_multiplier*SLIDE_JUMP_DISTANCE_FACTOR
 		launch_heading = slide_direction.angle()
 		jump_heading = launch_heading
 		slide_elapsed = SLIDE_SECONDS

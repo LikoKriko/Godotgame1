@@ -54,6 +54,6 @@ func run_checks() -> void:
 	require(game.styled_hud.map_seed == game.world.seed_value, "Minimap uses active map")
 	require(game.styled_hud.map_terrain.get_size() == Vector2(game.world.SIZE), "Expanded map fits minimap panel")
 	require(game.camera.limit_left == -1536 and game.camera.limit_right == 1536 and game.camera.limit_top == -1024 and game.camera.limit_bottom == 1024, "Camera follows expanded world limits")
-	require(game.world_view.ground_material.get_shader_parameter("map_seed") == 73130.0, "Ground follows regenerated seed")
+	require(game.world_view.ground_material.get_shader_parameter("seed_value") == 73130, "Ground follows regenerated seed")
 	print("%s: %d world checks across 20 seeds, %d failures: connectivity, expanded boundaries, minimap and regeneration" % ["PASS" if failures == 0 else "FAIL", checks, failures])
 	quit(0 if failures == 0 else 1)

@@ -6,7 +6,7 @@ Prototipo con Godot 4.6.3 estándar y GDScript. Esta versión se centra en el pe
 
 Importa `project.godot` en Godot 4.6.3, pulsa F5 y elige **Jugar** en el menú de Day Zero. El menú conserva completa la nueva plantilla de ciudad en ruinas, con seis botones: Continuar, Jugar, Configuración, Salir, Tienda y sonido. Tienda está deshabilitada. Jugar inicia una partida nueva y solicita confirmación si hay una partida abierta o guardada. **Esc** abre pausa, que añade Menú principal y Guardar partida. El botón de sonido alterna silencio sin cambiar los volúmenes configurados.
 
-La ventana y la resolución base son **1920 × 1080**. La cámara tiene un zoom de **1,95×**, un 30% más cercano que el anterior 1,5×, para mantener legibles el personaje y los decorados; la interfaz se adapta al tamaño de la ventana. El detalle del suelo se calcula en coordenadas del mundo a resolución de un píxel, con pequeñas briznas de hierba, hojas, piedrecitas y sombras suaves de relieve. Los senderos tienen curvas y bordes irregulares; la paleta permanece reducida para facilitar la lectura. El relieve es visual y no cambia el movimiento.
+La ventana y la resolución base son **1920 × 1080**. La cámara tiene un zoom de **1,95×**, un 30% más cercano que el anterior 1,5×, para mantener legibles el personaje y los decorados; la interfaz se adapta al tamaño de la ventana. El terreno utiliza cuatro texturas mediante chunks de 512 × 512 unidades, cargados alrededor de la cámara y reutilizados en caché. El ruido y las transiciones usan coordenadas globales: los bordes no modifican el dibujo. Los senderos tienen curvas y bordes irregulares. Hay cuatro plataformas físicas de 9,6 unidades de altura; se puede subir caminando o saltando. Los parámetros y pruebas del sistema están en [docs/terrain.md](docs/terrain.md).
 
 - WASD o flechas: movimiento.
 - Ctrl caminando o quieto (mantener): agacharse y caminar más despacio.
@@ -28,9 +28,9 @@ La ventana y la resolución base son **1920 × 1080**. La cámara tiene un zoom 
 
 El recurso bajo el cursor muestra cuántos golpes faltan. La mira nueva mide 24 píxeles de alto en pantalla, en partida y en todos los menús; su centro coincide con el punto de clic y de selección, también al cambiar resolución. Árboles adultos dan madera; arbolitos jóvenes, fibra y palos; sus cinco diseños nuevos tienen la misma altura; rocas, piedra. Las pequeñas se recogen con E y dan entre una y tres piedras. Las que requieren pico pasan progresivamente de cuatro golpes/cuatro piedras a doce golpes/quince piedras. La bardana se recoge con E: su versión 1 da cinco hojas y la 2, tres. Las balizas y máquinas antiguas se han retirado, también de sus colisiones y de los guardados anteriores.
 
-Recoger del suelo utiliza seis poses durante 0,36 s, con la velocidad al 40%; el material se entrega al contacto. Después la velocidad se recupera durante 0,5 s. Sacar un objeto de la barra aplica una reducción del 5% que desaparece progresivamente durante un segundo. El deslizamiento y su salto encadenado recorren un 15% menos que en la versión anterior, manteniendo su duración y altura.
+Recoger del suelo utiliza seis poses durante 0,36 s, con la velocidad al 40%; el material se entrega al contacto. Después la velocidad se recupera durante 0,5 s. Sacar un objeto de la barra aplica una reducción del 5% que desaparece progresivamente durante un segundo. El deslizamiento mantiene la reducción anterior del 15%; el salto encadenado recorre un 30% menos que antes de esta actualización, manteniendo su duración y altura.
 
-El primer enemigo utiliza únicamente Day_Zero_Enemigo_Joven_4_Vistas.png, con 32 unidades de altura, 16 direcciones, 12 fotogramas de caminata y 16 por puñetazo para cada mano. Camina sobre cuatro patas con apoyos alternados y balanceo leve, y se levanta para golpear. Tiene 10 de vida, camina a 56 unidades/s, detecta al jugador a 250 y alterna puños cada segundo con 2 de daño. Aparece fuera de la zona inicial de detección. El parry con F acepta intentos hasta 0,5 s antes del contacto y 0,2 s después: anula ese golpe y aturde 0,75 s. El daño pendiente se aplica 0,35 s después del contacto. El combate se pausa en los menús; estado del enemigo, golpe pendiente y recuperación del parry se guardan en disco. La espada tiene una preparación más corta, una estela fina que sigue la punta real de su sprite y un destello al impactar.
+El primer enemigo utiliza únicamente Day_Zero_Enemigo_Joven_4_Vistas.png, con 32 unidades de altura, 16 direcciones, 12 fotogramas de caminata y 16 por puñetazo para cada mano. Camina sobre cuatro patas con apoyos alternados y balanceo leve, y se levanta para golpear. Tiene 10 de vida, camina a 56 unidades/s, detecta al jugador a 250 y alterna puños cada segundo con 2 de daño. Aparece fuera de la zona inicial de detección. El parry con F acepta intentos hasta 0,5 s antes del contacto y 0,2 s después: anula ese golpe y aturde 1,5 s. El daño pendiente se aplica 0,35 s después del contacto. El combate se pausa en los menús; estado del enemigo, golpe pendiente y recuperación del parry se guardan en disco. La espada tiene una preparación más corta, una estela fina que sigue la punta real de su sprite y un destello al impactar.
 
 El personaje es un superviviente humano sin camiseta, con barba, pantalón corto marrón y pies descalzos. La altura de referencia es de 64 unidades en el mundo; la cámara mantiene su zoom anterior de 1,95. La cabeza usa las vistas de estilo original de tamaño constante durante la marcha. Las extremidades y la ropa se exportan unidas en cada pose. Los giros mantienen la fase de marcha y la frenada proporcional al ángulo; al completarse recuperan la velocidad máxima permitida por habilidades y alimentación.
 
@@ -146,7 +146,7 @@ Con una pantalla gráfica disponible, `godot --path . --rendering-method gl_comp
 
 En cloud, usa los directorios XDG escribibles indicados en las instrucciones del entorno bajo `/workspace/shared`. No se necesitan servicios ni credenciales para jugar.
 
-Agacharse flexiona las piernas y baja el torso. El salto tiene un arco de 0,66 s y 24 px de altura visual; la posición y las colisiones del suelo siguen activas, por lo que esta versión no salta a través de árboles o rocas. Caminar agachado tiene 12 fotogramas propios en ocho direcciones. Deslizarse fija la dirección durante 0,46 s y frena hasta detenerse; se puede saltar en cualquier momento conservando la velocidad y dirección actuales del deslizamiento, con una pose propia de impulso hacia delante. El giro en el aire está limitado a 70° a cada lado de la dirección de despegue, manteniendo los 0,66 s y la altura habituales. La inercia termina al aterrizar; hay una recuperación de 0,9 s desde el inicio. Los paneles pausan estos estados y reiniciar los restablece. Saltar o deslizarse cancela la recolección y el equipamiento en curso; no se pueden iniciar golpes durante estos movimientos.
+Agacharse flexiona las piernas y baja el torso. El salto tiene un arco de 0,66 s y 24 px de altura visual; se pueden superar objetos cuya altura física no exceda 19,2 unidades (30% de la altura del personaje). Los árboles, edificios y rocas más altos siguen bloqueando el paso. Se puede aterrizar y permanecer sobre una roca pequeña, bajando al salir de su superficie. Caminar agachado tiene 12 fotogramas propios en ocho direcciones. Deslizarse fija la dirección durante 0,46 s y frena hasta detenerse; se puede saltar en cualquier momento conservando la velocidad y dirección actuales del deslizamiento, con una pose propia de impulso hacia delante. El giro en el aire está limitado a 70° a cada lado de la dirección de despegue, manteniendo los 0,66 s y la altura habituales. La inercia termina al aterrizar; hay una recuperación de 0,9 s desde el inicio. Los paneles pausan estos estados y reiniciar los restablece. Saltar o deslizarse cancela la recolección y el equipamiento en curso; no se pueden iniciar golpes durante estos movimientos.
 
 ## Archivos
 
@@ -172,7 +172,7 @@ Agacharse flexiona las piernas y baja el torso. El salto tiene un arco de 0,66 s
 - `assets/environment/basic_forest_props.png`: árboles y rocas del primer bioma.
 - `assets/environment/forest_details.png`: arbolito joven y charco.
 - `assets/environment/imported/`: doce grupos de césped, diez dibujos de roca y referencias de terreno; `shaders/ground_foliage.gdshader`: paleta y contornos suaves del suelo.
-- `shaders/quarantine_ground.gdshader`: suelo natural continuo; `shaders/atmosphere.gdshader`: sombreado ligero de bordes.
+- `scripts/terrain_chunks.gd`, `terrain_sampler.gd`, `terrain_profile.gd` y `shaders/chunk_ground.gdshader`: terreno procedural por chunks; `shaders/atmosphere.gdshader`: sombreado ligero de bordes.
 
 Los atlas están en `assets/`; `.godot/` contiene cachés locales excluidas de Git. Se han eliminado los atlas antiguos de suelos y caminata, el dibujado duplicado de herramientas y el recorte de cabeza anterior. El atlas de maquinaria y balizas se ha retirado. Contornos, geometría de herramientas y presentaciones de decorados se almacenan en cachés acotadas. Las sombras estáticas no reconstruyen sus comandos si el sol, la cámara y los objetos no han cambiado de forma perceptible; los impactos fuerzan su actualización. Los materiales se almacenan en la mochila; no se sueltan en el suelo. Las comprobaciones automáticas validan lógica y carga; la sensación del movimiento y las animaciones requiere también jugar en el editor.
 
@@ -222,3 +222,38 @@ El suelo toma las texturas de las referencias de terreno y las mezcla con rotaci
 `tests/containers.gd` verifica la receta, volumen, identidad, límites de almacenamiento, migración y catálogo; `tests/container_ui.gd` usa clics nativos para probar el catálogo, Beber y la botella en la mano. `tests/interactions.gd` comprueba las manos libres, E, la superficie visible del agua y la distancia; `tests/ground_cover.gd` comprueba reproducibilidad y zonas despejadas en distintas semillas.
 
 Los menús comparten la fuente de pausa. Solo los textos de 14 puntos o menos usan una fuente básica para mantener su legibilidad. Las piedras del mundo y su icono tienen un 10% menos de ancho y alto en el raster, conservando su tamaño físico; el relieve muscular del torso se ha reducido un 10%.
+
+
+### Choza, estados y progresión
+
+La primera choza usa `entregables/edificio/choza1.png`, con puerta proporcionada al
+personaje. Acércate a la puerta y pulsa **E** para cambiar a la pantalla del interior:
+una habitación vacía de madera, sin muebles. Su interior no se ve desde fuera.
+La salida requiere E junto a la puerta interior y devuelve al punto de entrada.
+El enemigo permanece fuera; el guardado manual conserva si estás dentro.
+
+El joven tiene un abdomen un 35% más estrecho y una cabeza un 15% menor en sus tres
+dimensiones. Mantiene la cabeza hacia delante al caminar sobre cuatro patas.
+El stun dura **1,5 s**: seis poses de caída durante 0,24 s, 1,02 s en el suelo y
+seis poses de recuperación durante 0,24 s. Un círculo amarillo pastel de 10 unidades,
+con borde fino oscuro y separación de 3 unidades sobre la silueta, se vacía en
+sentido horario. `status_effects.gd` y `enemy_status_indicator.gd` permiten compartir
+esta presentación entre futuros enemigos y estados. Las alturas de los sprites
+se guardan en el manifiesto para evitar leer las imágenes durante la animación.
+
+La primera armadura de hojas conserva su tamaño y tiene un 25% más de resolución
+en ancho y alto de textura e icono, con mayor definición local de hojas y ataduras.
+Todas sus poses completas siguen el movimiento del torso.
+
+**Misiones** y **Logros** aparecen a la derecha de Mapa. Están vacíos, pendientes de
+contenido y recompensas definidos por el usuario. Solo se registran cinco fuentes
+posibles de experiencia: misiones principales, misiones secundarias, logros, jefes
+y fabricación. Recolectar o derrotar al joven no da experiencia. Las recompensas
+nuevas aún no tienen valores automáticos. Se conserva la curva de nivel existente
+y el único saldo de puntos compartido entre habilidades y perks.
+
+Los menús y HUD utilizan los marcos y el relleno nuevos: variantes de menú para
+los botones principal/pausa y configuración; variantes de juego para paneles,
+inventario, mapa y HUD. Los botones con texto ajustan sus dimensiones a la etiqueta,
+con un margen del 15% de la altura de texto por cada lado. Los slots conservan su
+forma de almacenamiento. El marco NIVEL queda arriba a la izquierda del minimapa.

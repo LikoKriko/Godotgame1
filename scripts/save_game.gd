@@ -12,7 +12,7 @@ static func capture(game) -> Dictionary:
 		remaining[cell] = game.resources.nodes[cell]["remaining"]
 	return {
 		"version": VERSION, "seed": game.world.seed_value, "combat": game.enemies.capture_state(),
-		"player": game.player, "heading": game.movement.heading,
+		"hut": game.hut.snapshot(), "rock_support":game.rock_support, "player": game.player, "heading": game.movement.heading,
 		"resources": remaining, "collected": game.resources.inventory.duplicate(),
 		"slots": game.bag.slots.duplicate(true), "equipment": game.bag.equipment.duplicate(true), "next_uid": game.bag.next_uid,
 		"experience": game.experience, "level": game.level, "points": game.skill_points,
@@ -118,6 +118,7 @@ static func migrate_held_tool(data: Dictionary) -> Dictionary:
 	return data
 
 static func valid(data: Dictionary) -> bool:
+	if data.has("hut") and not preload("res://scripts/hut.gd").valid_snapshot(data.hut): return false
 	if not preload("res://scripts/enemy_manager.gd").valid_state(data.get("combat",{})): return false
 	for key in ["version", "seed", "player", "heading", "resources", "collected", "slots", "equipment", "next_uid", "experience", "level", "points", "skills", "perks", "active", "cooldowns", "health", "day", "hour", "calories", "hydration", "water_today"]:
 		if not data.has(key): return false
@@ -204,7 +205,10 @@ static func restore(game, data: Dictionary) -> bool:
 	trial.generate(data.seed)
 	var trial_resources = preload("res://scripts/harvesting.gd").new()
 	trial_resources.configure(trial)
-	if not trial.bounds.grow(-trial.PLAYER_RADIUS).has_point(data.player): return false
+	var indoors: bool = data.get("hut",{}).get("inside",false)
+	if indoors:
+		if not preload("res://scripts/hut.gd").ROOM_BOUNDS.grow(-20).has_point(data.player) or not trial.bounds.grow(-trial.PLAYER_RADIUS).has_point(data.hut.outside_player): return false
+	elif not trial.bounds.grow(-trial.PLAYER_RADIUS).has_point(data.player): return false
 	var combat: Dictionary = data.get("combat",{})
 	if not combat.is_empty() and not combat.enemy.is_empty() and not trial.bounds.grow(-9).has_point(combat.enemy.position): return false
 	for cell in data.resources:
@@ -242,8 +246,14 @@ static func restore(game, data: Dictionary) -> bool:
 	game.nutrition.calories_today = data.calories
 	game.nutrition.hydration_ml = data.hydration
 	game.nutrition.water_today_ml = data.water_today
-	game.player = data.player if game.world.walkable(data.player) else Vector2.ZERO
+	game.player = data.player if indoors or game.world.walkable(data.player) else Vector2.ZERO
+	game.hut.inside = indoors
+	if data.has("hut"): game.hut.outside_player = data.hut.outside_player if game.world.walkable(data.hut.outside_player) else game.hut.door
 	game.enemies.restore_state(combat)
+	if data.get("rock_support") is Vector2i and game.world.props.get(data.rock_support) == 1 and game.world.physical_height(data.rock_support) <= game.world.JUMP_LIMIT and game.world.prop_collisions[data.rock_support].grow(game.world.PLAYER_RADIUS).has_point(data.player+Vector2(0,17)):
+		game.rock_support = data.rock_support; game.player = data.player
+	game.update_ground_support()
+	game.hut.apply_visibility()
 	game.movement.heading = data.heading
 	game.last_tool_uid = game.bag.held_item().get("uid", -1)
 	game.camera.position = game.player

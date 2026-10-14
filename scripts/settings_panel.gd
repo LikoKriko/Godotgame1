@@ -14,7 +14,7 @@ var resolution: OptionButton
 var message: Label
 
 func configure(model) -> void:
-	theme = preload("res://scripts/ui_style.gd").theme()
+	theme = preload("res://scripts/ui_style.gd").theme(&"menu")
 	settings = model
 	pending = settings.values.duplicate()
 	custom_minimum_size = Vector2(700,500)
@@ -35,6 +35,7 @@ func configure(model) -> void:
 	var gameplay := page(tabs,"Juego")
 	var automatic := CheckButton.new()
 	automatic.name = "AutomaticRun"
+	automatic.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	automatic.text = "Correr automáticamente"
 	automatic.button_pressed = pending.get("auto_run",false)
 	automatic.toggled.connect(func(enabled): pending["auto_run"] = enabled)
@@ -95,6 +96,7 @@ func configure(model) -> void:
 	frame_limit.item_selected.connect(func(index): pending["fps"] = [30,60,120,144,0][index])
 	vsync = CheckButton.new()
 	vsync.text = "Sincronización vertical"
+	vsync.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	vsync.button_pressed = pending["vsync"]
 	vsync.toggled.connect(func(enabled): pending["vsync"] = enabled)
 	graphics.add_child(vsync)
@@ -141,7 +143,8 @@ func option(parent: Control, text: String, choices: Array) -> OptionButton:
 	label.custom_minimum_size.x = 230
 	row.add_child(label)
 	var selector := OptionButton.new()
-	selector.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	selector.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	selector.fit_to_longest_item = false
 	for choice in choices:
 		selector.add_item(choice)
 	row.add_child(selector)
@@ -153,6 +156,7 @@ func apply_changes() -> void:
 	message.text = "Configuración guardada." if settings.save_settings() == OK else "No se pudo guardar la configuración."
 
 func fit() -> void:
+	if not is_inside_tree(): return
 	var screen := get_viewport_rect().size
 	size = Vector2(minf(940,screen.x*0.9),minf(600,screen.y*0.88))
 	position = (screen-size)/2
