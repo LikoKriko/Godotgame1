@@ -26,7 +26,7 @@ func run():
  for node in app.menu.settings_panel.find_children("*","Button",true,false):
   validate(node)
  require(app.menu.settings_panel.theme == preload("res://scripts/ui_style.gd").theme(&"menu"),"Configuration uses the menu frame scope")
- app.menu.settings_panel.closed.emit(); app.new_game(); app.game.set_process(false)
+ app.menu.settings_panel.closed.emit(); await app.new_game(); app.game.set_process(false)
  app.game.inventory_panel.open_section(0)
  for i in 3: await process_frame
  var ui = app.game.inventory_panel

@@ -1,5 +1,6 @@
 extends RefCounted
 const SOURCE = preload("res://assets/environment/imported/workbench_basic.png")
+static var SHADOW_CONTACTS := PackedVector2Array([Vector2(0.083,0.746),Vector2(0.334,0.585),Vector2(0.631,0.992),Vector2(0.919,0.85)])
 const HEIGHT := 32.0
 static var world_texture: Texture2D
 static var icon_texture: Texture2D

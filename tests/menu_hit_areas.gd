@@ -46,7 +46,7 @@ func run() -> void:
 		for button in buttons:
 			if button.visible and button.text in ["Volver","Aplicar"]: await boundaries(button)
 		app.menu.close_settings()
-		app.play()
+		await app.play()
 		app.game.set_process(false)
 		app.game.world_view.hide()
 		await settle()

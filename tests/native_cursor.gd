@@ -11,7 +11,7 @@ func run():
 	var app = load("res://scenes/day_zero.tscn").instantiate(); root.add_child(app); await settle()
 	await native_pointer(app.menu.play_button,app.menu.play_button.size/2)
 	cursor_art()
-	app.new_game(); app.game.set_process(false); app.game.world_view.hide()
+	await app.new_game(); app.game.set_process(false); app.game.world_view.hide()
 	app.game.inventory_panel.open_section(0); await settle()
 	var button: Control = app.game.inventory_panel.backpack_buttons[0]
 	await native_pointer(button,Vector2(3,3))

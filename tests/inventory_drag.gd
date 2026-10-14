@@ -32,7 +32,7 @@ func shift_click(control: Control):
 func run():
 	if DisplayServer.get_name() != "X11": quit(1); return
 	var app = load("res://scenes/day_zero.tscn").instantiate()
-	root.add_child(app); app.new_game()
+	root.add_child(app); await app.new_game()
 	root.position = Vector2i.ZERO
 	var game = app.game; game.set_process(false)
 	game.inventory_panel.open_section(0); await settle()

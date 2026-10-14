@@ -68,7 +68,10 @@ func closest_cell(point: Vector2) -> Vector2i:
 			if distance < best: best = distance; nearest = cell
 	return nearest
 func chase_direction(origin: Vector2, target: Vector2) -> Vector2:
-	if game.clear_combat_path(origin): return origin.direction_to(target)
+	var clear := true
+	for step in range(1,maxi(1,ceili(origin.distance_to(target)/8))):
+		if not game.world.walkable(origin.move_toward(target,step*8),9): clear = false; break
+	if clear: return origin.direction_to(target)
 	refresh_navigation()
 	if path.is_empty() or target.distance_to(path_goal) > 24 or parry.time-path_updated > 0.25:
 		var first := closest_cell(origin); var last := closest_cell(target)
@@ -83,6 +86,7 @@ func capture_state() -> Dictionary:
 		for key in ["position","heading","health","attack_elapsed","impact_done","punch_left","stun_remaining","walk_phase","state","standing","entering_attack","lower_elapsed"]: creature[key] = enemy.get(key)
 		creature["effects"] = enemy.effects.active.duplicate(true)
 		creature["stun_clip"] = enemy.stun_clip
+		creature["behavior"] = enemy.behavior.snapshot()
 	var hits := []
 	for hit in parry.pending: hits.append({"damage":hit.damage,"impact":hit.impact})
 	var result := {"defeated":defeated,"enemy":creature,"time":parry.time,"last_activation":parry.last_activation,"used":parry.used,"pending":hits}
@@ -123,7 +127,8 @@ static func valid_state(data) -> bool:
 		if not preload("res://scripts/status_effects.gd").valid_snapshot(creature.effects): return false
 		if absf(creature.effects.get(&"stun",{}).get("remaining",0)-creature.stun_remaining) > 0.00001: return false
 	if creature.has("stun_clip") and creature.stun_clip not in ["stun_fall","stun_fall_left","stun_fall_right"]: return false
-	return creature.get("state") in [&"idle",&"walk",&"attack"]
+	if creature.has("behavior") and not preload("res://scripts/creature_behavior.gd").valid_snapshot(creature.behavior): return false
+	return creature.get("state") in [&"idle",&"walk",&"run",&"attack",&"feed",&"sit_down",&"sit",&"sit_up"]
 
 func restore_state(data: Dictionary) -> void:
 	if data.is_empty(): return
@@ -140,8 +145,9 @@ func restore_state(data: Dictionary) -> void:
 	if defeated and is_instance_valid(enemy): enemy.free(); enemy = null
 	if is_instance_valid(enemy) and not data.enemy.is_empty():
 		for key in data.enemy:
-			if key != "effects": enemy.set(key,data.enemy[key])
+			if key not in ["effects","behavior"]: enemy.set(key,data.enemy[key])
 		if data.enemy.has("effects"): enemy.effects.active = data.enemy.effects.duplicate(true)
+		if data.enemy.has("behavior"): enemy.behavior.restore(data.enemy.behavior)
 		if not data.enemy.has("standing"): enemy.standing = enemy.state == &"attack"
 		enemy.update_sprite()
 	parry.time = data.time; parry.last_activation = data.last_activation; parry.used = data.used; parry.pending.clear()

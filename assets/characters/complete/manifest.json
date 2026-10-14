@@ -3214,40 +3214,40 @@
 			"category": "bottle",
 			"clips": {
 				"action": {
-					"directions": 16,
-					"frames": 16,
+					"directions": 16.0,
+					"frames": 16.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_action.png"
 				},
 				"crouch": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_crouch.png"
 				},
 				"crouch_equip": {
-					"directions": 16,
-					"frames": 6,
+					"directions": 16.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_crouch_equip.png"
 				},
 				"crouch_walk": {
-					"directions": 8,
-					"frames": 12,
+					"directions": 8.0,
+					"frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_crouch_walk.png"
 				},
 				"equip": {
-					"directions": 16,
-					"frames": 6,
+					"directions": 16.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_equip.png"
 				},
 				"equip_crouch_walk": {
-					"directions": 8,
-					"equip_frames": 6,
-					"frames": 12,
-					"gait_frames": 12,
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_equip_crouch_walk_00.png",
 					"paths": [
@@ -3260,10 +3260,10 @@
 					]
 				},
 				"equip_run": {
-					"directions": 8,
-					"equip_frames": 6,
-					"frames": 12,
-					"gait_frames": 12,
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_equip_run_00.png",
 					"paths": [
@@ -3276,10 +3276,10 @@
 					]
 				},
 				"equip_walk": {
-					"directions": 8,
-					"equip_frames": 6,
-					"frames": 12,
-					"gait_frames": 12,
+					"directions": 8.0,
+					"equip_frames": 6.0,
+					"frames": 12.0,
+					"gait_frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_equip_walk_00.png",
 					"paths": [
@@ -3292,266 +3292,266 @@
 					]
 				},
 				"idle": {
-					"directions": 16,
-					"frames": 1,
+					"directions": 16.0,
+					"frames": 1.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_idle.png"
 				},
 				"jump": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_jump.png"
 				},
 				"run": {
-					"directions": 8,
-					"frames": 12,
+					"directions": 8.0,
+					"frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_run.png"
 				},
 				"slide": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_slide.png"
 				},
 				"slide_jump": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_slide_jump.png"
 				},
 				"start": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_start.png"
 				},
 				"start_run": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_start_run.png"
 				},
 				"stop_00": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_00.png"
 				},
 				"stop_01": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_01.png"
 				},
 				"stop_02": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_02.png"
 				},
 				"stop_03": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_03.png"
 				},
 				"stop_04": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_04.png"
 				},
 				"stop_05": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_05.png"
 				},
 				"stop_06": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_06.png"
 				},
 				"stop_07": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_07.png"
 				},
 				"stop_08": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_08.png"
 				},
 				"stop_09": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_09.png"
 				},
 				"stop_10": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_10.png"
 				},
 				"stop_11": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_11.png"
 				},
 				"stop_run_00": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_00.png"
 				},
 				"stop_run_01": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_01.png"
 				},
 				"stop_run_02": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_02.png"
 				},
 				"stop_run_03": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_03.png"
 				},
 				"stop_run_04": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_04.png"
 				},
 				"stop_run_05": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_05.png"
 				},
 				"stop_run_06": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_06.png"
 				},
 				"stop_run_07": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_07.png"
 				},
 				"stop_run_08": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_08.png"
 				},
 				"stop_run_09": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_09.png"
 				},
 				"stop_run_10": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_10.png"
 				},
 				"stop_run_11": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_11.png"
 				},
 				"stop_run_start_00": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_start_00.png"
 				},
 				"stop_run_start_01": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_start_01.png"
 				},
 				"stop_run_start_02": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_start_02.png"
 				},
 				"stop_run_start_03": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_start_03.png"
 				},
 				"stop_run_start_04": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_start_04.png"
 				},
 				"stop_run_start_05": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_run_start_05.png"
 				},
 				"stop_start_00": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_start_00.png"
 				},
 				"stop_start_01": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_start_01.png"
 				},
 				"stop_start_02": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_start_02.png"
 				},
 				"stop_start_03": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_start_03.png"
 				},
 				"stop_start_04": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_start_04.png"
 				},
 				"stop_start_05": {
-					"directions": 8,
-					"frames": 6,
+					"directions": 8.0,
+					"frames": 6.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_stop_start_05.png"
 				},
 				"walk": {
-					"directions": 8,
-					"frames": 12,
+					"directions": 8.0,
+					"frames": 12.0,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__bottle_full_walk.png"
 				}
@@ -4750,405 +4750,405 @@
 			"category": "sword",
 			"clips": {
 				"action": {
-					"directions": 16.0,
-					"frames": 16.0,
+					"directions": 16,
+					"frames": 16,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_action.png",
 					"tip_anchors": [
 						[
 							[
-								140.034,
-								85.176
+								144.132,
+								83.116
 							],
 							[
-								127.771,
-								68.238
+								141.521,
+								72.464
 							],
 							[
-								66.136,
-								55.771
+								127.382,
+								56.179
 							],
 							[
-								54.48,
-								59.493
+								120.634,
+								51.246
 							],
 							[
-								56.236,
-								59.561
+								121.671,
+								52.13
 							],
 							[
-								60.116,
-								60.699
+								127.072,
+								54.913
 							],
 							[
-								77.145,
-								60.311
+								140.345,
+								63.293
 							],
 							[
-								135.186,
-								82.986
+								153.331,
+								82.814
 							],
 							[
-								152.578,
-								101.172
+								150.884,
+								103.967
 							],
 							[
-								150.931,
-								95.033
+								146.118,
+								98.103
 							],
 							[
-								150.588,
-								100.931
+								142.58,
+								103.897
 							],
 							[
-								149.016,
-								98.617
+								140.765,
+								100.968
 							],
 							[
-								146.766,
-								94.451
+								141.192,
+								95.506
 							],
 							[
-								143.663,
-								89.848
+								142.279,
+								89.38
 							],
 							[
-								140.747,
-								86.497
+								142.981,
+								84.894
 							],
 							[
-								140.034,
-								85.176
+								144.132,
+								83.116
 							]
 						],
 						[
 							[
-								140.126,
-								88.944
+								147.841,
+								87.389
 							],
 							[
-								128.202,
-								70.972
+								141.426,
+								76.351
 							],
 							[
-								71.025,
-								53.427
+								123.803,
+								58.708
 							],
 							[
-								60.555,
-								56.203
+								116.157,
+								53.16
 							],
 							[
-								61.97,
-								56.407
+								116.965,
+								54.123
 							],
 							[
-								63.956,
-								57.796
+								122.377,
+								57.368
 							],
 							[
-								75.472,
-								58.628
+								136.588,
+								66.923
 							],
 							[
-								125.589,
-								85.925
+								154.003,
+								87.743
 							],
 							[
-								146.421,
-								105.745
+								157.663,
+								108.948
 							],
 							[
-								144.728,
-								99.463
+								157.213,
+								102.861
 							],
 							[
-								146.487,
-								105.421
+								154.512,
+								108.389
 							],
 							[
-								145.937,
-								103.017
+								153.493,
+								105.339
 							],
 							[
-								144.773,
-								98.706
+								153.09,
+								99.877
 							],
 							[
-								142.79,
-								93.885
+								151.875,
+								93.745
 							],
 							[
-								140.729,
-								90.321
+								149.564,
+								89.191
 							],
 							[
-								140.126,
-								88.944
+								147.841,
+								87.389
 							]
 						],
 						[
 							[
-								133.501,
-								92.432
+								143.657,
+								91.641
 							],
 							[
-								123.731,
-								73.533
+								134.416,
+								79.934
 							],
 							[
-								79.717,
-								51.664
+								115.992,
+								60.751
 							],
 							[
-								72.026,
-								53.664
+								108.612,
+								54.56
 							],
 							[
-								72.884,
-								53.965
+								109.068,
+								55.578
 							],
 							[
-								72.676,
-								55.43
+								113.667,
+								59.251
 							],
 							[
-								76.924,
-								56.935
+								126.651,
+								69.968
 							],
 							[
-								111.487,
-								87.851
+								145.844,
+								92.352
 							],
 							[
-								132.587,
-								109.463
+								155.054,
+								114.107
 							],
 							[
-								131.107,
-								103.046
+								158.989,
+								108.169
 							],
 							[
-								134.7,
-								109.233
+								157.537,
+								113.519
 							],
 							[
-								135.256,
-								106.829
+								157.468,
+								110.423
 							],
 							[
-								135.355,
-								102.472
+								156.297,
+								104.894
 							],
 							[
-								134.793,
-								97.543
+								152.964,
+								98.568
 							],
 							[
-								133.902,
-								93.853
+								147.993,
+								93.702
 							],
 							[
-								133.501,
-								92.432
+								143.657,
+								91.641
 							]
 						],
 						[
 							[
-								121.166,
-								95.111
+								132.219,
+								95.226
 							],
 							[
-								115.038,
-								75.532
+								121.558,
+								82.668
 							],
 							[
-								90.887,
-								50.749
+								105.137,
+								61.996
 							],
 							[
-								87.147,
-								52.261
+								99.147,
+								55.234
 							],
 							[
-								87.318,
-								52.606
+								99.181,
+								56.272
 							],
 							[
-								84.946,
-								53.96
+								102.267,
+								60.274
 							],
 							[
-								81.28,
-								55.491
+								112.048,
+								71.964
 							],
 							[
-								95.028,
-								88.472
+								130.097,
+								95.94
 							],
 							[
-								113.184,
-								111.761
+								143.455,
+								118.66
 							],
 							[
-								112.141,
-								105.236
+								151.175,
+								113.219
 							],
 							[
-								117.021,
-								111.785
+								151.192,
+								118.508
 							],
 							[
-								118.598,
-								109.472
+								152.085,
+								115.447
 							],
 							[
-								119.946,
-								105.177
+								150.325,
+								109.793
 							],
 							[
-								120.89,
-								100.264
+								145.381,
+								103.113
 							],
 							[
-								121.304,
-								96.554
+								138.505,
+								97.741
 							],
 							[
-								121.166,
-								95.111
+								132.219,
+								95.226
 							]
 						],
 						[
 							[
-								105.0,
-								96.571
+								115.266,
+								97.597
 							],
 							[
-								103.446,
-								76.664
+								104.808,
+								84.137
 							],
 							[
-								102.836,
-								50.823
+								92.891,
+								62.254
 							],
 							[
-								103.616,
-								52.208
+								89.202,
+								55.078
 							],
 							[
-								103.073,
-								52.537
+								88.809,
+								56.101
 							],
 							[
-								98.899,
-								53.612
+								89.913,
+								60.281
 							],
 							[
-								87.878,
-								54.515
+								95.001,
+								72.607
 							],
 							[
-								78.716,
-								87.692
+								109.159,
+								97.96
 							],
 							[
-								91.164,
-								112.289
+								124.632,
+								121.911
 							],
 							[
-								90.718,
-								105.7
+								134.962,
+								117.243
 							],
 							[
-								96.142,
-								112.69
+								136.445,
+								122.596
 							],
 							[
-								98.5,
-								110.545
+								138.164,
+								119.646
 							],
 							[
-								100.89,
-								106.41
+								136.081,
+								113.828
 							],
 							[
-								103.198,
-								101.636
+								130.28,
+								106.689
 							],
 							[
-								104.854,
-								98.014
+								122.547,
+								100.692
 							],
 							[
-								105.0,
-								96.571
+								115.266,
+								97.597
 							]
 						],
 						[
 							[
-								87.464,
-								96.591
+								91.104,
+								97.625
 							],
 							[
-								90.722,
-								76.756
+								87.088,
+								80.893
 							],
 							[
-								113.744,
-								51.873
+								86.714,
+								54.047
 							],
 							[
-								118.925,
-								53.513
+								80.609,
+								50.786
 							],
 							[
-								117.752,
-								53.769
+								80.618,
+								51.28
 							],
 							[
-								112.41,
-								54.437
+								81.747,
+								52.877
 							],
 							[
-								95.711,
-								54.155
+								81.873,
+								56.272
 							],
 							[
-								65.036,
-								85.63
+								74.166,
+								91.745
 							],
 							[
-								69.881,
-								110.966
+								84.7,
+								118.422
 							],
 							[
-								70.099,
-								104.367
+								89.765,
+								113.903
 							],
 							[
-								75.241,
-								111.809
+								94.242,
+								120.732
 							],
 							[
-								78.022,
-								109.883
+								96.947,
+								117.954
 							],
 							[
-								81.091,
-								105.982
+								97.752,
+								111.985
 							],
 							[
-								84.41,
-								101.448
+								96.841,
+								105.201
 							],
 							[
-								87.056,
-								98.01
+								94.675,
+								100.015
 							],
 							[
-								87.464,
-								96.591
+								91.104,
+								97.625
 							]
 						],
 						[
@@ -5161,28 +5161,28 @@
 								75.796
 							],
 							[
-								121.95,
-								53.741
+								122.455,
+								55.435
 							],
 							[
-								130.744,
-								55.978
+								131.664,
+								56.35
 							],
 							[
-								129.119,
-								56.114
+								130.334,
+								56.828
 							],
 							[
-								123.424,
-								56.31
+								123.905,
+								57.567
 							],
 							[
-								103.589,
-								54.467
+								102.29,
+								56.632
 							],
 							[
-								56.07,
-								82.6
+								55.213,
+								83.436
 							],
 							[
 								52.573,
@@ -5227,28 +5227,28 @@
 								73.928
 							],
 							[
-								126.206,
-								56.141
+								127.508,
+								57.912
 							],
 							[
-								137.274,
-								59.227
+								138.82,
+								59.705
 							],
 							[
-								135.444,
-								59.215
+								137.561,
+								60.071
 							],
 							[
-								130.262,
-								58.947
+								131.668,
+								60.284
 							],
 							[
-								110.312,
-								55.403
+								109.637,
+								57.483
 							],
 							[
-								53.183,
-								79.063
+								52.299,
+								79.825
 							],
 							[
 								41.878,
@@ -5293,28 +5293,28 @@
 								71.437
 							],
 							[
-								125.864,
-								58.708
+								127.764,
+								60.616
 							],
 							[
-								137.52,
-								62.765
+								139.457,
+								63.392
 							],
 							[
-								135.764,
-								62.601
+								138.46,
+								63.662
 							],
 							[
-								131.884,
-								61.945
+								134.001,
+								63.432
 							],
 							[
-								114.855,
-								56.821
+								114.908,
+								58.874
 							],
 							[
-								56.814,
-								75.558
+								56.037,
+								76.249
 							],
 							[
 								39.422,
@@ -5351,497 +5351,497 @@
 						],
 						[
 							[
-								51.874,
-								85.275
+								47.228,
+								86.094
 							],
 							[
-								63.798,
-								68.703
+								54.236,
+								70.004
 							],
 							[
-								120.975,
-								61.052
+								81.857,
+								49.013
 							],
 							[
-								131.445,
-								66.055
+								85.207,
+								45.16
 							],
 							[
-								130.03,
-								65.754
+								86.008,
+								45.828
 							],
 							[
-								128.044,
-								64.848
+								85.298,
+								47.515
 							],
 							[
-								116.528,
-								58.504
+								82.408,
+								50.316
 							],
 							[
-								66.411,
-								72.619
+								50.525,
+								77.283
 							],
 							[
-								45.579,
-								94.52
+								37.647,
+								103.456
 							],
 							[
-								47.272,
-								88.333
+								36.029,
+								99.678
 							],
 							[
-								45.513,
-								96.501
+								37.516,
+								107.788
 							],
 							[
-								46.063,
-								95.291
+								38.231,
+								105.745
 							],
 							[
-								47.227,
-								92.299
+								39.989,
+								100.326
 							],
 							[
-								49.21,
-								88.905
+								43.118,
+								94.019
 							],
 							[
-								51.271,
-								86.478
+								46.367,
+								89.066
 							],
 							[
-								51.874,
-								85.275
+								47.228,
+								86.094
 							]
 						],
 						[
 							[
-								58.499,
-								81.787
+								48.343,
+								82.87
 							],
 							[
-								68.269,
-								66.142
+								57.584,
+								68.779
 							],
 							[
-								112.283,
-								62.815
+								76.008,
+								50.271
 							],
 							[
-								119.974,
-								68.594
+								83.388,
+								45.01
 							],
 							[
-								119.116,
-								68.197
+								82.932,
+								45.592
 							],
 							[
-								119.324,
-								67.214
+								78.333,
+								47.96
 							],
 							[
-								115.076,
-								60.197
+								65.349,
+								56.19
 							],
 							[
-								80.513,
-								70.693
+								46.155,
+								78.93
 							],
 							[
-								59.413,
-								90.802
+								36.946,
+								106.13
 							],
 							[
-								60.893,
-								84.749
+								33.011,
+								104.779
 							],
 							[
-								57.3,
-								92.689
+								34.463,
+								111.655
 							],
 							[
-								56.744,
-								91.479
+								34.532,
+								109.633
 							],
 							[
-								56.645,
-								88.532
+								35.703,
+								103.341
 							],
 							[
-								57.207,
-								85.247
+								39.036,
+								94.922
 							],
 							[
-								58.098,
-								82.946
+								44.007,
+								87.493
 							],
 							[
-								58.499,
-								81.787
+								48.343,
+								82.87
 							]
 						],
 						[
 							[
-								70.834,
-								79.109
+								59.781,
+								79.285
 							],
 							[
-								76.962,
-								64.143
+								70.442,
+								66.044
 							],
 							[
-								101.113,
-								63.729
+								86.863,
+								49.026
 							],
 							[
-								104.853,
-								69.997
+								92.853,
+								44.336
 							],
 							[
-								104.682,
-								69.556
+								92.819,
+								44.898
 							],
 							[
-								107.054,
-								68.684
+								89.733,
+								46.937
 							],
 							[
-								110.72,
-								61.641
+								79.952,
+								54.194
 							],
 							[
-								96.972,
-								70.072
+								61.903,
+								75.343
 							],
 							[
-								78.816,
-								88.504
+								48.545,
+								101.578
 							],
 							[
-								79.859,
-								82.559
+								40.825,
+								99.729
 							],
 							[
-								74.979,
-								90.137
+								40.808,
+								106.666
 							],
 							[
-								73.402,
-								88.836
+								39.915,
+								104.609
 							],
 							[
-								72.054,
-								85.827
+								41.675,
+								98.442
 							],
 							[
-								71.11,
-								82.525
+								46.619,
+								90.377
 							],
 							[
-								70.696,
-								80.245
+								53.495,
+								83.454
 							],
 							[
-								70.834,
-								79.109
+								59.781,
+								79.285
 							]
 						],
 						[
 							[
-								87.0,
-								77.648
+								76.734,
+								76.914
 							],
 							[
-								88.554,
-								63.011
+								87.192,
+								64.576
 							],
 							[
-								89.164,
-								63.656
+								99.109,
+								48.768
 							],
 							[
-								88.384,
-								70.05
+								102.798,
+								44.492
 							],
 							[
-								88.927,
-								69.624
+								103.191,
+								45.069
 							],
 							[
-								93.101,
-								69.032
+								102.087,
+								46.929
 							],
 							[
-								104.122,
-								62.617
+								96.999,
+								53.551
 							],
 							[
-								113.284,
-								70.852
+								82.841,
+								73.323
 							],
 							[
-								100.836,
-								87.976
+								67.368,
+								98.326
 							],
 							[
-								101.282,
-								82.095
+								57.038,
+								95.706
 							],
 							[
-								95.858,
-								89.232
+								55.555,
+								102.579
 							],
 							[
-								93.5,
-								87.763
+								53.836,
+								100.41
 							],
 							[
-								91.11,
-								84.594
+								55.919,
+								94.408
 							],
 							[
-								88.802,
-								81.154
+								61.72,
+								86.801
 							],
 							[
-								87.146,
-								78.785
+								69.453,
+								80.503
 							],
 							[
-								87.0,
-								77.648
+								76.734,
+								76.914
 							]
 						],
 						[
 							[
-								104.536,
-								77.629
+								96.62,
+								76.117
 							],
 							[
-								101.278,
-								62.919
+								105.282,
+								64.596
 							],
 							[
-								78.256,
-								62.605
+								110.882,
+								49.537
 							],
 							[
-								73.075,
-								68.745
+								111.707,
+								45.454
 							],
 							[
-								74.248,
-								68.393
+								112.467,
+								46.081
 							],
 							[
-								79.59,
-								68.207
+								113.514,
+								47.938
 							],
 							[
-								96.289,
-								62.977
+								113.893,
+								54.358
 							],
 							[
-								126.964,
-								72.915
+								105.782,
+								73.178
 							],
 							[
-								122.119,
-								89.299
+								90.551,
+								96.87
 							],
 							[
-								121.901,
-								83.428
+								79.183,
+								93.322
 							],
 							[
-								116.759,
-								90.113
+								76.459,
+								100.015
 							],
 							[
-								113.978,
-								88.424
+								74.176,
+								97.675
 							],
 							[
-								110.909,
-								85.023
+								76.264,
+								91.851
 							],
 							[
-								107.59,
-								81.341
+								82.04,
+								84.74
 							],
 							[
-								104.944,
-								78.789
+								89.452,
+								79.089
 							],
 							[
-								104.536,
-								77.629
+								96.62,
+								76.117
 							]
 						],
 						[
 							[
-								120.773,
-								79.052
+								116.412,
+								77.016
 							],
 							[
-								113.2,
-								63.879
+								121.96,
+								66.102
 							],
 							[
-								70.05,
-								60.738
+								120.389,
+								51.215
 							],
 							[
-								61.256,
-								66.28
+								118.226,
+								47.075
 							],
 							[
-								62.881,
-								66.047
+								119.237,
+								47.777
 							],
 							[
-								68.576,
-								66.333
+								122.275,
+								49.809
 							],
 							[
-								88.411,
-								62.665
+								128.063,
+								56.493
 							],
 							[
-								135.93,
-								75.944
+								127.234,
+								74.931
 							],
 							[
-								139.427,
-								92.271
+								114.563,
+								97.43
 							],
 							[
-								138.577,
-								86.354
+								103.889,
+								92.94
 							],
 							[
-								134.499,
-								92.646
+								100.338,
+								99.365
 							],
 							[
-								131.72,
-								90.719
+								97.839,
+								96.821
 							],
 							[
-								128.439,
-								87.046
+								99.614,
+								91.162
 							],
 							[
-								124.613,
-								83.06
+								104.485,
+								84.506
 							],
 							[
-								121.38,
-								80.256
+								110.449,
+								79.426
 							],
 							[
-								120.773,
-								79.052
+								116.412,
+								77.016
 							]
 						],
 						[
 							[
-								133.238,
-								81.702
+								133.096,
+								79.474
 							],
 							[
-								122.503,
-								65.747
+								134.685,
+								68.865
 							],
 							[
-								65.794,
-								58.338
+								126.183,
+								53.548
 							],
 							[
-								54.726,
-								63.031
+								121.36,
+								49.109
 							],
 							[
-								56.556,
-								62.946
+								122.469,
+								49.902
 							],
 							[
-								61.738,
-								63.697
+								127.036,
+								52.259
 							],
 							[
-								81.688,
-								61.729
+								137.352,
+								59.631
 							],
 							[
-								138.817,
-								79.481
+								143.932,
+								78.315
 							],
 							[
-								150.122,
-								96.44
+								135.749,
+								99.923
 							],
 							[
-								148.771,
-								90.429
+								127.393,
+								94.619
 							],
 							[
-								146.379,
-								96.444
+								123.557,
+								100.728
 							],
 							[
-								144.023,
-								94.298
+								121.222,
+								97.977
 							],
 							[
-								141.03,
-								90.357
+								122.413,
+								92.445
 							],
 							[
-								137.281,
-								86.047
+								125.638,
+								86.135
 							],
 							[
-								133.953,
-								82.962
+								129.246,
+								81.465
 							],
 							[
-								133.238,
-								81.702
+								133.096,
+								79.474
 							]
 						]
 					]
 				},
 				"crouch": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_crouch.png"
 				},
 				"crouch_equip": {
-					"directions": 16.0,
-					"frames": 6.0,
+					"directions": 16,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_crouch_equip.png"
 				},
 				"crouch_walk": {
-					"directions": 8.0,
-					"frames": 12.0,
+					"directions": 8,
+					"frames": 12,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_crouch_walk.png"
 				},
 				"equip": {
-					"directions": 16.0,
-					"frames": 6.0,
+					"directions": 16,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_equip.png"
 				},
 				"equip_crouch_walk": {
-					"directions": 8.0,
-					"equip_frames": 6.0,
-					"frames": 12.0,
-					"gait_frames": 12.0,
+					"directions": 8,
+					"equip_frames": 6,
+					"frames": 12,
+					"gait_frames": 12,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_equip_crouch_walk_00.png",
 					"paths": [
@@ -5854,10 +5854,10 @@
 					]
 				},
 				"equip_run": {
-					"directions": 8.0,
-					"equip_frames": 6.0,
-					"frames": 12.0,
-					"gait_frames": 12.0,
+					"directions": 8,
+					"equip_frames": 6,
+					"frames": 12,
+					"gait_frames": 12,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_equip_run_00.png",
 					"paths": [
@@ -5870,10 +5870,10 @@
 					]
 				},
 				"equip_walk": {
-					"directions": 8.0,
-					"equip_frames": 6.0,
-					"frames": 12.0,
-					"gait_frames": 12.0,
+					"directions": 8,
+					"equip_frames": 6,
+					"frames": 12,
+					"gait_frames": 12,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_equip_walk_00.png",
 					"paths": [
@@ -5886,266 +5886,266 @@
 					]
 				},
 				"idle": {
-					"directions": 16.0,
-					"frames": 1.0,
+					"directions": 16,
+					"frames": 1,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_idle.png"
 				},
 				"jump": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_jump.png"
 				},
 				"run": {
-					"directions": 8.0,
-					"frames": 12.0,
+					"directions": 8,
+					"frames": 12,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_run.png"
 				},
 				"slide": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_slide.png"
 				},
 				"slide_jump": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_slide_jump.png"
 				},
 				"start": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_start.png"
 				},
 				"start_run": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_start_run.png"
 				},
 				"stop_00": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_00.png"
 				},
 				"stop_01": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_01.png"
 				},
 				"stop_02": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_02.png"
 				},
 				"stop_03": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_03.png"
 				},
 				"stop_04": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_04.png"
 				},
 				"stop_05": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_05.png"
 				},
 				"stop_06": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_06.png"
 				},
 				"stop_07": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_07.png"
 				},
 				"stop_08": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_08.png"
 				},
 				"stop_09": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_09.png"
 				},
 				"stop_10": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_10.png"
 				},
 				"stop_11": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_11.png"
 				},
 				"stop_run_00": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_00.png"
 				},
 				"stop_run_01": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_01.png"
 				},
 				"stop_run_02": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_02.png"
 				},
 				"stop_run_03": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_03.png"
 				},
 				"stop_run_04": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_04.png"
 				},
 				"stop_run_05": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_05.png"
 				},
 				"stop_run_06": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_06.png"
 				},
 				"stop_run_07": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_07.png"
 				},
 				"stop_run_08": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_08.png"
 				},
 				"stop_run_09": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_09.png"
 				},
 				"stop_run_10": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_10.png"
 				},
 				"stop_run_11": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_11.png"
 				},
 				"stop_run_start_00": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_00.png"
 				},
 				"stop_run_start_01": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_01.png"
 				},
 				"stop_run_start_02": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_02.png"
 				},
 				"stop_run_start_03": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_03.png"
 				},
 				"stop_run_start_04": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_04.png"
 				},
 				"stop_run_start_05": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_run_start_05.png"
 				},
 				"stop_start_00": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_00.png"
 				},
 				"stop_start_01": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_01.png"
 				},
 				"stop_start_02": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_02.png"
 				},
 				"stop_start_03": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_03.png"
 				},
 				"stop_start_04": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_04.png"
 				},
 				"stop_start_05": {
-					"directions": 8.0,
-					"frames": 6.0,
+					"directions": 8,
+					"frames": 6,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_stop_start_05.png"
 				},
 				"walk": {
-					"directions": 8.0,
-					"frames": 12.0,
+					"directions": 8,
+					"frames": 12,
 					"grip_error": 0.0,
 					"path": "res://assets/characters/complete/burdock_armor__sword_walk.png"
 				}
@@ -6511,398 +6511,398 @@
 					"tip_anchors": [
 						[
 							[
-								140.034,
-								85.176
+								144.132,
+								83.116
 							],
 							[
-								127.771,
-								68.238
+								141.521,
+								72.464
 							],
 							[
-								66.136,
-								55.771
+								127.382,
+								56.179
 							],
 							[
-								54.48,
-								59.493
+								120.634,
+								51.246
 							],
 							[
-								56.236,
-								59.561
+								121.671,
+								52.13
 							],
 							[
-								60.116,
-								60.699
+								127.072,
+								54.913
 							],
 							[
-								77.145,
-								60.311
+								140.345,
+								63.293
 							],
 							[
-								135.186,
-								82.986
+								153.331,
+								82.814
 							],
 							[
-								152.578,
-								101.172
+								150.884,
+								103.967
 							],
 							[
-								150.931,
-								95.033
+								146.118,
+								98.103
 							],
 							[
-								150.588,
-								100.931
+								142.58,
+								103.897
 							],
 							[
-								149.016,
-								98.617
+								140.765,
+								100.968
 							],
 							[
-								146.766,
-								94.451
+								141.192,
+								95.506
 							],
 							[
-								143.663,
-								89.848
+								142.279,
+								89.38
 							],
 							[
-								140.747,
-								86.497
+								142.981,
+								84.894
 							],
 							[
-								140.034,
-								85.176
+								144.132,
+								83.116
 							]
 						],
 						[
 							[
-								140.126,
-								88.944
+								147.841,
+								87.389
 							],
 							[
-								128.202,
-								70.972
+								141.426,
+								76.351
 							],
 							[
-								71.025,
-								53.427
+								123.803,
+								58.708
 							],
 							[
-								60.555,
-								56.203
+								116.157,
+								53.16
 							],
 							[
-								61.97,
-								56.407
+								116.965,
+								54.123
 							],
 							[
-								63.956,
-								57.796
+								122.377,
+								57.368
 							],
 							[
-								75.472,
-								58.628
+								136.588,
+								66.923
 							],
 							[
-								125.589,
-								85.925
+								154.003,
+								87.743
 							],
 							[
-								146.421,
-								105.745
+								157.663,
+								108.948
 							],
 							[
-								144.728,
-								99.463
+								157.213,
+								102.861
 							],
 							[
-								146.487,
-								105.421
+								154.512,
+								108.389
 							],
 							[
-								145.937,
-								103.017
+								153.493,
+								105.339
 							],
 							[
-								144.773,
-								98.706
+								153.09,
+								99.877
 							],
 							[
-								142.79,
-								93.885
+								151.875,
+								93.745
 							],
 							[
-								140.729,
-								90.321
+								149.564,
+								89.191
 							],
 							[
-								140.126,
-								88.944
+								147.841,
+								87.389
 							]
 						],
 						[
 							[
-								133.501,
-								92.432
+								143.657,
+								91.641
 							],
 							[
-								123.731,
-								73.533
+								134.416,
+								79.934
 							],
 							[
-								79.717,
-								51.664
+								115.992,
+								60.751
 							],
 							[
-								72.026,
-								53.664
+								108.612,
+								54.56
 							],
 							[
-								72.884,
-								53.965
+								109.068,
+								55.578
 							],
 							[
-								72.676,
-								55.43
+								113.667,
+								59.251
 							],
 							[
-								76.924,
-								56.935
+								126.651,
+								69.968
 							],
 							[
-								111.487,
-								87.851
+								145.844,
+								92.352
 							],
 							[
-								132.587,
-								109.463
+								155.054,
+								114.107
 							],
 							[
-								131.107,
-								103.046
+								158.989,
+								108.169
 							],
 							[
-								134.7,
-								109.233
+								157.537,
+								113.519
 							],
 							[
-								135.256,
-								106.829
+								157.468,
+								110.423
 							],
 							[
-								135.355,
-								102.472
+								156.297,
+								104.894
 							],
 							[
-								134.793,
-								97.543
+								152.964,
+								98.568
 							],
 							[
-								133.902,
-								93.853
+								147.993,
+								93.702
 							],
 							[
-								133.501,
-								92.432
+								143.657,
+								91.641
 							]
 						],
 						[
 							[
-								121.166,
-								95.111
+								132.219,
+								95.226
 							],
 							[
-								115.038,
-								75.532
+								121.558,
+								82.668
 							],
 							[
-								90.887,
-								50.749
+								105.137,
+								61.996
 							],
 							[
-								87.147,
-								52.261
+								99.147,
+								55.234
 							],
 							[
-								87.318,
-								52.606
+								99.181,
+								56.272
 							],
 							[
-								84.946,
-								53.96
+								102.267,
+								60.274
 							],
 							[
-								81.28,
-								55.491
+								112.048,
+								71.964
 							],
 							[
-								95.028,
-								88.472
+								130.097,
+								95.94
 							],
 							[
-								113.184,
-								111.761
+								143.455,
+								118.66
 							],
 							[
-								112.141,
-								105.236
+								151.175,
+								113.219
 							],
 							[
-								117.021,
-								111.785
+								151.192,
+								118.508
 							],
 							[
-								118.598,
-								109.472
+								152.085,
+								115.447
 							],
 							[
-								119.946,
-								105.177
+								150.325,
+								109.793
 							],
 							[
-								120.89,
-								100.264
+								145.381,
+								103.113
 							],
 							[
-								121.304,
-								96.554
+								138.505,
+								97.741
 							],
 							[
-								121.166,
-								95.111
+								132.219,
+								95.226
 							]
 						],
 						[
 							[
-								105.0,
-								96.571
+								115.266,
+								97.597
 							],
 							[
-								103.446,
-								76.664
+								104.808,
+								84.137
 							],
 							[
-								102.836,
-								50.823
+								92.891,
+								62.254
 							],
 							[
-								103.616,
-								52.208
+								89.202,
+								55.078
 							],
 							[
-								103.073,
-								52.537
+								88.809,
+								56.101
 							],
 							[
-								98.899,
-								53.612
+								89.913,
+								60.281
 							],
 							[
-								87.878,
-								54.515
+								95.001,
+								72.607
 							],
 							[
-								78.716,
-								87.692
+								109.159,
+								97.96
 							],
 							[
-								91.164,
-								112.289
+								124.632,
+								121.911
 							],
 							[
-								90.718,
-								105.7
+								134.962,
+								117.243
 							],
 							[
-								96.142,
-								112.69
+								136.445,
+								122.596
 							],
 							[
-								98.5,
-								110.545
+								138.164,
+								119.646
 							],
 							[
-								100.89,
-								106.41
+								136.081,
+								113.828
 							],
 							[
-								103.198,
-								101.636
+								130.28,
+								106.689
 							],
 							[
-								104.854,
-								98.014
+								122.547,
+								100.692
 							],
 							[
-								105.0,
-								96.571
+								115.266,
+								97.597
 							]
 						],
 						[
 							[
-								87.464,
-								96.591
+								91.104,
+								97.625
 							],
 							[
-								90.722,
-								76.756
+								87.088,
+								80.893
 							],
 							[
-								113.744,
-								51.873
+								86.714,
+								54.047
 							],
 							[
-								118.925,
-								53.513
+								80.609,
+								50.786
 							],
 							[
-								117.752,
-								53.769
+								80.618,
+								51.28
 							],
 							[
-								112.41,
-								54.437
+								81.747,
+								52.877
 							],
 							[
-								95.711,
-								54.155
+								81.873,
+								56.272
 							],
 							[
-								65.036,
-								85.63
+								74.166,
+								91.745
 							],
 							[
-								69.881,
-								110.966
+								84.7,
+								118.422
 							],
 							[
-								70.099,
-								104.367
+								89.765,
+								113.903
 							],
 							[
-								75.241,
-								111.809
+								94.242,
+								120.732
 							],
 							[
-								78.022,
-								109.883
+								96.947,
+								117.954
 							],
 							[
-								81.091,
-								105.982
+								97.752,
+								111.985
 							],
 							[
-								84.41,
-								101.448
+								96.841,
+								105.201
 							],
 							[
-								87.056,
-								98.01
+								94.675,
+								100.015
 							],
 							[
-								87.464,
-								96.591
+								91.104,
+								97.625
 							]
 						],
 						[
@@ -6915,28 +6915,28 @@
 								75.796
 							],
 							[
-								121.95,
-								53.741
+								122.455,
+								55.435
 							],
 							[
-								130.744,
-								55.978
+								131.664,
+								56.35
 							],
 							[
-								129.119,
-								56.114
+								130.334,
+								56.828
 							],
 							[
-								123.424,
-								56.31
+								123.905,
+								57.567
 							],
 							[
-								103.589,
-								54.467
+								102.29,
+								56.632
 							],
 							[
-								56.07,
-								82.6
+								55.213,
+								83.436
 							],
 							[
 								52.573,
@@ -6981,28 +6981,28 @@
 								73.928
 							],
 							[
-								126.206,
-								56.141
+								127.508,
+								57.912
 							],
 							[
-								137.274,
-								59.227
+								138.82,
+								59.705
 							],
 							[
-								135.444,
-								59.215
+								137.561,
+								60.071
 							],
 							[
-								130.262,
-								58.947
+								131.668,
+								60.284
 							],
 							[
-								110.312,
-								55.403
+								109.637,
+								57.483
 							],
 							[
-								53.183,
-								79.063
+								52.299,
+								79.825
 							],
 							[
 								41.878,
@@ -7047,28 +7047,28 @@
 								71.437
 							],
 							[
-								125.864,
-								58.708
+								127.764,
+								60.616
 							],
 							[
-								137.52,
-								62.765
+								139.457,
+								63.392
 							],
 							[
-								135.764,
-								62.601
+								138.46,
+								63.662
 							],
 							[
-								131.884,
-								61.945
+								134.001,
+								63.432
 							],
 							[
-								114.855,
-								56.821
+								114.908,
+								58.874
 							],
 							[
-								56.814,
-								75.558
+								56.037,
+								76.249
 							],
 							[
 								39.422,
@@ -7105,464 +7105,464 @@
 						],
 						[
 							[
-								51.874,
-								85.275
+								47.228,
+								86.094
 							],
 							[
-								63.798,
-								68.703
+								54.236,
+								70.004
 							],
 							[
-								120.975,
-								61.052
+								81.857,
+								49.013
 							],
 							[
-								131.445,
-								66.055
+								85.207,
+								45.16
 							],
 							[
-								130.03,
-								65.754
+								86.008,
+								45.828
 							],
 							[
-								128.044,
-								64.848
+								85.298,
+								47.515
 							],
 							[
-								116.528,
-								58.504
+								82.408,
+								50.316
 							],
 							[
-								66.411,
-								72.619
+								50.525,
+								77.283
 							],
 							[
-								45.579,
-								94.52
+								37.647,
+								103.456
 							],
 							[
-								47.272,
-								88.333
+								36.029,
+								99.678
 							],
 							[
-								45.513,
-								96.501
+								37.516,
+								107.788
 							],
 							[
-								46.063,
-								95.291
+								38.231,
+								105.745
 							],
 							[
-								47.227,
-								92.299
+								39.989,
+								100.326
 							],
 							[
-								49.21,
-								88.905
+								43.118,
+								94.019
 							],
 							[
-								51.271,
-								86.478
+								46.367,
+								89.066
 							],
 							[
-								51.874,
-								85.275
+								47.228,
+								86.094
 							]
 						],
 						[
 							[
-								58.499,
-								81.787
+								48.343,
+								82.87
 							],
 							[
-								68.269,
-								66.142
+								57.584,
+								68.779
 							],
 							[
-								112.283,
-								62.815
+								76.008,
+								50.271
 							],
 							[
-								119.974,
-								68.594
+								83.388,
+								45.01
 							],
 							[
-								119.116,
-								68.197
+								82.932,
+								45.592
 							],
 							[
-								119.324,
-								67.214
+								78.333,
+								47.96
 							],
 							[
-								115.076,
-								60.197
+								65.349,
+								56.19
 							],
 							[
-								80.513,
-								70.693
+								46.155,
+								78.93
 							],
 							[
-								59.413,
-								90.802
+								36.946,
+								106.13
 							],
 							[
-								60.893,
-								84.749
+								33.011,
+								104.779
 							],
 							[
-								57.3,
-								92.689
+								34.463,
+								111.655
 							],
 							[
-								56.744,
-								91.479
+								34.532,
+								109.633
 							],
 							[
-								56.645,
-								88.532
+								35.703,
+								103.341
 							],
 							[
-								57.207,
-								85.247
+								39.036,
+								94.922
 							],
 							[
-								58.098,
-								82.946
+								44.007,
+								87.493
 							],
 							[
-								58.499,
-								81.787
+								48.343,
+								82.87
 							]
 						],
 						[
 							[
-								70.834,
-								79.109
+								59.781,
+								79.285
 							],
 							[
-								76.962,
-								64.143
+								70.442,
+								66.044
 							],
 							[
-								101.113,
-								63.729
+								86.863,
+								49.026
 							],
 							[
-								104.853,
-								69.997
+								92.853,
+								44.336
 							],
 							[
-								104.682,
-								69.556
+								92.819,
+								44.898
 							],
 							[
-								107.054,
-								68.684
+								89.733,
+								46.937
 							],
 							[
-								110.72,
-								61.641
+								79.952,
+								54.194
 							],
 							[
-								96.972,
-								70.072
+								61.903,
+								75.343
 							],
 							[
-								78.816,
-								88.504
+								48.545,
+								101.578
 							],
 							[
-								79.859,
-								82.559
+								40.825,
+								99.729
 							],
 							[
-								74.979,
-								90.137
+								40.808,
+								106.666
 							],
 							[
-								73.402,
-								88.836
+								39.915,
+								104.609
 							],
 							[
-								72.054,
-								85.827
+								41.675,
+								98.442
 							],
 							[
-								71.11,
-								82.525
+								46.619,
+								90.377
 							],
 							[
-								70.696,
-								80.245
+								53.495,
+								83.454
 							],
 							[
-								70.834,
-								79.109
+								59.781,
+								79.285
 							]
 						],
 						[
 							[
-								87.0,
-								77.648
+								76.734,
+								76.914
 							],
 							[
-								88.554,
-								63.011
+								87.192,
+								64.576
 							],
 							[
-								89.164,
-								63.656
+								99.109,
+								48.768
 							],
 							[
-								88.384,
-								70.05
+								102.798,
+								44.492
 							],
 							[
-								88.927,
-								69.624
+								103.191,
+								45.069
 							],
 							[
-								93.101,
-								69.032
+								102.087,
+								46.929
 							],
 							[
-								104.122,
-								62.617
+								96.999,
+								53.551
 							],
 							[
-								113.284,
-								70.852
+								82.841,
+								73.323
 							],
 							[
-								100.836,
-								87.976
+								67.368,
+								98.326
 							],
 							[
-								101.282,
-								82.095
+								57.038,
+								95.706
 							],
 							[
-								95.858,
-								89.232
+								55.555,
+								102.579
 							],
 							[
-								93.5,
-								87.763
+								53.836,
+								100.41
 							],
 							[
-								91.11,
-								84.594
+								55.919,
+								94.408
 							],
 							[
-								88.802,
-								81.154
+								61.72,
+								86.801
 							],
 							[
-								87.146,
-								78.785
+								69.453,
+								80.503
 							],
 							[
-								87.0,
-								77.648
+								76.734,
+								76.914
 							]
 						],
 						[
 							[
-								104.536,
-								77.629
+								96.62,
+								76.117
 							],
 							[
-								101.278,
-								62.919
+								105.282,
+								64.596
 							],
 							[
-								78.256,
-								62.605
+								110.882,
+								49.537
 							],
 							[
-								73.075,
-								68.745
+								111.707,
+								45.454
 							],
 							[
-								74.248,
-								68.393
+								112.467,
+								46.081
 							],
 							[
-								79.59,
-								68.207
+								113.514,
+								47.938
 							],
 							[
-								96.289,
-								62.977
+								113.893,
+								54.358
 							],
 							[
-								126.964,
-								72.915
+								105.782,
+								73.178
 							],
 							[
-								122.119,
-								89.299
+								90.551,
+								96.87
 							],
 							[
-								121.901,
-								83.428
+								79.183,
+								93.322
 							],
 							[
-								116.759,
-								90.113
+								76.459,
+								100.015
 							],
 							[
-								113.978,
-								88.424
+								74.176,
+								97.675
 							],
 							[
-								110.909,
-								85.023
+								76.264,
+								91.851
 							],
 							[
-								107.59,
-								81.341
+								82.04,
+								84.74
 							],
 							[
-								104.944,
-								78.789
+								89.452,
+								79.089
 							],
 							[
-								104.536,
-								77.629
+								96.62,
+								76.117
 							]
 						],
 						[
 							[
-								120.773,
-								79.052
+								116.412,
+								77.016
 							],
 							[
-								113.2,
-								63.879
+								121.96,
+								66.102
 							],
 							[
-								70.05,
-								60.738
+								120.389,
+								51.215
 							],
 							[
-								61.256,
-								66.28
+								118.226,
+								47.075
 							],
 							[
-								62.881,
-								66.047
+								119.237,
+								47.777
 							],
 							[
-								68.576,
-								66.333
+								122.275,
+								49.809
 							],
 							[
-								88.411,
-								62.665
+								128.063,
+								56.493
 							],
 							[
-								135.93,
-								75.944
+								127.234,
+								74.931
 							],
 							[
-								139.427,
-								92.271
+								114.563,
+								97.43
 							],
 							[
-								138.577,
-								86.354
+								103.889,
+								92.94
 							],
 							[
-								134.499,
-								92.646
+								100.338,
+								99.365
 							],
 							[
-								131.72,
-								90.719
+								97.839,
+								96.821
 							],
 							[
-								128.439,
-								87.046
+								99.614,
+								91.162
 							],
 							[
-								124.613,
-								83.06
+								104.485,
+								84.506
 							],
 							[
-								121.38,
-								80.256
+								110.449,
+								79.426
 							],
 							[
-								120.773,
-								79.052
+								116.412,
+								77.016
 							]
 						],
 						[
 							[
-								133.238,
-								81.702
+								133.096,
+								79.474
 							],
 							[
-								122.503,
-								65.747
+								134.685,
+								68.865
 							],
 							[
-								65.794,
-								58.338
+								126.183,
+								53.548
 							],
 							[
-								54.726,
-								63.031
+								121.36,
+								49.109
 							],
 							[
-								56.556,
-								62.946
+								122.469,
+								49.902
 							],
 							[
-								61.738,
-								63.697
+								127.036,
+								52.259
 							],
 							[
-								81.688,
-								61.729
+								137.352,
+								59.631
 							],
 							[
-								138.817,
-								79.481
+								143.932,
+								78.315
 							],
 							[
-								150.122,
-								96.44
+								135.749,
+								99.923
 							],
 							[
-								148.771,
-								90.429
+								127.393,
+								94.619
 							],
 							[
-								146.379,
-								96.444
+								123.557,
+								100.728
 							],
 							[
-								144.023,
-								94.298
+								121.222,
+								97.977
 							],
 							[
-								141.03,
-								90.357
+								122.413,
+								92.445
 							],
 							[
-								137.281,
-								86.047
+								125.638,
+								86.135
 							],
 							[
-								133.953,
-								82.962
+								129.246,
+								81.465
 							],
 							[
-								133.238,
-								81.702
+								133.096,
+								79.474
 							]
 						]
 					]

@@ -5,6 +5,7 @@ const ROOM_CENTER := Vector2(10000,10000)
 const ROOM_SIZE := Vector2(360,270)
 const ROOM_BOUNDS := Rect2(ROOM_CENTER-ROOM_SIZE/2,ROOM_SIZE)
 const ROOM_DOOR := ROOM_CENTER+Vector2(0,105)
+static var SHADOW_CONTACTS := PackedVector2Array([Vector2(0.086,0.802),Vector2(0.37,0.989),Vector2(0.69,0.95),Vector2(0.90,0.877)])
 const DRAW_SIZE := Vector2(280,233)
 const ROOM_SCENE = preload("res://scenes/hut_interior.tscn")
 var game
@@ -53,14 +54,14 @@ func choose_location() -> void:
 			if clear and game.world.walkable(candidate+Vector2(40,42),24):
 				base = candidate; found = true; break
 		if found: break
-	footprint = Rect2(base+Vector2(-112,-88),Vector2(224,98))
+	footprint = Rect2(base+Vector2(-96,-62),Vector2(192,67))
 	# Source doorway sits slightly right of the facade center.
 	door = base+Vector2(40,-17)
 	game.world.building_collisions.clear()
 	var opening_left := door.x-26; var opening_right := door.x+26
 	game.world.building_collisions.append(Rect2(footprint.position,Vector2(opening_left-footprint.position.x,footprint.size.y)))
 	game.world.building_collisions.append(Rect2(Vector2(opening_right,footprint.position.y),Vector2(footprint.end.x-opening_right,footprint.size.y)))
-	game.world.building_collisions.append(Rect2(footprint.position,Vector2(footprint.size.x,54)))
+	game.world.building_collisions.append(Rect2(footprint.position,Vector2(footprint.size.x,28)))
 	game.world.navigation_revision += 1
 	if game.world_view.terrain_chunks != null:
 		game.world_view.terrain_chunks.sampler.add_influence(&"hut",&"dirt",footprint.grow(18),1.0)
@@ -78,7 +79,7 @@ func interact() -> bool:
 		outside_player = game.player; inside = true; game.player = ROOM_DOOR-Vector2(0,24)
 		game.enemies.parry.pending.clear()
 	apply_visibility()
-	game.movement.reset(); game.camera.position = game.player; game.full_avatar.reset()
+	game.movement.reset(); game.update_camera_position(); game.full_avatar.reset()
 	game.feedback = "E · salir de la choza" if inside else "Has salido de la choza."
 	game.feedback_time = 2; game.update_hud()
 	return true
@@ -130,3 +131,7 @@ func _process(_delta: float) -> void:
 	if inside: return
 	var in_doorway: bool = absf(game.player.x-door.x) < 26 and game.player.y > base.y-34
 	exterior.z_index = 1 if game.player.y+17 < base.y and not in_doorway else -1
+
+	var hidden_body := Rect2(game.player+Vector2(-15,-53-game.ground_height),Vector2(30,70))
+	var visual := Rect2(exterior.position,DRAW_SIZE)
+	exterior.modulate.a = 0.35 if exterior.z_index > 0 and visual.intersects(hidden_body) else 1.0

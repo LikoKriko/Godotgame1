@@ -1,6 +1,6 @@
 extends Node2D
 const MAX_HEALTH := 10.0
-const SPEED := 56.0
+const SPEED := 59.5
 const AGGRO_RADIUS := 250.0
 const ATTACK_REACH := 30.0
 const ATTACK_PERIOD := 1.0
@@ -36,11 +36,15 @@ var clips: Dictionary = {}
 var sheets: Dictionary = {}
 var alpha_masks: Dictionary = {}
 var current_sheet := ""
+var personality = preload("res://resources/creatures/young_mole.tres")
+var behavior = preload("res://scripts/creature_behavior.gd").new()
 
 static func artwork_ready() -> bool: return FileAccess.file_exists(CLIPS_PATH)
 func configure(owner_game, owner_manager) -> void:
 	game = owner_game; manager = owner_manager
 	add_to_group("damageable")
+	add_to_group("creatures"); set_meta("species_id",personality.species_id)
+	behavior.configure(self,personality)
 	add_child(sprite); sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	add_child(status_indicator); status_indicator.configure(effects)
 	if artwork_ready(): clips = JSON.parse_string(FileAccess.get_file_as_string(CLIPS_PATH))
@@ -79,6 +83,7 @@ func advance(delta: float) -> void:
 		if lower_elapsed >= LOWER_SECONDS: lower_elapsed = -1; standing = false
 		else: state = &"idle"; return
 	var distance: float = position.distance_to(game.player)
+	var activity: StringName = behavior.advance(delta)
 	if attack_elapsed >= 0:
 		attack_elapsed += delta
 		state = &"attack"
@@ -96,7 +101,9 @@ func advance(delta: float) -> void:
 				heading = position.direction_to(game.player).angle()
 			else: attack_elapsed = -1; begin_lower()
 		return
-	if distance > AGGRO_RADIUS: state = &"idle"; begin_lower(); return
+	if activity != &"chase":
+		if standing: begin_lower(); state = &"idle"; return
+		advance_autonomy(activity,delta); return
 	heading = position.direction_to(game.player).angle()
 	if distance <= ATTACK_REACH and game.clear_combat_path(position):
 		entering_attack = not standing; standing = true
@@ -104,15 +111,32 @@ func advance(delta: float) -> void:
 	if standing: begin_lower(); state = &"idle"; return
 	var direction: Vector2 = manager.chase_direction(position,game.player)
 	var before := position
-	position = game.world.move_actor(position,direction*SPEED*delta,9)
+	position = game.world.move_actor(position,direction*game.WALK_SPEED*personality.chase_fraction*delta,9)
 	var moved := position.distance_to(before)
-	state = &"walk" if moved > 0.00001 else &"idle"
+	state = &"run" if moved > 0.00001 else &"idle"
 	if moved > 0:
 		heading = (position-before).angle(); walk_phase = fposmod(walk_phase+moved/20,1)
+func advance_autonomy(activity: StringName, delta: float) -> void:
+	state = activity
+	if activity == &"feed":
+		if game.world.prop_collisions.has(behavior.target_tree): heading = position.direction_to(game.world.prop_collisions[behavior.target_tree].get_center()).angle()
+		return
+	if activity != &"walk": return
+	var direction: Vector2 = manager.chase_direction(position,behavior.goal)
+	var before := position
+	position = game.world.move_actor(position,direction*game.WALK_SPEED*personality.wander_fraction*delta,9)
+	var moved := position.distance_to(before)
+	if moved > 0.00001: heading = (position-before).angle(); walk_phase = fposmod(walk_phase+moved/20,1)
+func behavior_phase() -> float:
+	if state in [&"sit_down",&"sit_up"]: return clampf(behavior.elapsed/personality.posture_seconds,0,1)
+	if state == &"sit": return fposmod(behavior.elapsed/personality.head_cycle_seconds,1)
+	if state == &"feed": return fposmod(behavior.elapsed/2.0,1)
+	return walk_phase
 func update_sprite() -> void:
 	if clips.is_empty(): return
 	var attack_name := ("enter_" if entering_attack else "attack_")+("left" if punch_left else "right")
 	var clip_name := "lower" if lower_elapsed >= 0 else (attack_name if state == &"attack" else String(state))
+	if state == &"run" and behavior.rise_remaining > 0: clip_name = "sit_up"
 	if stun_remaining > 0:
 		clip_name = stun_clip if effects.elapsed(&"stun") < STUN_FALL_SECONDS else ("stun_rise" if stun_remaining <= STUN_RISE_SECONDS+0.000001 else "stun_hold")
 	var clip: Dictionary = clips.get(clip_name,clips.idle)
@@ -121,7 +145,8 @@ func update_sprite() -> void:
 		var mask := BitMap.new(); mask.create_from_image_alpha(sheets[clip.path].get_image(),0.5)
 		alpha_masks[clip.path] = mask
 	current_sheet = clip.path
-	var phase := lower_elapsed/LOWER_SECONDS if lower_elapsed >= 0 else (walk_phase if state == &"walk" else (clampf(attack_elapsed/ATTACK_PERIOD,0,1) if state == &"attack" else 0.0))
+	var phase := lower_elapsed/LOWER_SECONDS if lower_elapsed >= 0 else (clampf(attack_elapsed/ATTACK_PERIOD,0,1) if state == &"attack" else behavior_phase())
+	if state == &"run" and behavior.rise_remaining > 0: phase = 1-behavior.rise_remaining/personality.posture_seconds
 	if stun_remaining > 0:
 		phase = effects.elapsed(&"stun")/STUN_FALL_SECONDS if clip_name == stun_clip else (1-stun_remaining/STUN_RISE_SECONDS if clip_name == "stun_rise" else 0.0)
 	var frame := preload("res://scripts/complete_sprite_clips.gd").action_frame(phase,clip.frames)

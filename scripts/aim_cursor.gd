@@ -16,6 +16,8 @@ func _process(_delta: float) -> void:
 	queue_redraw()
 func _draw() -> void:
 	if cursor == null: return
+	var cursor_owner := get_tree().root.get_node_or_null("GameCursor")
+	if cursor_owner != null and cursor_owner.loading_active: return
 	if DisplayServer.get_name() != "headless" and not get_window().has_focus(): return
 	var point := preload("res://scripts/pointer_coordinates.gd").viewport_position(get_viewport())
 	if not get_viewport().get_visible_rect().has_point(point): return

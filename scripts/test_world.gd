@@ -33,7 +33,8 @@ var navigation_revision := 0
 var reachable: Array[Vector2i] = []
 var bounds := Rect2(Vector2(FIRST * TILE), Vector2(SIZE * TILE))
 
-func generate(new_seed: int) -> void:
+func generate(new_seed: int, on_progress: Callable = Callable()) -> void:
+	if on_progress.is_valid(): on_progress.call(0.02)
 	navigation_revision += 1
 	seed_value = new_seed
 	ground_sampler.configure(new_seed,ground_profile); ground_sampler.existing_paths = true
@@ -94,6 +95,7 @@ func generate(new_seed: int) -> void:
 		props[cell] = 0
 		cells[cell]["blocked"] = true
 	ensure_nature_variety()
+	if on_progress.is_valid(): on_progress.call(0.30)
 	add_saplings(rng)
 	var visited := {Vector2i.ZERO: true}
 	var queue: Array[Vector2i] = [Vector2i.ZERO]
@@ -113,8 +115,10 @@ func generate(new_seed: int) -> void:
 			cells[cell]["blocked"] = true
 			props[cell] = 1
 	assign_variants(rng)
+	if on_progress.is_valid(): on_progress.call(0.50)
 	index_collisions()
 	generate_ground_details()
+	if on_progress.is_valid(): on_progress.call(0.65)
 	add_burdock()
 	for cell in RETIRED_STRUCTURE_CELLS:
 		props.erase(cell); prop_collisions.erase(cell); cells[cell].blocked = false
@@ -124,7 +128,9 @@ func generate(new_seed: int) -> void:
 	for cell in props:
 		if props[cell] in [1,2,4]: terrain_influences.append({"id":StringName(str(cell)),"rect":prop_collisions[cell].grow(12 if props[cell] in [2,4] else 8)})
 	generate_platforms()
+	if on_progress.is_valid(): on_progress.call(0.85)
 	generate_grass_cover(bounds.grow(-96),roundi(previous_grass_count*1.35))
+	if on_progress.is_valid(): on_progress.call(1.0)
 
 func add_burdock() -> void:
 	var rng := RandomNumberGenerator.new()

@@ -6,9 +6,9 @@ const THIGH := 12.5
 const SHIN := 12.5
 const CONTACT := 0.5
 
-static func joint(root: Vector3, end: Vector3, a: float, b: float, pole: Vector3) -> Dictionary:
+static func joint(root: Vector3, end: Vector3, a: float, b: float, pole: Vector3, max_flexion: float = 130.0) -> Dictionary:
 	var offset := end - root
-	var minimum := sqrt(a*a+b*b+2*a*b*cos(deg_to_rad(130))) if a == UPPER_ARM and b == FOREARM else absf(a-b)+0.01
+	var minimum := sqrt(a*a+b*b+2*a*b*cos(deg_to_rad(max_flexion))) if a == UPPER_ARM and b == FOREARM else absf(a-b)+0.01
 	var distance := clampf(offset.length(),minimum,a+b-0.04)
 	var axis := offset.normalized() if offset.length() > 0.001 else Vector3.DOWN
 	var across := (pole-axis*pole.dot(axis)).normalized()
@@ -134,6 +134,27 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 			grip = body*gesture(Vector3(6,31,5),Vector3(3,43,-7),Vector3(6,37,14),phase,family)
 			shaft = gesture(Vector3(0,0.35,0.94),Vector3(0,0.6,-0.8),Vector3(-0.35,-0.2,0.9),phase,family).normalized()
 			hands[0] = hands[0].lerp(body*Vector3(-5.5,38,5),load)
+		# Preserve the accepted left/down-left sweep. Other views open the
+		# same windup/contact/recovery in front of the chest, rather than
+		# passing the gripping hand through its volume.
+		if direction >= 0:
+			var separation := clampf((absf(wrapf(direction-7.0,-8,8))-1.0)/2.0,0,1)
+			var clear_grip := Vector3(9,31,8)
+			var clear_shaft := Vector3(0.15,0.35,0.94)
+			if action:
+				clear_grip = gesture(clear_grip,Vector3(9,43,8),Vector3(10,34,14),phase,family)
+				clear_shaft = gesture(clear_shaft,Vector3(-0.35,0.85,0.38),Vector3(0.35,-0.35,0.87),phase,family)
+			grip = grip.lerp(body*clear_grip,separation)
+			shaft = shaft.lerp(body.basis*clear_shaft.normalized(),separation).normalized()
+			if separation > 0:
+				# Interpolating a rear windup with a front windup must not take
+				# the hand or blade through the chest in the intermediate views.
+				var local_grip: Vector3 = body.affine_inverse()*grip
+				local_grip.z = maxf(7.0,local_grip.z)
+				grip = body*local_grip
+				var local_axis: Vector3 = body.basis.inverse()*shaft
+				local_axis.z = maxf(0.2,local_axis.z)
+				shaft = (body.basis*local_axis.normalized()).normalized()
 	elif family in [&"axe",&"pickaxe"]:
 		# In the actor's front view -X is anatomical right: this hand holds the
 		# butt of the handle. Anatomical left (+X) supports it near the head.

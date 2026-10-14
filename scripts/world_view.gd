@@ -103,7 +103,7 @@ func refresh_ground() -> void:
 	var platforms = preload("res://scripts/raised_ground.gd")
 	platforms.prepare()
 	for data in world.platforms:
-		var node := MeshInstance2D.new(); node.mesh = platforms.make_mesh(data); node.texture = Style.normalized(platforms.textures[data.variant],data.rect.size)
+		var node := MeshInstance2D.new(); node.mesh = platforms.make_mesh(data); node.texture = platforms.detailed_texture(data.variant,data.rect.size)
 		node.z_index = -1; add_child(node); platform_nodes.append(node)
 	presentation_cache.clear()
 	water_presentations.clear()

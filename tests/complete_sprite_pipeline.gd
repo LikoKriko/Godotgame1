@@ -15,7 +15,11 @@ func same(a: Image,b: Image) -> bool:
 	return a.get_data() == b.get_data()
 func run() -> void:
 	var manifest: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://assets/characters/complete/manifest.json"))
+	var selected := PackedStringArray()
+	var arguments := OS.get_cmdline_user_args()
+	if "--items" in arguments: selected = arguments[arguments.find("--items")+1].split(",")
 	for item in manifest["items"]:
+		if not selected.is_empty() and String(item) not in selected: continue
 		var clips: Dictionary = manifest["items"][item]["clips"]
 		require(clips["walk"]["frames"] == 12 and clips["walk"]["directions"] == 8,"Walk has 12 full frames in eight directions")
 		require(clips["action"]["frames"] == 16 and clips["action"]["directions"] == 16,"Action has 16 full frames in sixteen directions")

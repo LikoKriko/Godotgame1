@@ -207,12 +207,13 @@ static func valid_item(item, uids: Dictionary) -> bool:
 	uids[item.uid] = true
 	return true
 
-static func restore(game, data: Dictionary) -> bool:
+static func restore(game, data: Dictionary, prepared_world = null) -> bool:
 	data = migrate(data)
 	if not valid(data): return false
 	# Validate seed-dependent resource cells before mutating the current game.
-	var trial = preload("res://scripts/test_world.gd").new()
-	trial.generate(data.seed)
+	var trial = prepared_world if prepared_world != null else preload("res://scripts/test_world.gd").new()
+	if prepared_world == null: trial.generate(data.seed)
+	elif trial.seed_value != data.seed: return false
 	var trial_resources = preload("res://scripts/harvesting.gd").new()
 	trial_resources.configure(trial)
 	var indoors: bool = data.get("hut",{}).get("inside",false)
@@ -228,7 +229,7 @@ static func restore(game, data: Dictionary) -> bool:
 	for cell in data.resources:
 		if not trial_resources.nodes.has(cell) or data.resources[cell] > trial_resources.nodes[cell].hits: return false
 	game.world.seed_value = data.seed
-	game.restart()
+	game.restart(prepared_world == null)
 	for cell in game.resources.nodes.keys():
 		if game.world.props[cell] == 5 and not data.resources.has(cell) and data.get("plant_layout_version",0) == 0: continue
 		if data.resources.has(cell):
@@ -272,7 +273,7 @@ static func restore(game, data: Dictionary) -> bool:
 	game.hut.apply_visibility()
 	game.movement.heading = data.heading
 	game.last_tool_uid = game.bag.held_item().get("uid", -1)
-	game.camera.position = game.player
+	game.update_camera_position()
 	game.full_avatar.reset()
 	game.inventory_panel.refresh()
 	game.solar_lighting.update_light()

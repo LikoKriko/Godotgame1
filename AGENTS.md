@@ -1,6 +1,6 @@
 # Day Zero: regla visual permanente del usuario
 
-Todos los dibujos del juego deben usar contornos tan finos como los del personaje principal. Se aplica a personajes, animales, árboles, rocas, césped, objetos, armas, armaduras, materiales y a sus representaciones en inventario, fabricación, reparación y cualquier interfaz o mecánica futura. No incorporar nuevos dibujos con bordes gruesos. Excepción de interfaz solicitada por el usuario: el marco exterior del inventario tiene tres veces su grosor anterior, conservando las esquinas del sprite.
+Todos los dibujos del juego deben usar contornos tan finos como los del personaje principal. Se aplica a personajes, animales, árboles, rocas, césped, objetos, armas, armaduras, materiales y a sus representaciones en inventario, fabricación, reparación y cualquier interfaz o mecánica futura. No incorporar nuevos dibujos con bordes gruesos. Excepción de interfaz solicitada por el usuario: los marcos de ventanas y botones tienen un contorno cuatro veces más grueso, manteniendo sus rectángulos, zonas de clic y adornos originales.
 
 El grosor de referencia es un píxel de la rasterización del personaje completo (192×192 por celda, ~1,5 píxeles de raster por unidad del mundo). El contorno escala con el dibujo y el zoom; no mantiene un ancho fijo en pantalla. Usar `scripts/visual_style.gd` para normalizar dibujos e iconos. La exportación del personaje y sus herramientas debe compartir esta política, evitando añadir dos contornos consecutivos. Eliminar solo el borde oscuro exterior grueso; preservar sombreado y detalles interiores.
 
@@ -39,3 +39,15 @@ no debe borrar esas líneas ni aumentar su grosor.
 Las armaduras normales acompañan la transformación completa del torso; la de
 hojas cubre pecho, abdomen, espalda y hombros, dejando abierto el cuello. No
 recortar la cobertura a una pequeña pechera.
+
+## Criaturas y contactos de sombra
+
+Cada criatura nueva debe tener un perfil propio y separar decisiones, física y
+exportación de sus sprites completos. Reutilizar articulaciones continuas e IK;
+conservar anatomía y proporciones en las dieciséis direcciones. El joven camina
+sobre cuatro patas, se sienta en el suelo y se alza para atacar.
+
+Las sombras de objetos parten del contorno visible de sus apoyos. Declarar cada
+pata de muebles y apoyos de edificios en coordenadas del dibujo, y reutilizar
+`ground_contact_shadow.gd`; la hitbox no define el origen. Conservar la sombra
+del personaje. Ver `docs/CREATURES_AND_SHADOWS.md` para parámetros y exportación.

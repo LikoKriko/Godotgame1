@@ -9,7 +9,7 @@ func settle():
 	for i in 4: await process_frame
 func run():
 	var app = load("res://scenes/day_zero.tscn").instantiate(); root.add_child(app)
-	app.new_game(); app.game.set_process(false); app.show_pause(); await settle()
+	await app.new_game(); app.game.set_process(false); app.show_pause(); await settle()
 	var before: Font = app.menu.settings_button.get_theme_font("font")
 	var caption: String = app.menu.settings_button.text
 	app.menu.open_settings(); await settle()

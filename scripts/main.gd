@@ -2,6 +2,7 @@ extends Node2D
 signal menu_requested
 signal settings_requested
 var menu_open := false
+var world_prepared := false
 var day_cycle = preload("res://scripts/day_cycle.gd").new()
 var nutrition = preload("res://scripts/nutrition.gd").new()
 var solar_lighting: Node
@@ -17,6 +18,7 @@ var last_tool_uid := -1
 
 const TILE := 64
 const WORLD_SEED := 73129
+const WALK_SPEED := 70.0
 const HARVEST_TIME := 0.6
 var bag = preload("res://scripts/inventory.gd").new()
 var inventory_panel: Control
@@ -68,7 +70,7 @@ var quick_items: Array[int]:
 var styled_hud: Control
 
 func _ready() -> void:
-	world.generate(WORLD_SEED)
+	if not world_prepared: world.generate(WORLD_SEED)
 	world_view = preload("res://scripts/world_view.gd").new()
 	world_view.configure(world)
 	add_child(world_view)
@@ -117,7 +119,7 @@ func _ready() -> void:
 	enemies.configure(self)
 	hut = preload("res://scripts/hut.gd").new(); add_child(hut); hut.configure(self)
 	workbenches = preload("res://scripts/workbenches.gd").new(); add_child(workbenches); workbenches.configure(self,canvas)
-	restart()
+	restart(false)
 	fit_hud()
 	styled_hud = preload("res://scripts/styled_hud.gd").new()
 	canvas.add_child(styled_hud)
@@ -139,18 +141,19 @@ func fit_hud() -> void:
 	var viewport_size := get_viewport_rect().size
 	if camera != null:
 		camera.zoom = Vector2.ONE*1.95*minf(viewport_size.x/1920.0,viewport_size.y/1080.0)
+	update_camera_position()
 	var factor: float = preload("res://scripts/game_settings.gd").hud_scale(gameplay_settings.values["hud_size"])
 	interaction.scale = Vector2.ONE*factor
 	interaction.position = Vector2(24,viewport_size.y-18-110*factor)
 	if styled_hud != null: styled_hud.fit()
 
-func restart() -> void:
+func restart(regenerate: bool = true) -> void:
 	if workbenches != null: workbenches.reset()
 	running = false
 	locomotion.reset()
 	interaction_motion.reset()
 	pickup_cell = resources.NONE; pickup_committed = false
-	world.generate(world.seed_value)
+	if regenerate: world.generate(world.seed_value)
 	world_view.refresh_ground()
 	bag.reset()
 	for provision in [[&"apple",4],[&"berries",10],[&"ration",8]]:
@@ -181,7 +184,7 @@ func restart() -> void:
 	feedback = ""
 	feedback_time = 0.0
 	impact_time = 0.0
-	camera.position = player
+	update_camera_position()
 	world_view.update_trees(player, 1.0)
 	if full_avatar != null:
 		full_avatar.reset()
@@ -580,7 +583,7 @@ func clear_combat_path(target: Vector2) -> bool:
 
 func move_player(direction: Vector2, delta: float) -> void:
 	if workbenches != null and workbenches.placing(): return
-	var velocity: Vector2 = movement.step(direction, delta, 70.0*progression.speed_multiplier()*nutrition.speed_multiplier()*(RUN_MULTIPLIER if running else 1.0))
+	var velocity: Vector2 = movement.step(direction, delta, WALK_SPEED*progression.speed_multiplier()*nutrition.speed_multiplier()*(RUN_MULTIPLIER if running else 1.0))
 	if locomotion.sliding():
 		movement.step(locomotion.slide_direction,delta,220)
 	if locomotion.airborne() and locomotion.from_slide:
@@ -593,7 +596,15 @@ func move_player(direction: Vector2, delta: float) -> void:
 	var motion := velocity * delta
 	player = hut.move_inside(player,motion) if hut != null and hut.inside else world.move_actor(player,motion,world.PLAYER_RADIUS,ground_height+locomotion.height(),rock_support)
 	update_ground_support()
+	update_camera_position()
+func update_camera_position() -> void:
+	if camera == null: return
 	camera.position = player
+	if gameplay_settings.values.get("sharp_camera",false):
+		var pixels := camera.zoom*get_viewport().get_final_transform().get_scale().abs()
+		if pixels.x > 0 and pixels.y > 0:
+			camera.position = (player*pixels).round()/pixels
+
 func update_hud() -> void:
 	interaction.text = feedback if feedback_time > 0 else ""
 	if styled_hud != null: styled_hud.refresh()

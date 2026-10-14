@@ -24,3 +24,14 @@ func _draw(canvas: RID, rect: Rect2) -> void:
 			var destination := Rect2(dx[x],dy[y],dx[x+1]-dx[x],dy[y+1]-dy[y])
 			var source := Rect2(sx[x],sy[y],sx[x+1]-sx[x],sy[y+1]-sy[y])
 			RenderingServer.canvas_item_add_texture_rect_region(canvas,destination,artwork.get_rid(),source,tint,false,false)
+
+	# Reinforce the original contour inside the existing hit rectangle. Corner
+	# artwork and text margins remain unchanged; no decoration is magnified.
+	var width := minf(maxf(4.0,edge/2.0),minf(rect.size.x,rect.size.y)/2.0)
+	var border := Color(0.08,0.09,0.075,tint.a)
+	var middle_x := maxf(0,rect.size.x-2*target_edge.x)
+	var middle_y := maxf(0,rect.size.y-2*target_edge.y)
+	RenderingServer.canvas_item_add_rect(canvas,Rect2(rect.position+Vector2(target_edge.x,0),Vector2(middle_x,width)),border)
+	RenderingServer.canvas_item_add_rect(canvas,Rect2(rect.position+Vector2(0,target_edge.y),Vector2(width,middle_y)),border)
+	RenderingServer.canvas_item_add_rect(canvas,Rect2(Vector2(rect.end.x-width,rect.position.y+target_edge.y),Vector2(width,middle_y)),border)
+	RenderingServer.canvas_item_add_rect(canvas,Rect2(Vector2(rect.position.x+target_edge.x,rect.end.y-width),Vector2(middle_x,width)),border)

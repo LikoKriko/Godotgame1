@@ -19,7 +19,7 @@ func run() -> void:
 	node_added.connect(watch_window)
 	var cursor := StartupCursor.new(); root.add_child(cursor); await settle()
 	var app = load("res://scenes/day_zero.tscn").instantiate(); root.add_child(app)
-	app.new_game(); app.game.set_process(false)
+	await app.new_game(); app.game.set_process(false)
 	root.size = Vector2i(1280,720); root.content_scale_size = Vector2i(1920,1080)
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
 	var game = app.game; game.bag.add(&"palo",2)

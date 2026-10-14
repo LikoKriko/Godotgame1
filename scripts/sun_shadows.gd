@@ -1,4 +1,8 @@
 extends Node2D
+const Ground = preload("res://scripts/ground_contact_shadow.gd")
+var ground_material: ShaderMaterial
+var ground_union: CanvasGroup
+var prop_projection: Node2D
 const Mask = preload("res://scripts/character_shadow_mask.gd")
 var game
 var shadow_material: ShaderMaterial
@@ -19,6 +23,11 @@ var last_camera := Vector2.INF
 var last_prop_count := -1
 var had_impulses := false
 var prop_redraws := 0
+
+class PropProjection:
+	extends Node2D
+	var host
+	func _draw() -> void: host.draw_props(self)
 
 class AvatarVisual:
 	extends Sprite2D
@@ -59,7 +68,11 @@ func configure(owner_game) -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	shadow_material = ShaderMaterial.new()
 	shadow_material.shader = preload("res://shaders/silhouette_shadow.gdshader")
-	material = shadow_material
+	ground_material = ShaderMaterial.new()
+	ground_material.shader = preload("res://shaders/ground_contact_shadow.gdshader")
+	ground_union = CanvasGroup.new(); ground_union.fit_margin = 1000; ground_union.use_mipmaps = false; add_child(ground_union)
+	prop_projection = PropProjection.new(); prop_projection.host = self
+	prop_projection.material = ground_material; ground_union.add_child(prop_projection)
 	mask_viewport = SubViewport.new()
 	mask_viewport.size = Mask.SIZE
 	mask_viewport.transparent_bg = true
@@ -101,6 +114,11 @@ func update_sun(state: Dictionary) -> void:
 			extra_projections.erase(node); node.queue_free(); continue
 		node.material.set_shader_parameter("opacity",strength)
 		node.material.set_shader_parameter("softness",softness); node.queue_redraw()
+	ground_material.set_shader_parameter("opacity",1.0)
+	ground_union.self_modulate = Color(1,1,1,strength)
+	ground_material.set_shader_parameter("softness",softness)
+	ground_material.set_shader_parameter("sun_direction",direction)
+	ground_material.set_shader_parameter("stretch",stretch)
 	visible = strength > 0.001
 	avatar.queue_redraw()
 	enemy_projection.queue_redraw()
@@ -114,7 +132,7 @@ func update_sun(state: Dictionary) -> void:
 		last_prop_count = object_count
 		had_impulses = impacts
 		prop_redraws += 1
-		queue_redraw()
+		prop_projection.queue_redraw()
 
 func projection(base: Vector2) -> Transform2D:
 	var vertical := -direction*stretch
@@ -163,7 +181,7 @@ func prop_geometry(cell: Vector2i) -> Dictionary:
 	rect.position += view.offset_for(cell)
 	return {"texture":texture,"rect":rect,"transform":Transform2D.IDENTITY,"base":Vector2(rect.get_center().x,rect.end.y)}
 
-func _draw() -> void:
+func draw_props(surface: Node2D) -> void:
 	if game == null or strength <= 0.001: return
 	var view: Node2D = game.world_view
 	var viewport_world := Rect2(game.camera.get_screen_center_position()-game.get_viewport_rect().size/game.camera.zoom/2,game.get_viewport_rect().size/game.camera.zoom).grow(850)
@@ -171,27 +189,27 @@ func _draw() -> void:
 	for cell in game.world.props:
 		if not viewport_world.intersects(view.presentation(cell)["rect"]): continue
 		var data := prop_geometry(cell)
-		draw_set_transform_matrix(projection(data["base"])*data["transform"])
-		draw_texture_rect(data["texture"],data["rect"],false)
+		draw_ground_shadow(surface,data.texture,data.rect,data.transform)
 	if game.hut != null and game.hut.exterior.visible:
 		var sprite: Sprite2D = game.hut.exterior
-		var info := shadow_info(sprite.texture,2)
-		var texture: Texture2D = info.texture
-		var sprite_transform := sprite.global_transform
-		var base := sprite_transform*Vector2(texture.get_width()/2.0,texture.get_height())
-		draw_set_transform_matrix(projection(base)*sprite_transform)
-		draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
+		draw_ground_shadow(surface,sprite.texture,Rect2(Vector2.ZERO,sprite.texture.get_size()),sprite.global_transform,game.hut.SHADOW_CONTACTS)
 	if game.workbenches != null:
 		for table in game.workbenches.tables:
 			var sprite: Sprite2D = table.sprite
-			var info := shadow_info(sprite.texture,6)
-			var texture: Texture2D = info.texture
-			var sprite_transform := sprite.global_transform
-			var base := sprite_transform*Vector2(texture.get_width()/2.0,texture.get_height())
-			draw_set_transform_matrix(projection(base)*sprite_transform)
-			draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
+			draw_ground_shadow(surface,sprite.texture,Rect2(Vector2.ZERO,sprite.texture.get_size()),sprite.global_transform,preload("res://scripts/workbench_art.gd").SHADOW_CONTACTS)
+	surface.draw_set_transform_matrix(Transform2D.IDENTITY)
 
 func add_enemy_projection(creature: Node2D) -> void:
 	var node := EnemyProjection.new(); node.host = self; node.target = creature
 	node.material = shadow_material.duplicate(); add_child(node); extra_projections.append(node)
+
+func draw_ground_shadow(surface: Node2D, texture: Texture2D, rect: Rect2, object_transform: Transform2D, contacts: PackedVector2Array = PackedVector2Array()) -> void:
+	var isolated := standalone(texture)
+	var data := Ground.geometry(isolated,contacts)
+	var raster_transform := Transform2D(Vector2(rect.size.x,0),Vector2(0,rect.size.y),rect.position)
+	surface.draw_set_transform_matrix(object_transform*raster_transform)
+	surface.draw_mesh(data.mesh,isolated)
+
+func _draw() -> void:
+	# Callers can invalidate shadows after a room or placement change.
+	if prop_projection != null: prop_projection.queue_redraw()

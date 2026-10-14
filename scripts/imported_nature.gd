@@ -25,6 +25,11 @@ const GRASS := [
 	{"file":"res://assets/environment/imported/cesped_10.png","rect":Rect2(209, 417, 790, 455)},
 	{"file":"res://assets/environment/imported/cesped_11.png","rect":Rect2(99, 516, 924, 310)},
 	{"file":"res://assets/environment/imported/cesped_12.png","rect":Rect2(319, 438, 541, 495)},
+	{"file":"res://assets/environment/imported/cesped_13.png","rect":Rect2(0,0,146,46)},
+	{"file":"res://assets/environment/imported/cesped_14.png","rect":Rect2(0,0,146,44)},
+	{"file":"res://assets/environment/imported/cesped_15.png","rect":Rect2(0,0,146,69)},
+	{"file":"res://assets/environment/imported/cesped_16.png","rect":Rect2(0,0,146,42)},
+	{"file":"res://assets/environment/imported/cesped_17.png","rect":Rect2(0,0,146,44)},
 ]
 static var textures: Dictionary = {}
 static func texture(record: Dictionary) -> AtlasTexture:

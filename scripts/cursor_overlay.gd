@@ -1,6 +1,10 @@
 extends CanvasLayer
 ## Windows uses the same viewport coordinates for the visible aim and GUI hits.
 var native_cursor := false
+var loading_active := false
+func set_loading_active(active: bool) -> void:
+	loading_active = active
+	if native_cursor: Input.mouse_mode = Input.MOUSE_MODE_HIDDEN if active else Input.MOUSE_MODE_VISIBLE
 static func use_native_cursor(platform: String, display: String) -> bool:
 	return platform != "Windows" and display != "headless"
 func _ready() -> void:
@@ -16,11 +20,14 @@ func _ready() -> void:
 		enable_canvas_cursor()
 func enable_canvas_cursor() -> void:
 	native_cursor = false
-	install_canvas_cursor.call_deferred(get_window())
+	install_canvas_cursor_by_id.call_deferred(get_window().get_instance_id())
 	if not get_tree().node_added.is_connected(window_added): get_tree().node_added.connect(window_added)
-	for node in get_tree().root.find_children("*","Window",true,false): install_canvas_cursor.call_deferred(node)
+	for node in get_tree().root.find_children("*","Window",true,false): install_canvas_cursor_by_id.call_deferred(node.get_instance_id())
 func window_added(node: Node) -> void:
-	if node is Window: install_canvas_cursor.call_deferred(node)
+	if node is Window: install_canvas_cursor_by_id.call_deferred(node.get_instance_id())
+func install_canvas_cursor_by_id(window_id: int) -> void:
+	var window := instance_from_id(window_id) as Window
+	if is_instance_valid(window): install_canvas_cursor(window)
 func install_canvas_cursor(window: Window) -> void:
 	if not is_instance_valid(window) or window.has_meta("day_zero_canvas_cursor"): return
 	# Tooltips and other noninteractive native windows must remain engine-owned.

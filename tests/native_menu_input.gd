@@ -34,6 +34,8 @@ func boundaries(button: Control) -> void:
 func click(button: Control) -> void:
 	await native_pointer(button,button.size/2,1)
 	await native_pointer(button,button.size/2,0)
+	for app in get_nodes_in_group("day_zero_apps"):
+		while app.loading_busy: await process_frame
 
 func run() -> void:
 	if DisplayServer.get_name() != "X11": push_error("Requires X11 native-pointer runner"); quit(1); return

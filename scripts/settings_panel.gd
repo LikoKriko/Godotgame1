@@ -58,6 +58,14 @@ func configure(model) -> void:
 	hud_slider.value = pending["hud_size"]
 	hud_value.text = "%d · %d%% área" % [hud_slider.value,roundi(40*(1+0.2*(hud_slider.value-1)))]
 	var graphics := page(tabs,"Gráficos")
+	var sharp := CheckButton.new()
+	sharp.name = "SharpCamera"
+	sharp.text = "Cámara nítida"
+	sharp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	sharp.button_pressed = pending.get("sharp_camera",false)
+	sharp.tooltip_text = "Ajusta la cámara a píxeles de pantalla. Puede producir pequeños pasos al desplazarse."
+	sharp.toggled.connect(func(enabled): pending["sharp_camera"] = enabled)
+	graphics.add_child(sharp)
 	var sound := page(tabs,"Audio")
 	for pair in [["Volumen general","master"],["Música","music"],["Efectos","effects"]]:
 		var row := HBoxContainer.new()

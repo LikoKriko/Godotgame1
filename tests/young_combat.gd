@@ -17,7 +17,7 @@ func run() -> void:
 	game = load("res://scenes/main.tscn").instantiate(); root.add_child(game); game.set_process(false)
 	var enemy = game.enemies.enemy
 	require(is_instance_valid(enemy) and get_nodes_in_group("damageable").size() == 1,"One young creature spawns outside the initial danger area")
-	require(enemy.position.length() >= 280 and enemy.health == 10 and Enemy.SPEED == 70*0.8,"Young enemy has ten HP and twenty percent less speed than walking")
+	require(enemy.position.length() >= 280 and enemy.health == 10 and Enemy.SPEED == 70*0.85,"Young enemy has ten HP and fifteen percent less speed than walking")
 	require(enemy.clips.world_height == 32 and enemy.clips.source == "Day_Zero_Enemigo_Joven_4_Vistas.png","Only the young reference is used, at 32 world units")
 	for name in ["idle","walk","attack_left","attack_right"]:
 		var clip: Dictionary = enemy.clips[name]
@@ -28,9 +28,9 @@ func run() -> void:
 	require(not enemy.contains_point(enemy.sprite.to_global(-enemy.atlas.get_size()/2+Vector2(1,1))),"Transparent sprite padding cannot receive damage")
 	enemy.position = Vector2(251,0); var origin: Vector2 = enemy.position
 	game.enemies.advance(0.1)
-	require(enemy.position == origin and enemy.state == &"idle","Outside the 250-unit radius the creature waits")
+	require(enemy.state in [&"walk",&"sit_down"] and enemy.attack_elapsed < 0,"Outside the 250-unit radius the creature explores or rests")
 	enemy.position = Vector2(100,0); origin = enemy.position; game.enemies.advance(0.1)
-	require(absf(enemy.position.distance_to(origin)-5.6) < 0.001 and enemy.state == &"walk","Chasing travels at the specified speed and animates")
+	require(absf(enemy.position.distance_to(origin)-5.95) < 0.001 and enemy.state == &"run","Chasing travels at the specified speed and animates")
 	enemy = encounter(); game.enemies.advance(0.5)
 	require(game.progression.health == 20 and game.enemies.parry.pending.size() == 1,"A punch connects at half its one-second sequence but defers health damage")
 	game.enemies.advance(0.349)

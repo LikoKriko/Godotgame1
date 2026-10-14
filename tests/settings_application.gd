@@ -21,7 +21,7 @@ func run() -> void:
 	var original: PackedByteArray = FileAccess.get_file_as_bytes(Settings.PATH) if had_file else PackedByteArray()
 	var app = load("res://scenes/day_zero.tscn").instantiate()
 	root.add_child(app); await settle()
-	app.play(); app.game.set_process(false); app.show_pause()
+	await app.play(); app.game.set_process(false); app.show_pause()
 	for mode in [0,1,2]:
 		app.menu.open_settings(); await settle()
 		var panel = app.menu.settings_panel

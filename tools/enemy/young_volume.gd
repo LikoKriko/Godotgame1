@@ -10,6 +10,7 @@ const IVORY := Color8(220,207,164)
 var paint_transform := Transform3D.IDENTITY
 var limb_lengths: Array[Vector2] = []
 var head_look_adjust := 0.0
+var head_yaw := 0.0
 const HEAD_SCALE := 0.85
 const ABDOMEN_WIDTH_SCALE := 0.65
 func _ready() -> void:
@@ -30,7 +31,7 @@ func volume(center: Vector3,size: Vector3,color: Color,tag: float,body: Transfor
 	ellipsoid(body*center,size,color,body.basis)
 func head_volume(center: Vector3,size: Vector3,color: Color,tag: float,body: Transform3D) -> void:
 	var anchor := Vector3(0,21,2.5)
-	var basis := (body.basis*Basis(Vector3.RIGHT,-head_look_adjust)).scaled(Vector3.ONE*HEAD_SCALE)
+	var basis := (body.basis*Basis(Vector3.UP,head_yaw)*Basis(Vector3.RIGHT,-head_look_adjust)).scaled(Vector3.ONE*HEAD_SCALE)
 	volume(center,size,color,tag,Transform3D(basis,body*anchor-basis*anchor))
 func limb(root_point: Vector3,target: Vector3,a: float,b: float,pole: Vector3,radius: float,body: Transform3D) -> Dictionary:
 	var joints := Pose.joint(root_point,target,a,b,pole)
@@ -46,7 +47,10 @@ func pose(state: String,phase: float,direction: int,left: bool = true) -> void:
 	body_material.set_shader_parameter("view_blend",smoothstep(0,1,fposmod(paint_direction,1.0)))
 	surface = SurfaceTool.new(); surface.begin(Mesh.PRIMITIVE_TRIANGLES)
 	limb_lengths.clear()
-	var walking := state == "walk"
+	var walking := state in ["walk","run"]
+	var running := state == "run"
+	var seated := 1.0 if state == "sit" else (smoothstep(0,1,phase) if state == "sit_down" else (1-smoothstep(0,1,phase) if state == "sit_up" else 0.0))
+	head_yaw = sin(phase*TAU)*0.12*seated
 	var entering := state == "enter_attack"
 	var attacking := state in ["attack","enter_attack"]
 	var falling := state.begins_with("stun_fall")
@@ -58,14 +62,15 @@ func pose(state: String,phase: float,direction: int,left: bool = true) -> void:
 	if state == "lower": standing = 1.0-smoothstep(0,1,phase)
 	var effort := sin(phase*PI) if attacking else 0.0
 	if falling and state != "stun_fall": effort = 1.0-fallen
-	var bob := -0.22*(1-cos(phase*TAU*4)) if walking else -0.2*effort
+	var bob := -(0.30 if running else 0.16)*(1-cos(phase*TAU*4)) if walking else -0.2*effort
 	var lean := lerpf(0.96,-0.04*effort,standing)
+	lean = lerpf(lean,0.14,seated)
 	var pivot := Vector3(0,8.5,-2.5)
 	var body_basis := Basis(Vector3.RIGHT,lean)
 	if fallen > 0: body_basis = Basis(Vector3.BACK,1.2*fallen)*body_basis
 	if walking: body_basis = Basis(Vector3.BACK,0.025*sin(phase*TAU))*body_basis
-	var body := Transform3D(body_basis,pivot-body_basis*pivot+Vector3(0,bob-0.8*fallen,0))
-	head_look_adjust = lean*(1.0-standing)
+	var body := Transform3D(body_basis,pivot-body_basis*pivot+Vector3(0,bob-0.8*fallen-3.0*seated,0))
+	head_look_adjust = lean*(1.0-standing)*(1-seated)+(0.045*sin(phase*TAU*2) if state == "feed" else 0.0)
 	volume(Vector3(0,11.5,-1.5),Vector3(9.3*ABDOMEN_WIDTH_SCALE,8.5,7),FUR,0,body)
 	head_volume(Vector3(0,21,2.5),Vector3(9.5,8.6,7.8),FUR,0,body)
 	# A narrow digging muzzle and tiny folded ears, retaining the reference
@@ -94,6 +99,7 @@ func pose(state: String,phase: float,direction: int,left: bool = true) -> void:
 		var hind := Pose.stance_swing(phase+index*0.5,2.8,1.7) if walking else {"z":0.0,"lift":0.0,"pitch":0.0}
 		var front := Pose.stance_swing(phase+0.25+index*0.5,2.8,1.25) if walking else {"z":0.0,"lift":0.0,"pitch":0.0}
 		var foot_world := Vector3(side*5.5,1.5+float(hind.lift),lerpf(-4.6,1.5,standing)+float(hind.z))
+		foot_world = foot_world.lerp(Vector3(side*6.5,1.45,6),seated)
 		foot_world = foot_world.lerp(Vector3(side*9.0,1.5,-6.0),fallen)
 		var leg := limb(Vector3(side*5.5,8.5,-1),body.affine_inverse()*foot_world,4.4,4.2,Vector3(0,0,1),2.2,body)
 		var shoe := Transform3D(Basis(Vector3.RIGHT,float(hind.pitch)),body*leg.end)
@@ -102,6 +108,7 @@ func pose(state: String,phase: float,direction: int,left: bool = true) -> void:
 		var rest := Vector3(side*12.4,10.8,5.5)
 		var quad_world := Vector3(side*10.4,4.0+float(front.lift),12.2+float(front.z))
 		var hand_world := quad_world.lerp(body*rest,standing)
+		hand_world = hand_world.lerp(Vector3(side*12.2,4.0,3.0),seated)
 		if falling and state != "stun_fall":
 			var initial := Pose.gesture(rest,Vector3(side*12,14.5,1),Vector3(side*9.3,16.7,13.3),0.5,&"fist") if (index == 1) == left else rest.lerp(Vector3(side*10.5,14.5,7),0.5)
 			hand_world = (body*initial).lerp(quad_world,fallen)

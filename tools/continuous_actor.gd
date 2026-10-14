@@ -226,8 +226,8 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 			for center in centers:
 				if center.distance_to(grip) > 18.8:
 					grip = center+center.direction_to(grip)*18.8
-				elif center.distance_to(grip) < 8.15:
-					grip = center+center.direction_to(grip)*8.15
+				elif center.distance_to(grip) < (10.25 if family == &"sword" else 8.15):
+					grip = center+center.direction_to(grip)*(10.25 if family == &"sword" else 8.15)
 		var placement := place_tool(geometry,grip,pose["shaft"],actor_basis,item)
 		hands[active] = grip
 		if family in [&"axe",&"pickaxe"]: hands[1-active] = placement["support"]
@@ -265,7 +265,8 @@ func build(item: StringName,family: StringName,state: StringName,phase: float,di
 			ellipsoid(ankle+foot_basis*Vector3(-1.2+toe*0.8,-0.9,4.4-toe*0.16),Vector3(0.55,0.65,0.75),SKIN,foot_basis)
 		var shoulder: Vector3 = pose["shoulders"][side]
 		var pole := Vector3(1,0,-1) if family == &"bow" and side == 1 else Vector3(-0.35 if side == 0 else 0.35,-1,0)
-		var arm := Pose.joint(shoulder,hands[side],Pose.UPPER_ARM,Pose.FOREARM,pole)
+		if family == &"sword": pole = torso.basis*Vector3(-0.6 if side == 0 else 0.6,-1,0.15)
+		var arm := Pose.joint(shoulder,hands[side],Pose.UPPER_ARM,Pose.FOREARM,pole,115.0 if family == &"sword" else 130.0)
 		if tool.visible and (family in [&"axe",&"pickaxe"] or side == pose["active"]):
 			grip_error = maxf(grip_error,arm["end"].distance_to(hands[side]))
 		surface_tag = 1 if side == 0 else 2

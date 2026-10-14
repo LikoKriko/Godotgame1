@@ -45,3 +45,16 @@ static func make_mesh(platform: Dictionary) -> ArrayMesh:
   indices.append_array(PackedInt32Array([a,a+1,a+2,a+1,a+3,a+2]))
  arrays[Mesh.ARRAY_VERTEX] = vertices; arrays[Mesh.ARRAY_TEX_UV] = uvs; arrays[Mesh.ARRAY_INDEX] = indices
  var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays); return mesh
+
+static var detail_cache: Dictionary = {}
+static func detailed_texture(variant: int, dimensions: Vector2) -> Texture2D:
+ prepare()
+ var key := str(variant)+str(dimensions)
+ if not detail_cache.has(key):
+  if detail_cache.size() >= 64: detail_cache.clear()
+  var style = preload("res://scripts/visual_style.gd")
+  var raster: Texture2D = style.normalized(textures[variant],dimensions,true,false,2.0)
+  # Twice the sampling density preserves the small soil marks; a second
+  # contour raster keeps its physical width equal to other world drawings.
+  detail_cache[key] = ImageTexture.create_from_image(style.outlined(raster.get_image()))
+ return detail_cache[key]
