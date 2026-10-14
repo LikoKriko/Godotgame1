@@ -104,9 +104,12 @@ func configure(model) -> void:
 	mode = option(screen,"Modo de pantalla",["Ventana","Pantalla completa","Ventana sin bordes"])
 	mode.select(pending["window_mode"])
 	mode.item_selected.connect(func(index): pending["window_mode"] = index)
-	resolution = option(screen,"Resolución",["1280 × 720","1600 × 900","1920 × 1080","2560 × 1440"])
+	resolution = option(screen,"Resolución (bloqueada)" if settings.resolution_locked else "Resolución",["1280 × 720","1600 × 900","1920 × 1080","2560 × 1440"])
 	resolution.select(maxi(0,RESOLUTIONS.find(pending["resolution"])))
 	resolution.item_selected.connect(func(index): pending["resolution"] = RESOLUTIONS[index])
+	resolution.disabled = settings.resolution_locked
+	if resolution.disabled:
+		resolution.tooltip_text = "Cambio de resolución temporalmente bloqueado en Windows para evitar el desfase del cursor. Se conserva la resolución de inicio."
 	message = Label.new()
 	message.text = "Los cambios se guardan al pulsar Aplicar."
 	box.add_child(message)
@@ -151,6 +154,8 @@ func option(parent: Control, text: String, choices: Array) -> OptionButton:
 	return selector
 
 func apply_changes() -> void:
+	if settings.resolution_locked and settings.startup_resolution != Vector2i.ZERO:
+		pending["resolution"] = settings.startup_resolution
 	settings.values = pending.duplicate()
 	settings.apply(get_viewport())
 	message.text = "Configuración guardada." if settings.save_settings() == OK else "No se pudo guardar la configuración."

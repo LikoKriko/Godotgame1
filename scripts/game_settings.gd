@@ -4,6 +4,8 @@ const PATH := "user://day_zero_settings.cfg"
 const DEFAULTS := {"auto_run": false,"hud_size": 1,"muted": false,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "msaa": 0, "window_mode": 0, "resolution": Vector2i(1920,1080)}
 var values: Dictionary = DEFAULTS.duplicate()
 var applied_display: Array = []
+var resolution_locked := OS.get_name() == "Windows"
+var startup_resolution := Vector2i.ZERO
 
 func load_settings() -> void:
 	var config := ConfigFile.new()
@@ -35,6 +37,11 @@ static func hud_scale(level: int) -> float:
 	return sqrt(0.4*(1+0.2*(clampi(level,1,6)-1)))
 
 func apply(viewport: Viewport) -> void:
+	# Temporary Windows safeguard: keep the resolution that worked at startup.
+	# Enforce this here too, so stale UI values cannot resize the render viewport.
+	if resolution_locked:
+		if startup_resolution == Vector2i.ZERO: startup_resolution = values["resolution"]
+		values["resolution"] = startup_resolution
 	for pair in [["Master","master"],["Music","music"],["Effects","effects"]]:
 		var index := AudioServer.get_bus_index(pair[0])
 		if index < 0:

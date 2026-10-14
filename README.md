@@ -341,3 +341,14 @@ una vez el cursor de Windows tras asentarse el nuevo tamaño.
 `tests/settings_cursor_popups.gd` comprueba selección real de opciones, el centro
 dibujado de la mira sobre las listas, los clics tras cambiar resolución y que
 Nueva partida y Cancelar funcionan en un panel interno.
+
+### Bloqueo temporal de resolución en Windows
+
+El cambio de resolución durante la ejecución queda deshabilitado temporalmente
+en Windows por el desfase comunicado tras redimensionar. El selector muestra
+«Resolución (bloqueada)» y conserva la resolución cargada al iniciar. El modelo
+de configuración también rechaza cambios posteriores, incluidos valores
+pendientes antiguos. FPS, audio, HUD y modo de pantalla continúan disponibles.
+`tests/resolution_lock.gd` verifica el selector y esta protección aplicando el
+mismo bloqueo en el entorno de pruebas de Linux. El diagnóstico definitivo
+del fallo de redimensionado en Windows sigue pendiente.
