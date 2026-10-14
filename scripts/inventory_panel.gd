@@ -51,15 +51,11 @@ func configure(inventory, owner_game = null) -> void:
 	content = Control.new(); content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.size = Art.SIZE; panel.add_child(content)
 	Art.patch(content,Rect2(Vector2.ZERO,Art.SIZE),Art.BOUNDS)
-	# Replace baked text with live buttons, retaining the original rim and texture.
-	Art.patch(content,Rect2(76,29,1232,87))
 	panel_heading = Label.new(); panel_heading.hide(); content.add_child(panel_heading)
 	inventory_page = Control.new(); inventory_page.size = Art.SIZE
 	inventory_page.mouse_filter = Control.MOUSE_FILTER_IGNORE; content.add_child(inventory_page)
 	var root_content := content
 	content = inventory_page
-	Art.patch(content,Rect2(61,647,852,278))
-	Art.patch(content,Rect2(790,604,105,42))
 	capacity_label = label("",Vector2(798,609),24)
 	capacity_label.size = Vector2(114,39); capacity_label.clip_text = true
 	capacity_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -76,7 +72,6 @@ func configure(inventory, owner_game = null) -> void:
 	details = label("Selecciona un objeto.",Vector2(970,664),18)
 	details.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART; details.size = Vector2(310,205)
 	# The two undefined actions are deliberately disabled. Repair remains live.
-	for rect in [Rect2(831,190,415,108),Rect2(831,303,415,108),Rect2(831,416,415,108)]: Art.patch(content,rect,Art.ACTION_PAPER)
 	improve_button = action_button("MEJORAR",Vector2(834,194)); improve_button.disabled = true
 	improve_button.icon = Art.crop(Rect2(924,278,52,47))
 	improve_button.tooltip_text = "Las mejoras de objetos aún no están disponibles."
@@ -102,7 +97,9 @@ func configure(inventory, owner_game = null) -> void:
 	close.pressed.connect(hide); content.add_child(close)
 	resized.connect(fit_panel); fit_panel(); refresh()
 	visibility_changed.connect(func():
-		if not visible: close_workshop()
+		if not visible:
+			close_workshop()
+			creation_page.cancel_creation()
 	)
 	hide()
 
@@ -423,19 +420,18 @@ func build_sections() -> void:
 	for is_ability in [true,false]:
 		var page := preload("res://scripts/trait_page.gd").new()
 		content.add_child(page); page.configure(game,is_ability); sections.append(page)
-	for page in sections.slice(1):
+	creation_page.position = Vector2(55,142)
+	for page in sections.slice(2):
 		page.position = Vector2(245,147); page.scale = Vector2.ONE*1.55
-		var background := Art.patch(page,Rect2(-112,-8,792,505))
-		page.move_child(background,0)
 	var map_page := Control.new(); map_page.size = Art.SIZE; map_page.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(map_page); Art.patch(map_page,Rect2(69,132,1232,802))
+	content.add_child(map_page)
 	var map_view = preload("res://scripts/world_map.gd").TerrainView.new()
 	map_view.name = "Terrain"; map_view.game = game; map_view.position = Vector2(99,148)
 	map_view.size = Vector2(1170,780); map_view.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	map_view.mouse_filter = Control.MOUSE_FILTER_IGNORE; map_page.add_child(map_view); sections.append(map_page)
 	for title in ["misiones","logros"]:
 		var page := Control.new(); page.size = Art.SIZE; page.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		content.add_child(page); Art.patch(page,Rect2(69,132,1232,802))
+		content.add_child(page)
 		var empty := Label.new(); empty.text = "No hay %s disponibles todavía." % title
 		preload("res://scripts/ui_style.gd").set_font_size(empty,24)
 		empty.position = Vector2(110,190); page.add_child(empty); sections.append(page)
@@ -449,6 +445,7 @@ func select_section(index: int) -> void:
 	if index < 0 or index >= sections.size(): return
 	panel_heading.text = ["INVENTARIO","CREACIÓN","HABILIDADES","PERKS","MAPA","MISIONES","LOGROS"][index]
 	close_workshop()
+	if index != 1: creation_page.cancel_creation()
 	for i in sections.size(): sections[i].visible = i == index
 	if index == 1: creation_page.refresh()
 	elif index in [2,3]: sections[index].refresh()

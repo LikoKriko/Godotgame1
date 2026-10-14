@@ -151,9 +151,9 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 		hands[1] = body*gesture(Vector3(8.5,28.1,1.5),Vector3(7,37,3),Vector3(7,38,16),phase,family)
 	# The overhead camera foreshortens a tool held straight forward in north/
 	# south views. Open the grip and strike plane obliquely in those views,
-	# without stretching limbs or changing timing. Lateral pickaxe/sword poses
-	# retain their existing trajectory.
-	if direction >= 0 and family in [&"axe",&"pickaxe",&"sword"]:
+	# without stretching limbs or changing timing. Sword gestures stay in actor
+	# coordinates in every direction; only the view rotates. Lateral pickaxe poses retain their existing trajectory.
+	if direction >= 0 and family in [&"axe",&"pickaxe"]:
 		var openness := pow(absf(sin(direction*TAU/16)),0.8)
 		var open_grip := Vector3(7.5,34,8)
 		var open_axis := Vector3(0.5,0.7,0.65)
@@ -167,9 +167,6 @@ static func sample(family: StringName, state: StringName, phase: float, stop_pha
 			var hit_axis := Vector3(0.6,-0.3,0.72)
 			if family in [&"axe",&"pickaxe"]: wind.x = -4; hit.x = -4
 			if family == &"pickaxe": hit_axis = Vector3(0.4,-0.68,0.6)
-			if family == &"sword":
-				wind = Vector3(7,43,4); hit = Vector3(7,34,12)
-				wind_axis = Vector3(-0.82,0.52,0.24); hit_axis = Vector3(0.78,-0.40,0.48)
 			if family == &"axe" and sin(direction*TAU/16) < -0.001:
 				wind = Vector3(-7,49,4)
 				hit = Vector3(-7,34.5,14)

@@ -22,7 +22,9 @@ static func patch(parent: Control, rect: Rect2, source: Rect2 = PAPER) -> Contro
 	var panel := Panel.new()
 	panel.position = rect.position; panel.size = rect.size
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_theme_stylebox_override("panel",preload("res://scripts/ui_style.gd").frame() if source == BOUNDS else fill_box())
+	var appearance: StyleBox = preload("res://scripts/ui_style.gd").frame() if source == BOUNDS else fill_box()
+	if source == BOUNDS: appearance.edge = 24.0
+	panel.add_theme_stylebox_override("panel",appearance)
 	parent.add_child(panel); return panel
 static func fill_box() -> StyleBoxTexture:
 	var box := StyleBoxTexture.new(); box.texture = preload("res://assets/ui/styles/fill.png")

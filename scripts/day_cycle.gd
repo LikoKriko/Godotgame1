@@ -24,7 +24,7 @@ func sun_state() -> Dictionary:
 	var afternoon := smoothstep(10,13,hour)*(1-smoothstep(17,20,hour))
 	var strength := visibility*lerpf(0.10,0.34,maxf(elevation,afternoon))
 	var direction := Vector2(lerpf(-1,1,progress),0.48).normalized()
-	var stretch := lerpf(2.6,0.36,elevation)
+	var stretch := 0.36+(lerpf(2.6,0.36,elevation)-0.36)*0.8
 	var night := Color(0.19,0.235,0.34)
 	var twilight := Color(0.62,0.49,0.39)
 	var daylight := Color(0.94,0.97,0.91)

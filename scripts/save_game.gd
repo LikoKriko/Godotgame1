@@ -211,6 +211,8 @@ static func restore(game, data: Dictionary) -> bool:
 	elif not trial.bounds.grow(-trial.PLAYER_RADIUS).has_point(data.player): return false
 	var combat: Dictionary = data.get("combat",{})
 	if not combat.is_empty() and not combat.enemy.is_empty() and not trial.bounds.grow(-9).has_point(combat.enemy.position): return false
+	for child in combat.get("additional",[]):
+		if not child.enemy.is_empty() and not trial.bounds.grow(-9).has_point(child.enemy.position): return false
 	for cell in data.resources:
 		if not trial_resources.nodes.has(cell) or data.resources[cell] > trial_resources.nodes[cell].hits: return false
 	game.world.seed_value = data.seed

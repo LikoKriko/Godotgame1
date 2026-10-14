@@ -7,6 +7,7 @@ const RECIPES := {
 	&"botella": {&"cuero":3,&"hilo":1},
 	&"flecha": {&"palo":1,&"piedra":1,&"cuerda":1},
 }
+const CREATION_TIMES := {&"pickaxe":2.0,&"axe":2.0,&"cuerda":2.0,&"burdock_armor":2.0,&"botella":2.0,&"flecha":2.0}
 const OUTPUT_COUNTS := {&"flecha":5}
 const REPAIRS := {
 	&"pickaxe": {&"piedra": 1, &"palo": 1},

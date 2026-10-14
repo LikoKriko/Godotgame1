@@ -22,7 +22,7 @@ func configure() -> void:
 		button.text = "CREAR" if i == 1 else TITLES[i].to_upper()
 		preload("res://scripts/ui_style.gd").set_font_size(button,21)
 		Art.skin(button,Art.TAB); button.fit_text()
-		button.position = Vector2(x,18)
+		button.position = Vector2(x,0)
 		button.pressed.connect(func(): current_tab = i)
 		add_child(button); buttons.append(button); x += button.size.x+12
 	current_tab = 0

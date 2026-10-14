@@ -35,6 +35,10 @@ func run() -> void:
 	require(not page.create_button.disabled and page.preview.texture != null,"Available ingredients enable Crear with the actual tool preview")
 	var before: int = game.bag.count(&"pickaxe")
 	page.create_selected()
+	require(page.is_crafting() and game.bag.count(&"pickaxe") == before,"Creation reserves ingredients without immediately delivering the tool")
+	page.advance_creation(1.99)
+	require(game.bag.count(&"pickaxe") == before,"Tool is not delivered before two seconds")
+	page.advance_creation(0.01)
 	require(game.bag.count(&"pickaxe") == before+1 and game.bag.count(&"piedra") == 0 and game.bag.count(&"palo") == 0 and game.bag.count(&"cuerda") == 0,"Pico consumes precisely 2 stones, 2 sticks and 1 metre of rope")
 	var identities := {}
 	for item in game.bag.slots:
@@ -46,6 +50,7 @@ func run() -> void:
 	game.bag.add(&"fibra",3)
 	page.select_recipe(&"cuerda")
 	page.create_selected()
+	page.advance_creation(2.0)
 	require(game.bag.count(&"cuerda") == 1 and game.bag.count(&"fibra") == 0,"Cuerda recipe produces one metre")
 	key(KEY_I)
 	require(inventory.visible and inventory.navigation.current_tab == 0,"I returns from creation to the inventory")

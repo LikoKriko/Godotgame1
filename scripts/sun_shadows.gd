@@ -11,6 +11,7 @@ var mask_viewport: SubViewport
 var mask: Node2D
 var avatar: Node2D
 var enemy_projection: Node2D
+var extra_projections: Array[Node2D] = []
 var colored_avatar: Sprite2D
 var last_direction := Vector2.INF
 var last_stretch := INF
@@ -38,8 +39,9 @@ class AvatarProjection:
 class EnemyProjection:
 	extends Node2D
 	var host
+	var target
 	func _draw() -> void:
-		var enemy = host.game.enemies.enemy
+		var enemy = target if target != null else host.game.enemies.enemy
 		if not is_instance_valid(enemy) or enemy.health <= 0 or enemy.sprite.texture == null: return
 		var atlas: AtlasTexture = enemy.sprite.texture
 		var size: Vector2 = atlas.atlas.get_size()
@@ -94,6 +96,11 @@ func update_sun(state: Dictionary) -> void:
 	for shader_material in [shadow_material,avatar.material,enemy_projection.material]:
 		shader_material.set_shader_parameter("opacity",strength)
 		shader_material.set_shader_parameter("softness",softness)
+	for node in extra_projections.duplicate():
+		if not is_instance_valid(node.target) or node.target.health <= 0:
+			extra_projections.erase(node); node.queue_free(); continue
+		node.material.set_shader_parameter("opacity",strength)
+		node.material.set_shader_parameter("softness",softness); node.queue_redraw()
 	visible = strength > 0.001
 	avatar.queue_redraw()
 	enemy_projection.queue_redraw()
@@ -123,22 +130,13 @@ func standalone(texture: Texture2D) -> Texture2D:
 
 # The visible trunk/stone, rather than the collision footprint or padded bitmap,
 # defines the contact row. Cache each raster so this never scans pixels per frame.
-static func contact_row(pixels: Image, kind: int) -> int:
-	var width := pixels.get_width()
-	var height := pixels.get_height()
-	if kind in [1,2,4]:
-		for y in range(height-1,height/2-1,-1):
-			for x in range(int(width*0.25),int(width*0.75)):
-				var color := pixels.get_pixel(x,y)
-				if color.a < 0.8: continue
-				var bright := maxf(color.r,maxf(color.g,color.b))
-				var dark := minf(color.r,minf(color.g,color.b))
-				var body := color.r > color.g*1.05 and color.r > color.b*1.15 if kind in [2,4] else bright-dark < bright*0.28
-				if bright > 0.2 and body: return mini(height-1,y+1)
-	for y in range(height-1,-1,-1):
-		for x in width:
-			if pixels.get_pixel(x,y).a >= 0.8: return y
-	return height-1
+static func contact_row(pixels: Image, _kind: int) -> int:
+	# The final visible raster row is authoritative. Colour-based guesses omit
+	# dark roots, contours and earth-colored stone bases and leave a visible gap.
+	for y in range(pixels.get_height()-1,-1,-1):
+		for x in pixels.get_width():
+			if pixels.get_pixel(x,y).a > 0.05: return y
+	return pixels.get_height()-1
 
 func shadow_info(texture: Texture2D, kind: int) -> Dictionary:
 	var key := "%d:%d" % [texture.get_instance_id(),kind]
@@ -183,3 +181,7 @@ func _draw() -> void:
 		draw_set_transform_matrix(projection(base)*transform)
 		draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
+
+func add_enemy_projection(creature: Node2D) -> void:
+	var node := EnemyProjection.new(); node.host = self; node.target = creature
+	node.material = shadow_material.duplicate(); add_child(node); extra_projections.append(node)

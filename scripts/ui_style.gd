@@ -16,6 +16,7 @@ static var menu_theme: Theme
 static func frame(scope: StringName = &"game", button: bool = false, padding: float = 8.0, state: String = "normal") -> StyleBox:
 	var box = preload("res://scripts/ui_frame.gd").new()
 	box.rim = load("res://assets/ui/styles/%s_%s.png" % ["menu" if scope == &"menu" else "game","button" if button else "frame"])
+	box.filled_rim = load("res://assets/ui/styles/%s_%s_filled.png" % ["menu" if scope == &"menu" else "game","button" if button else "frame"])
 	box.fill = null if state == "focus" else preload("res://assets/ui/styles/fill.png")
 	box.edge = padding; box.button = button
 	box.tint = Color(1.22,1.22,1.12) if state in ["hover","focus"] else (Color(0.55,0.55,0.55) if state == "disabled" else (Color(0.8,0.8,0.8) if state == "pressed" else Color.WHITE))

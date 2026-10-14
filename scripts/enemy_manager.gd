@@ -5,6 +5,7 @@ const NAV_STEP := 32.0
 var game
 var enemy
 var defeated := false
+var additional: Array = []
 var parry = Parry.new()
 var navigation := AStarGrid2D.new()
 var navigation_revision := -1
@@ -13,6 +14,9 @@ var path_goal := Vector2.INF
 var path_updated := -1.0
 func configure(owner_game) -> void: game = owner_game
 func reset() -> void:
+	for child in additional:
+		if is_instance_valid(child.enemy): child.enemy.free()
+	additional.clear()
 	if is_instance_valid(enemy): enemy.free()
 	enemy = null; defeated = false; parry.reset()
 	navigation_revision = -1; path.clear(); path_goal = Vector2.INF
@@ -28,6 +32,7 @@ func reset() -> void:
 	enemy.position = best; enemy.update_sprite()
 func activate_parry() -> bool:
 	if game.progression.health <= 0 or not parry.activate(): return false
+	for child in additional: child.parry.activate()
 	game.combat_effects.flash(game.player+Vector2(0,-22),Vector2.from_angle(game.movement.heading),true)
 	game.feedback = "Parry · recupera en 4 s"; game.feedback_time = 1
 	return true
@@ -38,6 +43,7 @@ func advance(delta: float) -> void:
 		for hit in parry.advance(step): game.take_damage(hit.damage)
 		if is_instance_valid(enemy): enemy.advance(step)
 	if is_instance_valid(enemy): enemy.update_sprite()
+	for child in additional: child.advance(delta)
 func refresh_navigation() -> void:
 	if navigation_revision == game.world.navigation_revision: return
 	var bounds: Rect2 = game.world.bounds
@@ -79,11 +85,19 @@ func capture_state() -> Dictionary:
 		creature["stun_clip"] = enemy.stun_clip
 	var hits := []
 	for hit in parry.pending: hits.append({"damage":hit.damage,"impact":hit.impact})
-	return {"defeated":defeated,"enemy":creature,"time":parry.time,"last_activation":parry.last_activation,"used":parry.used,"pending":hits}
+	var result := {"defeated":defeated,"enemy":creature,"time":parry.time,"last_activation":parry.last_activation,"used":parry.used,"pending":hits}
+	if not additional.is_empty():
+		result["additional"] = []
+		for child in additional: result.additional.append(child.capture_state())
+	return result
 
 static func valid_state(data) -> bool:
 	if not data is Dictionary: return false
 	if data.is_empty(): return true # A save from before combat was introduced.
+	if data.has("additional"):
+		if not data.additional is Array or data.additional.size() > 128: return false
+		for child in data.additional:
+			if not child is Dictionary or child.has("additional") or not valid_state(child): return false
 	for key in ["defeated","used"]:
 		if not data.get(key) is bool: return false
 	for key in ["time","last_activation"]:
@@ -113,6 +127,15 @@ static func valid_state(data) -> bool:
 
 func restore_state(data: Dictionary) -> void:
 	if data.is_empty(): return
+	for child in additional:
+		if is_instance_valid(child.enemy): child.enemy.free()
+	additional.clear()
+	for saved in data.get("additional",[]):
+		var child = get_script().new(); child.configure(game)
+		if not saved.defeated:
+			child.enemy = Enemy.new(); game.add_child(child.enemy); child.enemy.configure(game,child)
+		child.restore_state(saved); additional.append(child)
+		if is_instance_valid(child.enemy): game.solar_lighting.shadows.add_enemy_projection(child.enemy)
 	defeated = data.defeated
 	if defeated and is_instance_valid(enemy): enemy.free(); enemy = null
 	if is_instance_valid(enemy) and not data.enemy.is_empty():
@@ -123,3 +146,25 @@ func restore_state(data: Dictionary) -> void:
 		enemy.update_sprite()
 	parry.time = data.time; parry.last_activation = data.last_activation; parry.used = data.used; parry.pending.clear()
 	for hit in data.pending: parry.pending.append({"attacker":enemy,"damage":hit.damage,"impact":hit.impact})
+
+func spawn_debug_enemy() -> bool:
+	if game.hut != null and game.hut.inside: return false
+	if additional.size() >= 128: return false
+	var point := Vector2.INF
+	for radius in [128.0,160.0,96.0]:
+		for i in 16:
+			var candidate: Vector2 = game.player+Vector2.from_angle(game.movement.heading+i*TAU/16)*radius
+			if not game.world.walkable(candidate,9): continue
+			if is_instance_valid(enemy) and candidate.distance_to(enemy.position) < 32: continue
+			var clear := true
+			for child in additional:
+				if is_instance_valid(child.enemy) and candidate.distance_to(child.enemy.position) < 32: clear = false
+			if clear: point = candidate; break
+		if point.is_finite(): break
+	if not point.is_finite(): return false
+	var child = get_script().new(); child.configure(game)
+	child.parry.time = parry.time; child.parry.last_activation = parry.last_activation; child.parry.used = parry.used
+	child.enemy = Enemy.new(); game.add_child(child.enemy); child.enemy.configure(game,child)
+	child.enemy.position = point; child.enemy.update_sprite(); additional.append(child)
+	game.solar_lighting.shadows.add_enemy_projection(child.enemy)
+	return true

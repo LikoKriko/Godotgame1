@@ -257,3 +257,24 @@ los botones principal/pausa y configuración; variantes de juego para paneles,
 inventario, mapa y HUD. Los botones con texto ajustan sus dimensiones a la etiqueta,
 con un margen del 15% de la altura de texto por cada lado. Los slots conservan su
 forma de almacenamiento. El marco NIVEL queda arriba a la izquierda del minimapa.
+
+### Correcciones de interfaz y fabricación
+
+El catálogo de pruebas (`K`) muestra cuatro objetos por fila, con iconos grandes,
+y permite subir un nivel (con su punto de mejora) o añadir otro enemigo joven
+cerca del personaje. El enemigo existente se conserva; los adicionales también
+se guardan. El interior de la choza sigue siendo seguro.
+
+Todas las recetas actuales tardan **2 segundos**. Los ingredientes se reservan
+al pulsar Crear, y el resultado aparece al terminar. Cancelar, cerrar la ventana
+o cambiar de pestaña devuelve los materiales a sus posiciones originales.
+Durante esos dos segundos se bloquea el traslado de objetos para proteger la
+reserva. El tercio inferior de Crear queda libre para futuras animaciones.
+
+Los marcos usan nueve regiones: esquinas y bordes permanecen separados de los
+tramos intermedios que se estiran. El borde exterior del inventario es tres veces
+más ancho. El relleno de los botones solo ocupa el interior cerrado de su sprite,
+sin dibujar rectángulos por fuera; los iconos de ajustes y pausa tienen contorno.
+Las sombras parten de la última fila visible del dibujo; el alargamiento adicional
+con sol bajo se reduce un 20%. La espada usa el mismo gesto anatómico en todas
+las direcciones, tomando la vista hacia la derecha como referencia.

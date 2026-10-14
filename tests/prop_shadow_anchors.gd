@@ -10,9 +10,9 @@ func run() -> void:
 	var fixture := Image.create(40,60,false,Image.FORMAT_RGBA8)
 	fixture.fill_rect(Rect2i(16,12,8,30),Color("8b5931"))
 	fixture.fill_rect(Rect2i(4,44,32,12),Color("426b36"))
-	require(Shadows.contact_row(fixture,2) == 42,"Tree base excludes ground grass and lower bitmap margin")
+	require(Shadows.contact_row(fixture,2) == 55,"Tree contact includes the final visible root/grass row, excluding empty padding")
 	fixture.fill_rect(Rect2i(10,8,20,34),Color("77786e"))
-	require(Shadows.contact_row(fixture,1) == 42,"Rock base uses stone rather than grass decoration")
+	require(Shadows.contact_row(fixture,1) == 55,"Rock contact includes its full displayed silhouette, excluding empty padding")
 	var game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game); game.set_process(false)
 	var shadows = game.solar_lighting.shadows
