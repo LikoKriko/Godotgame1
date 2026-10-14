@@ -186,9 +186,9 @@ func generate_ground_details() -> void:
 	var soil_rng := RandomNumberGenerator.new(); soil_rng.seed = seed_value ^ 65173
 	dirt_patches.clear()
 	for quadrant in [Vector2(-1,-1),Vector2(1,-1),Vector2(-1,1),Vector2(1,1)]:
-		var center: Vector2 = quadrant*Vector2(soil_rng.randf_range(350,1250),soil_rng.randf_range(240,780))
+		var patch_center: Vector2 = quadrant*Vector2(soil_rng.randf_range(350,1250),soil_rng.randf_range(240,780))
 		var radius := Vector2(soil_rng.randf_range(65,125),soil_rng.randf_range(55,95))
-		dirt_patches.append(Rect2(center-radius,radius*2))
+		dirt_patches.append(Rect2(patch_center-radius,radius*2))
 	previous_grass_count = grass_baseline_count(inset,rng)
 
 func grass_baseline_count(inset: Rect2, rng: RandomNumberGenerator) -> int:
@@ -386,15 +386,15 @@ func generate_platforms() -> void:
 	var art = preload("res://scripts/raised_ground.gd"); art.prepare()
 	for attempt in 10000:
 		if platforms.size() == 4: break
-		var center := Vector2(rng.randf_range(-1100,1100),rng.randf_range(-700,700))
+		var platform_center := Vector2(rng.randf_range(-1100,1100),rng.randf_range(-700,700))
 		var width := rng.randf_range(Nature.CHARACTER_WIDTH*2,Nature.CHARACTER_WIDTH*3); var variant := platforms.size()%3
 		var texture: Texture2D = art.textures[variant]
 		var size := Vector2(width,width*texture.get_height()/texture.get_width())
-		var rect := Rect2(center-size/2,size)
-		if not grass_allowed(center,size.length()/2) or not walkable(center,size.length()/2+24): continue
+		var rect := Rect2(platform_center-size/2,size)
+		if not grass_allowed(platform_center,size.length()/2) or not walkable(platform_center,size.length()/2+24): continue
 		var clear := true
 		for cell in props:
-			if props[cell] in [2,4,5] and center.distance_to(self.center(cell)) < 150: clear = false; break
+			if props[cell] in [2,4,5] and platform_center.distance_to(self.center(cell)) < 150: clear = false; break
 		for platform in platforms:
 			if platform.rect.grow(48).intersects(rect): clear = false
 		if clear: platforms.append({"variant":variant,"rect":rect,"height":art.HEIGHT})

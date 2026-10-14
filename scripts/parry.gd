@@ -15,8 +15,8 @@ func reset() -> void:
 func cooldown_remaining() -> float:
 	return maxf(0,COOLDOWN-(time-last_activation))
 
-func eligible(impact: float) -> bool:
-	return not used and last_activation >= impact-BEFORE_IMPACT-0.000001 and last_activation <= impact+AFTER_IMPACT+0.000001
+func eligible(contact_time: float) -> bool:
+	return not used and last_activation >= contact_time-BEFORE_IMPACT-0.000001 and last_activation <= contact_time+AFTER_IMPACT+0.000001
 
 func activate() -> bool:
 	if cooldown_remaining() > 0: return false

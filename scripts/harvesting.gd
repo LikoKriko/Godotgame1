@@ -83,13 +83,13 @@ func can_reach(cell: Vector2i, player: Vector2) -> bool:
 	if not nodes.has(cell):
 		return false
 	var rect := bounds(cell)
-	var nearest := player.clamp(rect.position, rect.end)
-	if nearest.distance_to(player) > REACH:
+	var closest_point := player.clamp(rect.position, rect.end)
+	if closest_point.distance_to(player) > REACH:
 		return false
 	# A resource cannot be worked through a different obstacle.
-	var distance := player.distance_to(nearest)
+	var distance := player.distance_to(closest_point)
 	for i in range(1, maxi(1, ceili(distance / 6.0))):
-		var point := player.move_toward(nearest, i * 6.0)
+		var point := player.move_toward(closest_point, i * 6.0)
 		var crossed: Vector2i = world.cell_at(point)
 		if not nodes[cell]["footprint"].has_point(crossed) and not world.walkable(point, 1.0):
 			return false

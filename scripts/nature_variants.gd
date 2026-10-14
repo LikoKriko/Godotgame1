@@ -10,8 +10,8 @@ const ROCK_TONES := [Color(0.95, 0.98, 1.0), Color.WHITE, Color(1.0, 0.97, 0.93)
 
 static func profile(kind: int, id: int) -> Dictionary:
 	var index := posmod(id, COUNT)
-	var size_index := index / 6
-	var tone_index := (index / 2) % 3
+	var size_index := floori(index / 6.0)
+	var tone_index := floori(index / 2.0) % 3
 	return {
 		"id": index,
 		"shape": index % 2,

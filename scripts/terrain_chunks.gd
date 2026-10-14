@@ -45,7 +45,7 @@ func coordinate(point: Vector2) -> Vector2i:
  return Vector2i(floori(point.x/profile.chunk_size),floori(point.y/profile.chunk_size))
 func chunk_rect(key: Vector2i) -> Rect2:
  return Rect2(Vector2(key)*profile.chunk_size,Vector2.ONE*profile.chunk_size)
-func update_window(center: Vector2,view_size: Vector2,immediate: bool = false) -> void:
+func update_window(center: Vector2,view_size: Vector2,_immediate: bool = false) -> void:
  if shared_material == null: return
  var view := Rect2(center-view_size/2,view_size)
  if view == last_view and pending.is_empty(): return

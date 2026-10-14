@@ -33,4 +33,4 @@ func sun_state() -> Dictionary:
 
 func clock_text() -> String:
 	var minutes := floori(hour*60)
-	return "Día %d · %02d:%02d" % [day,minutes/60,minutes%60]
+	return "Día %d · %02d:%02d" % [day,floori(minutes/60.0),minutes%60]

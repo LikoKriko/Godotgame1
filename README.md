@@ -320,3 +320,10 @@ cursor dibujado y la confirmación en una ventana separada.
 `tests/cursor_alignment.gd` comprueba el centro renderizado con cambios de escala,
 resolución, cámara y transformaciones. Estas comprobaciones se ejecutan en Linux;
 el desfase comunicado en Windows requiere verificar la nueva versión allí.
+
+La instalación de la capa del cursor se aplaza hasta que Godot termina de crear
+los hijos de la ventana. La prueba de cursor incluye el arranque desde `_ready`,
+no solo la activación posterior, y comprueba que la capa tenga su dibujo real.
+Se han limpiado los avisos de GDScript comunicados para Godot 4.7.2: divisiones
+enteras explícitas, nombres locales sin conflictos, llamadas estáticas desde
+sus scripts y expresiones con tipos compatibles, sin desactivar advertencias.

@@ -139,7 +139,7 @@ func fit_hud() -> void:
 	var viewport_size := get_viewport_rect().size
 	if camera != null:
 		camera.zoom = Vector2.ONE*1.95*minf(viewport_size.x/1920.0,viewport_size.y/1080.0)
-	var factor: float = gameplay_settings.hud_scale(gameplay_settings.values["hud_size"])
+	var factor: float = preload("res://scripts/game_settings.gd").hud_scale(gameplay_settings.values["hud_size"])
 	interaction.scale = Vector2.ONE*factor
 	interaction.position = Vector2(24,viewport_size.y-18-110*factor)
 	if styled_hud != null: styled_hud.fit()
@@ -287,6 +287,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		restart()
 	update_hud()
 
+func request_settings() -> void:
+	settings_requested.emit()
+
 func is_paused() -> bool:
 	return menu_open or (workbenches != null and workbenches.window.visible) or inventory_panel.visible or world_map.visible or (item_catalog != null and item_catalog.visible)
 
@@ -315,7 +318,7 @@ func interact_at(aim: Vector2) -> bool:
 		var reachable: bool = player.distance_to(nearest) <= resources.REACH
 		for step in range(1,maxi(1,ceili(player.distance_to(nearest)/5))):
 			if not world.walkable(player.move_toward(nearest,step*5),1): reachable = false
-		result = nutrition.refill(bag.held_item()) if reachable else {"ok":false,"message":"Acércate al agua para rellenar la botella."}
+		result = preload("res://scripts/nutrition.gd").refill(bag.held_item()) if reachable else {"ok":false,"message":"Acércate al agua para rellenar la botella."}
 	else:
 		var cell: Vector2i = resources.target_at(aim)
 		if resources.nodes.has(cell) and (resources.nodes[cell].hand_collectable or world.props[cell] == 5):
@@ -549,14 +552,14 @@ func resolve_melee_contact(target: Vector2, pose: Dictionary) -> bool:
 	if cell == resources.NONE or not resources.can_reach(cell,player):
 		feedback = "Golpe al aire."; feedback_time = 1; return false
 	var node: Dictionary = resources.nodes[cell]
-	var material: String = node.material
+	var material_id: String = node.material
 	var impact: Vector2 = resources.visual_aim(target,player)
-	var correct: bool = not node.hand_collectable and bag.can_harvest(material)
+	var correct: bool = not node.hand_collectable and bag.can_harvest(material_id)
 	var result: Dictionary = resources.hit(cell,player,0,true) if category != &"sword" else {"reason":"herramienta"}
 	if category in [&"sword",&"axe",&"pickaxe"]:
 		bag.consume_use(1 if category == &"sword" or correct else 2)
 	impact_position = impact; impact_time = 0.18
-	world_view.register_impact(cell,impact,pose.direction,material,1.0 if correct else 0.3)
+	world_view.register_impact(cell,impact,pose.direction,material_id,1.0 if correct else 0.3)
 	if category == &"sword": combat_effects.flash(impact,pose.direction)
 	if result.has("reason"):
 		feedback = "La mochila está llena." if result.reason == "mochila_llena" else "Ese objeto necesita otra herramienta o manos libres."
@@ -606,5 +609,5 @@ func update_ground_support() -> void:
 			if world.props[cell] != 1 or world.physical_height(cell) > world.JUMP_LIMIT: continue
 			if world.prop_collisions[cell].has_point(player+Vector2(0,17)) and previously_airborne:
 				rock_support = cell; break
-	ground_height = maxf(platform_height,world.physical_height(rock_support) if world.props.has(rock_support) and world.prop_collisions[rock_support].has_point(player+Vector2(0,17)) else 0)
+	ground_height = maxf(platform_height,world.physical_height(rock_support) if world.props.has(rock_support) and world.prop_collisions[rock_support].has_point(player+Vector2(0,17)) else 0.0)
 	previously_airborne = false

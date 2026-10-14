@@ -84,7 +84,7 @@ func configure(inventory, owner_game = null) -> void:
 	equip_button = action_button("",Vector2(970,872)); equip_button.size = Vector2(309,46)
 	equip_button.pressed.connect(equip_selected)
 	for i in Model.CAPACITY:
-		var button := make_button(Vector2(194+(i%8)*72,648+(i/8)*72),Vector2(64,64))
+		var button := make_button(Vector2(194+(i%8)*72,648+floori(i/8.0)*72),Vector2(64,64))
 		button.pressed.connect(select_backpack.bind(i)); button.kind = &"bag"; button.slot = i
 		backpack_buttons.append(button)
 	status = label("Arrastra para mover · Shift + clic: transferir",Vector2(834,543),14)
@@ -366,9 +366,9 @@ func update_workshop() -> void:
 	if valid:
 		workshop_item.text += "\n\nEstado: %d / %d\nTras reparar: %d / %d" % [item["uses"],Model.DEFINITIONS[id]["uses"],Model.DEFINITIONS[id]["uses"],Model.DEFINITIONS[id]["uses"]]
 	workshop_materials.text = "MATERIALES NECESARIOS\n"
-	for material in cost:
-		var unit := " m" if material in [&"cuerda",&"hilo"] else ""
-		workshop_materials.text += "\n%s: %d%s\nDisponible: %d%s\n" % [Model.DEFINITIONS[material]["name"],cost[material],unit,model.count(material),unit]
+	for material_id in cost:
+		var unit := " m" if material_id in [&"cuerda",&"hilo"] else ""
+		workshop_materials.text += "\n%s: %d%s\nDisponible: %d%s\n" % [Model.DEFINITIONS[material_id]["name"],cost[material_id],unit,model.count(material_id),unit]
 	var damaged: bool = valid and item["uses"] < Model.DEFINITIONS[id]["uses"]
 	workshop_confirm.disabled = not valid or not damaged or not Workshop.affordable(model,cost)
 	workshop_message.text = "" if not workshop_confirm.disabled else ("El objeto está en perfecto estado." if valid and not damaged else "Faltan materiales o el objeto no está disponible.")

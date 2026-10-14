@@ -112,10 +112,10 @@ func advance(delta: float) -> void:
 func update_sprite() -> void:
 	if clips.is_empty(): return
 	var attack_name := ("enter_" if entering_attack else "attack_")+("left" if punch_left else "right")
-	var name := "lower" if lower_elapsed >= 0 else (attack_name if state == &"attack" else String(state))
+	var clip_name := "lower" if lower_elapsed >= 0 else (attack_name if state == &"attack" else String(state))
 	if stun_remaining > 0:
-		name = stun_clip if effects.elapsed(&"stun") < STUN_FALL_SECONDS else ("stun_rise" if stun_remaining <= STUN_RISE_SECONDS+0.000001 else "stun_hold")
-	var clip: Dictionary = clips.get(name,clips.idle)
+		clip_name = stun_clip if effects.elapsed(&"stun") < STUN_FALL_SECONDS else ("stun_rise" if stun_remaining <= STUN_RISE_SECONDS+0.000001 else "stun_hold")
+	var clip: Dictionary = clips.get(clip_name,clips.idle)
 	if not sheets.has(clip.path):
 		sheets[clip.path] = load(clip.path)
 		var mask := BitMap.new(); mask.create_from_image_alpha(sheets[clip.path].get_image(),0.5)
@@ -123,7 +123,7 @@ func update_sprite() -> void:
 	current_sheet = clip.path
 	var phase := lower_elapsed/LOWER_SECONDS if lower_elapsed >= 0 else (walk_phase if state == &"walk" else (clampf(attack_elapsed/ATTACK_PERIOD,0,1) if state == &"attack" else 0.0))
 	if stun_remaining > 0:
-		phase = effects.elapsed(&"stun")/STUN_FALL_SECONDS if name == stun_clip else (1-stun_remaining/STUN_RISE_SECONDS if name == "stun_rise" else 0.0)
+		phase = effects.elapsed(&"stun")/STUN_FALL_SECONDS if clip_name == stun_clip else (1-stun_remaining/STUN_RISE_SECONDS if clip_name == "stun_rise" else 0.0)
 	var frame := preload("res://scripts/complete_sprite_clips.gd").action_frame(phase,clip.frames)
 	var direction := preload("res://scripts/complete_sprite_clips.gd").direction_index(heading,int(clip.directions))
 	var cell: Vector2 = Vector2(clips.canvas[0],clips.canvas[1])

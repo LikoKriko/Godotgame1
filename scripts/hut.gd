@@ -116,8 +116,8 @@ func draw_room(surface: Node2D) -> void:
 	var walls := [Rect2(floor_rect.position-Vector2(18,28),Vector2(floor_rect.size.x+36,28)),Rect2(floor_rect.position-Vector2(18,0),Vector2(18,floor_rect.size.y)),Rect2(Vector2(floor_rect.end.x,floor_rect.position.y),Vector2(18,floor_rect.size.y))]
 	for wall in walls:
 		surface.draw_texture_rect(timber,wall,false,Color("81705b")); surface.draw_rect(wall,Color("30271e"),false,1.0/Style.PIXELS_PER_WORLD)
-	for sign in [-1,1]:
-		var wall := Rect2(Vector2(floor_rect.position.x if sign == -1 else ROOM_CENTER.x+24,floor_rect.end.y),Vector2(floor_rect.size.x/2-24,16))
+	for wall_side in [-1,1]:
+		var wall := Rect2(Vector2(floor_rect.position.x if wall_side == -1 else ROOM_CENTER.x+24,floor_rect.end.y),Vector2(floor_rect.size.x/2-24,16))
 		surface.draw_texture_rect(timber,wall,false,Color("81705b"))
 	surface.draw_texture_rect(timber,Rect2(ROOM_CENTER.x-24,floor_rect.end.y,48,16),false,Color("c2ac86"))
 

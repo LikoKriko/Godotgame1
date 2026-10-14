@@ -72,5 +72,5 @@ func apply(viewport: Viewport) -> void:
 		window.position = DisplayServer.screen_get_position(window.current_screen)
 	else:
 		var screen := DisplayServer.screen_get_usable_rect(window.current_screen)
-		window.position = screen.position+(screen.size-window.size)/2
+		window.position = screen.position+Vector2i(Vector2(screen.size-window.size)/2.0)
 	changed.emit()

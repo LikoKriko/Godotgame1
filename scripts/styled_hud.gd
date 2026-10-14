@@ -36,7 +36,7 @@ func configure(owner_game) -> void:
 	setting_button = framed_button("⚙", Rect2(40,37,57,52))
 	setting_button.text = ""; setting_button.icon = load("res://assets/ui/styles/settings_icon.png")
 	setting_button.tooltip_text = "Configuración"
-	setting_button.pressed.connect(func(): game.settings_requested.emit())
+	setting_button.pressed.connect(game.request_settings)
 	pause_button = framed_button("Ⅱ", Rect2(116,37,55,52))
 	pause_button.text = ""; pause_button.icon = load("res://assets/ui/styles/pause_icon.png")
 	pause_button.tooltip_text = "Pausa"
@@ -161,7 +161,7 @@ func framed_label(dimensions: Vector2, region: Rect2 = Rect2()) -> Label:
 
 	return label
 
-func bar(text: String, dimensions: Vector2, region: Rect2) -> Control:
+func bar(text: String, dimensions: Vector2, _region: Rect2) -> Control:
 	var node := Control.new()
 	node.size = dimensions; node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(node)
@@ -173,7 +173,7 @@ func bar(text: String, dimensions: Vector2, region: Rect2) -> Control:
 	return node
 
 func fit() -> void:
-	var factor: float = game.gameplay_settings.hud_scale(game.gameplay_settings.values.hud_size)
+	var factor: float = preload("res://scripts/game_settings.gd").hud_scale(game.gameplay_settings.values.hud_size)
 	var screen := get_viewport_rect().size
 	for node in [setting_button,pause_button,map_frame,quick_bar,skill_bar,life,food,water,clock,weight,level_label]+shortcuts:
 		node.scale = Vector2.ONE*factor
@@ -229,7 +229,8 @@ func refresh() -> void:
 	var held_uid: int = game.bag.held_item().get("uid",-1)
 	var quick_state := []
 	for item in game.bag.quick_slots:
-		quick_state.append(-1 if item.is_empty() else [item.uid,item.id,item.quantity,item.uses,item.get("water_ml",0) > 0])
+		if item.is_empty(): quick_state.append(-1)
+		else: quick_state.append([item.uid,item.id,item.quantity,item.uses,item.get("water_ml",0) > 0])
 	var skill_state := []
 	for id in [&"speed",&"power"]: skill_state.append([ceilf(game.progression.cooldowns[id]),game.progression.skills[id] == 0])
 	# Compare displayed values, rather than raw hydration/cooldown floats: their

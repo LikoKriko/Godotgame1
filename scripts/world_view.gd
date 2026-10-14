@@ -76,7 +76,7 @@ func presentation(cell: Vector2i) -> Dictionary:
 	var large: bool = world.large_rocks.has(cell)
 	var center: Vector2 = world.center(cell) + (Vector2(32,32) if large else Vector2.ZERO)
 	var texture: Texture2D = burdock_textures[world.burdock[cell]-1] if kind == 5 else (detail_textures[1] if kind == 4 else detail_textures[1])
-	var dimensions := Vector2(64, 64 * texture.get_height() / texture.get_width())
+	var dimensions := Vector2(64, floori(64.0 * texture.get_height() / texture.get_width()))
 	var tint := Color(0.75,0.75,0.75)
 	if kind in [1,2]:
 		var variant: int = world.prop_variants[cell]
@@ -90,7 +90,7 @@ func presentation(cell: Vector2i) -> Dictionary:
 		dimensions = Vector2(height * texture.get_width() / texture.get_height(), height)
 		tint = Color.WHITE
 	elif kind == 5:
-		dimensions = Vector2(32*texture.get_width()/texture.get_height(),32)
+		dimensions = Vector2(floori(32.0*texture.get_width()/texture.get_height()),32)
 		tint = Color.WHITE
 	texture = preload("res://scripts/tree_art.gd").texture(texture,dimensions) if kind == 2 else Style.normalized(texture,dimensions,true,kind == 1,0.9 if kind == 1 else 1.0)
 	var result := {"texture": texture, "size": dimensions, "tint": tint, "rect": Rect2(center + Vector2(-dimensions.x/2, (60 if large else 26)-dimensions.y), dimensions)}
@@ -164,9 +164,9 @@ func rebuild_trees() -> void:
 		tree_sprites[cell] = sprite
 		tree_records[cell] = {"rest":rect,"base":rect.position+Vector2(rect.size.x/2,rect.size.y),"tint":data["tint"],"initialized":false}
 
-func register_impact(cell: Vector2i, point: Vector2, direction: Vector2, material: String, strength: float = 1) -> void:
+func register_impact(cell: Vector2i, point: Vector2, direction: Vector2, material_id: String, strength: float = 1) -> void:
 	impulses[cell] = {"time": 0.20, "direction": direction, "strength": strength}
-	var tint := Color("95968b") if material in ["mineral", "piedra"] else (Color("97a568") if material == "fibra" else Color("b5905c"))
+	var tint := Color("95968b") if material_id in ["mineral", "piedra"] else (Color("97a568") if material_id == "fibra" else Color("b5905c"))
 	for i in 5:
 		particles.append({"position": point, "velocity": Vector2.from_angle(i*TAU/5-PI/2)*22+Vector2(0,-12), "time": 0.25, "tint": tint})
 	queue_redraw()
@@ -197,9 +197,9 @@ func update_trees(player: Vector2, delta: float) -> void:
 		if particles[i]["time"] <= 0:
 			particles.remove_at(i)
 	var character_rect := Rect2(player+Vector2(-28,-53),Vector2(56,76))
-	var visibility_changed: bool = player != last_tree_player or world.props.size() != last_tree_props
-	var active: Array = tree_sprites.keys() if visibility_changed else fading_trees.keys()
-	if not visibility_changed:
+	var visibility_dirty: bool = player != last_tree_player or world.props.size() != last_tree_props
+	var active: Array = tree_sprites.keys() if visibility_dirty else fading_trees.keys()
+	if not visibility_dirty:
 		for cell in changed_props:
 			if tree_sprites.has(cell) and not active.has(cell): active.append(cell)
 	var fade_factor := 1-exp(-delta*12)
@@ -219,17 +219,17 @@ func update_trees(player: Vector2, delta: float) -> void:
 		if impulses.has(cell) and absf(impulses[cell]["direction"].x) > 0.1:
 			direction = signf(impulses[cell]["direction"].x)
 		var wave := impulse_wave(cell)
-		var rotation := wave * (0.065 if world.props[cell] == 4 else 0.025) * direction
-		if not record.initialized or sprite.rotation != rotation:
-			sprite.rotation = rotation
-			sprite.position = base - Vector2(rest.size.x/2,rest.size.y).rotated(rotation)
+		var sway_angle := wave * (0.065 if world.props[cell] == 4 else 0.025) * direction
+		if not record.initialized or sprite.rotation != sway_angle:
+			sprite.rotation = sway_angle
+			sprite.position = base - Vector2(rest.size.x/2,rest.size.y).rotated(sway_angle)
 			hit_meshes.set_transform(cell,sprite.position,sprite.rotation,sprite.scale)
 			record.initialized = true
 		var behind: bool = player.y+17 < world.prop_collisions[cell].end.y
-		var hidden: bool = behind and rest.intersects(character_rect)
+		var occludes_player: bool = behind and rest.intersects(character_rect)
 		var z := 1 if behind else -1
 		if sprite.z_index != z: sprite.z_index = z
-		var target := TREE_FADED_ALPHA if hidden else 1.0
+		var target := TREE_FADED_ALPHA if occludes_player else 1.0
 		var alpha := lerpf(sprite.modulate.a,target,fade_factor)
 		var tint: Color = record.tint.lerp(Color.WHITE,absf(wave)*0.15)
 		tint.a = alpha
@@ -307,7 +307,7 @@ static func soil_palette(texture: Texture2D) -> Vector3:
 	var pixels := texture.get_image(); var color := Vector3.ZERO; var count := 0
 	for y in 32:
 		for x in 32:
-			var paint := pixels.get_pixel(mini(pixels.get_width()-1,x*pixels.get_width()/32),mini(pixels.get_height()-1,y*pixels.get_height()/32))
+			var paint := pixels.get_pixel(mini(pixels.get_width()-1,floori(x*pixels.get_width()/32.0)),mini(pixels.get_height()-1,floori(y*pixels.get_height()/32.0)))
 			if paint.a < 0.8: continue
 			color += Vector3(paint.r,paint.g,paint.b); count += 1
 	color /= maxf(1,count); soil_palette_cache[key] = color

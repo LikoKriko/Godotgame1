@@ -134,7 +134,7 @@ func create_selected() -> void:
 	var error := Workshop.craft(trial,selected,station_level)
 	if not error.is_empty(): message.text = error; return
 	reservation = model.fork(); pending = selected
-	for material in Workshop.RECIPES[pending]: model.remove_amount(material,Workshop.RECIPES[pending][material])
+	for material_id in Workshop.RECIPES[pending]: model.remove_amount(material_id,Workshop.RECIPES[pending][material_id])
 	creation_seconds = Workshop.CREATION_TIMES[pending]; progress.max_value = creation_seconds
 	remaining = creation_seconds; progress.value = 0
 	message.text = "Creando · 2,0 s"; refresh(); crafted.emit(message.text)

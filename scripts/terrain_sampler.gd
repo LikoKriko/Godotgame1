@@ -31,7 +31,7 @@ func configure(seed_number: int,configuration) -> void:
  var p: Vector4 = profile.proportions; p /= p.x+p.y+p.z+p.w
  var cumulative := [p.x,p.x+p.y,p.x+p.y+p.z]
  for i in 3:
-  thresholds[i] = -1 if cumulative[i] <= 0 else (2 if cumulative[i] >= 1 else values[clampi(roundi(cumulative[i]*(values.size()-1)),0,values.size()-1)])
+  thresholds[i] = -1.0 if cumulative[i] <= 0 else (2.0 if cumulative[i] >= 1 else values[clampi(roundi(cumulative[i]*(values.size()-1)),0,values.size()-1)])
  if calibration_cache.size() >= 8: calibration_cache.erase(calibration_cache.keys()[0])
  calibration_cache[key] = thresholds
 func weights_at(point: Vector2) -> Vector4:

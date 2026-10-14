@@ -40,9 +40,9 @@ static func geometry(id: StringName) -> Dictionary:
 	if id in [&"bottle_empty",&"bottle_full"]:
 		var filled := id == &"bottle_full"
 		var bottle := preload("res://scripts/container_art.gd").part(1 if filled else 0)
-		var grip := Vector2(1050,235) if filled else Vector2(435,235)
+		var bottle_grip := Vector2(1050,235) if filled else Vector2(435,235)
 		var mouth := Vector2(1090,135) if filled else Vector2(475,130)
-		var entry := {"texture":bottle,"grip":grip-bottle.region.position,"contact":mouth-bottle.region.position,"display_size":14.0,"clear_black":true}
+		var entry := {"texture":bottle,"grip":bottle_grip-bottle.region.position,"contact":mouth-bottle.region.position,"display_size":14.0,"clear_black":true}
 		geometry_cache[id] = entry
 		return entry
 	var texture: Texture2D = icon(id)

@@ -157,9 +157,9 @@ func prop_geometry(cell: Vector2i) -> Dictionary:
 	var rect: Rect2 = data["rect"]
 	rect.size.y *= info["fraction"]
 	if view.tree_sprites.has(cell):
-		var transform: Transform2D = view.tree_sprites[cell].global_transform
+		var sprite_transform: Transform2D = view.tree_sprites[cell].global_transform
 		var foot := Vector2(texture.get_width()/2.0,texture.get_height())
-		return {"texture":texture,"rect":Rect2(Vector2.ZERO,texture.get_size()),"transform":transform,"base":transform*foot}
+		return {"texture":texture,"rect":Rect2(Vector2.ZERO,texture.get_size()),"transform":sprite_transform,"base":sprite_transform*foot}
 	rect.position += view.offset_for(cell)
 	return {"texture":texture,"rect":rect,"transform":Transform2D.IDENTITY,"base":Vector2(rect.get_center().x,rect.end.y)}
 
@@ -177,18 +177,18 @@ func _draw() -> void:
 		var sprite: Sprite2D = game.hut.exterior
 		var info := shadow_info(sprite.texture,2)
 		var texture: Texture2D = info.texture
-		var transform := sprite.global_transform
-		var base := transform*Vector2(texture.get_width()/2.0,texture.get_height())
-		draw_set_transform_matrix(projection(base)*transform)
+		var sprite_transform := sprite.global_transform
+		var base := sprite_transform*Vector2(texture.get_width()/2.0,texture.get_height())
+		draw_set_transform_matrix(projection(base)*sprite_transform)
 		draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
 	if game.workbenches != null:
 		for table in game.workbenches.tables:
 			var sprite: Sprite2D = table.sprite
 			var info := shadow_info(sprite.texture,6)
 			var texture: Texture2D = info.texture
-			var transform := sprite.global_transform
-			var base := transform*Vector2(texture.get_width()/2.0,texture.get_height())
-			draw_set_transform_matrix(projection(base)*transform)
+			var sprite_transform := sprite.global_transform
+			var base := sprite_transform*Vector2(texture.get_width()/2.0,texture.get_height())
+			draw_set_transform_matrix(projection(base)*sprite_transform)
 			draw_texture_rect(texture,Rect2(Vector2.ZERO,texture.get_size()),false)
 	draw_set_transform_matrix(Transform2D.IDENTITY)
 
