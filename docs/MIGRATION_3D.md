@@ -10,7 +10,14 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
 
 - Anatomía, skinning, ropa y catálogo de gestos del superviviente.
 - Cámara sobre el hombro, física de caminar/correr/agacharse/deslizar/saltar.
-- Hacha y árboles de prueba, contactos cercanos y desgaste correcto.
+- Hacha, pico y espada sólidos, con agarres, contacto por mira y desgaste según
+  impacto. Arco con cuerda/flecha unidas a las manos, tensado de 0,5 s, munición
+  separada, desgaste al tensar y proyectiles con colisión continua.
+- Botella y alimentos visibles en mano. Beber/comer aplican consumo al terminar.
+  Recogida con E y manos libres; botella rellenable con E sobre agua cercana.
+- Armadura de hojas en cuerpo y retrato, unida al torso completo, sin protección.
+- Árboles, cuatro tamaños de roca y un charco de prueba; extracción correcta,
+  recompensa, rechazo de herramienta errónea y animación de recogida.
 - Enemigo joven: modelo/rig, acciones, memoria y rutinas; parry y stun.
 - HUD, tamaños, correr automático y ventanas integradas sin cursor personalizado.
 - Inventario/arrastre/acceso rápido físico, reparación, creación con reserva,
@@ -23,13 +30,12 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
 
 ## Pendiente de trasladar del juego 2D
 
-1. Modelos de los otros objetos, agarres visibles y acciones completas de espada,
-   pico, arco/flechas, botella y comida. Sus poses y anclajes ya están preparados.
-   Vestimenta de hojas sobre el modelo y retrato, respetando torso y hombros.
+1. Modelos de los objetos restantes: materiales, equipo aún provisional y mesa.
+   Ampliar variantes y revisar el acabado de los modelos con el usuario al final.
 2. Conectar caminos, agua, césped, árboles originales agrupados, rocas, bardana,
    arbolitos y elevaciones al terreno por chunks ya trasladado. Reutilizar la
    semilla, consultas y reglas de distribución, adaptando sus colisiones al 3D.
-3. Recolección E, objetos en suelo, rellenado de botellas, colocación de mesa,
+3. Ampliar recolección E a plantas/objetos en suelo, colocación de mesa,
    creación por estación, campamento y edificios. Los interiores comparten el
    espacio exterior: carga progresiva por proximidad y descarga con histéresis;
    no se cambian pantallas. El componente `building_stream.gd` ya prepara esto.
@@ -47,8 +53,13 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
 - Tras perder de vista al jugador, el joven busca 2 s en la última posición;
   sus cambios de postura duran 0,28 s. La memoria se descarta al llegar, no al
   perder visión. Estos parámetros son ajustables sin cambiar la estructura.
-- Las poses virtuales del catálogo no implican que un objeto ya tenga modelo o
-  mecánica en la partida 3D. Los espacios de armadura todavía no alteran el cuerpo.
+- Las familias de armas y los consumibles ya tienen modelos. Los materiales y
+  objetos de colocación aún no están modelados; no confundir su presencia en el
+  inventario con su migración al mundo. Solo la armadura de hojas cambia el cuerpo.
+- Rocas y agua están colocadas como muestras de prueba. Su distribución procedural
+  y los diseños completos del entorno siguen pendientes; el charco no es un lago.
+- El usuario ha confirmado de nuevo que el PDF empieza después de **toda** la
+  migración, aunque esta tanda de herramientas y armadura ya esté terminada.
 - No inventar recetas, misiones, logros ni recompensas de experiencia. El botón de
   nivel del catálogo es únicamente una herramienta de pruebas.
 

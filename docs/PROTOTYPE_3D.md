@@ -21,8 +21,10 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero_3d.tscn`.
   ángulo; no dependen de direcciones discretas de sprites.
 - El hacha existente tiene volumen, dos agarres y alcance anatómico. El punto
   de mira se fija al iniciar el golpe y los brazos acompañan al mango. El
-  resto del catálogo prepara anclajes y poses para los objetos posteriores;
-  **sus modelos físicos y sus acciones de combate aún no están conectados**.
+  pico y la espada también tienen volumen y contacto por la mira. El arco tensa
+  durante seis pasos en 0,5 s, necesita una flecha y gasta un uso al tensar,
+  incluso si se cancela; la flecha se consume únicamente al soltarla. Los rayos
+  por segmento evitan atravesar objetivos entre fotogramas.
 - Joven topo de 0,875 m, esqueleto propio de catorce huesos: cuatro apoyos al
   caminar/correr, levantarse para alternar puños, sentarse, comer de árboles,
   stun y muerte. Persigue al 85% de la caminata del jugador y deambula al 42,5%.
@@ -46,18 +48,31 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero_3d.tscn`.
 - Terreno continuo con las cuatro texturas originales, semilla, regiones, máscaras
   orgánicas, precarga, descarga y caché de chunks. Consultas de tipo/densidad y
   suelo desnudo junto a los árboles. El mapa usa la misma semilla y regiones.
+- Armadura de hojas visible sobre pecho, abdomen, espalda y hombros, con cuello
+  abierto y costuras finas. Comparte el movimiento completo del torso y aparece
+  en el retrato del inventario; todavía no añade protección.
+- Rocas de prueba: una pequeña recogible con E y tres tamaños para pico de
+  4/8/12 golpes y 4/10/15 piedras. La muestra pequeña da dos piedras, dentro del
+  rango de 1–3 original. Un charco permite rellenar la botella seleccionada con E.
+- Botella y tres alimentos visibles al comer/beber. Recoger baja la velocidad un
+  60% durante 0,36 s y la recupera en 0,5 s. Al equipar se pierde un 5%, que se
+  recupera progresivamente en 1 s. Se puede seguir caminando al sacar el objeto.
+- Espada: 3 de daño y un uso solo al impactar; hacha/pico: 1 de daño, dos usos
+  contra enemigo o recurso incorrecto y uno en su función correcta. El daño
+  contra recursos solo lo hace la herramienta correspondiente. El arco hace 3
+  de daño. La estela corta sigue la punta física de la espada.
 - Muerte del jugador en 3 s y reaparición sin objetos ni perks, a nivel 1,
   conservando las habilidades desbloqueadas en su primer nivel.
 
 Este es un prototipo en migración, no el juego 2D trasladado por completo. El
 escenario de pruebas sigue siendo una superficie limitada de 48×48 m renderizada por chunks con cuatro
-árboles y una pared; edificios, generación por chunks y otras mecánicas se
+árboles, rocas, un charco y una pared; edificios, generación por chunks y otras mecánicas se
 registran en [MIGRATION_3D.md](MIGRATION_3D.md).
 
 ## Controles y escenas de revisión
 
 WASD y ratón; Shift correr; Ctrl agacharse o deslizarse mientras corres; Espacio
-saltar; 1 alternar hacha/manos; clic golpear; F parry; I inventario; T crear;
+saltar; 1–6 seleccionar/quitar el acceso rápido; clic golpear o usar; E interactuar; F parry; I inventario; T crear;
 M mapa; K catálogo; Z/X habilidades; Esc pausa/cerrar. Desde pausa puede abrirse
 la versión 2D. El prototipo no escribe partidas 2D.
 
@@ -124,3 +139,23 @@ Caminos y distribución completa de elementos todavía deben conectarse.
 La prueba gráfica `tests/prototype_3d_terrain.gd` compara cada píxel entre varios
 chunks y un único plano, también en coordenadas negativas y lejanas. Comprueba
 además la reproducción exacta al descargar/regresar y el límite de la caché.
+
+## Equipo e interacciones migradas
+
+`held_prop.gd` construye objetos sólidos a partir de perfiles de categoría;
+`prop_mesh.gd` comparte cilindros y materiales de detalle pixel art. La cuerda
+se orienta entre puntos reales sin escalar en los ejes del mundo. Cada golpe
+mantiene el punto de mira inicial y limita el alcance anatómico; los contactos
+bajos flexionan el cuerpo y las piernas. La cuerda del arco y el culatín siguen
+el hueso de la mano que tira. La botella acerca su boca a los labios.
+
+Pruebas añadidas: `tests/prototype_3d_equipment.gd` comprueba daño, desgaste,
+munición, cancelación, tiempos, cuerda, colisión del proyectil y armadura;
+`tests/prototype_3d_interactions.gd` usa el rayo real de cámara para recoger y
+rellenar, y verifica consumo de 250 ml conservando el recipiente. La prueba de
+movimiento también cubre la ralentización de recogida y comer con correr
+automático activado. La revisión F6 permite mostrar la armadura.
+
+Pendiente: distribución completa del entorno, resto de objetos/edificios,
+estaciones, cuerpos saqueables y guardado 3D. Las muestras nuevas no sustituyen
+ese trabajo. El sistema del PDF sigue pospuesto hasta terminar toda la migración.

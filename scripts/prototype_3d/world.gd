@@ -32,6 +32,7 @@ var skill_points:=0
 var experience:=0
 var pending_consumption:Dictionary={}
 var terrain:Node3D
+var combat_effects:Node3D
 func _ready() -> void:
  # The 2D cursor autoload would override captured mouse mode each frame.
  var cursor := get_tree().root.get_node_or_null("GameCursor")
@@ -45,6 +46,7 @@ func _ready() -> void:
  bag.reset()
  bag.move_item(&"quick",5,&"quick",0)
  build_environment()
+ combat_effects=preload("res://scripts/prototype_3d/combat_effects.gd").new();add_child(combat_effects);combat_effects.game=self
  player = preload("res://scripts/prototype_3d/player.gd").new(); add_child(player); player.configure(self); player.position = Vector3(0,0.2,2.0)
  camera_rig = preload("res://scripts/prototype_3d/shoulder_camera.gd").new(); add_child(camera_rig); camera_rig.configure(self,player); camera_rig.update(1.0)
  build_ui()
@@ -68,6 +70,10 @@ func build_environment() -> void:
   var center:Vector2=Vector2(tree.position.x,tree.position.z)/units
   terrain.sampler.add_influence(StringName("tree_%d"%index),&"dirt",Rect2(center-Vector2.ONE*25,Vector2.ONE*50),0.65)
  terrain.refresh_influences()
+ var rock_points:=[Vector3(3,0,2.5),Vector3(4,0,-2.2),Vector3(-3,0,1.5),Vector3(8,0,-7)]
+ for i in rock_points.size():
+  var rock:=preload("res://scripts/prototype_3d/rock.gd").new();add_child(rock);rock.position=rock_points[i];rock.configure(i)
+ var water:=preload("res://scripts/prototype_3d/water_source.gd").new();add_child(water);water.position=Vector3(-2,0,4)
  # A solid test wall also provides an explicit camera collision case.
  var wall := StaticBody3D.new(); add_child(wall); wall.position = Vector3(-6,1,-2)
  var collider := CollisionShape3D.new(); var block := BoxShape3D.new(); block.size = Vector3(0.5,2,5); collider.shape = block; wall.add_child(collider)
@@ -161,6 +167,7 @@ func respawn() -> void:
  for i in bag.slots.size():bag.slots[i]={}
  for i in bag.quick_slots.size():bag.quick_slots[i]={}
  bag.active_quick_uid=-1;player.equipped=false;player.death_elapsed=-1;player.action_elapsed=-1;player.equip_elapsed=-1;player.equip_recovery=0;player.parry_elapsed=-1;player.locomotion.reset();player.position=Vector3(0,0.2,2)
+ player.pickup_recovery=0;player.model.wear({})
  paused=false;pause_panel.hide();Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
 func open_2d() -> void:
  if get_tree().root.get_node_or_null("GameCursor") == null:
@@ -169,7 +176,8 @@ func open_2d() -> void:
 func _unhandled_input(event: InputEvent) -> void:
  if event is InputEventKey and event.pressed and not event.echo:
   if event.keycode == KEY_ESCAPE: toggle_pause(); get_viewport().set_input_as_handled()
-  elif event.keycode == KEY_1 and not paused: player.toggle_tool()
+  elif event.keycode>=KEY_1 and event.keycode<=KEY_6 and not paused:player.select_quick(event.keycode-KEY_1)
+  elif event.keycode==KEY_E and not paused:interact()
   elif event.keycode == KEY_F and not paused:activate_parry()
   elif event.keycode == KEY_M:toggle_map()
   elif event.keycode == KEY_I and not pause_panel.visible:toggle_inventory(0)
@@ -180,34 +188,64 @@ func _unhandled_input(event: InputEvent) -> void:
  if paused: return
  if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED: camera_rig.look(event.relative)
  if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT: player.strike()
-func resolve_hit(click_target = null) -> bool:
- var result: Dictionary = camera_rig.target() if click_target == null else click_target
- if result.is_empty() or not is_instance_valid(result.collider):
-  status.text = "Golpe al aire"; return false
- if result.collider.has_meta("creature"):
-  result=result.duplicate();result.collider=result.collider.get_meta("creature")
- if result.collider.is_in_group("prototype_enemies"):
-  if result.collider.health<=0:return false
-  var query:=PhysicsShapeQueryParameters3D.new();var sphere:=SphereShape3D.new();sphere.radius=0.07
-  query.shape=sphere;query.transform=Transform3D(Basis.IDENTITY,result.position);query.collision_mask=24;query.collide_with_areas=true
-  var still_here:=false
-  for hit in get_world_3d().direct_space_state.intersect_shape(query):
-   var candidate=hit.collider.get_meta("creature",hit.collider)
-   if candidate==result.collider:still_here=true;break
-  if not still_here:status.text="Golpe al aire";return false
-  if not player.can_reach_contact(result.position):status.text="Fuera de alcance";return false
-  result.collider.take_damage(1.0 if player.equipped else 0.0)
-  if player.equipped:bag.consume_use(2)
-  status.text="Enemigo: %d / 10"%int(result.collider.health);return true
- if not result.collider.is_in_group("prototype_trees"):status.text="Golpe al aire";return false
- if not player.equipped:status.text="Necesitas el hacha para talar este árbol";return false
- var tree: Node3D = result.collider
- if not player.can_reach_contact(result.position): status.text = "Acércate o apunta a una zona al alcance del hacha"; return false
- if not tree.hit(): return false
- bag.consume_use()
- if tree.health == 0: bag.add(&"madera",4)
- status.text = "Árbol: %d golpes restantes · Madera: %d" % [tree.health,bag.count(&"madera")]
+func target_owner(collider):
+ return collider.get_meta("creature",collider.get_meta("resource",collider))
+func target_still_at(result:Dictionary,owner_node) -> bool:
+ var query:=PhysicsShapeQueryParameters3D.new();var sphere:=SphereShape3D.new();sphere.radius=0.07
+ query.shape=sphere;query.transform=Transform3D(Basis.IDENTITY,result.position);query.collision_mask=25;query.collide_with_areas=true
+ for hit in get_world_3d().direct_space_state.intersect_shape(query):
+  if target_owner(hit.collider)==owner_node:return true
+ return false
+func resolve_hit(click_target=null) -> bool:
+ var result:Dictionary=camera_rig.target() if click_target==null else click_target
+ if result.is_empty() or not is_instance_valid(result.collider):status.text="Golpe al aire";return false
+ var target=target_owner(result.collider)
+ var family:StringName=player.action_family if player.action_elapsed>=0 else player.family()
+ var item:Dictionary=bag.held_item() if player.equipped else {}
+ if not item.is_empty() and item.uses<=0:return false
+ var enemy:bool=target.is_in_group("prototype_enemies")
+ var tree:bool=target.is_in_group("prototype_trees")
+ var rock:bool=target.is_in_group("prototype_rocks")
+ if not enemy and not tree and not rock:status.text="Golpe al aire";return false
+ if target.health<=0 or not target_still_at(result,target):status.text="Golpe al aire";return false
+ if not player.can_reach_contact(result.position):status.text="Fuera de alcance";return false
+ if enemy:
+  var base:float=bag.held_damage() if player.equipped else 0.0
+  target.take_damage(progression.combat_damage(base) if family==&"sword" else base)
+  if player.equipped:bag.consume_use(2 if family in [&"axe",&"pickaxe"] else 1)
+  combat_effects.flash(result.position);status.text="Enemigo: %d / 10"%int(target.health);return true
+ if rock and target.hand_collectable:status.text="Recoge esta piedra con E y las manos libres.";return false
+ var correct:bool=family==(&"axe" if tree else &"pickaxe")
+ if player.equipped:bag.consume_use(1 if correct or family==&"sword" else 2)
+ if not correct:status.text="Necesitas el hacha." if tree else "Necesitas el pico.";return true
+ var reward:StringName=&"madera" if tree else &"piedra"
+ var amount:int=4 if tree else target.yield_count
+ if target.health==1 and not bag.can_add(reward,amount):status.text="Libera espacio en la mochila para recoger los materiales.";return true
+ target.hit();combat_effects.flash(result.position)
+ if target.health==0:bag.add(reward,amount)
+ status.text="%s: %d golpes restantes"%["Árbol" if tree else "Roca",target.health];return true
+func release_arrow(point:Vector3,uid:int) -> bool:
+ var bow:Dictionary=bag.item_by_uid(uid)
+ if bow.get("id")!=&"bow" or bag.count(&"flecha")<=0:return false
+ bag.remove_amount(&"flecha",1)
+ var from:Vector3=player.model.held_props[&"bow"].nocked.global_position
+ var arrow:=preload("res://scripts/prototype_3d/arrow.gd").new();add_child(arrow);arrow.configure(self,from,point)
+ arrow.travel(minf(24*1.75/64.0,from.distance_to(point)))
  return true
+func interact() -> bool:
+ if player.action_elapsed>=0 or player.preview_state!=&"" or player_health<=0:return false
+ var result:Dictionary=camera_rig.target()
+ if result.is_empty():return false
+ var target=target_owner(result.collider)
+ if result.position.distance_to(player.global_position)>1.75:status.text="Acércate para interactuar.";return false
+ if target.is_in_group("prototype_water"):
+  var outcome:Dictionary=preload("res://scripts/nutrition.gd").refill(bag.held_item() if player.equipped else {})
+  status.text=outcome.message;inventory_panel.refresh();return outcome.ok
+ if target.is_in_group("prototype_rocks") and target.hand_collectable and target.health>0:
+  if player.equipped:status.text="Necesitas las manos libres para recogerlo.";return false
+  if not bag.add(&"piedra",target.yield_count):status.text="La mochila está llena.";return false
+  target.hit();player.play_preview(&"",&"pickup");status.text="Piedra × %d"%target.yield_count;return true
+ return false
 func resume_world() -> void:
  paused=false;Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
 func toggle_inventory(section:int) -> void:
@@ -222,12 +260,13 @@ func toggle_catalog() -> void:
  if item_catalog.visible:item_catalog.hide();return
  if paused or not pending_consumption.is_empty():return
  paused=true;Input.mouse_mode=Input.MOUSE_MODE_VISIBLE;item_catalog.open_catalog()
-func cancel_work() -> void:pass
+func cancel_work() -> void:player.cancel_action()
 func update_hud() -> void:
  if hud!=null:hud.refresh()
 func item_icon(item:Dictionary) -> Texture2D:return preload("res://scripts/prototype_3d/item_icons.gd").for_item(item)
 func sync_equipment() -> void:
- player.equipped=bag.held_id()==&"axe"
+ player.equipped=bag.held_id()!=&""
+ player.model.wear(bag.equipment[&"torso"])
  inventory_panel.refresh();update_hud()
 func buy_improvement(id:StringName,ability:bool) -> bool:
  progression.health=player_health
@@ -260,7 +299,7 @@ func finish_consumption() -> void:
  var location:Dictionary=bag.location(pending_consumption.uid)
  if not location.is_empty() and location.kind in [&"bag",&"quick"]:
   var result:Dictionary=nutrition.consume(bag,location.index,location.kind==&"quick");status.text=result.message
- pending_consumption.clear();inventory_panel.refresh()
+ pending_consumption.clear();sync_equipment()
 func spawn_enemy_near_player() -> bool:
  for index in 16:
   var point:Vector3=player.global_position+Vector3(cos(index*TAU/16),0,sin(index*TAU/16))*3

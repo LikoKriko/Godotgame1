@@ -38,6 +38,10 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  var guard_amount:=smoothstep(0,0.2,phase)*(1-smoothstep(0.65,1,phase)) if state==&"parry" else 0.0
  var low_guard:=clampf(32-contact.y,0,12)*guard_amount if state==&"parry" and contact.is_finite() else 0.0
  body.origin.y-=low_guard
+ if state==&"action" and family in [&"axe",&"pickaxe",&"sword"] and contact.is_finite():
+  var bend:=clampf(30-contact.y,0,10)*smoothstep(0.15,0.5,phase)*(1-smoothstep(0.65,1,phase))
+  body.origin.y-=bend
+  body.basis=body.basis*Basis(Vector3.RIGHT,bend*0.012)
  body.origin.z-=recoil*0.65
  body.basis=body.basis*Basis(Vector3.RIGHT,-recoil*0.045)
  if state==&"idle": body.origin.y+=sin(phase*TAU)*0.12
@@ -72,6 +76,9 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   if family==&"axe":
    pose.grip=Pose.gesture(rest_grip,wind,body*Vector3(2,35,14),phase,family)
    pose.shaft=Pose.gesture(Vector3(0.42,0.72,0.55),wind_axis,Vector3(0.1,0.1,1),phase,family).normalized()
+  elif family==&"sword":
+   pose.grip=body*Pose.gesture(Vector3(6,31,6),Vector3(9,42,8),Vector3(-2,34,12),phase,family)
+   pose.shaft=(body.basis*Pose.gesture(Vector3(0,0.35,0.94),Vector3(0.1,0.9,0.42),Vector3(-0.65,-0.3,0.7),phase,family)).normalized()
   pose.grip.z=maxf(pose.grip.z,4.5)
   if contact.is_finite():
    var profile:=Profiles.profile(family)
@@ -91,6 +98,8 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   pose.grip=pose.shoulders[active]+direction*lerpf(13,18,drawn)
   pose.shaft=(Vector3.UP-direction*Vector3.UP.dot(direction)).normalized()
   pose.hands[1-active]=pose.hands[1-active].lerp(body*Vector3(4,49,5.5),drawn)
+  var bow_x:Vector3=pose.shaft.cross(direction).normalized()
+  pose.tool_basis=Basis(bow_x,direction.cross(bow_x).normalized(),direction)
  if family==&"" and state==&"action" and contact.is_finite():
   var shoulder: Vector3=pose.shoulders[1]
   var end:=shoulder+shoulder.direction_to(contact)*minf(18.6,shoulder.distance_to(contact))
@@ -98,6 +107,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   pose.hands[1]=pose.hands[1].lerp(end,amount)
  if state in [&"drink",&"drink_walk"]:
   var amount:=smoothstep(0,0.25,phase)*(1-smoothstep(0.75,1,phase))
+  pose.grip=body*Vector3(6.5,32,7).lerp(Vector3(0.8,46.7,9.5),amount)
   pose.shaft=(body.basis*Vector3(0,1,0).lerp(Vector3(0,0.65,-0.75),amount)).normalized()
  for side in 2:
   if pose.hands[side].y>30 and pose.hands[side].y<55 and absf(pose.hands[side].x)<7:

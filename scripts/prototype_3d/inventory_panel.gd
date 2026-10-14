@@ -31,6 +31,7 @@ func build_portrait() -> void:
 func update_portrait() -> void:
  if portrait==null:return
  portrait.texture=portrait_view.get_texture()
+ portrait_actor.wear(model.equipment[&"torso"])
  portrait_view.render_target_update_mode=SubViewport.UPDATE_ONCE if visible else SubViewport.UPDATE_DISABLED
 func refresh() -> void:
  super.refresh()

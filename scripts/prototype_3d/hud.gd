@@ -70,7 +70,7 @@ func _process(_delta:float) -> void:
   var item:Dictionary=game.bag.quick_slots[i]
   slots[i].texture=Icons.for_item(item) if not item.is_empty() else null
   amounts[i].text=str(item.quantity) if item.get("quantity",0)>1 else ""
-  slot_frames[i].modulate=Color(1.2,1.2,1.08) if game.player.equipped and item.get("id")==&"axe" else Color.WHITE
+  slot_frames[i].modulate=Color(1.2,1.2,1.08) if game.player.equipped and item.get("uid",-2)==game.bag.active_quick_uid else Color.WHITE
  for i in ability_buttons.size():
   var id:StringName=&"speed" if i==0 else &"power"
   var remaining:float=game.progression.cooldowns[id]

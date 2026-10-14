@@ -22,7 +22,7 @@ static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int
  var best: Dictionary = {}; var best_score := INF
  for roll in [0.0,-0.55,0.55]:
   var plane_up := up.rotated(forward,roll)
-  for degrees in range(16,87,2):
+  for degrees in range(16,137,2):
    var angle := deg_to_rad(float(degrees))
    var y := forward*sin(angle)+plane_up*cos(angle)
    var x := forward*cos(angle)-plane_up*sin(angle)

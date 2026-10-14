@@ -33,6 +33,7 @@ func _ready() -> void:
  column.add_child(states);states.item_selected.connect(func(index):clip=state_options[index];elapsed=0)
  var slow:=CheckButton.new();slow.text="Cámara lenta";column.add_child(slow);slow.toggled.connect(func(value):speed=0.25 if value else 1.0)
  if species!=&"young":
+  var armor:=CheckButton.new();armor.text="Armadura de hojas";column.add_child(armor);armor.toggled.connect(func(value):actor.wear({"id":&"burdock_armor"} if value else {}))
   var pulse:=Button.new();pulse.text="Previsualizar pulso de parry";column.add_child(pulse);pulse.pressed.connect(func():actor.confirm_parry())
 func _process(delta: float) -> void:
  elapsed+=delta*speed
@@ -42,6 +43,8 @@ func _process(delta: float) -> void:
  else:
   var phase:=fposmod(elapsed/Clips.duration(clip,family),1)
   actor.family_override=family;actor.aim_contact=Vector3(0,42,31)
+  actor.displayed_item=&"apple" if family==&"food" else (&"botella" if family==&"bottle" else family)
+  actor.item_water_ml=500;actor.nock_visible=clip==&"draw"
   var moving:=String(clip).contains("walk") or clip in [&"run",&"start",&"stop",&"start_run",&"stop_run"]
   actor.animate(clip,phase,family==&"axe",delta*speed,fposmod(elapsed/0.6,1),Vector3.BACK if moving else Vector3.ZERO)
  var distance:=1.9 if species==&"young" else 3.2

@@ -25,5 +25,15 @@ func run():
  for i in 4:await physics_frame
  assert(world.player.velocity.length()<1.1,"Crouch walk uses the reduced speed")
  key(KEY_W,false);key(KEY_CTRL,false)
- print("PASS: live 3D run, slide, slide jump and crouch movement")
+ for i in 8:await physics_frame
+ world.player.play_preview(&"",&"pickup");key(KEY_W,true)
+ for i in 4:await physics_frame
+ assert(world.player.velocity.length()>0.65 and world.player.velocity.length()<0.9,"Pickup reduces movement by 60 percent")
+ for i in 60:await physics_frame
+ assert(world.player.velocity.length()>1.9,"Pickup recovers normal speed after its half-second recovery")
+ world.settings.values.auto_run=true;world.player.play_preview(&"food",&"eat")
+ for i in 4:await physics_frame
+ assert(world.player.velocity.length()<2.1,"Eating forces walking even with auto-run enabled")
+ key(KEY_W,false);world.settings.values.auto_run=false
+ print("PASS: live 3D run, slide, slide jump, crouch, pickup recovery and eating movement")
  world.free();quit()

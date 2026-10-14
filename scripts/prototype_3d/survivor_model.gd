@@ -17,6 +17,11 @@ var grip_socket := Node3D.new()
 var support_socket := Node3D.new()
 var tip_socket := Node3D.new()
 var parry_pulse: Node3D
+var held_props:Dictionary={}
+var displayed_item:StringName=&"axe"
+var item_water_ml:=0
+var nock_visible:=false
+var leaf_armor:Node3D
 func _ready() -> void:
  super._ready()
  pose_direction_override = -1
@@ -29,6 +34,9 @@ func _ready() -> void:
  axe = preload("res://scripts/prototype_3d/stone_axe.gd").new(); add_child(axe)
  for socket in [grip_socket,support_socket,tip_socket]: add_child(socket)
  grip_socket.name="ObjectGrip";support_socket.name="SupportHand";tip_socket.name="ObjectTip"
+ for family in [&"pickaxe",&"sword",&"bow",&"bottle",&"food"]:
+  var prop:=preload("res://scripts/prototype_3d/held_prop.gd").new();grip_socket.add_child(prop);prop.configure(family);prop.hide();held_props[family]=prop
+ leaf_armor=preload("res://scripts/prototype_3d/leaf_armor.gd").new();add_child(leaf_armor);leaf_armor.hide()
  parry_pulse=preload("res://scripts/prototype_3d/parry_pulse.gd").new();add_child(parry_pulse)
  # Build the unarmed bind mesh once; animation only updates its skeleton.
  build(&"",&"",&"idle",0,4)
@@ -157,11 +165,19 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   support_socket.position=hands[1-last_pose.active]
   tip_socket.position=tool_tip
  rig.apply(last_pose,hands,delta)
+ leaf_armor.transform=last_pose.body
  parry_pulse.update_hands([rig.posed[6].origin,rig.posed[9].origin])
  axe.visible = equipped and item==&"axe"
+ for family in held_props:
+  var prop:Node3D=held_props[family];prop.visible=family==item and state!=&"death"
+  if prop.visible:
+   prop.show_item(displayed_item,item_water_ml)
+   var support_hand:Vector3=rig.posed[6 if last_pose.active==1 else 9].origin
+   prop.update_pose(state,phase,grip_socket.transform.affine_inverse()*support_hand,nock_visible)
  tool.hide(); core_mesh.hide()
-func can_reach_contact(point: Vector3) -> bool:
- var contact_pose := Clips.sample(&"axe",&"action",0.5)
- return not Aim.solve(point,contact_pose.shoulders).is_empty()
+func can_reach_contact(point: Vector3,family:StringName=&"axe") -> bool:
+ var contact_pose := Clips.sample(family,&"action",0.5,0,Vector3.ZERO,point)
+ return contact_pose.get("contact_reachable",false)
+func wear(item:Dictionary) -> void:leaf_armor.visible=item.get("id")==&"burdock_armor"
 func confirm_parry() -> void:
  parry_pulse.play()
