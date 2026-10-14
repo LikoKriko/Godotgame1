@@ -44,7 +44,7 @@ func build_ui() -> void:
  var aim := Label.new(); aim.text = "·"; aim.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; aim.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
  aim.set_anchors_and_offsets_preset(Control.PRESET_CENTER); aim.offset_left = -12; aim.offset_top = -12; aim.offset_right = 12; aim.offset_bottom = 12; aim.add_theme_font_size_override("font_size",28); root.add_child(aim)
  status = Label.new(); status.position = Vector2(20,20); status.text = "DAY ZERO · PROTOTIPO 3D"; root.add_child(status)
- var help := Label.new(); help.text = "WASD: mover · Ratón: cámara · Shift: correr · Espacio: saltar · 1: hacha/manos · Clic: talar · Esc: pausa"
+ var help := Label.new(); help.text = "WASD: mover · Ratón: cámara · Shift: correr · Ctrl: agachar/deslizar · Espacio: saltar · 1: hacha/manos · Clic: talar · Esc: pausa"
  help.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_LEFT); help.position = Vector2(20,-36); root.add_child(help)
  pause_panel = CenterContainer.new(); pause_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); root.add_child(pause_panel); pause_panel.hide()
  var frame := PanelContainer.new(); frame.theme = preload("res://scripts/ui_style.gd").theme(); pause_panel.add_child(frame)
