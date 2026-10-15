@@ -129,3 +129,35 @@ movimiento. En ventana nativa: 11 comprobaciones de menús, desplegables,
 configuración, guardado/carga y clics. La importación del editor terminó sin
 errores de scripts. El controlador llvmpipe avisa que no puede cambiar VSync;
 ese aviso pertenece a la revisión gráfica del entorno, no al proyecto.
+
+
+## 2026-10-15 — Objetos tirados con volumen 3D
+
+Primera observación de esta continuación: **11:19:40 UTC** (13:19:40 Madrid).
+El usuario pidió continuar la migración. Se abordó la representación física
+pendiente de objetos con diseño existente, sin inventar los que no tienen
+referencia. Durante la tanda añadió rehacer después el deslizamiento a partir
+de referencias reales. Sin estimación previa para esta tanda.
+
+Hito de cierre de implementación y pruebas: **11:35:06 UTC**, intervalo medido
+**15 min 26 s**. Incluye modelos de 21 ids (agua antigua comparte la botella
+actual), caché de geometría/materiales, apoyo, recogida y revisión gráfica de
+14 objetos. No incluye la animación del deslizamiento, aún no realizada.
+
+Validación: 162 comprobaciones de modelos físicos, estados, caché y recogida;
+15 de botín; 17 de mesa; 191 de guardado y sesión. Importación del editor sin
+errores. Revisión nativa: materiales, contornos, sombras, profundidad, botella,
+armadura, herramientas y sal con etiqueta sobre superficie curva. Se ajustó el
+apoyo mediante vértices reales y la boca/etiqueta de la bolsa al observarlos.
+
+Para la tarea siguiente, el acceso web a referencias reales quedó bloqueado
+por el proxy (403). El permiso general de red se concedió, pero no modifica
+la lista del proxy; se guardó una ampliación de cuatro dominios en el borrador,
+que requiere publicación del entorno. No se sustituyen referencias verificadas
+por una afirmación de haber visto un movimiento real.
+
+Medición adicional de construcción en Godot headless: primera creación de los
+21 ids en **302,754 ms** (20 claves de malla por la botella heredada compartida);
+1000 creaciones/liberaciones posteriores en **12,118 ms**, sin aumentar la
+caché. Son costes de construcción de nodos/recursos en este entorno, no una
+medición de FPS ni de coste de renderizado en el equipo del usuario.

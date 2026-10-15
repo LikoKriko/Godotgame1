@@ -206,8 +206,8 @@ colisión, entrada/salida de la ventana y curtido con desgaste de sal/cuchillo.
 `corpse_loot.gd` adapta el almacén de ocho espacios a los cuerpos 3D. La selección
 se habilita al completar la caída; el cuerpo conserva su inventario durante 3 min.
 La recogida respeta slots y estados individuales. Tirar crea un `world_item.gd`
-seleccionable con E; la representación del suelo es aún un icono 256² orientado
-hacia la cámara, pendiente del modelo de cada material. La recogida usa manos
+seleccionable con E; la representación del suelo usa modelos sólidos compartidos para los objetos
+con diseño disponible; conserva un marcador para los diseños todavía ausentes. La recogida usa manos
 libres y la animación inclinada. `prototype_3d_loot.gd` cubre transferencia,
 mochila llena, botella con contenido, contador y caducidad sin duplicaciones.
 
@@ -381,3 +381,33 @@ colisión de suelo al mirar arriba y comprueba amplitud/cadencia/IK;
 poses finitas y las cinco escalas del HUD. El catálogo existente revisa todos
 los estados/familias y dieciséis orientaciones de desplazamiento; la revisión
 nativa añade vistas frontales y laterales en varias fases con/sin armadura.
+
+
+## Objetos físicos y recursos compartidos
+
+`item_models.gd` construye una vez y comparte mallas/materiales de las 21
+categorías con referencia disponible. Hacha/pico/espada/arco/flecha reutilizan
+la geometría de sus versiones en mano; la armadura, la malla de hojas; la mesa,
+las mismas siete piezas y medidas que su versión colocada. Consumibles,
+botella, palos, piedra, cuerda trenzada, bobina de hilo, bolsa de sal y láminas
+curvadas de hojas/pieles conservan sus diseños. Las texturas de láminas y etiqueta
+de sal usan sus dibujos importados con píxeles definidos, sin rectángulos de fondo.
+
+`world_item.gd` muestra el modelo real con profundidad y sombras. Su zona de
+selección se ajusta al volumen, con un mínimo para objetos muy pequeños. Es un
+Area3D: el objeto tirado no bloquea al caminar. Al crearlo se apoya sobre la
+superficie física bajo su posición; al cargar se conserva exactamente la
+posición guardada, sin volver a buscar suelo. E, manos libres, animación de
+recogida y reglas de mochila siguen compartidas con el botín.
+
+Los estados de agua tienen recursos separados (vacía/250/500 ml); cantidad,
+usos y uid permanecen en el registro individual. Variar el desgaste o tamaño
+de una pila no crea nuevas mallas. Un modelo representa la pila completa,
+sin multiplicar dibujos por cada unidad de material. Cuchillo, fibra, prendas
+sin diseño y otros objetos no disponibles mantienen su marcador provisional;
+no reciben un diseño inventado.
+
+Revisión F6: `scenes/prototype_3d/item_review.tscn`, selector de objeto, botella
+llena, giro con botón derecho y zoom con rueda. No concede objetos en partida.
+`tests/prototype_3d_item_models.gd` verifica geometría, apoyo, caché, estados,
+sombras y recogida; las pruebas de botín, mesa y guardado cubren su integración.

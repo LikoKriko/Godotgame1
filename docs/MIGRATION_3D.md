@@ -32,6 +32,10 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
   cargan por proximidad sin cambiar de pantalla. Puertas de 1,5×2,2 m,
   oscurecimiento exterior al 70% y barrera que mantiene al enemigo fuera.
 - Pantalla negra de generación con barra blanca ligada al avance de creación.
+- Objetos tirados con modelos sólidos para las 21 categorías con dibujo:
+  armas/herramientas, flecha, botella, alimentos, palo, piedra, cuerda/hilo,
+  pieles/cuero, sal, hoja, armadura y mesa. Mallas/materiales compartidos,
+  sombras de geometría y apoyo sobre suelo; conserva estados y guardado.
 - Cadáver del joven accesible tras 2 s, ocho huecos en dos filas; Recoger y Tirar,
   contador real de mochila, recogida E con manos libres y conservación de usos
   y agua por objeto. Desaparición tras 180 s más la caída. El cuero sin refinar
@@ -56,8 +60,8 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
 2. Refinar los modelos provisionales del entorno y edificios para acercarlos a
    todas las siluetas originales. La distribución ya está conectada; los nueve
    diseños originales de árbol aún no tienen nueve modelos 3D específicos.
-3. Sustituir la representación provisional de objetos arrojados (iconos en el
-   mundo) por modelos pequeños donde corresponda.
+3. Completar los modelos de objetos cuyo diseño todavía falta; los objetos con
+   referencia disponible ya usan modelos sólidos al tirarlos.
 4. Revisar que cada interacción del 2D tenga equivalente, además de animaciones,
    sombras, colisiones, costes, cancelación, pausas y reaparición.
 
@@ -68,9 +72,9 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
 - Tras perder de vista al jugador, el joven busca 2 s en la última posición;
   sus cambios de postura duran 0,28 s. La memoria se descarta al llegar, no al
   perder visión. Estos parámetros son ajustables sin cambiar la estructura.
-- Las familias de armas y los consumibles ya tienen modelos. Los materiales y
-  objetos adicionales aún no están modelados; no confundir su presencia en el
-  inventario con su migración al mundo. Solo la armadura de hojas cambia el cuerpo.
+- Las familias de armas, consumibles y materiales con referencia ya tienen
+  modelos de suelo. Faltan diseños de algunas prendas/materiales y el cuchillo;
+  conservar sus marcadores provisionales. Solo la armadura de hojas cambia el cuerpo.
 - Los modelos ambientales son una primera adaptación volumétrica: no dar por
   terminados los diseños de árboles, edificios y plantas solo por estar colocados.
   Los charcos aún no sustituyen lagos y las superficies de agua son simples.
@@ -103,3 +107,17 @@ modelos finales del campamento; ya se colocan los seis exteriores provisionales.
 Separar el contenido en escenas pequeñas, porque instanciar un fragmento muy
 grande no se puede interrumpir. Los exteriores opacos ocultarán el interior;
 no convertirlo en un viewport ni teletransportar al cruzar una puerta.
+
+
+## Prioridad siguiente solicitada: deslizamiento humano
+
+Después de los objetos físicos, rehacer la animación del deslizamiento con
+referencias reales. Mantener duración, alcance, activación con Control al
+correr y salto encadenado. Se han presentado dos posturas al usuario: cadera
+con una pierna adelantada y otra doblada, o rodillas con torso erguido; todavía
+no hay respuesta en esta revisión. No dar por elegida una postura del usuario.
+
+El proxy bloqueó las consultas de Little League y Wikipedia con HTTP 403.
+La ampliación de red quedó guardada en el borrador del entorno, pendiente de
+Revisar/Guardar y Publicar. No se han podido consultar esas fuentes todavía;
+no afirmar que la nueva animación procede de referencias ya examinadas.

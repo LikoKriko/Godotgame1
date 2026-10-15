@@ -66,8 +66,10 @@ func drop_selected() -> void:
  if item.is_empty():return
  var point:Vector3=corpse.global_position+Vector3(0.55,0,0.4)
  spawn_drop(item,point);corpse.loot_slots[selected]={};selected=-1;refresh()
-func spawn_drop(item:Dictionary,point:Vector3) -> Node3D:
- var drop:=preload("res://scripts/prototype_3d/world_item.gd").new();game.add_child(drop);drop.configure(item);drop.global_position=point;return drop
+func spawn_drop(item:Dictionary,point:Vector3,settle:bool=true) -> Node3D:
+ var drop:=preload("res://scripts/prototype_3d/world_item.gd").new();game.add_child(drop);drop.configure(item);drop.global_position=point
+ if settle:drop.settle_on_ground()
+ return drop
 func pickup(drop:Node3D) -> bool:
  if drop.item.is_empty():return false
  if game.player.equipped:game.status.text="Necesitas las manos libres para recogerlo.";return false

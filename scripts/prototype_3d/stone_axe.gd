@@ -3,7 +3,8 @@ extends Node3D
 const Meshes=preload("res://scripts/prototype_3d/prop_mesh.gd")
 const GRIP:=Vector3(0,4,0)
 const CONTACT:=Vector3(11,24,0)
-func _ready() -> void:
+func _ready() -> void:build()
+func build() -> void:
  var wood:=Meshes.material(&"wood",Color("93633c"));var stone:=Meshes.material(&"stone",Color("9c978e"));var rope:=Meshes.material(&"rope",Color("b5ab78"))
  for side in [-1,1]:
   Meshes.polyline(self,PackedVector3Array([Vector3(side*0.6,0,0),Vector3(side*0.7,8,0.15),Vector3(side*0.45,17,-0.1),Vector3(side*0.75,25,0),Vector3(side*0.9,31.5,0.35)]),PackedFloat32Array([0.75,0.8,0.7,0.9,0.68]),wood)

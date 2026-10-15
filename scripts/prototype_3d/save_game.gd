@@ -252,7 +252,7 @@ static func restore(game,data:Dictionary) -> bool:
   actor.brain.tree=game.environment_content.resource_nodes.get(entry.brain.tree)
   actor.restore_presentation()
  for entry in data.tables:game.workbenches.add_table(point(entry.position),entry.uid)
- for entry in data.drops:game.corpse_loot.spawn_drop(entry.item,point(entry.position))
+ for entry in data.drops:game.corpse_loot.spawn_drop(entry.item,point(entry.position),false)
  game.sync_equipment();game.player.model.family_override=game.player.family()
  var clip:StringName=&"idle";var phase:=0.0
  if game.player_health<=0:clip=&"death";phase=clampf(p.death_elapsed/3,0,1)
