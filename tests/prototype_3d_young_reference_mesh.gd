@@ -55,6 +55,22 @@ func run() -> void:
  var rest_error:=0.0
  for index in probes:rest_error=maxf(rest_error,vertices[index].distance_to(deform(vertices[index],index,ids,weights,actor)))
  require(rest_error<0.001,"The four-view reference stance is also the neutral skin bind pose")
+ # Inspect deformed torso/head envelopes: a bind-pose-only ratio missed the
+ # oversized hump caused by the old quadruped lean.
+ for state in [&"idle",&"walk",&"run"]:
+  for frame in 9:
+   actor.animate(state,frame/8.0,true)
+   var envelopes:Array[AABB]=[AABB(),AABB()]
+   var started:=[false,false]
+   for index in probes:
+    var part:=int(tags[index].x)
+    if part>1:continue
+    var point:=deform(vertices[index],index,ids,weights,actor)
+    if not started[part]:envelopes[part]=AABB(point,Vector3.ZERO);started[part]=true
+    else:envelopes[part]=envelopes[part].expand(point)
+   require(envelopes[0].end.y<envelopes[1].end.y-1.0,"The quadruped back stays below the head rather than forming a giant hump")
+   require(envelopes[0].size.x<envelopes[1].size.x*0.9,"The torso remains narrower than the cheek/head silhouette")
+   require(envelopes[0].size.z<envelopes[1].size.z*1.15,"The posed torso does not dominate the side silhouette")
  var first_second:Transform3D=second.skeleton.get_bone_pose(0)
  for state in preload("res://scripts/prototype_3d/animation_review.gd").YOUNG_STATES:
   for left in [false,true]:

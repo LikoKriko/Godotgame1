@@ -7,7 +7,7 @@ Referencia vigente, conservada sin editar:
 ## Geometría
 
 `young_reference_mesh.gd` construye la superficie sólida en la postura de la
-lámina: torso profundo y arqueado, cabeza baja y ancha, brazos largos adelantados,
+lámina: torso compacto bajo la cabeza, cabeza baja y ancha, brazos largos adelantados,
 patas traseras cortas con separación lateral y tres uñas en cada pie. La cara
 incluye ojos rojos hundidos con apertura almendrada, cejas de pelaje, orejas
 cóncavas con interior rosa, hocico, fosas nasales, colmillos y marcas claras.
@@ -31,6 +31,21 @@ patas conservan 4,4 y 4,2. Se mantienen la marcha cuadrúpeda, incorporaciones,
 puñetazos alternos, comida, sentado, aturdimiento y muerte. La altura normalizada
 en el mundo continúa siendo **0,875 m**. No se cambian vida, daño, recompensas,
 memoria ni tiempos de acciones.
+
+## Corrección del volumen del torso
+
+El torso anterior sobresalía demasiado hacia atrás y, al inclinarse 55° sobre
+cuatro patas, elevaba la grupa por encima de la cabeza. Se reduce la profundidad
+máxima del núcleo de 22,2 a 13,4 unidades y su anchura máxima de 18 a 14,4;
+la inclinación de reposo pasa a 31,5°. La cabeza conserva su volumen y orientación
+frontal. La cola y la franja dorada se recolocan sobre el lomo reducido.
+No se aplica una escala global que altere puños, cara o apoyos.
+
+![Referencia y reposo cuadrúpedo corregido](previews/young_quadruped_comparison.png)
+
+![Antes y después del torso con la misma cámara](previews/young_torso_before_after.png)
+
+![Torso corregido dentro del mundo jugable](previews/young_torso_in_game.png)
 
 ## Materiales
 
@@ -63,7 +78,8 @@ copia visual idéntica a la ilustración.
 
 - `tests/prototype_3d_young_reference_mesh.gd`: malla real, pesos, proyecciones,
   proporción frontal, postura de enlace, independencia de instancias y piel
-  deformada en todos los estados y ambas manos: 2560 comprobaciones.
+  deformada en todos los estados y ambas manos: 2641 comprobaciones, incluidas 81 sobre las envolventes de cabeza y torso
+  deformados en reposo, marcha y carrera.
 - `tests/prototype_3d_creature.gd`: catorce huesos, altura, longitudes, rutinas,
   memoria, parry e integración: 6531 comprobaciones.
 - `tests/prototype_3d_reference_models.gd`: referencias y ligaduras: 539.

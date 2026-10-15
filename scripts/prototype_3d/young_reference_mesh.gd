@@ -8,7 +8,7 @@ const STONE=Color("aaa494")
 const PINK=Color("bf8f82")
 const IVORY=Color("c6c5bd")
 # (height, half-width, half-depth, longitudinal centre), measured against all views.
-const BODY=[Vector4(4.5,3.7,3.9,-3.2),Vector4(6.2,6.5,6.3,-3.6),Vector4(9,8.0,9.0,-4.2),Vector4(13,8.8,11.0,-4.8),Vector4(17,9.0,11.1,-4.8),Vector4(21,8.5,10.5,-4.4),Vector4(24.5,6.6,8.1,-3.5),Vector4(26.5,3.8,4.3,-1.8),Vector4(27.3,0.15,0.15,-1.5)]
+const BODY=[Vector4(4.5,3.7,3.2,-1.8),Vector4(6.2,5.5,4.8,-1.9),Vector4(9,6.6,6.0,-2.2),Vector4(13,7.2,6.6,-2.3),Vector4(17,7.1,6.7,-2.3),Vector4(20,6.7,6.1,-1.8),Vector4(22,5.4,4.8,-1.4),Vector4(24,2.9,2.7,-0.7),Vector4(24.8,0.15,0.15,-0.5)]
 const HEAD=[Vector4(10.5,3.9,4.3,3.0),Vector4(12.5,6.8,6.3,2.7),Vector4(16,8.9,7.8,2.3),Vector4(20,9.6,8.35,2.0),Vector4(24,8.8,7.8,1.5),Vector4(27,6.4,5.9,1.0),Vector4(28.6,3.1,3.0,0.8),Vector4(29.1,0.1,0.1,0.8)]
 var surface:=SurfaceTool.new()
 var region:=0
@@ -25,16 +25,16 @@ func build() -> ArrayMesh:
  region=0
  # A dense, interrupted golden ridge follows the arch of the back.
  for row in 9:
-  var y:=lerpf(15.5,27.0,row/8.0)
+  var y:=lerpf(12.8,22.0,row/8.0)
   for column in 3:
    var a:float=-PI/2+(column-1)*0.19+0.035*sin(row*1.9)
-   var root_point:=back_point(y,a,0.55)
-   var tip:=back_point(maxf(12.8,y-2.6),a+(column-1)*0.10,1.35)
+   var root_point:=profile_point(BODY,y,a,0.55)
+   var tip:=profile_point(BODY,maxf(10.2,y-2.6),a+(column-1)*0.10,1.35)
    lock(root_point,tip,0.95+0.12*sin(row+column),moss_color(row*3+column),Vector3(0,0.25,-1),true)
  # The small tail is fleshy, tapered and ridged rather than a pink sphere.
  material_kind=&"skin"
- var tail_root:=Vector3(0,8.2,-14.7)
- curved_taper(tail_root,Vector3(0,7.6,-20.3),1.45,PINK.darkened(0.08),Vector3(0,0.8,0))
+ var tail_root:=Vector3(0,8.2,-8.8)
+ curved_taper(tail_root,Vector3(0,7.6,-13.2),1.45,PINK.darkened(0.08),Vector3(0,0.8,0))
  var neutral:=Motion.sample(&"attack",0)
  for side in 2:
   var sign_side:float=-1 if side==0 else 1

@@ -619,3 +619,32 @@ estados/variantes). El shader y la geometría se renderizan sin errores. Logs y
 capturas intermedios en `/workspace/work/integration-review/round3`.
 No incluye Windows, medición de FPS del usuario, prueba de audio físico ni
 aprobación artística final de las animaciones del enemigo1.
+
+## 2026-10-15 — Corrección del torso del joven en cuadrupedia
+
+Primer hito observado: **20:05:13 Europe/Madrid** (18:05:13 UTC).
+Cierre de revisión observado: **20:12:46 Europe/Madrid** (18:12:46 UTC).
+Intervalo registrado: **7 min 33 s**. La lectura anterior al primer hito y la
+publicación posterior quedan fuera; sin estimación previa. Incluye comparación
+con las cuatro referencias y la captura del usuario, renders antes/después,
+cuatro vistas de enlace y de reposo, seis acciones con ambas manos y capturas
+con terreno, jugador e iluminación del mundo de prueba.
+
+Se reduce el núcleo del torso: profundidad máxima 22,2 → 13,4 unidades,
+anchura 18 → 14,4; se baja su coronación de 27,3 a 24,8. La inclinación
+cuadrúpeda pasa de 0,96 a 0,55 radianes para que la espalda no eleve una gran
+joroba y oculte la cabeza. Cola y cresta del lomo siguen el nuevo volumen.
+Se conserva la altura normalizada, el detalle de pelaje y el esqueleto.
+
+Pasan **2641** comprobaciones de malla y deformación, **6531** de criatura y
+**539** de referencias/ligaduras. Se añaden 81 comprobaciones de las envolventes
+reales deformadas de torso y cabeza durante reposo, marcha y carrera: anchura,
+profundidad y altura relativa. La proporción de la malla en reposo por sí sola
+no detectaba el problema de la postura anterior. Se actualiza la comparación
+de referencia y se añaden las de cuadrupedia, antes/después y mundo jugable.
+La mejora de silueta está revisada visualmente; siguen existiendo diferencias
+artísticas en cara, mechones y acabado respecto a la ilustración original.
+
+Integración de publicación: se conserva `70bacfe`, revisión del departamento
+de animaciones. Solo añade documentación; se resuelve el registro de tiempos
+conservando ambas entradas. No modifica el código validado.

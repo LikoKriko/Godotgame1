@@ -28,7 +28,7 @@ static func sample(state: StringName,phase: float,left: bool = true) -> Dictiona
  var seated:=1.0 if state==&"sit" else (smoothstep(0,1,phase) if state==&"sit_down" else (1-smoothstep(0,1,phase) if state==&"sit_up" else 0.0))
  var fallen:=smoothstep(0,1,phase) if state in [&"stun_fall",&"death"] else (1-smoothstep(0,1,phase) if state==&"stun_rise" else (1.0 if state in [&"stun_hold",&"corpse"] else 0.0))
  var effort:=sin(phase*PI) if state==&"attack" else 0.0
- var lean:=lerpf(0.96,-0.04*effort,standing)
+ var lean:=lerpf(0.55,-0.04*effort,standing)
  lean=lerpf(lean,0.14,seated)
  var basis:=Basis(Vector3.RIGHT,lerpf(lean,1.45,fallen))
  if walking:basis=Basis(Vector3.BACK,0.025*sin(phase*TAU))*basis
