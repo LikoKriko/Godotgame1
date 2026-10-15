@@ -25,7 +25,7 @@ func show_design(design:int,variation:int) -> void:
  if is_instance_valid(tree):tree.free()
  tree=preload("res://scripts/prototype_3d/tree_model.gd").new();tree.design_id=design;tree.variant_id=variation;add_child(tree)
 func _process(_delta:float) -> void:
- var target:=Vector3.UP*tree.visual_height()*.50
+ var target:Vector3=Vector3.UP*tree.visual_height()*.50
  camera.position=target+Vector3(sin(orbit)*cos(elevation),sin(elevation),cos(orbit)*cos(elevation))*zoom;camera.look_at(target)
 func _unhandled_input(event:InputEvent) -> void:
  if event is InputEventMouseButton:
