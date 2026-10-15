@@ -2,7 +2,8 @@ extends Node3D
 ## Standalone F6 review scene: no new objects or mechanics are granted in-game.
 const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
 @export var species:StringName=&"survivor"
-const YOUNG_STATES:Array[StringName]=[&"idle",&"walk",&"run",&"rise",&"attack",&"lower",&"sit_down",&"sit",&"sit_up",&"feed",&"stun_fall",&"stun_hold",&"stun_rise",&"death",&"corpse"]
+const YoungMotion=preload("res://scripts/prototype_3d/young_pose.gd")
+const YOUNG_STATES:Array[StringName]=YoungMotion.STATES
 var actor: Node3D
 var camera:=Camera3D.new()
 var family: StringName = &""
@@ -46,11 +47,11 @@ func _ready() -> void:
    var angle:float=[0.0,deg_to_rad(-68),PI,deg_to_rad(68)][i]
    view.pressed.connect(func():orbit=angle)
  var slow:=CheckButton.new();slow.text="Cámara lenta";column.add_child(slow);slow.toggled.connect(func(value):speed=0.25 if value else 1.0)
+ var pause:=CheckButton.new();pause.text="Pausar / revisar fase";column.add_child(pause);pause.toggled.connect(func(value):paused=value)
+ var phase_control:=HSlider.new();phase_control.min_value=0;phase_control.max_value=1;phase_control.step=.005;phase_control.custom_minimum_size.x=220;column.add_child(phase_control);phase_control.value_changed.connect(func(value):manual_phase=value)
  if species!=&"young":
   var armor:=CheckButton.new();armor.text="Armadura de hojas";column.add_child(armor);armor.toggled.connect(func(value):actor.wear({"id":&"burdock_armor"} if value else {}))
   var crouched:=CheckButton.new();crouched.text="Atacar agachado";column.add_child(crouched);crouched.toggled.connect(func(value):actor.action_crouch=1.0 if value else 0.0)
-  var pause:=CheckButton.new();pause.text="Pausar / revisar fase";column.add_child(pause);pause.toggled.connect(func(value):paused=value)
-  var phase_control:=HSlider.new();phase_control.min_value=0;phase_control.max_value=1;phase_control.step=.005;phase_control.custom_minimum_size.x=220;column.add_child(phase_control);phase_control.value_changed.connect(func(value):manual_phase=value)
   var height_label:=Label.new();height_label.text="Altura de contacto (m)";column.add_child(height_label)
   height_control=HSlider.new();height_control.min_value=.05;height_control.max_value=1.6;height_control.step=.01;height_control.value=contact_height;column.add_child(height_control);height_control.value_changed.connect(func(value):contact_height=value)
   var distance_label:=Label.new();distance_label.text="Distancia de contacto (m)";column.add_child(distance_label)
@@ -65,8 +66,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
  if not paused:elapsed+=delta*speed
  if species==&"young":
-  var seconds:float={&"run":0.26,&"walk":0.52,&"attack":1.0,&"rise":0.28,&"lower":0.28,&"sit":6.0,&"sit_down":0.28,&"sit_up":0.28,&"feed":4.0,&"stun_fall":0.24,&"stun_hold":1.02,&"stun_rise":0.24,&"death":2.0}.get(clip,1.0)
-  actor.animate(&"attack" if clip==&"reference" else clip,0.0 if clip==&"reference" else fposmod(elapsed/seconds,1),family!=&"right",0.0 if clip==&"reference" else delta*speed)
+  var seconds:float=YoungMotion.seconds(clip)
+  var phase:=0.0 if clip==&"reference" else (manual_phase if paused else fposmod(elapsed/seconds,1))
+  actor.animate(clip,phase,family!=&"right",0.0 if paused or clip==&"reference" else delta*speed)
  else:
   var phase:=manual_phase if paused else fposmod(elapsed/Clips.duration(clip,family),1)
   actor.family_override=family;actor.aim_contact=Vector3(0,contact_height/actor.scale.y,contact_distance/actor.scale.z)

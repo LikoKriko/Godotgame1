@@ -57,7 +57,7 @@ func run():
   valid=valid and absf(sum-1)<0.0001
   if i%503==0:probes.append(i)
  require(valid,"Every source vertex has finite coordinates, UVs and normalized four-bone bindings")
- actor.animate(&"attack",0,true)
+ actor.animate(&"reference",0,true)
  var error:=0.0
  for i in probes:error=maxf(error,vertices[i].distance_to(deform(vertices[i],i,bones,weights,actor)))
  require(error<0.001,"Reference stance reproduces the supplied geometry without deformation")

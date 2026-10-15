@@ -1,4 +1,5 @@
 extends CharacterBody3D
+const Motion=preload("res://scripts/prototype_3d/young_pose.gd")
 const SPEED:=1.7
 const WANDER_SPEED:=0.85
 const ALERT_RADIUS:=7.5
@@ -69,7 +70,7 @@ func steer(direction:Vector3,delta:float) -> Vector3:
 func _physics_process(delta:float) -> void:
  if game==null or game.paused:return
  if health<=0:
-  death_elapsed+=delta;model.animate(&"death" if death_elapsed<2 else &"corpse",minf(1,death_elapsed/2));indicator.hide()
+  death_elapsed+=delta;model.animate(&"death" if death_elapsed<2 else &"corpse",minf(1,death_elapsed/2),punch_left,delta);indicator.hide()
   if death_elapsed>=2:ensure_corpse_area()
   if death_elapsed>=182:queue_free()
   return
@@ -111,16 +112,18 @@ func _physics_process(delta:float) -> void:
   direction=brain.goal-global_position;direction.y=0
   if direction.length()>0.1:direction=steer(direction.normalized(),delta)
   speed=WANDER_SPEED if mode==&"walk" else SPEED;clip=&"walk" if mode==&"walk" else &"run"
-  phase=fposmod(phase+delta/(0.26 if clip==&"run" else 0.52),1);progress=phase
  else:
   clip=mode if mode in [&"sit_down",&"sit",&"sit_up",&"feed"] else &"idle"
-  progress=fposmod(brain.elapsed/(4 if clip==&"sit" else 1.5),1) if clip in [&"sit",&"feed"] else minf(1,brain.elapsed/0.28)
+  progress=fposmod(brain.elapsed/Motion.seconds(clip),1) if clip in [&"idle",&"sit",&"feed"] else minf(1,brain.elapsed/Motion.seconds(clip))
   if clip==&"feed" and is_instance_valid(brain.tree):
    var toward:Vector3=brain.tree.global_position-global_position
    if toward.length()>0.001:model.rotation.y=lerp_angle(model.rotation.y,atan2(toward.x,toward.z),1-exp(-delta*7))
  velocity.x=direction.x*speed;velocity.z=direction.z*speed
  if not is_on_floor():velocity.y-=18*delta
  move_and_slide()
+ if clip in [&"walk",&"run"]:
+  var actual_speed:=Vector2(velocity.x,velocity.z).length()
+  phase=fposmod(phase+delta/Motion.seconds(clip)*clampf(actual_speed/maxf(speed,.01),0,1),1);progress=phase
  if direction.length_squared()>0.01:model.rotation.y=lerp_angle(model.rotation.y,atan2(direction.x,direction.z),1-exp(-delta*7))
  elif clip in [&"attack",&"rise"]:
   var toward:Vector3=game.player.global_position-global_position

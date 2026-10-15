@@ -3,7 +3,7 @@ extends SceneTree
 func _initialize():
  var args:=OS.get_cmdline_user_args()
  if args.is_empty():push_error("Pass -- /absolute/output/joints.json");quit(1);return
- var pose=preload("res://scripts/prototype_3d/young_pose.gd").sample(&"attack",0)
+ var pose=preload("res://scripts/prototype_3d/young_pose.gd").bind_pose()
  var bones=[{"name":"body","a":[0,8.5,-6],"b":[0,19,-1],"parent":-1},{"name":"head","a":[0,17.5,15],"b":[0,27,7],"parent":0}]
  for kind in [&"legs",&"arms"]:
   for side in 2:

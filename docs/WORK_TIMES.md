@@ -769,3 +769,66 @@ No se valida rendimiento del PC del usuario, Windows ni audio físico.
 Se incluyen herramientas reproducibles para exportar anclajes, convertir el
 FBX con ligadura y preparar el recurso Godot. Se incorpora `b247ca5` del otro
 departamento antes de trabajar; añade la carpeta de entregables del enemigo1.
+
+
+## 2026-10-15 — Rehacer las animaciones del enemigo1 reconstruido
+
+Primer hito observado **19:47:31 Europe/Madrid**; cierre de validación
+**20:08:53 Europe/Madrid**. Intervalo medido parcial **21 min 22 s**;
+no se registró el inicio anterior al primer hito ni una estimación previa.
+Se actualizó la rama de `81d6d1f` a `70bacfe` antes de editar, incorporando la
+reconstrucción de modelaje/texturas y su revisión de integración.
+
+Se rehacen quince estados: reposo, caminar, correr, incorporarse, puñetazos
+alternos, bajar, sentarse, sentado, levantarse, alimentación, caer/estar/salir
+del aturdimiento, muerte y cadáver. Se separa la postura de enlace de cualquier
+fotograma animado. Los hashes de todos los arrays de la malla (759012 vértices,
+normales, colores, pesos, UV y proyecciones) y de la imagen de referencia siguen
+idénticos a la base publicada. No se cambian proporciones, pelaje, piedra, cara,
+materiales ni catorce huesos. El giro de los segmentos usa marcos de flexión
+completos; las transiciones se resuelven de nuevo con longitudes constantes.
+La marcha usa apoyos de puños y uñas/talones, las recolocaciones alternan patas
+y las interrupciones parten de la pose mostrada. El catálogo y la escena F6
+comparten duraciones y admiten pausa/fase manual para el joven. No se alteran
+velocidad, daño, personalidad, memoria, vida, recompensas ni ventanas de combate.
+
+Godot **4.6.3**: nueva suite de movimientos **21924**, malla de referencia
+**2560**, criatura/memoria/parry/HUD **6531**, modelos/referencias **539**, botín
+**16**, guardado **191**, integración general **739** y equipo **65**: superadas.
+Se comprueba piel real con pesos, apoyos, continuidad entre estados/ciclos,
+interrupciones, independencia de instancias y cadáver inmóvil. Se renderizaron
+**256 fotogramas** del catálogo, **64 vistas** desde cuatro ángulos y **64 poses**
+finales de incorporarse/sentarse por apoyos alternos. La revisión corrigió
+penetración de pelaje de patas en suelo, giro de extremidades y copia del
+plegado del modelo antiguo. Son animaciones de autor, no mocap ni simulación
+física del pelaje. `git diff --check` limpio. Cambios locales **sin commit/push**.
+
+Nota histórica: la tarea anterior quedó local sobre `70bacfe`; el usuario
+solicitó después trasladar las animaciones al Meshy de `d551f4c`. La malla
+procedural y sus hashes de aquella comprobación no son el modelo vigente.
+
+## 2026-10-15 — Trasladar las animaciones al enemigo1 Meshy vigente
+
+Primer hito observado **21:46:32 Europe/Madrid**; cierre de comprobaciones
+**21:56:39 Europe/Madrid**. Intervalo medido parcial **10 min 7 s**; no se
+registró el inicio anterior al primer hito ni una estimación previa. El commit
+se realiza después de este hito, por petición expresa del usuario durante
+la tarea; no se solicitó push para esta entrega.
+
+Se actualizó de `70bacfe` a `d551f4c`, conservando una copia de los cambios
+pendientes antes de integrar. Se trasladan las quince animaciones a los
+anclajes del Meshy Mossclaw Boar. Se preservan el FBX, `.res`, PNG, geometría,
+UV, pesos y topología publicados; no se recuperan los modelos procedurales.
+La postura fija de enlace reproduce exactamente los puntos originales de
+`rig_seeds.json`, comprobados también con el exportador. Se adaptan apoyos,
+puños, transición a guardia, alimentación, descanso, aturdimiento y muerte.
+Se corrigen penetraciones detectadas de suelas, piedra de los puños y hocico,
+y los saltos al interrumpir acciones. No cambia el balance del combate.
+
+Godot **4.6.3**, pruebas superadas: movimiento **21935**, identidad de Meshy
+**2573**, criatura/parry/HUD **6537**, referencias **539**, botín **16**,
+guardado **191**, integración **739** y equipo **65**. Revisión visual nativa
+Compatibility de **128 fotogramas** (16 poses/estados incluida referencia,
+cuatro fases y dos cámaras), con montajes frontal y lateral de marcha,
+golpe, sentarse, alimentación, muerte y cadáver. `git diff --check` limpio.
+No incluye prueba manual en Windows ni rendimiento del ordenador del usuario.

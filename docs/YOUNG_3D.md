@@ -32,8 +32,8 @@ se retiran para no confundirlas con la entrega actual.
 
 El FBX no incluye esqueleto ni animaciones. Se añade un esqueleto de catorce
 huesos y pesos por difusión de calor de Blender; se conservan y normalizan las
-cuatro influencias principales de cada vértice. Esto es una adaptación para
-las acciones provisionales del juego, no animaciones originales de Meshy.
+cuatro influencias principales de cada vértice. La animación del juego se adapta a esta ligadura; el archivo de Meshy no
+aporta clips originales.
 La primera asignación analítica de pesos se descartó tras detectar estiramientos
 de mejillas al golpear; la versión publicada usa la ligadura por difusión.
 
@@ -57,8 +57,8 @@ nativo es el que usa el juego.
 Abrir `scenes/prototype_3d/young_review.tscn` con F6. **Postura de referencia**
 muestra el archivo en reposo de enlace; los cuatro botones permiten compararlo
 con la lámina. El selector conserva las acciones y la alternancia de puños.
-Las animaciones siguen siendo provisionales, conforme a la instrucción previa
-del usuario de rehacerlas después de integrar el modelo.
+La revisión permite pausar y escoger una fase exacta para comprobar apoyos,
+ambos puños y transiciones sobre el modelo importado actual.
 
 ![Referencia y modelo Meshy importado](previews/young_reference_comparison.png)
 
@@ -106,3 +106,31 @@ se preparan una vez; los usuarios del juego no necesitan Blender.
 Se revisan cuatro vistas de referencia, cuatro en cuadrupedia, seis acciones
 con ambas manos y cuatro cámaras del mundo de prueba. Godot Linux/Compatibility;
 no se valida Windows, audio físico ni rendimiento del equipo del usuario.
+
+## Animaciones adaptadas al Meshy (15 de octubre de 2026)
+
+Las quince acciones de `young_pose.gd` usan las proporciones de la ligadura
+publicada en `d551f4c`. `bind_pose()` fija los puntos de enlace originales y
+también alimenta el exportador; modificar un golpe no puede alterar el reposo.
+No cambian el recurso `.res`, el FBX, posiciones, UV, topología, pesos ni PNG.
+
+- Marcha y carrera cuadrúpedas con transferencia de peso, fases diferenciadas
+  de manos y patas, elevación del talón y despeje de la suela real. El ciclo
+  avanza según la velocidad alcanzada; el reposo respira de forma continua.
+- Incorporación y bajada enlazadas con la guardia; puñetazos alternos con
+  preparación, giro del torso, contrapeso y contacto en la mitad del segundo.
+- Sentarse y levantarse transfieren los apoyos por separado. Descanso y
+  alimentación tienen respiración, mirada y alcance alterno de los brazos.
+- Aturdimiento y muerte parten de la pose que se interrumpe; recuperación
+  y cadáver tienen finales continuos. El cadáver permanece inmóvil.
+
+Las orientaciones completas de cada segmento siguen el plano de flexión y
+conservan sus longitudes. Los puños acompañan al antebrazo. Se despejan los
+apoyos teniendo en cuenta que la piel importada mezcla suela/pantorrilla y
+piedra/antebrazo. Se mantienen las zonas de impacto del hocico y las manos.
+No cambian vida, daño, alcance, botín ni tiempos de combate.
+
+`prototype_3d_young_motion.gd` comprueba 15 acciones, ambas manos y 33 fases:
+longitudes, piel deformada frente al suelo, continuidad de orientación,
+enlaces entre estados, interrupciones y cadáver inmóvil. Se complementa con
+la comprobación del FBX/PNG por SHA-256 de `young_reference_mesh`.

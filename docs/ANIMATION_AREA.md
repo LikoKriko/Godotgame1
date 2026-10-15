@@ -76,3 +76,12 @@ La recogida andando conserva su colocación específica. No cambian velocidad,
 cadencia ni longitudes anatómicas. `prototype_3d_diagonal_gait.gd` comprueba las
 trayectorias completas en las cuatro diagonales, pies renderizados, huesos y
 agarres para las ocho familias y caminar/correr/agachado.
+
+
+## Enemigo1 Meshy
+
+Las animaciones actuales usan el Meshy Mossclaw Boar de `d551f4c`, sin recuperar
+la reconstrucción procedural anterior. Mantener `young_pose.bind_pose()` fijo
+y separado del catálogo de acciones: lo usan el esqueleto y el exportador de
+ligadura. La revisión de F6 permite pausar y recorrer la fase del joven.
+Ver `docs/YOUNG_3D.md` y `tests/prototype_3d_young_motion.gd`.
