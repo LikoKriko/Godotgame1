@@ -3,7 +3,8 @@ extends Node3D
 var game
 var direction:=Vector3.FORWARD
 var speed:=650.0*1.75/64.0
-var distance_left:=680.0*1.75/64.0
+const MAX_DISTANCE:=100.0
+var distance_left:=MAX_DISTANCE
 var damage:=3.0
 func configure(owner_game,from:Vector3,toward:Vector3) -> void:
  game=owner_game;global_position=from;direction=from.direction_to(toward)
@@ -18,6 +19,7 @@ func _physics_process(delta:float) -> void:
  if game==null or game.paused:return
  travel(minf(distance_left,speed*delta))
 func travel(span:float) -> void:
+ span=clampf(span,0,distance_left)
  var end:=global_position+direction*span
  var query:=PhysicsRayQueryParameters3D.create(global_position,end,25,[game.player.get_rid()]);query.collide_with_areas=true
  var hit:=get_world_3d().direct_space_state.intersect_ray(query)

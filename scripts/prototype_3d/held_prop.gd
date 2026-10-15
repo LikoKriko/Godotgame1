@@ -12,18 +12,27 @@ func configure(value:StringName) -> void:
  var wood:=Meshes.material(&"wood",Color("a27a4e"));var stone:=Meshes.material(&"stone",Color("c6c1b6"));var rope:=Meshes.material(&"rope",Color("c5bc82"))
  if family in [&"pickaxe",&"sword"]:
   var top:=27.0 if family==&"pickaxe" else 10.0
-  for x in [-0.55,0.55]:Meshes.segment(self,Vector3(x,-4,0),Vector3(x,top,0),0.72,wood)
+  for x in [-0.55,0.55]:Meshes.polyline(self,PackedVector3Array([Vector3(x,-4,0),Vector3(x*1.1,3,0.15),Vector3(x*0.9,top*0.6,-0.1),Vector3(x,top,0)]),PackedFloat32Array([0.65,0.72,0.67,0.72]),wood)
   if family==&"pickaxe":
-   Meshes.slab(self,PackedVector2Array([Vector2(-13,18),Vector2(-11,23),Vector2(-5,26),Vector2(0,25),Vector2(5,27),Vector2(10,24),Vector2(12,21),Vector2(5,23),Vector2(0,21),Vector2(-6,20)]),1.25,stone)
-   Meshes.bindings(self,22)
+   # Broad chipped rear stone and tapered working point from pico1_3d.png.
+   Meshes.beveled_blade(self,PackedVector2Array([Vector2(-13,18),Vector2(-13.5,19.5),Vector2(-12.2,22),Vector2(-10,24),Vector2(-7,25.4),Vector2(-4,25.8),Vector2(-1.1,24.7),Vector2(-1.5,21),Vector2(-4,19.5),Vector2(-8,18.2),Vector2(-11,17.8)]),1.8,stone)
+   Meshes.beveled_blade(self,PackedVector2Array([Vector2(1.1,25),Vector2(2.8,26.7),Vector2(5.2,26.3),Vector2(7.8,25.2),Vector2(10,23.7),Vector2(12,21),Vector2(9,21.7),Vector2(6,22),Vector2(3.1,21),Vector2(1.2,21.4)]),1.6,stone)
+   var binding:=Meshes.material(&"rope",Color("b9b47c"))
+   for z in [-2.0,2.0]:
+    for offset in [-0.55,0.0,0.55]:
+     Meshes.segment(self,Vector3(-2.5,25+offset,z),Vector3(2.4,20+offset,z),0.28,binding)
+     Meshes.segment(self,Vector3(-2.4,20+offset,z),Vector3(2.5,25+offset,z),0.28,binding)
+   Meshes.bindings(self,18.7,1.7)
   else:
-   Meshes.slab(self,PackedVector2Array([Vector2(-3,9),Vector2(-5.6,15),Vector2(-3,23),Vector2(0,29),Vector2(3.7,24),Vector2(5.4,14),Vector2(3,9)]),0.95,stone)
+   Meshes.beveled_blade(self,PackedVector2Array([Vector2(-1.8,9),Vector2(-3,13.5),Vector2(-3.2,16),Vector2(-2.6,20.5),Vector2(-1.5,25),Vector2(0,29),Vector2(1.7,25.5),Vector2(2.6,21.8),Vector2(3.1,16),Vector2(2.9,13),Vector2(1.8,9)]),0.55,stone)
    Meshes.bindings(self,7.5);Meshes.bindings(self,1.5,1.45)
  elif family==&"bow":
-  var previous:=Vector3(0,-14,-4)
-  for i in range(1,17):
-   var t:=i/16.0;var point:=Vector3(0,lerpf(-14,14,t),sin(t*PI)*4-4)
-   Meshes.segment(self,previous,point,0.45 if i in [1,16] else 0.65,wood);previous=point
+  var points:=PackedVector3Array();var radii:=PackedFloat32Array()
+  for i in 13:
+   var t:=i/12.0;points.append(Vector3(0,lerpf(-14,14,t),sin(t*PI)*4-4))
+   radii.append(0.32 if i in [0,12] else (0.72 if i in [5,6,7] else 0.48))
+  Meshes.polyline(self,points,radii,wood,6)
+  for y in [-12.5,12.5]:Meshes.bindings(self,y,0.55)
   Meshes.bindings(self,0,1.0)
   for i in 2:string_segments.append(Meshes.segment(self,Vector3.ZERO,Vector3.UP,0.11,rope))
   nocked=make_arrow();add_child(nocked);nocked.hide()

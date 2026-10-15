@@ -88,7 +88,11 @@ func advance_action(delta:float) -> void:
  var impact_time:=seconds if action_family==&"bow" else seconds*0.5
  if not contact_done and action_elapsed+0.000001>=impact_time:
   contact_done=true
-  if action_family==&"bow":game.release_arrow(action_point,action_uid)
+  if action_family==&"bow":
+   action_point=game.camera_rig.aim_point()
+   model.family_override=&"bow";model.aim_contact=model.to_local(action_point);model.nock_visible=true
+   model.animate(&"draw",1,true)
+   game.release_arrow(action_point,action_uid)
   else:game.resolve_hit(action_target)
  if action_elapsed+0.000001>=seconds:action_elapsed=-1
 func cancel_action() -> void:
@@ -139,6 +143,10 @@ func _physics_process(delta: float) -> void:
  velocity.x = planar.x; velocity.z = planar.y
  if not is_on_floor(): velocity.y -= GRAVITY*delta
  move_and_slide()
+ game.camera_rig.update(delta)
+ if action_elapsed>=0 and action_family==&"bow":
+  action_point=game.camera_rig.aim_point()
+  action_heading=atan2(action_point.x-global_position.x,action_point.z-global_position.z)
  var forward: Vector3 = game.camera_rig.facing()
  model.rotation.y = lerp_angle(model.rotation.y,action_heading if action_elapsed >= 0 else atan2(forward.x,forward.z),1-exp(-delta*15))
  var state: StringName = &"idle"; var progress := 0.0
@@ -185,11 +193,11 @@ func _physics_process(delta: float) -> void:
    if preview_state==&"pickup":pickup_recovery=0.5
    preview_state=&""
  model.aim_contact=model.to_local(action_point) if state in [&"action",&"draw"] else Vector3.INF
+ if family()==&"bow" and equipped:model.aim_contact=model.to_local(game.camera_rig.aim_point())
  if state==&"parry" and guard_point.is_finite():model.aim_contact=model.to_local(guard_point)
  var local_travel: Vector3 = (model.global_basis.inverse()*direction).normalized()
  model.animate(state,progress,equipped or (unequipping and state==&"unequip"),delta,phase,local_travel)
  _finish_visual_frame(state,progress)
- game.camera_rig.update(delta)
 
 func _finish_visual_frame(state:StringName,progress:float) -> void:
  if game.combat_effects!=null:

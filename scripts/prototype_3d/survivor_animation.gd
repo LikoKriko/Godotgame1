@@ -28,9 +28,14 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  if state in [&"drink",&"drink_walk"]: source_state=&"eat_walk" if state==&"drink_walk" else &"eat"
  if state in [&"parry",&"hurt"]: source_state=&"idle"
  var pose := Pose.sample(&"food" if state in [&"drink",&"drink_walk"] else family,source_state,phase,1.0 if source_state==&"equip_crouch" else movement_phase,1.0,-1)
- pose.family=family;pose.clip_state=state
+ pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state==&"run" else movement_phase
  var original_body: Transform3D = pose.body
  var body: Transform3D = original_body
+ if state==&"action" or state==&"draw":
+  # Keep the pelvis near standing height; aim with shoulder/arm IK first.
+  var standing_y:=Anatomy.HIP.y
+  var pelvis:Vector3=body*Vector3(0,standing_y,0)
+  body.origin.y+=maxf(0,standing_y-1.2-pelvis.y)
  # An impact transfers weight through the chest and pelvis before settling.
  var recoil := 0.0
  if state==&"action": recoil=sin(clampf((phase-0.5)/0.16,0,1)*PI)*exp(-maxf(0,phase-0.5)*4)
@@ -39,9 +44,9 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  var low_guard:=clampf(32-contact.y,0,12)*guard_amount if state==&"parry" and contact.is_finite() else 0.0
  body.origin.y-=low_guard
  if state==&"action" and family in [&"axe",&"pickaxe",&"sword"] and contact.is_finite():
-  var bend:=clampf(30-contact.y,0,10)*smoothstep(0.15,0.5,phase)*(1-smoothstep(0.65,1,phase))
+  var bend:=clampf(30-contact.y,0,2.5)*smoothstep(0.15,0.5,phase)*(1-smoothstep(0.65,1,phase))
   body.origin.y-=bend
-  body.basis=body.basis*Basis(Vector3.RIGHT,bend*0.012)
+  body.basis=body.basis*Basis(Vector3.RIGHT,bend*0.008)
  body.origin.z-=recoil*0.65
  body.basis=body.basis*Basis(Vector3.RIGHT,-recoil*0.045)
  if state==&"idle": body.origin.y+=sin(phase*TAU)*0.12
@@ -69,6 +74,11 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
    var step:=ankle.z*lerpf(1,0.65,absf(travel.x))
    pose.legs[side].end=Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,ankle.y,0)+travel*step
    pose.legs[side].pitch*=travel.z
+ if family==&"axe":
+  var shaft:Vector3=pose.shaft.normalized()
+  var edge:Vector3=body.basis*Vector3.BACK;edge-=shaft*edge.dot(shaft)
+  if edge.length_squared()<0.01:edge=body.basis*Vector3.RIGHT
+  edge=edge.normalized();pose.tool_basis=Basis(edge,shaft,edge.cross(shaft).normalized())
  if family in [&"axe",&"pickaxe",&"sword"] and state==&"action":
   var rest_grip:=body*Vector3(-3.36,32,5.5)
   var wind:=body*Vector3(-3.36,45,8.8)
@@ -80,6 +90,10 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
    pose.grip=body*Pose.gesture(Vector3(6,31,6),Vector3(9,42,8),Vector3(-2,34,12),phase,family)
    pose.shaft=(body.basis*Pose.gesture(Vector3(0,0.35,0.94),Vector3(0.1,0.9,0.42),Vector3(-0.65,-0.3,0.7),phase,family)).normalized()
   pose.grip.z=maxf(pose.grip.z,4.5)
+  if family==&"axe":
+   var edge:Vector3=Vector3.BACK-pose.shaft*pose.shaft.z
+   if edge.length_squared()<0.01:edge=Vector3.RIGHT
+   edge=edge.normalized();pose.tool_basis=Basis(edge,pose.shaft,edge.cross(pose.shaft).normalized())
   if contact.is_finite():
    var profile:=Profiles.profile(family)
    var solution:=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands)
@@ -89,17 +103,26 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     solution=Aim.solve(center+center.direction_to(contact)*30,pose.shoulders,profile.tip,pose.active,profile.two_hands)
    if not solution.is_empty():
     var amount:=smoothstep(0.26,0.5,phase)*(1-smoothstep(0.62,1,phase))
-    var aimed:=Aim.frame(pose.shaft).slerp(solution.basis,amount)
+    var aimed:Basis=pose.get("tool_basis",Aim.frame(pose.shaft)).slerp(solution.basis,amount)
     pose.grip=pose.grip.lerp(solution.grip,amount);pose.shaft=aimed.y;pose.tool_basis=aimed
- if family==&"bow" and contact.is_finite() and state in [&"action",&"draw",&"idle"]:
-  var active: int=pose.active
-  var direction: Vector3=pose.shoulders[active].direction_to(contact)
-  var drawn:=smoothstep(0,0.26,phase)*(1-smoothstep(0.65,1,phase)) if state!=&"idle" else 0.0
-  pose.grip=pose.shoulders[active]+direction*lerpf(13,18,drawn)
-  pose.shaft=(Vector3.UP-direction*Vector3.UP.dot(direction)).normalized()
-  pose.hands[1-active]=pose.hands[1-active].lerp(body*Vector3(4,49,5.5),drawn)
-  var bow_x:Vector3=pose.shaft.cross(direction).normalized()
-  pose.tool_basis=Basis(bow_x,direction.cross(bow_x).normalized(),direction)
+ if family==&"bow" and contact.is_finite() and state not in [&"death",&"eat",&"drink",&"pickup"]:
+  var active:int=pose.active
+  var drawn:=smoothstep(0,0.26,phase) if state in [&"draw",&"action"] else 0.0
+  var anchor:Vector3=body*Vector3(-2.2,46.8,5.3)
+  var direction:=anchor.direction_to(contact)
+  if direction.is_zero_approx():direction=Vector3.BACK
+  var grip:Vector3=anchor+direction*12
+  if pose.shoulders[active].distance_to(grip)>18.4:grip=pose.shoulders[active]+pose.shoulders[active].direction_to(grip)*18.4
+  direction=grip.direction_to(contact)
+  var up:=Vector3.UP-direction*direction.y
+  if up.length_squared()<0.01:up=Vector3.BACK-direction*direction.z
+  up=up.normalized()
+  var near_amount:=1-smoothstep(55,120,Vector2(contact.x-anchor.x,contact.z-anchor.z).length())
+  up=up.rotated(direction,-near_amount*0.15)
+  var right:=up.cross(direction).normalized()
+  pose.grip=grip;pose.shaft=direction.cross(right).normalized()
+  pose.hands[1-active]=grip-direction*lerpf(4,12,drawn)
+  pose.tool_basis=Basis(right,pose.shaft,direction)
  if family==&"" and state==&"action" and contact.is_finite():
   var shoulder: Vector3=pose.shoulders[1]
   var end:=shoulder+shoulder.direction_to(contact)*minf(18.6,shoulder.distance_to(contact))
@@ -124,3 +147,15 @@ static func solve_legs(pose: Dictionary) -> Dictionary:
   pose.legs[side]=Pose.joint(pose.hips[side],ankle,Pose.THIGH,Pose.SHIN,Vector3.BACK)
   pose.legs[side].pitch=pitch
  return pose
+
+static func running_arm(pose:Dictionary,side:int,gait:float) -> Dictionary:
+ # Occupied hands preserve their category grip, including the drawing hand.
+ var family:StringName=pose.get("family",&"")
+ if family!=&"" and (family==&"bow" or Profiles.profile(family).two_hands or side==pose.active):return {}
+ var body:Transform3D=pose.body
+ var swing:=sin((gait+side*0.5)*TAU)*deg_to_rad(18)
+ var upper:Vector3=body.basis*(Basis(Vector3.RIGHT,swing)*Vector3(0.24*(-1 if side==0 else 1),-1,0)).normalized()
+ var hinge:=body.basis.x-upper*upper.dot(body.basis.x);hinge=hinge.normalized()
+ var forearm:=upper.rotated(hinge,-deg_to_rad(105))
+ var root:Vector3=pose.shoulders[side];var joint:=root+upper*Pose.UPPER_ARM
+ return {"root":root,"joint":joint,"end":joint+forearm*Pose.FOREARM}

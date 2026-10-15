@@ -13,6 +13,7 @@ var arm_rest: Array[Dictionary] = []
 var cloth_angle: Array[float] = [0.0,0.0]
 var cloth_velocity: Array[float] = [0.0,0.0]
 var previous_leg_angle: Array[float] = [0.0,0.0]
+var run_arm_blend:Array[float]=[0.0,0.0]
 
 func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  neutral = Clips.sample(&"",&"idle",0)
@@ -47,7 +48,7 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  var tags: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
  for i in vertices.size(): vertices[i]=Anatomy.geometry(vertices[i],int(tags[i].x))
  arrays[Mesh.ARRAY_VERTEX]=vertices
- arrays[Mesh.ARRAY_NORMAL] = smooth_normals(vertices)
+ arrays[Mesh.ARRAY_NORMAL] = sculpted_normals(vertices,arrays[Mesh.ARRAY_COLOR],tags)
  var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
  var texture_uv := PackedVector2Array()
  var indices := PackedInt32Array(); var weights := PackedFloat32Array()
@@ -84,6 +85,19 @@ static func smooth_normals(vertices: PackedVector3Array) -> PackedVector3Array:
  var normals := PackedVector3Array()
  for vertex in vertices:
   normals.append((sums[vertex.snapped(Vector3.ONE*0.0001)] as Vector3).normalized())
+ return normals
+
+static func sculpted_normals(vertices:PackedVector3Array,colors:PackedColorArray,tags:PackedVector2Array) -> PackedVector3Array:
+ var normals:=smooth_normals(vertices)
+ for face in range(0,vertices.size(),3):
+  var normal:Vector3=(vertices[face+2]-vertices[face]).cross(vertices[face+1]-vertices[face]).normalized()
+  for corner in 3:
+   var i:=face+corner;var p:=vertices[i];var color:=colors[i];var amount:=0.0
+   if int(tags[i].x)==0 and p.y<26:amount=0.58
+   elif int(tags[i].x) in [1,2]:amount=0.25
+   elif p.y>42 and p.y<47.2 and absf(p.x)>5.0:amount=0.68
+   if int(tags[i].x)==3 and color.r<0.38 and color.g<0.27:amount=0.88
+   normals[i]=normals[i].lerp(normal,amount).normalized()
  return normals
 
 func material_uv(vertex: Vector3,color: Color) -> Vector2:
@@ -154,7 +168,19 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
  var neck: Vector3 = torso*Anatomy.HEAD_ANCHOR
  posed[3] = Transform3D(skull_basis,neck+skull_basis*(rest[3].origin-Anatomy.HEAD_ANCHOR))
  for side in 2:
-  var arm := Pose.joint(pose.shoulders[side],hands[side],Pose.UPPER_ARM,Pose.FOREARM,Vector3(-0.35 if side==0 else 0.35,-1,0))
+  var arm := Pose.joint(pose.shoulders[side],hands[side],Pose.UPPER_ARM,Pose.FOREARM,Vector3(-1.2 if side==0 else 1.2,-0.55,1.5))
+  var clip:StringName=pose.get("clip_state",&"idle")
+  var running:=clip in [&"run",&"start_run",&"equip_run"]
+  var running_pose:Dictionary=Clips.running_arm(pose,side,pose.get("gait_phase",0.0))
+  var allow_transition:=clip in [&"idle",&"walk",&"stop_run",&"stop"]
+  if running_pose.is_empty() or (not running and not allow_transition):run_arm_blend[side]=0
+  elif delta<=0:run_arm_blend[side]=1.0 if running else 0.0
+  else:run_arm_blend[side]=move_toward(run_arm_blend[side],1.0 if running else 0.0,delta/(0.14 if running else 0.18))
+  if run_arm_blend[side]>0:
+   var amount:float=run_arm_blend[side]
+   var upper:Vector3=(arm.joint-arm.root).normalized().lerp((running_pose.joint-running_pose.root).normalized(),amount).normalized()
+   var forearm:Vector3=(arm.end-arm.joint).normalized().lerp((running_pose.end-running_pose.joint).normalized(),amount).normalized()
+   arm.joint=arm.root+upper*Pose.UPPER_ARM;arm.end=arm.joint+forearm*Pose.FOREARM
   var start := 4+side*3
   orient(start,arm.root,arm.joint,arm_rest[side].joint)
   orient(start+1,arm.joint,arm.end,arm_rest[side].end)

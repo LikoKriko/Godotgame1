@@ -34,7 +34,7 @@ func update(delta: float) -> void:
  else: actual_distance = lerpf(actual_distance,DISTANCE,1-exp(-delta*10))
  camera.position = Vector3(SHOULDER,0.12,DISTANCE)*(actual_distance/DISTANCE)
  camera.rotation = Vector3.ZERO
-func target(max_distance: float = 30.0) -> Dictionary:
+func target(max_distance: float = 100.0) -> Dictionary:
  var center := get_viewport().get_visible_rect().size/2
  var from := camera.project_ray_origin(center)
  var direction := camera.project_ray_normal(center)
@@ -45,4 +45,4 @@ func aim_point() -> Vector3:
  var result:=target()
  if not result.is_empty():return result.position
  var center:=get_viewport().get_visible_rect().size/2
- return camera.project_ray_origin(center)+camera.project_ray_normal(center)*30
+ return camera.project_ray_origin(center)+camera.project_ray_normal(center)*100.0

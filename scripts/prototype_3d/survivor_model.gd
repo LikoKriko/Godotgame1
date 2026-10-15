@@ -44,12 +44,37 @@ func _ready() -> void:
  core_mesh.hide()
 func tube(joints: Array,radius_a: float,radius_b: float,color: Color,shorts: bool = false,steps: int = 12) -> void:
  if color==SKIN: radius_a*=0.8;radius_b*=0.82
- super.tube(joints,radius_a,radius_b,color,shorts,steps)
+ if not shorts:
+  super.tube(joints,radius_a,radius_b,color,false,steps);return
+ # Octagonal anatomical sections: thigh taper, patella, calf and narrow ankle.
+ var sections:=[Vector3(0,1.12,1.02),Vector3(0.18,1.1,1.06),Vector3(0.34,0.93,0.98),Vector3(0.46,0.72,0.86),Vector3(0.5,0.7,0.94),Vector3(0.58,0.76,0.82),Vector3(0.69,0.86,0.91),Vector3(0.82,0.7,0.76),Vector3(1,0.51,0.62)]
+ var rings:Array[PackedVector3Array]=[];var centers:Array[Vector3]=[]
+ for shape:Vector3 in sections:
+  var t:=shape.x;var center:Vector3=joints[0].lerp(joints[1],t*2) if t<=0.5 else joints[1].lerp(joints[2],(t-0.5)*2)
+  var tangent:Vector3=(joints[1]-joints[0]).normalized() if t<0.5 else (joints[2]-joints[1]).normalized()
+  var across:=Vector3.RIGHT-tangent*tangent.x;across=across.normalized();var front:=across.cross(tangent).normalized()
+  if front.z<0:front=-front
+  var cloth:=0.65 if t<0.34 else 0.0
+  var ring:=PackedVector3Array()
+  for segment in 8:
+   var angle:=segment*TAU/8;var point:Vector3=center+across*cos(angle)*(radius_a*shape.y+cloth)+front*sin(angle)*(radius_a*shape.z+cloth)
+   if is_equal_approx(t,0.5):point+=front*maxf(0,sin(angle))*0.22
+   ring.append(point)
+  rings.append(ring);centers.append(center)
+ for row in rings.size()-1:
+  var tint:=CLOTH if sections[row].x<0.34 else color
+  for i in 8:
+   var next:=(i+1)%8
+   triangle(rings[row][i],rings[row+1][i],rings[row+1][next],tint);triangle(rings[row][i],rings[row+1][next],rings[row][next],tint)
+ for i in 8:
+  triangle(centers[0],rings[0][(i+1)%8],rings[0][i],CLOTH);triangle(centers[-1],rings[-1][i],rings[-1][(i+1)%8],color)
 func triangle(a: Vector3,b: Vector3,c: Vector3,color: Color) -> void:
  surface.set_smooth_group(0)
  super.triangle(a,b,c,color)
 func ellipsoid(center: Vector3,size: Vector3,color: Color,basis: Basis = Basis.IDENTITY) -> void:
  if center.y<4 and is_equal_approx(size.x,2.5):size.x=1.8
+ if absf(center.x)>7.0 and absf(center.x)<7.9 and absf(center.y-44.6)<0.1 and color==SKIN:
+  append_shoulder(center,basis);return
  # One continuous torso avoids the necklace-like outlines produced by
  # overlapping chest/abdomen spheres in the original sprite-authoring model.
  if center.is_equal_approx(Vector3(0,35,0)) and size.is_equal_approx(Vector3(6.5,8.5,3)):
@@ -58,6 +83,20 @@ func ellipsoid(center: Vector3,size: Vector3,color: Color,basis: Basis = Basis.I
  if center.y>=31 and center.y<=44 and center.z>2 and size.z<1.5:
   return
  super.ellipsoid(center,size,color,basis)
+func append_shoulder(center:Vector3,basis:Basis) -> void:
+ var rings:Array[PackedVector3Array]=[]
+ for level:Vector3 in [Vector3(-2.7,1.05,1.5),Vector3(-1.3,2.0,2.3),Vector3(0.8,2.15,2.25),Vector3(2.0,1.6,1.8),Vector3(2.4,0.65,0.9)]:
+  var ring:=PackedVector3Array()
+  for i in 8:
+   var angle:float=(i+0.5)*TAU/8
+   ring.append(center+basis*Vector3(cos(angle)*level.y,level.x,sin(angle)*level.z))
+  rings.append(ring)
+ for row in rings.size()-1:
+  for i in 8:
+   var next:=(i+1)%8
+   triangle(rings[row][i],rings[row+1][next],rings[row+1][i],SKIN);triangle(rings[row][i],rings[row][next],rings[row+1][next],SKIN)
+ for i in 8:
+  triangle(center+basis*Vector3.UP*2.4,rings[-1][i],rings[-1][(i+1)%8],SKIN)
 func append_torso() -> void:
  var profile := [Vector3(26.9,6.7,3),Vector3(31,6.4,2.8),Vector3(35,6.5,3),Vector3(39,7.9,3.3),Vector3(42,8.6,3.55),Vector3(44.7,8.1,3.1),Vector3(46.3,5.8,2.5),Vector3(47.5,2.5,1.8),Vector3(49.5,2,1.8)]
  var rings: Array[PackedVector3Array] = []
@@ -84,12 +123,8 @@ func integrated_head(torso: Transform3D, _actor_basis: Basis, _direction: int, _
  head_center = center
  ellipsoid(center,Vector3(6.0,7.1,5.1),SKIN,torso.basis)
  ellipsoid(torso*Vector3(0,51.5,1.0),Vector3(4.6,3.3,4.4),SKIN,torso.basis)
- # Short, irregular hair, brown beard and the original blue facial marking.
- ellipsoid(torso*Vector3(0,59,0),Vector3(6.25,4.3,5.25),HAIR,torso.basis)
- ellipsoid(torso*Vector3(0,56.8,-3.0),Vector3(5.6,4.1,3.3),HAIR,torso.basis)
- for i in 9:
-  var angle := i*TAU/9
-  ellipsoid(torso*Vector3(cos(angle)*4.6,60.8+sin(i*2.7)*0.55,sin(angle)*3.5),Vector3(2.2,2.0,1.8),HAIR.lightened(0.055*(i%3)),torso.basis)
+ # A close crop made of joined flat locks; no spherical curls or hair balls.
+ append_hair(torso)
  for side in [-1,1]:
   ellipsoid(torso*Vector3(side*5.85,54.3,0),Vector3(1.0,1.65,1.0),SKIN,torso.basis)
   ellipsoid(torso*Vector3(side*2.3,55.5,4.7),Vector3(1.25,0.7,0.4),Color("eee2ce"),torso.basis)
@@ -100,6 +135,20 @@ func integrated_head(torso: Transform3D, _actor_basis: Basis, _direction: int, _
  ellipsoid(torso*Vector3(0,52.6,4.8),Vector3(2.55,0.48,0.4),HAIR,torso.basis)
  ellipsoid(torso*Vector3(-3.8,54.8,4.2),Vector3(0.35,2.0,0.38),Color("697e87"),torso.basis)
  surface_tag=0
+func append_hair(torso:Transform3D) -> void:
+ var rings:Array[PackedVector3Array]=[]
+ for row:Vector3 in [Vector3(56.4,5.8,4.7),Vector3(59.1,5.75,4.8),Vector3(61.3,4.0,3.4),Vector3(62.7,2.3,1.9)]:
+  var ring:=PackedVector3Array()
+  for i in 12:
+   var angle:=i*TAU/12;var front:float=maxf(0,sin(angle))
+   var height:float=row.x+(front*1.6 if row.x<57 else sin(i*2.4)*0.22)
+   ring.append(torso*Vector3(cos(angle)*row.y,height,sin(angle)*row.z-0.3))
+  rings.append(ring)
+ for row in rings.size()-1:
+  for i in 12:
+   var next:=(i+1)%12;var color:=HAIR.lightened(0.025*((i+row)%3))
+   triangle(rings[row][i],rings[row+1][next],rings[row+1][i],color);triangle(rings[row][i],rings[row][next],rings[row+1][next],color)
+ for i in 12:triangle(torso*Vector3(0,63.0,-0.3),rings[-1][(i+1)%12],rings[-1][i],HAIR)
 func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: Basis, _item: StringName) -> Dictionary:
  var y_axis := (actor_basis*shaft).normalized()
  var x_axis := actor_basis*tool_frame.x
@@ -128,7 +177,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   displayed_pose.shaft = displayed_pose.shaft.lerp(target.shaft,blend).normalized()
   displayed_pose.active = target.active
   displayed_pose.state = target.state; displayed_pose.phase = target.phase
-  displayed_pose.family=target.family;displayed_pose.clip_state=target.clip_state
+  displayed_pose.family=target.family;displayed_pose.clip_state=target.clip_state;displayed_pose.gait_phase=target.gait_phase
  displayed_pose.tool_basis=target.get("tool_basis",Aim.frame(target.shaft))
  if state in [&"action",&"draw",&"death"]:
   displayed_pose.body=target.body;displayed_pose.grip=target.grip;displayed_pose.shaft=target.shaft

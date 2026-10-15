@@ -210,3 +210,44 @@ seleccionable con E; la representación del suelo es aún un icono 256² orienta
 hacia la cámara, pendiente del modelo de cada material. La recogida usa manos
 libres y la animación inclinada. `prototype_3d_loot.gd` cubre transferencia,
 mochila llena, botella con contenido, contador y caducidad sin duplicaciones.
+
+## Correcciones de modelos y puntería (15 de octubre de 2026)
+
+El cuerpo conserva el mismo rig y la altura de 1,75 m. Los hombros tienen
+casquetes biselados; las piernas, perfiles octogonales con rodilla, gemelo y
+tobillo. El pelo usa una cubierta continua de mechones bajos y planos. En los
+golpes el descenso de la pelvis se limita antes de resolver el alcance con IK,
+para no sustituir el gesto de brazos por una sentadilla.
+
+Los brazos libres al correr mantienen 75° interiores en el codo y un balanceo
+máximo de 18° en el hombro, con entradas/salidas de 0,14/0,18 s. El brazo ocupado
+por un objeto y ambos brazos con herramientas de dos manos conservan sus
+agarres. La armadura comparte la transformación del torso: hojas dentadas,
+nervaduras finas, ataduras trenzadas y huecos para que pasen los brazos.
+
+Hacha, pico, espada y arco mantienen los mismos anclajes de agarre/contacto,
+con madera segmentada y superficies de piedra biseladas. El pico toma la
+silueta de `entregables/herramientas/pico1_3d.png`: mango doble, contrapunta ancha
+y punta de trabajo más estrecha. El arco sigue la mira durante los 0,5 s de
+tensado; al soltar se fija una línea recta desde la flecha hasta el blanco.
+La cámara consulta hasta 100 m y el proyectil desaparece a esa distancia, sin
+gravedad. Apuntar al suelo cercano baja la postura y añade una inclinación leve.
+
+Los árboles añaden raíces, tronco quebrado, ramas/tallos y grupos de follaje
+facetados. Conservan una sola superficie por árbol y caché para 30 variantes.
+No se han convertido los nueve diseños 2D en nueve modelos específicos.
+
+El joven incorpora la referencia nueva de cuatro vistas
+`entregables/enemigos/enemigo1_joven_3d.png`, copiada al recurso de ejecución
+`assets/enemies/first/reference_3d.png`. El rig de 14 huesos conserva las patas
+cortas, marcha cuadrúpeda y ataques erguidos alternos. Los detalles de pelo usan
+una muestra limpia de la vista posterior, con muestreo y paleta cuantizados:
+no se proyectan ojos o bocas de la imagen sobre superficies curvas del cuerpo.
+Ojos, hocico, marcas, colmillos, cresta y puños tienen geometría propia.
+
+Comprobaciones adicionales: `prototype_3d_bow_accuracy.gd` (retícula móvil,
+alineación de flecha/manos, vuelo recto y 100 m), `prototype_3d_running_arms.gd`
+(ángulos, longitudes, transiciones y agarres) y
+`prototype_3d_model_corrections.gd` (geometría, flexión y holgura de armadura).
+Se revisaron también imágenes renderizadas con Compatibility; la aprobación
+artística del jugador sigue pendiente de probar esta rama en su equipo.

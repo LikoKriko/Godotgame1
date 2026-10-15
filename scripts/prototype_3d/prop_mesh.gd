@@ -65,3 +65,48 @@ static func bindings(parent:Node3D,y:float,radius:float=1.7) -> void:
   var mesh:=TorusMesh.new();mesh.inner_radius=radius-0.35;mesh.outer_radius=radius;mesh.rings=12;mesh.ring_segments=5
   var node:=MeshInstance3D.new();node.mesh=mesh;node.position.y=y+offset;node.material_override=rope;parent.add_child(node)
  for side in [-1,1]:segment(parent,Vector3(-2,y-3.5,side*1.1),Vector3(2,y+3.5,side*1.1),0.35,rope)
+
+static func beveled_blade(parent:Node3D,polygon:PackedVector2Array,depth:float,paint:Material) -> MeshInstance3D:
+ # Preserve the cutting silhouette, with a thin edge and recessed bevel ring.
+ var center:=Vector2.ZERO
+ for p in polygon:center+=p
+ center/=polygon.size()
+ var inset:=PackedVector2Array()
+ for p in polygon:inset.append(center+(p-center)*0.77)
+ var surface:=SurfaceTool.new();surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+ for side in [-1.0,1.0]:
+  var indices:=Geometry2D.triangulate_polygon(inset)
+  for i in range(0,indices.size(),3):
+   var order:=[indices[i],indices[i+1],indices[i+2]]
+   if (inset[order[2]]-inset[order[0]]).cross(inset[order[1]]-inset[order[0]])*side<0:order.reverse()
+   for index in order:
+    var point:=inset[index];surface.set_uv(point*0.12);surface.add_vertex(Vector3(point.x,point.y,side*depth))
+  for i in polygon.size():
+   var next:=(i+1)%polygon.size()
+   var a:=Vector3(polygon[i].x,polygon[i].y,0);var b:=Vector3(polygon[next].x,polygon[next].y,0)
+   var c:=Vector3(inset[next].x,inset[next].y,side*depth);var d:=Vector3(inset[i].x,inset[i].y,side*depth)
+   for points:Array in [[a,b,c],[a,c,d]]:
+    if side<0:points.reverse()
+    for p:Vector3 in points:surface.set_uv(Vector2(p.x,p.y)*0.12);surface.add_vertex(p)
+ surface.generate_normals()
+ var node:=MeshInstance3D.new();node.name="BeveledStoneBlade";node.mesh=surface.commit();node.material_override=paint;parent.add_child(node);return node
+static func polyline(parent:Node3D,points:PackedVector3Array,radii:PackedFloat32Array,paint:Material,sides:int=7) -> MeshInstance3D:
+ var surface:=SurfaceTool.new();surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+ var rings:Array[PackedVector3Array]=[]
+ for i in points.size():
+  var tangent:Vector3=(points[mini(i+1,points.size()-1)]-points[maxi(0,i-1)]).normalized()
+  var across:=Vector3.RIGHT-tangent*tangent.x
+  if across.length_squared()<0.01:across=Vector3.BACK-tangent*tangent.z
+  across=across.normalized();var other:=tangent.cross(across).normalized();var ring:=PackedVector3Array()
+  for j in sides:ring.append(points[i]+(across*cos(j*TAU/sides)+other*sin(j*TAU/sides))*radii[i])
+  rings.append(ring)
+ for i in points.size()-1:
+  for j in sides:
+   var next:=(j+1)%sides
+   for point:Vector3 in [rings[i][j],rings[i+1][j],rings[i+1][next],rings[i][j],rings[i+1][next],rings[i][next]]:
+    surface.set_uv(Vector2(point.x*0.2+point.z*0.1,point.y*0.12));surface.add_vertex(point)
+ for j in sides:
+  for point:Vector3 in [points[0],rings[0][(j+1)%sides],rings[0][j],points[-1],rings[-1][j],rings[-1][(j+1)%sides]]:
+   surface.set_uv(Vector2(point.x,point.z));surface.add_vertex(point)
+ surface.generate_normals()
+ var node:=MeshInstance3D.new();node.mesh=surface.commit();node.material_override=paint;parent.add_child(node);return node

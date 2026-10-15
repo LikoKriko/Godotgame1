@@ -69,3 +69,12 @@ Las sombras de objetos parten del contorno visible de sus apoyos. Declarar cada
 pata de muebles y apoyos de edificios en coordenadas del dibujo, y reutilizar
 `ground_contact_shadow.gd`; la hitbox no define el origen. Conservar la sombra
 del personaje. Ver `docs/CREATURES_AND_SHADOWS.md` para parámetros y exportación.
+
+## Registro de tiempos solicitado por el usuario
+
+Registrar hitos y duración real de las tareas para informar cuando el usuario
+lo pida y mejorar futuras estimaciones. Guardar los datos en
+`docs/WORK_TIMES.md`; indicar alcance, comprobaciones incluidas, estimación
+previa y duración medida. No inventar horas de inicio ni reconstruir como exactos
+intervalos no registrados: marcarlos como parciales o estimados. Los informes
+al usuario usan Europe/Madrid. El registro no sustituye terminar las tareas.

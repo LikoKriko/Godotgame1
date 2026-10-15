@@ -1,11 +1,13 @@
 shader_type spatial;
 render_mode cull_disabled;
-uniform sampler2D materials : source_color, filter_nearest_mipmap, repeat_disable;
+uniform sampler2D reference_views : source_color, filter_nearest_mipmap, repeat_disable;
 void fragment(){
- ALBEDO=COLOR.rgb;
- if(UV2.x>=0.0){
-  vec3 reference=UV2.y>=0.5 ? (UV2.x>=0.5 ? vec3(0.725,0.502,0.427) : vec3(0.604,0.608,0.255)) : (UV2.x>=0.5 ? vec3(0.667,0.635,0.529) : vec3(0.518,0.376,0.314));
-  ALBEDO*=clamp(texture(materials,UV2).rgb/max(reference,vec3(0.08)),vec3(0.72),vec3(1.28));
- }
+ // Stable pixel sampling in bind UVs: details stay attached to the skin.
+ vec2 texels=vec2(textureSize(reference_views,0));
+ vec2 pixel_uv=(floor(UV2*texels/2.0)*2.0+1.0)/texels;
+ vec4 reference=texture(reference_views,pixel_uv);
+ reference.rgb=floor(reference.rgb*31.0+0.5)/31.0;
+ float usable=step(0.5,reference.a)*step(0.025,dot(reference.rgb,vec3(0.2126,0.7152,0.0722)));
+ ALBEDO=mix(pow(COLOR.rgb,vec3(2.2)),reference.rgb,UV.y*usable);
  ROUGHNESS=0.97;
 }

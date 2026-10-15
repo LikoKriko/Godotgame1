@@ -20,7 +20,7 @@ static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int
  if up.length_squared()<0.01: up=Vector3.BACK-forward*Vector3.BACK.dot(forward)
  up=up.normalized()
  var best: Dictionary = {}; var best_score := INF
- for roll in [0.0,-0.55,0.55]:
+ for roll in [0.0,-0.55,0.55,-1.0,1.0,-1.5,1.5]:
   var plane_up := up.rotated(forward,roll)
   for degrees in range(16,137,2):
    var angle := deg_to_rad(float(degrees))
