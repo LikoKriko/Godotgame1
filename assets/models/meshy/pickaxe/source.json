@@ -1,0 +1,14 @@
+{
+  "release": "modelo_pico3d",
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_pico3d/pico3dmodelo.zip",
+  "zip_sha256": "94642f7ba8bc1f28812aa7c6a0e17323c1f35a7d766444fc0c1ba4af21c8e644",
+  "source_fbx": "entregables/modelos/pickaxe/source/Meshy_AI_Wild_Wanderer_1015205049_texture.fbx",
+  "fbx_sha256": "097d99edc6f37463b6a888c42f29dc8f8c8150dd024d4348bb9916389355df9f",
+  "triangles": 255100,
+  "textures_sha256": {
+    "normal": "d49cb4d07c507d573023dc0b32caf6898699636d6c4ee3a8bd5b3b2e4bf06eb6",
+    "albedo": "64f326c33fb116aa3db2d5eb94dbfebf22b61ed7486c78735b06f36a9a1b79cd",
+    "roughness": "4e9ae9f62686cab4799fb2bd84ec1f7d9d8da6ecd7f38036308c47a6591af228",
+    "metallic": "0394ee392c70e4c47aed2919af369491013c645c61716e549a56cb45f85d2ca6"
+  }
+}

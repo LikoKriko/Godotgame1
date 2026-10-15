@@ -28,21 +28,26 @@ func run():
    require(actor.last_pose.contact_reachable and actor.tip_socket.position.distance_to(point)<0.03,"Low melee hinge preserves the physical impact for "+String(family))
    for leg in actor.last_pose.legs:
     require(leg.end.y>=1 and leg.joint.y>=0.5,"Low melee hinge keeps feet and knees above the floor")
- var armor_data:Array=actor.leaf_armor.shell.mesh.surface_get_arrays(0)
- var armor_vertices:PackedVector3Array=armor_data[Mesh.ARRAY_VERTEX]
+ # The delivered garment has shoulder caps and a skirt, so it follows the
+ # actual skeleton rather than a single rigid torso transform.
+ var armor=actor.leaf_armor
+ var arrays:Array=armor.shell.mesh.surface_get_arrays(0)
+ var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
+ var normalized:=true
+ for i in weights.size()/4:
+  var total:=0.0
+  for j in 4:total+=weights[i*4+j]
+  normalized=normalized and absf(total-1)<.001
+ require(normalized,"Imported garment has normalized skin weights")
  for family in [&"",&"axe",&"pickaxe",&"sword",&"bow"]:
   actor.family_override=family
   for state in [&"idle",&"walk",&"run",&"action"]:
-   var clearance:=100.0
+   var matching:=true
    for i in 33:
     actor.aim_contact=Vector3(0,36,32);actor.animate(state,i/32.0,true)
-    for side in 2:
-     var a:Vector3=actor.rig.posed[4+side*3].origin;var b:Vector3=actor.rig.posed[5+side*3].origin
-     for v in armor_vertices:
-      if v.y<37:continue
-      var point:Vector3=actor.last_pose.body*v
-      var closest:=Geometry3D.get_closest_point_to_segment(point,a,b)
-      if closest.distance_to(a)<2:continue
-      clearance=minf(clearance,point.distance_to(closest))
-   require(clearance>=1.3,"Upper garment clears arm volume in "+String(family)+" / "+String(state))
- actor.free();print("%s: %d sculpt, high/low contact and armor clearance checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)
+    armor.skeleton.force_update_all_bone_transforms()
+    for bone in actor.rig.posed.size():
+     var frame:Transform3D=armor.transform*armor.skeleton.get_bone_global_pose(bone)
+     matching=matching and frame.origin.distance_to(actor.rig.posed[bone].origin)<.001 and frame.basis.is_equal_approx(actor.rig.posed[bone].basis)
+   require(matching,"Garment follows every actual joint in "+String(family)+" / "+String(state))
+ actor.free();print("%s: %d sculpt, high/low contact and garment skin checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

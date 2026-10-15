@@ -44,20 +44,24 @@ static func melee(pose:Dictionary,t:float,contact:Vector3,impact_pose:Dictionary
   pose.body.origin+=transfer;pose.pelvis.origin+=transfer
   for side in 2:pose.shoulders[side]+=transfer;pose.hips[side]+=transfer;pose.hands[side]+=transfer
  elif contact.is_finite():
-  solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body)
+  solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support)
   if solution.is_empty():
-   var transfer:=Vector3(contact.x,0,contact.z).normalized()*1.5
-   var shoulders:Array=[pose.shoulders[0]+transfer,pose.shoulders[1]+transfer]
-   if not Aim.solve(contact,shoulders,profile.tip,pose.active,profile.two_hands,pose.body).is_empty():
+   # Retarget the measured source tip without changing limb lengths or the
+   # reduced knee bend. Use the smallest forward weight shift that can reach.
+   for distance in [1.5,2.0,2.5,3.0,3.5,4.0,4.5]:
+    var transfer:=Vector3(contact.x,0,contact.z).normalized()*float(distance)
+    var shoulders:Array=[pose.shoulders[0]+transfer,pose.shoulders[1]+transfer]
+    if Aim.solve(contact,shoulders,profile.tip,pose.active,profile.two_hands,Transform3D(pose.body.basis,pose.body.origin+transfer),profile.support).is_empty():continue
     transfer*=smoothstep(.26,.5,t)*(1-smoothstep(.62,1,t))
     pose.reach_transfer=transfer
     pose.body.origin+=transfer;pose.pelvis.origin+=transfer
     for side in 2:pose.shoulders[side]+=transfer;pose.hips[side]+=transfer;pose.hands[side]+=transfer
-    solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body)
+    solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support)
+    break
   pose.contact_reachable=not solution.is_empty()
   if solution.is_empty():
    var center:Vector3=(pose.shoulders[0]+pose.shoulders[1])*.5
-   solution=Aim.solve(center+center.direction_to(contact)*30,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body)
+   solution=Aim.solve(center+center.direction_to(contact)*30,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support)
  var body:Transform3D=pose.body
  var rest:=guard(body,family)
  var wind_grip:=Vector3(-1.5,46.0,14.0)
@@ -87,7 +91,7 @@ static func melee(pose:Dictionary,t:float,contact:Vector3,impact_pose:Dictionary
   # Extract the head forward/up before recovering, keeping the supporting arm
   # outside the upper garment instead of sweeping it across the chest.
   var extraction:=smoothstep(.5,.62,t)*(1-smoothstep(.88,1,t))
-  tool.origin+=body.basis*Vector3(0,3,5)*extraction
+  tool.origin+=body.basis*Vector3(0,2,8)*extraction
  pose.grip=tool.origin;pose.tool_basis=tool.basis;pose.shaft=tool.basis.y
 static func bow(pose:Dictionary,state:StringName,t:float,contact:Vector3) -> void:
  if state not in [&"idle",&"walk",&"run",&"crouch",&"crouch_walk",&"draw",&"action",&"bow_release"]:return

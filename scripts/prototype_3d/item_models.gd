@@ -5,6 +5,12 @@ const Meshes=preload("res://scripts/prototype_3d/prop_mesh.gd")
 const Icons=preload("res://scripts/prototype_3d/item_icons.gd")
 const Held=preload("res://scripts/prototype_3d/held_prop.gd")
 const SUPPORTED:Array[StringName]=[&"axe",&"pickaxe",&"sword",&"bow",&"flecha",&"botella",&"water",&"apple",&"berries",&"ration",&"palo",&"piedra",&"cuerda",&"hilo",&"cuero",&"cuero_curtido",&"cuero_sin_refinar",&"saco_sal",&"hoja_bardana",&"burdock_armor",&"basic_workbench"]
+const NATIVE={
+ &"axe":preload("res://assets/models/meshy/axe/model.res"),
+ &"pickaxe":preload("res://assets/models/meshy/pickaxe/model.res"),
+ &"bow":preload("res://assets/models/meshy/bow/model.res"),
+ &"burdock_armor":preload("res://assets/models/meshy/leaf_armor/model.res"),
+ &"piedra":preload("res://assets/models/meshy/rock1/model.res")}
 static var cache:Dictionary={}
 static var paints:Dictionary={}
 static func supported(id:StringName) -> bool:return id in SUPPORTED
@@ -74,9 +80,7 @@ static func source(item:Dictionary) -> Dictionary:
   # The front label is a curved part of the sack skin, not a floating icon.
   label_patch(root);span=0.26
  elif id==&"burdock_armor":
-  var armor=preload("res://scripts/prototype_3d/leaf_armor.gd")
-  if armor.shared_mesh==null:armor.build()
-  var mesh:=MeshInstance3D.new();mesh.mesh=armor.shared_mesh;mesh.material_override=armor.shared_material;root.add_child(mesh);root.rotation.x=PI/2;span=0.65
+  var mesh:=MeshInstance3D.new();mesh.mesh=NATIVE[id];root.add_child(mesh);root.rotation.x=PI/2;span=29*1.75/64.0
  elif id==&"basic_workbench":
   for part in preload("res://scripts/prototype_3d/workbench.gd").PARTS:box(root,part[0],part[1],wood)
   span=1.2
@@ -90,6 +94,14 @@ static func collect(node:Node3D,frame:Transform3D=Transform3D.IDENTITY) -> Array
   if child is Node3D:records.append_array(collect(child,frame))
  return records
 static func bake(item:Dictionary) -> Array[Dictionary]:
+ if NATIVE.has(item.id):
+  var mesh:Mesh=NATIVE[item.id]
+  var rotation:=Basis(Vector3.RIGHT,PI/2) if item.id!=&"piedra" else Basis.IDENTITY
+  var bounds:AABB=Transform3D(rotation,Vector3.ZERO)*mesh.get_aabb()
+  var factor:=preload("res://scripts/prototype_3d/survivor_anatomy.gd").HEIGHT_METRES/64.0
+  if item.id==&"piedra":factor=0.20/bounds.size[bounds.size.max_axis_index()]
+  var center:=bounds.get_center()
+  return [{"mesh":mesh,"paint":mesh.surface_get_material(0),"frame":Transform3D(rotation.scaled(Vector3.ONE*factor),Vector3(-center.x,-bounds.position.y,-center.z)*factor+Vector3.UP*0.003)}]
  if item.id in [&"botella",&"water"]:
   var mesh:Mesh=preload("res://assets/items/prototype_3d/bottle_meshy/bottle.res")
   var rotation:=Basis(Vector3.RIGHT,PI/2)
@@ -149,20 +161,7 @@ static func sheet(parent:Node3D,id:StringName) -> void:
  var paint:=StandardMaterial3D.new();paint.albedo_texture=texture;paint.texture_filter=BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS;paint.transparency=BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR;paint.alpha_scissor_threshold=0.4;paint.roughness=1
  surface.generate_normals();var mesh:=MeshInstance3D.new();mesh.mesh=surface.commit();mesh.material_override=paint;parent.add_child(mesh)
 static func stone(parent:Node3D) -> void:
- var surface:=SurfaceTool.new();surface.begin(Mesh.PRIMITIVE_TRIANGLES)
- var rings:Array[PackedVector3Array]=[]
- for row in [Vector3(0,0.6,0.65),Vector3(0.2,1,0.85),Vector3(0.75,0.75,0.7),Vector3(1.0,0.35,0.3)]:
-  var ring:=PackedVector3Array()
-  for i in 9:
-   var a:=i*TAU/9;ring.append(Vector3(cos(a)*row.y*(1+0.09*sin(i*3.2)),row.x,sin(a)*row.z))
-  rings.append(ring)
- for row in rings.size()-1:
-  for i in 9:
-   var n:=(i+1)%9
-   for point:Vector3 in [rings[row][i],rings[row+1][n],rings[row+1][i],rings[row][i],rings[row][n],rings[row+1][n]]:surface.set_uv(Vector2(point.x,point.z));surface.add_vertex(point)
- for i in 9:
-  for point:Vector3 in [Vector3(0,1,0),rings[-1][i],rings[-1][(i+1)%9],Vector3.ZERO,rings[0][(i+1)%9],rings[0][i]]:surface.set_uv(Vector2(point.x,point.z));surface.add_vertex(point)
- surface.generate_normals();var mesh:=MeshInstance3D.new();mesh.mesh=surface.commit();mesh.material_override=Meshes.material(&"stone",Color("a29c8c"));parent.add_child(mesh)
+ var mesh:=MeshInstance3D.new();mesh.mesh=NATIVE[&"piedra"];parent.add_child(mesh)
 static func label_patch(parent:Node3D) -> void:
  var surface:=SurfaceTool.new();surface.begin(Mesh.PRIMITIVE_TRIANGLES)
  # Follow the actual sack surface, so the painted SAL label cannot sit inside it.

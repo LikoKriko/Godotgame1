@@ -86,7 +86,7 @@ func run():
   var hand:Vector3=actor.to_global(actor.rig.posed[6 if actor.last_pose.active==1 else 9].origin)
   if phase<.26:
    require(not prop.nocked.visible,"Arrow appears after the nocking hand joins the raised bow")
-   require((prop.string_segments[0].global_transform*Vector3(0,.5,0)).distance_to(prop.to_global(Vector3(0,0,-4)))<.001,"The string stays at rest while the bow is first lifted")
+   require((prop.string_segments[0].global_transform*Vector3(0,.5,0)).distance_to(prop.to_global(prop.rest_nock))<.001,"The string stays at rest while the bow is first lifted")
   else:
    require(prop.nocked.global_position.distance_to(hand)<0.001,"Arrow nock follows the actual drawing hand")
    require((prop.string_segments[0].global_transform*Vector3(0,0.5,0)).distance_to(hand)<0.001,"Bow string terminates at the actual drawing hand")

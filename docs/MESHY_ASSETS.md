@@ -13,7 +13,7 @@ El FBX del superviviente no contiene esqueleto ni clips. Los 16 huesos principal
 
 Se mantienen cuatro controles de tela y cuatro collares de volumen de codos y rodillas, con un máximo de cuatro influencias normalizadas por vértice. Los collares conservan volumen al flexionar; los controles de tela afectan únicamente al pantalón oscuro importado. El recurso es compartido e inmutable, mientras que cada actor y el retrato tienen su propio esqueleto y Skin.
 
-La anatomía del prototipo 3D se ajusta a la nueva malla: caderas a 31 unidades, hombros a `(±6.2, 48, 1.3)` y muslo/tibia de 14,5 unidades. La plantilla de animación común 2D permanece como fuente de tiempos e IK. La recogida baja el cuerpo hasta alcanzar el contacto; el deslizamiento adapta la pierna extendida; las herramientas recuperan alrededor del pecho y la armadura se refita con sus huecos de brazos. La armadura se hornea alrededor de la superficie real del torso importado, conservando los huecos de brazos y evitando hundir las hojas en la piel. Las manos mantienen los agarres y la botella se alinea con los labios del nuevo personaje.
+La anatomía del prototipo 3D se ajusta a la nueva malla: caderas a 31 unidades, hombros a `(±6.2, 48, 1.3)` y muslo/tibia de 14,5 unidades. La plantilla de animación común 2D permanece como fuente de tiempos e IK. La recogida baja el cuerpo hasta alcanzar el contacto; el deslizamiento adapta la pierna extendida; las herramientas recuperan alrededor del pecho y la armadura se refita con sus huecos de brazos. La armadura vigente procede del FBX Leafwoven Tunic del usuario y añade ligadura para acompañar torso, hombros y piernas; la adaptación procedural anterior fue retirada. Las manos mantienen los agarres y la botella se alinea con los labios del nuevo personaje.
 
 La flecha tensada se orienta desde la posición real de la mano hasta el objetivo, conservando la precisión a corta y larga distancia tras el cambio de hombros.
 
@@ -28,7 +28,7 @@ godot --headless --editor --path . --import
 godot --headless --path . --script tools/meshy/export_human_bind.gd -- /tmp/human_joints.json
 blender -b -t 2 --python tools/meshy/convert_human.py -- entregables/personajes/personaje1/source/survivor.fbx /tmp/human_skinned.glb /tmp/human_joints.json
 godot --headless --path . --script tools/meshy/bind_human.gd -- /tmp/human_skinned.glb
-godot --headless --path . --script tools/meshy/fit_armor.gd
+# La armadura vigente se prepara con prepare_wearables.gd; ver la sección de equipo.
 blender -b -t 2 --python tools/meshy/convert_source.py -- entregables/objetos/botella/source/bottle.fbx /tmp/bottle.glb
 godot --headless --path . --script tools/meshy/bake_bottle.gd -- /tmp/bottle.glb
 ```
@@ -160,3 +160,96 @@ La regresión comprueba ahora también la extensión del panel escapular, ademá
 del grosor de húmeros, antebrazos y codos. Se hornea con la misma herramienta y
 los mismos pesos de origen indicados arriba, conservando todos los buffers
 geométricos y PNG. No se requiere remodelar ni cambiar proporciones.
+
+## Equipo Meshy y roca — 16 de octubre de 2026
+
+Se sustituyen las representaciones anteriores del hacha, pico, arco, armadura
+de hojas y roca 3D por los modelos originales facilitados en Releases. Los
+objetos en el suelo y los iconos de inventario/fabricación usan las mismas
+formas importadas. No se cambian recetas, durabilidad, daño ni recompensas.
+La roca era una única familia procedural de cuatro tamaños: los cuatro
+conservan sus alturas y reglas, compartiendo ahora el afloramiento entregado.
+
+| Recurso | Release | Archivo válido | Triángulos originales | Altura de autor |
+| --- | --- | --- | ---: | ---: |
+| Hacha | `modelo_hacha3d` | `hacha1_3d.zip` | 3.104 | 32 |
+| Pico | `modelo_pico3d` | `pico3dmodelo.zip` | 255.100 | 36 |
+| Arco | `modelo_arco1_3d` | `arco1_3d.zip` | 5.215 | 28 |
+| Armadura | `modelo_armadurahojas_3d` | `armadurahojas_3d.zip` | 10.425 | 29 |
+| Roca | `modelo_roca1_3d` | `roca1_3d.zip` | 755.810 | 1 m de base |
+
+Los originales están en `entregables/modelos/*/source/`; los PNG byte a byte,
+la malla base `model.res` y los hashes están en `assets/models/meshy/*/`.
+`source.json` registra URL exacta, SHA-256 de ZIP/FBX/PNG y triángulos. El primer
+ZIP del hacha era idéntico al del pico: se utiliza exclusivamente el ZIP
+corregido por el usuario, SHA-256
+`6e21f8f6942dc70733f1851e52d6650686458d2a5c110e489d135903e3da066e`.
+
+Las mallas base conservan todos los vértices, normales, UV y triángulos; solo
+reciben escala uniforme, rotación y traslación. El hacha se orienta por el
+eje real del mango antes de medir su filo. `anchors.gd` exporta la punta
+real del hacha/pico: las animaciones apuntan con ella al contacto. No se
+reconstruyen herramientas mediante primitivas. Los dos mangos importados usan
+8,25 unidades entre palmas; el solucionador recibe la separación de cada perfil
+en vez de asumir la de las herramientas anteriores. Comprueba también el
+volumen de la cabeza y usa el menor traslado hacia delante que permite el
+golpe bajo (hasta 4,5 unidades), conservando longitudes y la reducción de
+flexión de rodillas del departamento de animación. Los objetos caídos conservan
+la escala física de las herramientas sostenidas.
+
+El arco sostiene su propia cuerda original: `deformable.res` conserva la base
+y añade tres controles de desplazamiento de cuerda y uno de flexión de ramas.
+Los extremos siguen atados; el centro acompaña a la mano y al culatín. Los
+nodos StringContact son anclajes lógicos sin geometría, no cuerdas duplicadas.
+La flecha del juego sigue siendo independiente y conserva su trayectoria.
+
+La armadura original permanece intacta en `model.res`. Su variante vestida
+`worn.res` ajusta la cavidad al personaje delgado (X ×0,9, profundidad ×0,62
+alrededor de Z=2,2), sin cambiar UV ni topología. Añade pesos continuos de
+pelvis/pecho, hombros y muslos para que faldón y hombreras acompañen las
+articulaciones. Cada actor y retrato tiene esqueleto y Skin propios; comparten
+la geometría inmutable. Se retiran el recurso procedural de armadura anterior
+y su herramienta de proyección. La colisión de roca sigue su nueva anchura;
+las pequeñas conservan su volumen de selección sin bloquear los pies.
+
+### Regeneración reproducible
+
+Con Blender y Godot 4.7.2, desde la raíz del repositorio:
+
+```sh
+mkdir -p /tmp/day-zero-meshy
+for id in axe pickaxe bow leaf_armor rock1; do
+  blender -b --python tools/meshy/convert_source.py -- entregables/modelos/$id/source/*.fbx /tmp/day-zero-meshy/$id.glb
+done
+godot --headless --editor --path . --import
+godot --headless --path . --script tools/meshy/bake_props.gd -- tools/meshy/props.json
+godot --headless --path . --script tools/meshy/prepare_wearables.gd
+for id in axe pickaxe bow leaf_armor rock1; do
+  godot --headless --path . --script tools/meshy/verify_source.gd -- /tmp/day-zero-meshy/$id.glb res://assets/models/meshy/$id/model.res
+done
+godot --path . --script tools/meshy/review_props.gd -- /tmp/day-zero-meshy-review
+python tools/meshy/compose_gear_review.py /tmp/day-zero-meshy-review docs/previews/meshy_gear.png
+godot --path . --script tools/meshy/review_gear_game.gd
+```
+
+La comparación independiente con los cinco FBX da error máximo de posición y
+UV cero; las diferencias de normales quedan por debajo de 0,00013, debidas
+al empaquetado de Godot. Se comprueban también todos los índices de triángulos.
+Las pruebas de equipo verifican cuerda dibujada, filo sobre vértice real, piel
+de armadura independiente y colisión de roca. Las capturas
+`previews/meshy_gear.png` y `previews/meshy_gear_in_game.png` muestran el resultado
+real de Godot. No se ha medido rendimiento en el ordenador del usuario; roca
+y pico conservan las mallas densas originales.
+
+
+Validación final con las animaciones de `8b341ec`: 50.995 comprobaciones en
+once suites (armas, equipar/desequipar, combate agachado, contactos, recogida,
+materiales, geometría y objetos físicos). La nueva prueba de equipo comprueba
+también todos los vértices del hacha y pico frente al interior del tórax y
+cráneo en seis fases completas del golpe, además del recorrido de sus ejes.
+
+La integración final conserva también `301080b` del departamento de hitboxes:
+la roca incorpora un Area3D de selección/impacto 15 cm mayor por lado que la
+caja física. La caja física sigue la malla; la tolerancia no bloquea el paso.
+Las siete suites de colisiones, separación, recursos, equipo, retícula,
+geometría real y recogida pasan después de esta integración.

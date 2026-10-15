@@ -1,5 +1,5 @@
 extends StaticBody3D
-const Meshes=preload("res://scripts/prototype_3d/prop_mesh.gd")
+const IMPORTED=preload("res://assets/models/meshy/rock1/model.res")
 var required_hits:=4
 var health:=4
 var yield_count:=4
@@ -10,16 +10,14 @@ var shake:=0.0
 func configure(size_index:int) -> void:
  height=[0.28,0.7,1.4,2.4][size_index];required_hits=[1,4,8,12][size_index];health=required_hits;yield_count=[2,4,10,15][size_index];hand_collectable=size_index==0
  add_to_group("prototype_rocks");collision_layer=1;collision_mask=0
- var collision:=CollisionShape3D.new();var shape:=SphereShape3D.new();shape.radius=height*0.52;collision.shape=shape;collision.position.y=height*0.42;add_child(collision)
+ var collision:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=IMPORTED.get_aabb().size*height*Vector3(.86,.94,.86);collision.shape=shape;collision.position=IMPORTED.get_aabb().get_center()*height;add_child(collision)
  if hand_collectable:collision.disabled=true
- # Expanded impact/selection volume never changes walking collisions.
+ # The other department's 15 cm impact tolerance follows the imported bounds.
+ # This area selects resources; only the inner volume blocks movement.
  var area:=Area3D.new();area.collision_layer=16;area.collision_mask=0;area.set_meta("resource",self);add_child(area)
- var aim:=CollisionShape3D.new();var aim_shape:=SphereShape3D.new();aim_shape.radius=shape.radius+0.15;aim.shape=aim_shape;aim.position.y=height*0.42;area.add_child(aim)
+ var aim:=CollisionShape3D.new();var aim_shape:=BoxShape3D.new();aim_shape.size=shape.size+Vector3.ONE*.3;aim.shape=aim_shape;aim.position=collision.position;area.add_child(aim)
  visual=Node3D.new();add_child(visual)
- for i in 4:
-  var node:=Meshes.sphere(visual,Vector3(sin(i*2.4)*height*0.22,height*(0.32+0.07*(i%2)),cos(i*2.4)*height*0.22),Vector3(height*0.43,height*(0.36 if i%2 else 0.48),height*0.4),Meshes.material(&"stone",Color("a4a394")))
-  # Mesh geometry uses world metres: keep its contour the same world thickness.
-  var material:Material=node.material_override.duplicate();material.next_pass=material.next_pass.duplicate();material.next_pass.set_shader_parameter("thickness",0.004);node.material_override=material
+ var model:=MeshInstance3D.new();model.mesh=IMPORTED;model.scale=Vector3.ONE*height;visual.add_child(model)
 func hit() -> bool:
  if health<=0:return false
  health-=1;shake=0.2

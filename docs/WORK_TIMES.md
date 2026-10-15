@@ -1164,3 +1164,59 @@ radios reales, para no partir de cuerpos ya superpuestos. Duración de esta
 integración no medida de forma completa.
 Validación tras integrar: 1000 comprobaciones de separación, 16675 de boxeo,
 73 de hitboxes, 65 de equipo y 62 de retícula; todas pasadas en Godot 4.6.3.
+
+## 2026-10-16 — Cinco modelos Meshy de equipo y roca
+
+Alcance: sustituir hacha, pico, roca, armadura de hojas y arco por los FBX y
+PNG originales publicados por el usuario; conservar fuentes y hashes,
+anclar filos y agarres, ligar armadura y cuerda, sustituir modelos físicos
+e iconos y retirar la armadura procedural anterior. Incluye documentación,
+pruebas y capturas reales en Godot Compatibility. Estimación previa: no
+registrada para esta tanda.
+
+| Hito | UTC | Europe/Madrid |
+| --- | --- | --- |
+| Primera observación registrada del trabajo | 2026-10-15 22:58:40 | 2026-10-16 00:58:40 |
+| Inspección del hacha corregida, tras detectar el ZIP duplicado | 2026-10-15 23:13:46 | 2026-10-16 01:13:46 |
+| Cierre de implementación y validación | 2026-10-15 23:28:20 | 2026-10-16 01:28:20 |
+
+Duración observada hasta el cierre: **29 min 40 s**. Incluye el tiempo
+transcurrido mientras se esperaba el hacha correcta; no se atribuye ese
+intervalo exclusivamente a modelado. Commit/push posteriores no están
+incluidos en esta medición.
+
+Se integró primero `2302da6` y después el trabajo de animación `8b341ec`,
+conservando pesos escapulares v3, transiciones de equipo, manos separadas
+8,25 unidades y rodillas menos flexionadas. Los anclajes medidos de las
+nuevas herramientas requieren traslación mínima de apoyo para el contacto
+bajo, descarte de candidatos que cruzan la cabeza y retirada del hacha
+con más separación del pecho. No se cambian las longitudes de huesos.
+
+Validación final: **50.995 comprobaciones en once suites**: armas 27.739;
+transiciones de equipo 17.892; contactos/ligadura de armadura 42; combate
+agachado 836; acciones naturales/recogida 4.050; arco 73; procedencia y
+materiales 100; geometría real de equipo/cuerda/armadura/roca 38; equipo 65;
+objetos físicos 147; recursos y elevación 13. La prueba de recursos se
+actualizó para esperar el contacto de la recogida animada en vez de asumir
+transferencia instantánea.
+
+Comparación independiente contra los cinco FBX: todos los índices de
+triángulos, posiciones y UV coinciden; error máximo de normales inferior
+a 0,00013 por empaquetado nativo. PNG/FBX se verifican mediante SHA-256.
+Importación del editor y `git diff --check` sin errores. Capturas de los
+cinco objetos, tres poses equipadas y escena real. No incluye medición de
+rendimiento ni sesión manual en el ordenador del usuario.
+
+
+Integración adicional antes de publicar: el push detectó `301080b`, recién
+subido por el departamento de hitboxes. Se conserva su área de impacto de
+15 cm en torno a la caja física de la roca importada, sin engordar la
+colisión de paso. Su prueba toma ahora el borde del volumen nuevo en lugar
+de la coordenada fija de la esfera antigua. Validación adicional pasada:
+hitboxes 73, separación de criaturas 1.000, recursos 13, equipo 65, retícula
+62, mallas completas 38 y recogida/acciones 4.050.
+
+Cierre tras integrar colisiones: **2026-10-15 23:30:11 UTC**
+(**2026-10-16 01:30:11 Europe/Madrid**),
+**31 min 31 s observados** desde el primer hito. La publicación en GitHub
+se realiza después de este registro.

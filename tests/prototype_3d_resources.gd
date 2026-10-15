@@ -7,7 +7,7 @@ func require(value:bool,message:String) -> void:
 func _initialize():call_deferred("run")
 func run():
  var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();game.use_test_layout=true;root.add_child(game)
- game.paused=true;game.player.set_physics_process(false)
+ game.paused=true;game.player.set_physics_process(false);game.camera_rig.set_process(false);game.camera_rig.set_physics_process(false)
  for enemy in get_nodes_in_group("prototype_enemies"):enemy.set_physics_process(false)
  var plant=preload("res://scripts/prototype_3d/gatherable.gd").new();game.add_child(plant);plant.configure({"kind":5,"variant":2,"hits":1,"yield":3});plant.position=Vector3(10,0,10)
  game.player.position=Vector3(10,0,10.9);game.camera_rig.update(1);game.camera_rig.camera.look_at(plant.position+Vector3.UP*0.23)
@@ -15,7 +15,10 @@ func run():
  require(not game.interact() and plant.health==1,"Burdock requires free hands")
  game.player.equipped=false;game.bag.active_quick_uid=-1
  var leaves:int=game.bag.count(&"hoja_bardana")
- require(game.interact() and game.bag.count(&"hoja_bardana")==leaves+3,"E collects exact variant yield")
+ require(game.interact(),"E begins the directed plant pickup")
+ for frame in 60:game.player.update_facing(game.player.pickup_point,1.0/60)
+ game.player.advance_preview(game.player.Clips.duration(&"pickup")*.5)
+ require(game.bag.count(&"hoja_bardana")==leaves+3,"Contact collects exact variant yield")
  require(plant.health==0 and not plant.visible and plant.collision_layer==0,"Collected plant stops receiving hits")
  game.player.preview_state=&""
  var sapling=preload("res://scripts/prototype_3d/gatherable.gd").new();game.add_child(sapling);sapling.configure({"kind":4,"variant":3,"hits":2,"yield":3});sapling.position=plant.position

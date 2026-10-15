@@ -13,7 +13,7 @@ static func frame(shaft: Vector3) -> Basis:
  x=x.normalized()
  return Basis(x,y,x.cross(y).normalized())
 
-static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int = 0,two_hands: bool = true,body:Transform3D=Transform3D.IDENTITY) -> Dictionary:
+static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int = 0,two_hands: bool = true,body:Transform3D=Transform3D.IDENTITY,support_distance:float=SUPPORT) -> Dictionary:
  var center: Vector3 = (shoulders[0]+shoulders[1])*0.5
  var forward := center.direction_to(point)
  if forward.is_zero_approx(): forward=Vector3.BACK
@@ -22,6 +22,9 @@ static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int
  up=up.normalized()
  var best: Dictionary = {}; var best_score := INF
  var inverse:=body.affine_inverse()
+ var skull:=Basis.IDENTITY.slerp(body.basis,.2)
+ var skull_inverse:=skull.inverse()
+ var head:Vector3=body*Vector3(0,52,0)+skull*Vector3(0,6,2.2)
  for sample_roll in 27:
   var roll:float=0.0 if sample_roll==0 else (1.0 if sample_roll%2==0 else -1.0)*ceilf(sample_roll/2.0)*.12
   if absf(roll)*5>=best_score:continue
@@ -34,7 +37,7 @@ static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int
    var x := forward*cos(angle)-plane_up*sin(angle)
    var basis := Basis(x,y,x.cross(y).normalized())
    var grip := point-basis*tip
-   var support := grip+y*SUPPORT
+   var support := grip+y*support_distance
    var d0: float = shoulders[active].distance_to(grip)
    var d1: float = shoulders[1-active].distance_to(support)
    if d0<MIN_ARM or d0>MAX_ARM:continue
@@ -47,7 +50,10 @@ static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int
    var clear:=true
    for shaft_sample in 17:
     var along:float=-4.0+shaft_sample*2.0
-    var local:Vector3=inverse*(grip+y*along)
+    var shaft_point:Vector3=grip+y*along
+    var head_local:Vector3=skull_inverse*(shaft_point-head)
+    if (head_local/Vector3(5.1,6.2,6.2)).length_squared()<1.04:clear=false;break
+    var local:Vector3=inverse*shaft_point
     if local.y<=31 or local.y>=51:continue
     var section:Vector4=BodyProfile.section(local.y)
     var radial:=Vector2(local.x/section.y,(local.z-(section.z+section.w)*.5)/((section.w-section.z)*.5)).length_squared()

@@ -44,7 +44,7 @@ func _ready() -> void:
  grip_socket.name="ObjectGrip";support_socket.name="SupportHand";tip_socket.name="ObjectTip"
  for family in [&"pickaxe",&"sword",&"bow",&"bottle",&"food"]:
   var prop:=preload("res://scripts/prototype_3d/held_prop.gd").new();grip_socket.add_child(prop);prop.configure(family);prop.hide();held_props[family]=prop
- leaf_armor=preload("res://scripts/prototype_3d/leaf_armor.gd").new();add_child(leaf_armor);leaf_armor.hide()
+ leaf_armor=preload("res://scripts/prototype_3d/leaf_armor.gd").new();add_child(leaf_armor);leaf_armor.bind(rig);leaf_armor.hide()
  parry_pulse=preload("res://scripts/prototype_3d/parry_pulse.gd").new();add_child(parry_pulse)
 func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: Basis, _item: StringName) -> Dictionary:
  var y_axis := (actor_basis*shaft).normalized()
@@ -150,6 +150,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   tip_socket.position=tool_tip
  rig.apply(last_pose,hands,delta)
  leaf_armor.transform=last_pose.body
+ leaf_armor.update_pose(rig,last_pose.body)
  parry_pulse.update_hands([rig.posed[6].origin,rig.posed[9].origin])
  axe.visible = equipped and item==&"axe" and state!=&"death"
  for family in held_props:

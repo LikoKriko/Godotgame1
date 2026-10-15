@@ -6,6 +6,9 @@ static func crop(texture:Texture2D,rect:Rect2) -> AtlasTexture:
  var result:=AtlasTexture.new();result.atlas=texture;result.region=rect;return result
 static func raw(id:StringName) -> Texture2D:
  if id in [&"botella",&"botella_full",&"water"]:return load("res://assets/items/prototype_3d/bottle_meshy/icon.png")
+ if id in [&"axe",&"pickaxe",&"bow",&"burdock_armor",&"piedra"]:
+  var name:String={&"burdock_armor":"leaf_armor",&"piedra":"rock1"}.get(id,String(id))
+  return load("res://assets/models/meshy/"+name+"/icon.png")
  if Tools.DATA.has(id):return Tools.icon(id)
  if id in [&"cuero_curtido",&"cuero_sin_refinar",&"saco_sal"]:return load("res://assets/items/"+{&"cuero_curtido":"tanned_leather",&"cuero_sin_refinar":"raw_hide",&"saco_sal":"salt_bag"}[id]+".png")
  if id==&"basic_workbench":return preload("res://scripts/workbench_art.gd").SOURCE

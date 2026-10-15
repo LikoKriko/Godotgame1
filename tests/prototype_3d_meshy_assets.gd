@@ -9,7 +9,12 @@ func _initialize():call_deferred("run")
 func run():
  var definitions=[
   ["res://assets/characters/prototype_3d/meshy/","survivor_skin.res",491218,64.0],
-  ["res://assets/items/prototype_3d/bottle_meshy/","bottle.res",883250,10.4]]
+  ["res://assets/items/prototype_3d/bottle_meshy/","bottle.res",883250,10.4],
+  ["res://assets/models/meshy/axe/","model.res",3104,32.0],
+  ["res://assets/models/meshy/pickaxe/","model.res",255100,36.0],
+  ["res://assets/models/meshy/bow/","model.res",5215,28.0],
+  ["res://assets/models/meshy/leaf_armor/","model.res",10425,29.0],
+  ["res://assets/models/meshy/rock1/","model.res",755810,1.0]]
  for definition in definitions:
   var folder:String=definition[0]
   var provenance:Dictionary=JSON.parse_string(FileAccess.get_file_as_string(folder+"source.json"))

@@ -19,10 +19,11 @@ func run() -> void:
  require(not player.can_reach_contact(player.position+Vector3.UP*10),"Horizontal reach cannot hit distant overhead targets")
  var rock=preload("res://scripts/prototype_3d/rock.gd").new();game.add_child(rock);rock.configure(1);rock.position=Vector3(12,0,8)
  await physics_frame
- var from:Vector3=rock.position+Vector3(.46,.294,2)
+ var physical:CollisionShape3D=rock.get_child(0)
+ var from:Vector3=rock.position+Vector3(physical.shape.size.x*.5+.1,physical.position.y,2)
  var query:=PhysicsRayQueryParameters3D.create(from,from+Vector3.FORWARD*4,25);query.collide_with_areas=true
  var result:Dictionary=game.get_world_3d().direct_space_state.intersect_ray(query)
- require(not result.is_empty() and game.target_owner(result.collider)==rock,"Aiming beside the old rock sphere now selects the enlarged hitbox")
+ require(not result.is_empty() and game.target_owner(result.collider)==rock,"Aiming beside the imported rock collider now selects the enlarged hitbox")
  query.collision_mask=1;query.collide_with_areas=false
  require(game.get_world_3d().direct_space_state.intersect_ray(query).is_empty(),"Expanded rock hitbox does not block walking")
  rock.hit();rock.hit();rock.hit();rock.hit()

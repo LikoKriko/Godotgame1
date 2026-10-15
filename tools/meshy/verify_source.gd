@@ -14,7 +14,8 @@ func run():
  var mesh:Mesh=load(args[1]);var actual:=mesh.surface_get_arrays(0)
  var points:PackedVector3Array=original[Mesh.ARRAY_VERTEX]
  var factor:float=mesh.get_meta("uniform_scale");var offset:Vector3=mesh.get_meta("translation")
- for i in points.size():points[i]=points[i]*factor+offset
+ var rotation:Basis=mesh.get_meta("rotation",Basis.IDENTITY)
+ for i in points.size():points[i]=rotation*points[i]*factor+offset
  var actual_points:PackedVector3Array=actual[Mesh.ARRAY_VERTEX]
  assert(points.size()==actual_points.size(),"Source vertex count must match")
  var max_position_error:=0.0;var max_normal_error:=0.0;var max_uv_error:=0.0
@@ -23,7 +24,7 @@ func run():
  for i in points.size():
   max_position_error=maxf(max_position_error,points[i].distance_to(actual_points[i]))
   max_uv_error=maxf(max_uv_error,uv[i].distance_to(actual_uv[i]))
-  max_normal_error=maxf(max_normal_error,normals[i].distance_to(actual_normals[i]))
+  max_normal_error=maxf(max_normal_error,(rotation*normals[i]).distance_to(actual_normals[i]))
  print("Source comparison: vertices=",points.size()," max position error=",max_position_error," max UV error=",max_uv_error," max normal error=",max_normal_error)
  assert(max_position_error<0.002,"Every source position must be preserved within Godot mesh packing precision")
  assert(max_uv_error<0.00003,"Every source UV must be preserved")

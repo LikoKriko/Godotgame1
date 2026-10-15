@@ -1,0 +1,15 @@
+{
+  "release": "modelo_armadurahojas_3d",
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_armadurahojas_3d/armadurahojas_3d.zip",
+  "zip_sha256": "84bdeb4411f4fb94db8b23d768bfc8520394b2e38d1140ed2185356b936745fd",
+  "source_fbx": "entregables/modelos/leaf_armor/source/Meshy_AI_Leafwoven_Tunic_1015215256_texture.fbx",
+  "fbx_sha256": "f87521950d8f6df535505c255f340dbb3ebfe12e2c41fcd15228808399ec31a4",
+  "triangles": 10425,
+  "textures_sha256": {
+    "normal": "be9464debaa2b6eff45d685c557917bf2f461ba4e0e6adc1ab85e243d48cf195",
+    "metallic": "191d8d4f364f06591318c1f0900f41e8bd97445918d6094a72dac5d4073466b8",
+    "metallic_roughness": "95beb4b73e8bac2ebb3026764cdb26b46a73646e438eaa3334fe548cf42f555e",
+    "roughness": "12bd50360b1e49d45cb0c59da5ce9317cc94f405d3c6170f2d37ada995ed4179",
+    "albedo": "82b9c4e598b84c1cc4759f239cab769fd0d2717d821ccb31730520846b21cf5f"
+  }
+}

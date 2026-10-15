@@ -95,3 +95,12 @@ conservan como referencias históricas. Adaptar los rigs a los archivos
 importados, manteniendo las alturas de 1,75 m/0,875 m. Los FBX no traen esqueleto
 ni animaciones; las ligaduras añadidas integran las acciones del juego.
 Ver `docs/MESHY_ASSETS.md` para regenerar el personaje y la botella.
+
+El hacha, pico, arco, armadura de hojas y primera familia de rocas usan los
+FBX de las Releases `modelo_hacha3d`, `modelo_pico3d`, `modelo_arco1_3d`,
+`modelo_armadurahojas_3d` y `modelo_roca1_3d`. Procedencia y mallas originales:
+`assets/models/meshy/*/source.json`. La Release de hacha válida contiene
+`hacha1_3d.zip`; el ZIP anterior era un duplicado del pico. Conservar las
+mallas nativas originales, sus PNG/UV y sus anclajes medidos. La armadura
+vestida añade ajuste de cavidad y pesos al mismo tejido; el arco deforma su
+cuerda original mediante blend shapes. No superponer los modelos anteriores.
