@@ -1259,3 +1259,31 @@ tiempos; se conservan ambas. Importación completa del editor sin errores.
 Comprobaciones posteriores a la integración: caídas **18221**, modelos y equipo
 **38**, hitboxes **73** y separación **1000**, todas superadas sin errores de
 script. No se registró un inicio exacto del intervalo de publicación.
+
+## 2026-10-16 — Revisión rápida de entregas combinadas
+
+Inicio observado **2026-10-15 23:50:02 UTC** (16/10, 01:50:02 Madrid);
+cierre de validación **23:53:35 UTC** (16/10, 01:53:35 Madrid): **3 min 33 s**.
+Alcance solicitado: comprobación rápida. Estimación comunicada durante la
+tarea: 3–5 minutos adicionales, pendiente la importación de los nuevos assets.
+Documentación y publicación posteriores fuera del intervalo medido.
+
+Comparados los diez commits desde `b247ca5` hasta `4c29883`: modelos Meshy,
+rigs, equipo, hitboxes, separación, boxeo, persecución y caídas. No aparecen
+marcadores de conflicto. Se corrige una comprobación obsoleta en
+`tests/prototype_3d.gd`: contaba piezas del hacha procedural retirada; ahora
+verifica la malla Meshy real que debe mostrarse. No cambia el juego.
+
+Godot **4.7.2**, Linux: importación del editor completada y **10 suites
+superadas** tras la corrección. Hitboxes **73**; separación **1000**; equipo
+Meshy **38**; assets/materiales/procedencia **100**; caídas **18221**;
+transiciones de equipamiento **17892**; boxeo **16675**; botín **16**;
+guardado **194**; integración general **739**. Revisión adicional de una
+captura real del mundo con superviviente, armadura, hacha, pico, arco y roca.
+Intermedios en `/workspace/work/integration-review/quick-review`.
+
+La primera importación encontró el bloqueo de sockets del entorno aislado;
+la verificación posterior sin ese bloqueo terminó sin errores. El render
+final en X11/Compatibility también terminó sin errores de scripts o recursos.
+Esta revisión rápida no repite todas las suites ni certifica animaciones
+artísticamente, rendimiento del usuario, audio físico o funcionamiento en Windows.

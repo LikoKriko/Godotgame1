@@ -10,7 +10,8 @@ func run():
  world.player.set_physics_process(false)
  await physics_frame
  require(world.player is CharacterBody3D and world.camera_rig.camera is Camera3D,"Prototype uses real 3D physics and perspective camera")
- require(world.player.model.axe.get_child_count()>5,"Axe contains solid blade, wooden shaft and rope geometry")
+ var axe_visual=world.player.model.axe.get_child(0) if world.player.model.axe.get_child_count()>0 else null
+ require(axe_visual is MeshInstance3D and axe_visual.mesh==load("res://assets/models/meshy/axe/model.res"),"Axe renders the supplied Meshy geometry instead of the retired procedural parts")
  var bind_mesh: Mesh = world.player.model.mesh_node.mesh
  require(world.player.model.rig.skeleton.get_bone_count()==24,"Humanoid has articulated bones, four cloth controls and four joint-volume collars")
  require(absf(world.player.model.mesh_node.mesh.get_aabb().size.y*world.player.model.scale.y-1.75)<0.001,"Survivor standing height is exactly 1.75 metres")
