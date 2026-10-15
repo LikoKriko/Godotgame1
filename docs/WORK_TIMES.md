@@ -648,3 +648,29 @@ artísticas en cara, mechones y acabado respecto a la ilustración original.
 Integración de publicación: se conserva `70bacfe`, revisión del departamento
 de animaciones. Solo añade documentación; se resuelve el registro de tiempos
 conservando ambas entradas. No modifica el código validado.
+
+## 2026-10-15 — Comparación e integración del torso reducido del joven
+
+Inicio observado **18:16:12 UTC** (20:16:12 Madrid); cierre de validación
+**18:18:27 UTC** (20:18:27 Madrid): **2 min 15 s observados**, sin estimación
+previa. Incluye comparación de código y capturas, pruebas y recuperación de
+la pantalla virtual local. Documentación y publicación posteriores fuera
+del intervalo.
+
+Comparado `e5c301e` con la integración anterior `70bacfe`: núcleo del torso
+más estrecho y menos profundo, menor inclinación cuadrúpeda, y cola/franja
+dorsal ajustadas al nuevo volumen. Cabeza, puños, rig y reglas de combate se
+conservan. No se requieren correcciones adicionales de código.
+
+Godot **4.7.2**, Linux: **6 suites superadas**. Malla y deformación del joven
+**2641**, criatura/combate/parry **6531**, referencias/ligaduras **539**, botín
+**16**, guardado **191** e integración general **739**. Se revisan **12 capturas
+nuevas** de cuatro vistas y ocho estados/variantes, y una comparación con seis
+capturas de la versión anterior usando la misma cámara e iluminación. La
+espalda queda más baja y el torso deja de dominar el perfil cuadrúpedo.
+
+Intermedios en `/workspace/work/integration-review/round4`. La pantalla virtual
+anterior ya no estaba disponible; se inicia una nueva y el render final termina
+sin errores de scripts o shaders. Las animaciones del enemigo1 siguen siendo
+provisionales conforme a la instrucción del usuario. No se mide rendimiento
+del usuario ni se valida Windows o audio físico en esta tarea.
