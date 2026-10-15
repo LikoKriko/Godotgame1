@@ -879,3 +879,101 @@ actor en juego, ocho poses con herramientas/botella/armadura, iconos transparent
 y captura del personaje con botella equipada y caída en la escena real.
 Láminas en `docs/previews/`. `git diff --check` limpio. No incluye sesión manual
 en Windows ni rendimiento medido en el ordenador del usuario.
+
+## 2026-10-15 — Animaciones del superviviente Meshy, espalda y deslizamiento
+
+Primer hito observado **23:24:06 Europe/Madrid**; cierre de validación
+**23:39:58 Europe/Madrid**. Intervalo medido parcial **15 min 52 s**. No se
+registró el inicio anterior al primer hito ni una estimación previa. En el hito
+**23:30:09** ya estaban incorporados los dos fallos señalados durante la tarea:
+escápulas exageradas al moverse y pierna deformada al deslizarse.
+
+Se actualizó de `de2923d` a `c0bcd4b` para trabajar sobre el Meshy Wild Wanderer
+vigente. Se conserva la primera adaptación de modelado y se corrige la ligadura
+que asignaba zonas centrales de la espalda casi al 100% a un brazo. En las
+muestras diagnósticas, el máximo desplazamiento respecto al tórax pasó de
+8,48 unidades en una acción a 0,015; carrera de 1,99 a 0,111. Se transfieren
+influencias a pecho con transición hacia el deltoides; no se cambia la forma.
+El FBX y PNG siguen intactos. La comparación contra el recurso publicado
+confirma igualdad exacta de todos los arrays ajenos a huesos/pesos, incluidos
+posiciones, normales, tangentes, UV y triángulos. Se conservan sus buffers
+empaquetados para evitar una segunda cuantización de normales. La corrección
+es reproducible y estable al reaplicarla; el rig fija su reposo con las semillas
+publicadas, independiente de las animaciones.
+
+Se rehace el deslizamiento completo: cadera de apoyo, rodilla recogida con
+espacio para la pantorrilla, pierna adelantada con flexión suave, pecho curvado
+respecto a la pelvis y brazos libres adelantados con codos flexionados. Los
+agarres se conservan y el salto parte de la pose mostrada, incluyendo ambas
+transformaciones de torso/pelvis. Referencias consultadas: Baseball Canada,
+Sliding Fundamentals, y Ficklin et al., J Sport Health Sci, figura 1B
+(enlaces en `docs/PROTOTYPE_3D.md`). No es captura de movimiento. No cambian
+velocidad, duración 0,46 s, frenada ni dirección de la mecánica.
+
+Se corrigen además penetraciones de suelas al rodar el pie, dedos al recoger
+objetos bajos y rodillas/manos al morir. El agarre de objetos ocultos deja de
+arrastrar la mano durante muerte; la precisión de los impactos y de E permanece.
+
+Godot **4.6.3**: **17 suites superadas**. Piel/volumen/continuidad **145005**,
+catálogo **8588**, diagonales **32736**, acciones/mira/E **4050**, combate
+agachado **836**, contrapeso espada **1440**, deslizamiento/salto **2028**,
+brazos de carrera **374**, procedencia Meshy **32**, nueva regresión de piel,
+espaldas, apoyo y enlace **4376**, cámara/marcha **1116**, integración **739**,
+equipo **65**, guardado **191**, objetos **155**, contactos/armadura **41** y
+animaciones enemigo1 **21935**. Se actualizó la antigua aserción de altura
+exacta del hueso del tobillo: ahora permite elevarlo para que la suela real
+rote sin enterrarse; la nueva suite comprueba los vértices deformados.
+
+Revisión nativa Compatibility: **144 fotogramas finales** del deslizamiento,
+16 fases, tres cámaras y tres familias (vacío, espada y hacha), además de
+comparación frontal/trasera de espalda y muestras del catálogo sobre el nuevo
+modelo. Importación de editor y `git diff --check` sin errores. No incluye
+Windows ni mediciones de FPS en el ordenador del usuario. Cambios locales,
+sin commit ni push para esta tarea.
+
+## 2026-10-15/16 — Rehacer hacha, pico, espada y arco con referencias
+
+Primer hito observado **15/10 23:42:47 Europe/Madrid**; cierre de revisión
+**16/10 00:08:37 Europe/Madrid**. Intervalo medido parcial
+**25 min 50 s**; no se registró un inicio anterior al primer hito ni
+una estimación previa. Se conservan los cambios locales de espalda y deslizamiento
+de la tarea anterior, trabajando sobre el Meshy de `c0bcd4b`.
+
+Se consultan referencias de herramientas forestales, trabajo con pico, espada
+sola y tiro con arco: enlaces y limitaciones de acceso en
+`docs/WEAPON_ANIMATIONS_3D.md`. Se rehacen porte/guardia, carga, golpe,
+continuación y recuperación del hacha, pico y espada con esfuerzos diferenciados
+de torso y pelvis. Se conserva el contrapeso del brazo vacío. El arco eleva,
+une la mano de cuerda, ancla la muñeca junto a la mandíbula, suelta y baja.
+El codo de tracción se orienta respecto a la cabeza para despejar tórax y armadura.
+La cuerda se une a la mano durante el tensado y vibra después de soltar.
+
+El contacto de herramientas se resuelve para la pose de impacto; las demás fases
+usan esa solución estable para evitar saltos al cambiar la orientación del torso.
+El solver comprueba el mango/hoja frente a la envolvente del cuerpo y descarta
+candidatos por su puntuación mínima antes de hacer las comprobaciones costosas.
+Una prueba local de 300 muestras del golpe apuntado de hacha midió aproximadamente
+0,25 ms por muestra de pose en CPU; no es una medición de FPS del juego ni del
+ordenador del usuario. No se cambian geometría, texturas ni pesos de la piel en
+esta tarea, ni daño, consumo de flechas, desgaste, tiempos de impacto o tolerancia
+de la mira. El seguimiento `bow_release` dura 0,24 s y es solo visual: permite
+otro disparo inmediatamente; se limpia al cargar/reaparecer y puede sustituirse
+por correr, saltar, deslizarse o comenzar otra acción.
+
+Godot **4.6.3**, **15 suites superadas**: nuevas armas **27806**, piel/volumen y
+continuidad **150005**, catálogo **8844**, mira/acciones/E **4050**, combate
+agachado **836**, contrapeso **1440**, armadura/contactos **41**, precisión del
+arco y seguimiento en jugador real **73**, piel/apoyos/Meshy **4520**, equipo
+**65**, guardado **191**, integración **739**, deslizamiento **2028**, diagonales
+**32736**, cámara/cadencia **1116**. Se adapta la comprobación de arco en fase 0:
+la cuerda permanece en reposo y la flecha aparece al unirse la mano, en lugar
+de estirar la cuerda hacia la mano todavía baja. Durante tensión, culatín y
+cuerda coinciden con la mano real. Se comprueban cráneo y tórax, impactos a tres
+alturas de pie/agachado, recuperación, codo suave, anclaje, una flecha por disparo
+y ausencia de espera adicional antes de volver a tensar.
+
+Revisión nativa Compatibility de **208 fotogramas finales**: 144 de carga,
+golpe, recuperación, tensado, suelta y variantes agachadas; 64 adicionales con
+armadura desde delante y atrás. Importación de editor y `git diff --check` sin
+errores. No incluye Windows ni una sesión manual de juego en el equipo del
+usuario. Cambios locales **sin commit ni push** para esta tarea.

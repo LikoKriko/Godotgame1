@@ -92,3 +92,24 @@ la reconstrucción procedural anterior. Mantener `young_pose.bind_pose()` fijo
 y separado del catálogo de acciones: lo usan el esqueleto y el exportador de
 ligadura. La revisión de F6 permite pausar y recorrer la fase del joven.
 Ver `docs/YOUNG_3D.md` y `tests/prototype_3d_young_motion.gd`.
+
+
+## Superviviente Meshy: espalda y deslizamiento
+
+La zona central de la espalda sigue el tórax; no debe quedar asignada a los
+brazos por la difusión automática. La corrección reproducible está en
+`human_skin_weights.gd` y `tools/meshy/correct_survivor_weights.gd`, conservando
+la geometría importada. La postura de enlace usa `Anatomy.bind_pose()`.
+El deslizamiento nuevo curva el pecho respecto a la pelvis y mantiene la
+rodilla recogida con espacio para la pantorrilla. Revisar frontal, lateral y
+espalda en F6, incluyendo el salto desde distintas fases y los objetos equipados.
+Ver `docs/MESHY_ASSETS.md` y `tests/prototype_3d_meshy_motion.gd`.
+
+
+## Gestos de armas y herramientas
+
+`weapon_motion.gd` separa las trayectorias de hacha, pico, espada y arco de la
+anatomía y de las mecánicas. Para referencias, fases y revisión con F6, consultar
+`docs/WEAPON_ANIMATIONS_3D.md`. El arco incorpora `bow_release`, un seguimiento
+visual que no añade espera para volver a disparar. Conservar el impacto en la
+fase 0,5 y la orientación del arma calculada para ese contacto.

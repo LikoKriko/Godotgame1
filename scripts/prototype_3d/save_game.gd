@@ -236,6 +236,7 @@ static func restore(game,data:Dictionary) -> bool:
   if data.resources[id]==0:node.health=1;node.hit()
   else:node.health=data.resources[id]
  var p:Dictionary=data.player
+ game.player.bow_follow_elapsed=-1
  game.player.position=point(p.position);game.player.velocity=point(p.velocity);game.player.model.rotation.y=p.heading;game.player.phase=p.phase;game.player.death_elapsed=p.death_elapsed;game.player.equip_recovery=p.equip_recovery;game.player.pickup_recovery=p.pickup_recovery
  for key in MOTION:game.player.locomotion.set(key,p.motion[key])
  game.player.locomotion.slide_direction=Vector2(p.motion.slide_direction[0],p.motion.slide_direction[1])

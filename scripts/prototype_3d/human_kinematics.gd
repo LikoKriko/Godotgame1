@@ -5,12 +5,16 @@ const SurfaceProfile=preload("res://scripts/prototype_3d/meshy_body_profile.gd")
 const Anatomy=preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Pose=preload("res://scripts/continuous_body_pose.gd")
 
-static func arm(root:Vector3,hand:Vector3,body:Basis,side:int,free_swing:bool=false) -> Dictionary:
+static func arm(root:Vector3,hand:Vector3,body:Basis,side:int,free_swing:bool=false,draw_amount:float=0.0) -> Dictionary:
  var local:Vector3=body.inverse()*(hand-root)
  var raised:=smoothstep(-12,4,local.y)
  var across_chest:=smoothstep(1.0,5.0,local.x*(1 if side==0 else -1))
  var pole:=Vector3((-1 if side==0 else 1)*lerpf(0.75,2.2,across_chest),lerpf(-0.15,-0.85,raised)-across_chest*0.65,lerpf(0.2,0.9,raised)+across_chest*0.35)
  if free_swing:pole=Vector3(-0.12 if side==0 else 0.12,-0.02,-1.0)
+ if draw_amount>0:
+  var head_right:Vector3=Basis.IDENTITY.slerp(body,.2).x
+  var drawing_pole:Vector3=body.inverse()*(head_right*(-2.0 if side==0 else 2.0)+Vector3(0,-.55,-.3))
+  pole=pole.lerp(drawing_pole,clampf(draw_amount,0,1))
  var result:=Pose.joint(root,hand,Pose.UPPER_ARM,Pose.FOREARM,body*pole)
  if free_swing:return result
  # Keep the upper arm outside the rib cage while preserving the hand target.

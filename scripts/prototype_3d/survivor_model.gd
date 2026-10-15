@@ -99,7 +99,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
  var hands: Array[Vector3] = last_pose.hands.duplicate()
  grip_error = 0
  tool_frame=last_pose.tool_basis
- if item!=&"":
+ if item!=&"" and state!=&"death":
   var profile:=Profiles.profile(item)
   var grip: Vector3 = last_pose.grip
   # Project onto the intersection of both arms' reachable volumes.
@@ -123,7 +123,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
  rig.apply(last_pose,hands,delta)
  leaf_armor.transform=last_pose.body
  parry_pulse.update_hands([rig.posed[6].origin,rig.posed[9].origin])
- axe.visible = equipped and item==&"axe"
+ axe.visible = equipped and item==&"axe" and state!=&"death"
  for family in held_props:
   var prop:Node3D=held_props[family];prop.visible=family==item and state!=&"death"
   if prop.visible:

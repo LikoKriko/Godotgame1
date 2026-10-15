@@ -40,6 +40,13 @@ func run():
  require(game.player.action_point.distance_to(old_target)>1,"Draw follows a moved reticle until release")
  var arrows=get_nodes_in_group("player_arrows_3d")
  require(arrows.size()==1,"One completed draw releases exactly one arrow")
+ require(game.player.bow_follow_elapsed==0,"The shot starts its visual follow-through at release")
+ var ammunition:int=game.bag.count(&"flecha");var bow_uses:int=game.bag.held_item().uses
+ game.player._physics_process(.02)
+ require(game.player.model.last_pose.clip_state==&"bow_release","The live player displays the release after the draw")
+ require(game.bag.count(&"flecha")==ammunition and game.bag.held_item().uses==bow_uses,"Visual follow-through spends no extra arrow or durability")
+ require(game.player.strike(),"Visual follow-through cannot add a cooldown to the next draw")
+ game.player.cancel_action()
  if arrows.size()==1:
   var arrow=arrows[0];arrow.set_physics_process(false)
   var toward:Vector3=reticle.position-arrow.global_position

@@ -191,7 +191,7 @@ func respawn() -> void:
  bag.reset()
  for i in bag.slots.size():bag.slots[i]={}
  for i in bag.quick_slots.size():bag.quick_slots[i]={}
- bag.active_quick_uid=-1;player.equipped=false;player.death_elapsed=-1;player.action_elapsed=-1;player.equip_elapsed=-1;player.equip_recovery=0;player.parry_elapsed=-1;player.locomotion.reset();player.position=Vector3(0,0.2,2)
+ bag.active_quick_uid=-1;player.equipped=false;player.death_elapsed=-1;player.action_elapsed=-1;player.bow_follow_elapsed=-1;player.equip_elapsed=-1;player.equip_recovery=0;player.parry_elapsed=-1;player.locomotion.reset();player.position=Vector3(0,0.2,2)
  player.pickup_recovery=0;player.model.wear({})
  paused=false;pause_panel.hide();Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
 func request_main_menu() -> void:

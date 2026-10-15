@@ -59,3 +59,52 @@ Vistas en `docs/previews/survivor_meshy_comparison.png`, `survivor_meshy_actions
 `tests/prototype_3d_meshy_assets.gd` comprueba procedencia, PNG originales, topología, materiales, recursos compartidos, independencia de poses y contacto de la botella. Sustituye las antiguas pruebas de proyección fotográfica de brazos, cuero cabelludo procedural y UV frontal/trasera; esos sistemas se han retirado del personaje 3D. `prototype_3d_human_deformation.gd` mantiene las comprobaciones de volumen de articulaciones, límites, longitudes y continuidad sobre la malla importada. Las otras pruebas de animación, agarres, contactos, recogida, inventario y persistencia se ejecutan sobre el nuevo modelo.
 
 Cierre validado con Godot 4.7.2: importación, comparación independiente de ambos FBX, 145.005 comprobaciones de piel/articulaciones/continuidad, 8.588 de catálogo, 32.736 de marcha diagonal, contactos altos/bajos y armadura, recogida, botella reutilizable, arco, guardado y 17 comprobaciones de interfaz nativa X11. Las animaciones del enemigo vigente conservan sus 21.935 comprobaciones. La validación no incluye una sesión manual en Windows ni mediciones de rendimiento en el equipo del usuario.
+
+## Adaptación de animaciones y corrección del tórax (15 de octubre de 2026)
+
+El catálogo completo funciona sobre el rig Meshy vigente de `c0bcd4b`. La
+postura de enlace se lee de `rig_seeds.json` mediante `Anatomy.bind_pose()`;
+no depende del reposo animado ni de las correcciones de apoyo. Mantiene las
+articulaciones originales al editar un movimiento.
+
+La ligadura automática asignaba casi todo el peso de algunos vértices de la
+espalda a los brazos. En una acción, puntos de la zona escapular se alejaban
+hasta 8,48 unidades del tórax. `human_skin_weights.gd` limita esa influencia en
+el pecho/espalda central y la transfiere al pecho, con una transición gradual
+hacia los deltoides. Se corrigen 42943 vértices, sin mover posiciones, normales,
+tangentes, UV ni triángulos. Los buffers geométricos publicados se conservan
+byte a byte; el recurso solo actualiza ligadura, límites de huesos y metadatos.
+El FBX y los cuatro PNG permanecen intactos. La corrección se hornea una vez,
+no se calcula al crear cada actor. Está integrada en `bind_human.gd` y también
+puede aplicarse al recurso existente:
+
+```sh
+godot --headless --path . --script tools/meshy/correct_survivor_weights.gd
+```
+
+La nueva animación de deslizamiento separa pelvis y pecho para curvar el torso,
+abre la rodilla recogida con espacio suficiente para la pantorrilla y mantiene
+la otra pierna adelantada con flexión suave. Los brazos libres equilibran con
+los codos bajos y las manos por delante; las armas conservan sus agarres. El
+salto mezcla ambas transformaciones desde la pose realmente mostrada. No se
+modifican duración, velocidad, frenada ni dirección de la mecánica existente.
+Las referencias y la revisión con F6 están descritas en `PROTOTYPE_3D.md`.
+
+Además, las suelas ruedan sobre la longitud real de los pies importados; la
+muñeca se extiende ligeramente al recoger objetos bajos sin mover el contacto
+seleccionado con E. Al morir, las rodillas conservan el plano de flexión sobre
+el suelo y las manos dejan de seguir un objeto ya oculto. La espada mantiene
+el brazo vacío de contrapeso y el combate agachado sigue apuntando a la mira.
+
+`prototype_3d_meshy_motion.gd` comprueba todos los estados y familias, con la
+recogida sin equipo como en el jugador real: geometría por hash, rig fijo,
+estabilidad de la corrección, piel sobre suelo, zona escapular junto al tórax,
+mano de recogida y liberación del equipo al morir. Las pruebas existentes de
+catálogo, diagonales, volumen de piel, deslizamiento, contactos y combate
+agachado se ejecutan también sobre este mismo recurso.
+
+
+Los gestos de las cuatro familias de armas/herramientas se documentan en
+`WEAPON_ANIMATIONS_3D.md`. Usan los mismos buffers de piel y geometría; la nueva
+suelta del arco orienta el codo de tracción respecto a la cabeza y mantiene el
+anclaje de la muñeca junto a la mandíbula.

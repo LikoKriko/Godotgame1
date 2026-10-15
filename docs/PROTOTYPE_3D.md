@@ -442,19 +442,19 @@ sombras y recogida; las pruebas de botín, mesa y guardado cubren su integració
 
 ## Deslizamiento sobre una cadera
 
-`slide_pose.gd` sustituye la compresión sinusoidal anterior para el prototipo
-3D. El usuario eligió una pierna adelantada y la otra flexionada. La entrada
-transfiere el peso a la cadera izquierda; la rodilla plegada abre hacia un lado,
-la pierna derecha avanza con el talón y la punta levantada. El torso acompaña
-con inclinación posterior y giro leves; manos libres se elevan para equilibrar,
-y herramientas conservan sus dos agarres. La salida recupera una postura baja
-que enlaza con el movimiento normal mediante el mezclado del rig.
+`slide_pose.gd` adapta el deslizamiento al Meshy Wild Wanderer. La entrada
+transfiere el peso a la cadera izquierda; la pierna recogida abre la rodilla y
+conserva una flexión de unos 70°, en lugar de plegar la pantorrilla contra el
+muslo. La pierna derecha se adelanta con una rodilla suave. La pelvis se inclina
+hacia atrás y el pecho se curva respecto a ella; los brazos libres se adelantan
+con codos flexionados, y las manos ocupadas conservan sus agarres. La salida
+recupera una postura baja y la mezcla al saltar conserva tórax y pelvis separados.
 
-Es una animación de cinemática anatómica, **no un movimiento capturado ni una
-réplica contrastada de un vídeo real**. La consulta externa quedó bloqueada por
-el proxy y requiere publicar el borrador de red preparado. Las proporciones,
-longitudes, apoyos y límites se verifican con las pruebas y la revisión nativa;
-el contraste con una grabación sigue pendiente.
+Referencias consultadas para la distribución de apoyos y la pierna flexionada:
+[Baseball Canada: Sliding Fundamentals](https://www.baseball.ca/sliding-fundamentals)
+y [Ficklin et al., comparación de técnicas de deslizamiento](https://pmc.ncbi.nlm.nih.gov/articles/PMC6188574/),
+figura 1B. Se adapta esa mecánica al juego y a sus objetos equipados; es una
+animación de autor con IK, no un clip de captura de movimiento.
 
 No cambia `locomotion.gd`: duración 0,46 s, distancia, frenada, Control al correr,
 salto en cualquier instante con inercia y giro máximo de 70° permanecen iguales.

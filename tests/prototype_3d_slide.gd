@@ -13,9 +13,10 @@ func run():
  var middle:=Clips.sample(&"",&"slide",0.5,0.3)
  require(maxf(middle.hips[0].y,middle.hips[1].y)<6,"Slide rests on a low hip rather than a standing squat")
  require(middle.hips[0].y<middle.hips[1].y,"Pelvis rolls toward the supporting hip")
- require(angle(middle.legs[1])>130 and angle(middle.legs[0])<65,"One leg extends while the other folds")
+ require(angle(middle.legs[1])>130 and angle(middle.legs[0])>65 and angle(middle.legs[0])<100,"The lead knee stays soft and the folded knee retains a natural bend")
  require(middle.legs[1].end.z-middle.hips[1].z>18,"Leading heel points into slide travel")
  require(middle.legs[0].joint.x<middle.legs[0].root.x-5,"Folded knee opens to the side instead of through the straight leg")
+ require(middle.body.basis.get_rotation_quaternion().angle_to(middle.pelvis.basis.get_rotation_quaternion())>.15,"Chest curls relative to pelvis instead of sliding as a rigid plank")
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor)
  for family in Clips.FAMILIES:
   actor.family_override=family

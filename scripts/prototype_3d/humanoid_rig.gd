@@ -22,13 +22,13 @@ func initialize_imported(actor:Node3D,mesh_instance:MeshInstance3D) -> void:
  mesh_instance.custom_aabb=AABB(Vector3(-35,-15,-45),Vector3(70,105,90))
 
 func setup(actor:Node3D,mesh_instance:MeshInstance3D) -> void:
- neutral = Clips.sample(&"",&"idle",0)
+ neutral = Anatomy.bind_pose()
  bone("pelvis",-1,Vector3(0,Anatomy.HIP.y,0))
  bone("chest",0,Vector3(0,43,0))
  bone("neck",1,Anatomy.HEAD_ANCHOR)
  bone("head",2,Vector3(0,57.5,0))
  for side in 2:
-  var arm:Dictionary = Clips.relaxed_arm(neutral,side)
+  var arm:Dictionary = neutral.arms[side]
   neutral.hands[side]=arm.end
   arm_rest.append(arm)
   var start := rest.size()
@@ -93,8 +93,12 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
  posed[3] = Transform3D(skull_basis,neck+skull_basis*(rest[3].origin-Anatomy.HEAD_ANCHOR))
  for side in 2:
   var clip:StringName=pose.get("clip_state",&"idle")
-  var swinging:=Clips.arm_is_free(pose,side) and clip in [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk"]
-  var arm := Kinematics.arm(pose.shoulders[side],hands[side],torso.basis,side,swinging)
+  var swinging:=Clips.arm_is_free(pose,side) and clip in [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide"]
+  var draw_amount:=0.0
+  if pose.get("family",&"")==&"bow" and side!=pose.active:
+   if clip in [&"draw",&"action"]:draw_amount=smoothstep(.12,.7,pose.phase)
+   elif clip==&"bow_release":draw_amount=1-smoothstep(.45,1,pose.phase)
+  var arm := Kinematics.arm(pose.shoulders[side],hands[side],torso.basis,side,swinging,draw_amount)
   var relaxed:Dictionary=Clips.relaxed_arm(pose,side)
   var resting:=clip==&"idle"
   if relaxed.is_empty() or clip not in [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run"]:relaxed_arm_blend[side]=0
@@ -121,13 +125,18 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   hinge_collar(20+side,arm,arm_rest[side])
   var balancing:bool=pose.get("family",&"")==&"sword" and clip==&"action" and side!=pose.active
   posed[start+2] = Transform3D(Kinematics.hand_frame(arm,torso.basis,side,not swinging and not balancing),arm.end)
+  if clip in [&"pickup",&"pickup_walk"] and side==1:
+   # Turn the fingers toward a low object while the wrist stays exactly on
+   # the selected contact. Following the forearm alone drives fingertips down.
+   var low:=1-smoothstep(5,20,pose.get("look_contact",Vector3(0,20,0)).y)
+   posed[start+2].basis=posed[start+2].basis.rotated(torso.basis.x,-.60*Clips.pickup_weight(pose.phase)*low)
   if pose.get("family",&"")==&"" and pose.get("clip_state")==&"action":
    var close_fist:=sin(clampf(float(pose.phase),0,1)*PI)
    posed[start+2].basis=posed[start+2].basis*Basis.from_scale(Vector3(1+0.1*close_fist,1-0.12*close_fist,1+0.1*close_fist))
   var leg: Dictionary = pose.legs[side]; start = 10+side*3
   orient_limb(start,leg,neutral.legs[side])
   hinge_collar(22+side,leg,neutral.legs[side])
-  posed[start+2] = Transform3D(torso.basis if pose.state==&"death" else pose.get("leg_frame",Basis.IDENTITY)*Basis(Vector3.RIGHT,leg.pitch),leg.end)
+  posed[start+2] = Transform3D(pose.get("leg_frame",Basis.IDENTITY)*Basis(Vector3.RIGHT,leg.pitch),leg.end)
   var leg_angle := atan2((leg.joint-leg.root).z,-(leg.joint-leg.root).y)
   if delta>0:
    var d:=minf(delta,0.033)

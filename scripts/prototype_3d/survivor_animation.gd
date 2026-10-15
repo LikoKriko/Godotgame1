@@ -4,11 +4,12 @@ const Pose = preload("res://scripts/continuous_body_pose.gd")
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Aim = preload("res://scripts/prototype_3d/tool_aim.gd")
 const Profiles = preload("res://scripts/prototype_3d/held_profiles.gd")
+const Weapons=preload("res://scripts/prototype_3d/weapon_motion.gd")
 const Slide=preload("res://scripts/prototype_3d/slide_pose.gd")
 const STRIDE_SCALE:=1.3
 const ARM_SWING_SCALE:=0.9
 const FAMILIES: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow",&"bottle",&"food",&"carried"]
-const STATES: Array[StringName] = [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"jump",&"slide_jump",&"equip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk",&"unequip",&"action",&"draw",&"pickup",&"pickup_walk",&"eat",&"eat_walk",&"drink",&"drink_walk",&"parry",&"hurt",&"death"]
+const STATES: Array[StringName] = [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"jump",&"slide_jump",&"equip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk",&"unequip",&"action",&"draw",&"bow_release",&"pickup",&"pickup_walk",&"eat",&"eat_walk",&"drink",&"drink_walk",&"parry",&"hurt",&"death"]
 
 static func duration(state: StringName,family: StringName = &"") -> float:
  if state==&"death": return 3.0
@@ -17,6 +18,7 @@ static func duration(state: StringName,family: StringName = &"") -> float:
  if state==&"slide": return 0.46
  if state in [&"jump",&"slide_jump"]: return 0.66
  if state==&"crouch_walk":return 1.25*STRIDE_SCALE
+ if state==&"bow_release":return .24
  if state==&"draw": return 0.5
  if state==&"action": return 1.0125 if family==&"sword" else 0.75
  if String(state).begins_with("equip") or state==&"unequip": return 0.5 if family==&"pickaxe" else 0.42
@@ -29,10 +31,11 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  var source_state := &"run" if state==&"slide" else state
  if state in [&"pickup",&"pickup_walk"]:source_state=&"walk" if state==&"pickup_walk" else &"idle"
  if state==&"unequip": source_state=&"equip";phase=1-phase
- if state==&"draw": source_state=&"action" if family==&"bow" else &"idle";phase*=0.5
+ if state==&"draw" or (family==&"bow" and state==&"action"):source_state=&"idle"
+ if state==&"bow_release":source_state=&"walk" if not movement.is_zero_approx() else &"idle"
  if state in [&"drink",&"drink_walk"]: source_state=&"eat_walk" if state==&"drink_walk" else &"eat"
  if state in [&"parry",&"hurt"]: source_state=&"idle"
- var pose := Pose.sample(&"food" if state in [&"drink",&"drink_walk"] else family,source_state,movement_phase if state==&"slide" else phase,1.0 if source_state==&"equip_crouch" else movement_phase,1.0,-1)
+ var pose := Pose.sample(&"food" if state in [&"drink",&"drink_walk"] else family,source_state,movement_phase if state in [&"slide",&"bow_release"] else phase,1.0 if source_state==&"equip_crouch" else movement_phase,1.0,-1)
  pose.leg_poles=[Vector3.BACK,Vector3.BACK]
  pose.leg_frame=Basis.IDENTITY
  pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state==&"run" else movement_phase
@@ -49,14 +52,14 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   body.origin.y+=maxf(0,standing_y-1.2-pelvis.y)
  # Crouching is a stance layer on the gesture, applied before tool/contact IK.
  # Lowering a finished standing animation would move its tip off the aim point.
- if state in [&"action",&"draw"] and crouch_amount>0:
+ if state in [&"action",&"draw",&"bow_release"] and crouch_amount>0:
   var amount:=clampf(crouch_amount,0,1)
   var hinge:=Basis(Vector3.RIGHT,0.08*amount)
   var pivot:=Vector3(0,Anatomy.HIP.y,0)
   body=Transform3D(hinge,pivot-hinge*pivot+Vector3(0,-6.0*amount,-0.45*amount))*body
  # An impact transfers weight through the chest and pelvis before settling.
  var recoil := 0.0
- if state==&"action": recoil=sin(clampf((phase-0.5)/0.16,0,1)*PI)*exp(-maxf(0,phase-0.5)*4)
+ if state==&"action" and family!=&"bow": recoil=sin(clampf((phase-0.5)/0.16,0,1)*PI)*exp(-maxf(0,phase-0.5)*4)
  if state==&"hurt": recoil=sin(phase*PI)
  var guard_amount:=smoothstep(0,0.2,phase)*(1-smoothstep(0.65,1,phase)) if state==&"parry" else 0.0
  var low_guard:=clampf(32-contact.y,0,12)*guard_amount if state==&"parry" and contact.is_finite() else 0.0
@@ -99,7 +102,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
    var step:=ankle.z*lerpf(1,0.65,absf(travel.x))
    pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,0,0)+Vector3.UP*ankle.y+travel*step
    pose.legs[side].pitch*=travel.z
- var striding:=state in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"] or (not movement.is_zero_approx() and state in [&"action",&"unequip"])
+ var striding:=state in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"] or (not movement.is_zero_approx() and state in [&"action",&"unequip",&"bow_release"])
  if striding:
   lengthen_stride(pose);body=pose.body
   # Free walking arms retain their resting depth and share the slower gait.
@@ -116,7 +119,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   for side in 2:
    var arm:=running_arm(pose,side,movement_phase)
    if not arm.is_empty():pose.hands[side]=arm.end
-  Slide.apply(pose,phase);body=pose.body;pose.pelvis=body
+  Slide.apply(pose,phase);body=pose.body
  if family==&"" and state==&"action":
   var rest:Dictionary=relaxed_arm(pose,1)
   pose.hands[1]=Pose.gesture(rest.end,body*Vector3(7,38,7),body*Vector3(6,40,18),phase,&"fist")
@@ -127,52 +130,11 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var edge:Vector3=body.basis*Vector3.BACK;edge-=shaft*edge.dot(shaft)
   if edge.length_squared()<0.01:edge=body.basis*Vector3.RIGHT
   edge=edge.normalized();pose.tool_basis=Basis(edge,shaft,edge.cross(shaft).normalized())
- if family in [&"axe",&"pickaxe",&"sword"] and state==&"action":
-  var rest_grip:=body*Vector3(-3.36,34,10.02)
-  var wind:=body*Vector3(-3.36,45,11.4)
-  var wind_axis: Vector3=body.basis*Vector3(0.15,0.98,-0.1).normalized()
-  if family==&"axe":
-   pose.grip=Pose.gesture(rest_grip,wind,body*Vector3(2,35,14),phase,family)
-   pose.shaft=Pose.gesture(Vector3(0.42,0.72,0.55),wind_axis,Vector3(0.1,0.1,1),phase,family).normalized()
-  elif family==&"pickaxe":
-   pose.grip=Pose.gesture(rest_grip,body*Vector3(-1.5,47,7),body*Vector3(-1,30,14),phase,family)
-   pose.shaft=(body.basis*Pose.gesture(Vector3(0.42,0.72,0.55),Vector3(0.05,0.99,-0.08),Vector3(0,-0.5,0.86),phase,family)).normalized()
-  elif family==&"sword":
-   pose.grip=body*Pose.gesture(Vector3(5.04,31,4.1),Vector3(9,42,8),Vector3(-2,34,12),phase,family)
-   pose.shaft=(body.basis*Pose.gesture(Vector3(0,0.35,0.94),Vector3(0.1,0.9,0.42),Vector3(-0.65,-0.3,0.7),phase,family)).normalized()
-  pose.grip.z=maxf(pose.grip.z,4.5)
-  if family==&"axe":
-   var edge:Vector3=Vector3.BACK-pose.shaft*pose.shaft.z
-   if edge.length_squared()<0.01:edge=Vector3.RIGHT
-   edge=edge.normalized();pose.tool_basis=Basis(edge,pose.shaft,edge.cross(pose.shaft).normalized())
-  if contact.is_finite():
-   var profile:=Profiles.profile(family)
-   var solution:=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands)
-   # A small weight transfer reaches a nearby high contact without lengthening
-   # the new model's arms or letting the tool leave either palm.
-   if solution.is_empty():
-    var transfer:=Vector3(contact.x,0,contact.z).normalized()*1.5
-    var reach_shoulders:Array=[pose.shoulders[0]+transfer,pose.shoulders[1]+transfer]
-    if not Aim.solve(contact,reach_shoulders,profile.tip,pose.active,profile.two_hands).is_empty():
-     transfer*=smoothstep(0.26,0.5,phase)*(1-smoothstep(0.62,1,phase))
-     body.origin+=transfer;pose.body=body;pose.grip+=transfer
-     pose.pelvis.origin+=transfer
-     for side in 2:
-      pose.shoulders[side]+=transfer;pose.hips[side]+=transfer;pose.hands[side]+=transfer
-     solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands)
-   pose.contact_reachable=not solution.is_empty()
-   if solution.is_empty():
-    var center: Vector3=(pose.shoulders[0]+pose.shoulders[1])*0.5
-    solution=Aim.solve(center+center.direction_to(contact)*30,pose.shoulders,profile.tip,pose.active,profile.two_hands)
-   if not solution.is_empty():
-    var amount:=smoothstep(0.26,0.5,phase)*(1-smoothstep(0.62,1,phase))
-    var aimed:Basis=pose.get("tool_basis",Aim.frame(pose.shaft)).slerp(solution.basis,amount)
-    pose.grip=pose.grip.lerp(solution.grip,amount);pose.shaft=aimed.y;pose.tool_basis=aimed
- if family in [&"axe",&"pickaxe"] and state==&"action":
-  # Recover forward and slightly upward around the new chest envelope, then
-  # settle to the grip. The impact itself remains at the selected contact.
-  var return_arc:=smoothstep(0.5,0.62,phase)*(1-smoothstep(0.90,1.0,phase))
-  pose.grip+=body.basis*Vector3(0,3,5)*return_arc
+ Weapons.carry(pose,state,phase,movement_phase)
+ if family in Weapons.MELEE and state==&"action":
+  var impact_pose:Dictionary={}
+  if contact.is_finite() and not is_equal_approx(phase,.5):impact_pose=sample(family,&"action",.5,movement_phase,movement,contact,slide_launch,crouch_amount)
+  Weapons.melee(pose,phase,contact,impact_pose);body=pose.body
  if family==&"sword" and state==&"action":
   # The empty arm opens away from the strike as a counterweight. Keep a soft
   # elbow instead of locking the joint, then return smoothly after the effort.
@@ -182,24 +144,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var counterweight:Vector3=pose.shoulders[free_side]+body.basis*outward*18.3
   var relaxed:Dictionary=relaxed_arm(pose,free_side)
   pose.hands[free_side]=relaxed.end.lerp(counterweight,opening)
- if family==&"bow" and contact.is_finite() and state not in [&"death",&"eat",&"drink",&"pickup"]:
-  var active:int=pose.active
-  var drawn:=smoothstep(0,0.26,phase) if state in [&"draw",&"action"] else 0.0
-  var anchor:Vector3=body*Vector3(3.5,46.8,7.5)
-  var direction:=anchor.direction_to(contact)
-  if direction.is_zero_approx():direction=Vector3.BACK
-  var grip:Vector3=anchor+direction*12
-  if pose.shoulders[active].distance_to(grip)>18.4:grip=pose.shoulders[active]+pose.shoulders[active].direction_to(grip)*18.4
-  direction=grip.direction_to(contact)
-  var up:=Vector3.UP-direction*direction.y
-  if up.length_squared()<0.01:up=Vector3.BACK-direction*direction.z
-  up=up.normalized()
-  var near_amount:=1-smoothstep(55,120,Vector2(contact.x-anchor.x,contact.z-anchor.z).length())
-  up=up.rotated(direction,-near_amount*0.15)
-  var right:=up.cross(direction).normalized()
-  pose.grip=grip;pose.shaft=direction.cross(right).normalized()
-  pose.hands[1-active]=grip-direction*lerpf(4,12,drawn)
-  pose.tool_basis=Basis(right,pose.shaft,direction)
+ if family==&"bow":Weapons.bow(pose,state,phase,contact)
  if family==&"" and state==&"action" and contact.is_finite():
   var shoulder: Vector3=pose.shoulders[1]
   pose.contact_reachable=shoulder.distance_to(contact)>=8.15 and shoulder.distance_to(contact)<=18.6 and contact.z>=4.8
@@ -218,15 +163,17 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var amount:=smoothstep(0,0.25,phase)*(1-smoothstep(0.75,1,phase))
   pose.grip=pose.grip.lerp(body*(Anatomy.MOUTH-Vector3(0,1.0,-0.2)),amount)
  for side in 2:
-  if pose.hands[side].y>30 and pose.hands[side].y<55 and absf(pose.hands[side].x)<7:
+  if pose.hands[side].y>30 and pose.hands[side].y<55 and absf(pose.hands[side].x)<7 and family!=&"bow":
    pose.hands[side].z=maxf(pose.hands[side].z,4.8)
  if state in [&"pickup",&"pickup_walk"] and contact.is_finite():
   var reach:=pickup_weight(phase)
+  pose.hands[0].y=maxf(pose.hands[0].y,5.0*reach)
   pose.hands[1]=pose.hands[1].lerp(contact,reach)
   pose.contact_reachable=pose.shoulders[1].distance_to(contact)>=8.15 and pose.shoulders[1].distance_to(contact)<=Pose.UPPER_ARM+Pose.FOREARM-0.04 and contact.z>=4.8
+ clear_soles(pose)
  if state==&"slide_jump":
   var launch:Dictionary=slide_launch if not slide_launch.is_empty() else sample(family,&"slide",0.55,movement_phase)
-  Slide.jump_from(pose,launch,phase);pose.pelvis=pose.body
+  Slide.jump_from(pose,launch,phase)
  return solve_legs(pose)
 
 static func pickup_weight(phase:float) -> float:
@@ -259,13 +206,20 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
   chest_rotation.x+=low*0.08
   pelvis_rotation.x+=low*0.025
   offset.z-=low*0.45
- if state==&"action":
+ if state==&"action" and pose.family!=&"bow":
   var load:=smoothstep(0,0.28,phase)*(1-smoothstep(0.52,0.9,phase))
   var drive:=smoothstep(0.28,0.5,phase)*(1-smoothstep(0.62,1,phase))
   var sign_side:float=-1 if pose.active==0 else 1
   chest_rotation.y+=sign_side*(load*0.055-drive*0.095)
   pelvis_rotation.y+=sign_side*(load*0.025-drive*0.045)
   offset.z+=drive*0.55-load*0.3
+  if pose.family==&"axe":
+   chest_rotation.y+=-(load*.08-drive*.10);chest_rotation.x+=-load*.035+drive*.07
+   pelvis_rotation.y+=-(load*.025-drive*.035)
+  elif pose.family==&"pickaxe":
+   chest_rotation.x+=-load*.045+drive*.11;pelvis_rotation.x+=drive*.025
+  elif pose.family==&"sword":
+   chest_rotation.y+=load*.10-drive*.14;pelvis_rotation.y+=load*.04-drive*.055
   if contact.is_finite() and pose.family in [&"axe",&"pickaxe",&"sword"]:
    var low:=1-smoothstep(10,35,contact.y)
    offset.y-=low*7.0*drive
@@ -279,6 +233,9 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
   pose.grip+=original.basis*Vector3(sign_side*arc*1.1,arc*1.0,arc*1.5)
  if state in [&"eat",&"eat_walk",&"drink",&"drink_walk"]:
   chest_rotation.x+=sin(phase*TAU*2)*0.008*pickup_weight(phase)
+ if pose.family==&"bow" and state in [&"draw",&"action",&"bow_release"]:
+  var opening:=smoothstep(.08,.85,phase) if state!=&"bow_release" else 1-smoothstep(.45,1,phase)
+  chest_rotation.y+=opening*.38;pelvis_rotation.y+=opening*.12
  if state==&"jump":
   var airborne:=sin(clampf(phase,0,1)*PI)
   chest_rotation.x-=airborne*0.045
@@ -311,7 +268,7 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
    pose.legs[side].end.y=lerpf(pose.legs[side].end.y,2.1,reach*low)
    var lift:=sin(clampf(phase/0.30,0,1)*PI) if phase<0.30 else sin(clampf((phase-0.74)/0.26,0,1)*PI)
    pose.legs[side].end.y+=lift*1.3*low
-  pose.hands[0]=pose.hands[0].lerp(original*Vector3(-10,31,10),reach)
+  pose.hands[0]=pose.hands[0].lerp(original*Vector3(-10,32,10),reach)
  if state not in [&"slide",&"slide_jump",&"death"]:
   chest=Transform3D(Basis.from_euler(chest_rotation),pivot+offset-Basis.from_euler(chest_rotation)*pivot)*original
   pelvis=Transform3D(Basis.from_euler(pelvis_rotation),pivot+offset-Basis.from_euler(pelvis_rotation)*pivot)*original
@@ -328,12 +285,14 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
  if state==&"death":
   # Hands and feet meet the ground independently of the falling torso instead
   # of rigidly following it below the floor. The head/chest retain clearance.
-  var settle:=smoothstep(0.35,0.85,phase)*2.2
+  var settle:=smoothstep(0.35,0.85,phase)*5.8
   pose.body.origin.y+=settle;pose.pelvis=pose.body
   for side in 2:
    pose.shoulders[side]=pose.body*Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,Anatomy.SHOULDER.z)
    pose.hips[side]=pose.body*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
-   pose.hands[side].y=maxf(1.5,pose.hands[side].y+settle)
+   pose.hands[side].y=maxf(6.5,pose.hands[side].y+settle)
+   var fold:=smoothstep(.3,.7,phase)
+   pose.leg_poles[side]=(Vector3.BACK.lerp(Vector3.UP,fold)+Vector3((-1 if side==0 else 1)*sin(fold*PI)*1.3,0,0)).normalized()
    pose.legs[side].end.y=maxf(2.1,pose.legs[side].end.y+settle)
 
 static func lengthen_stride(pose:Dictionary) -> void:
@@ -393,3 +352,11 @@ static func running_arm(pose:Dictionary,side:int,gait:float) -> Dictionary:
  var forearm:=upper.rotated(hinge,-deg_to_rad(105))
  var root:Vector3=pose.shoulders[side];var joint:=root+upper*Pose.UPPER_ARM
  return {"root":root,"joint":joint,"end":joint+forearm*Pose.FOREARM}
+
+static func clear_soles(pose:Dictionary) -> void:
+ # The imported feet extend eight units in front of the ankle. Roll around
+ # the visible sole, not its bone origin; preserve the authored swing lift.
+ for side in 2:
+  var pitch:float=pose.legs[side].pitch
+  if pose.clip_state in [&"crouch_walk",&"equip_crouch_walk",&"start",&"stop",&"start_run",&"stop_run"]:pose.legs[side].end.y+=.20
+  pose.legs[side].end.y+=maxf(0,sin(pitch))*8.03+maxf(0,-sin(pitch))*1.25

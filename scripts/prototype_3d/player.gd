@@ -10,6 +10,7 @@ var model: Node3D
 var phase := 0.0
 var equipped := true
 var action_elapsed := -1.0
+var bow_follow_elapsed:=-1.0
 var equip_elapsed := -1.0
 var unequipping:=false
 var equip_recovery:=0.0
@@ -80,7 +81,7 @@ func strike() -> bool:
   if game.bag.count(&"flecha")<=0:game.status.text="Necesitas flechas para disparar el arco";return false
   game.bag.consume_use()
  action_uid=item.get("uid",-1)
- action_elapsed=0;contact_done=false
+ action_elapsed=0;contact_done=false;bow_follow_elapsed=-1
  var aim:Dictionary=game.camera_rig.aim_sample() if action_family==&"bow" else game.camera_rig.action_sample()
  action_target=aim.hit;action_point=aim.point
  action_heading=heading_to(action_point)
@@ -112,10 +113,11 @@ func advance_action(delta:float) -> void:
    model.family_override=&"bow";model.aim_contact=model.to_local(action_point);model.nock_visible=true
    model.animate(&"draw",1,true)
    game.release_arrow(action_point,action_uid)
+   bow_follow_elapsed=0
   else:game.resolve_hit(action_target)
  if action_elapsed+0.000001>=seconds:action_elapsed=-1
 func cancel_action() -> void:
- action_elapsed=-1;contact_done=false
+ action_elapsed=-1;contact_done=false;bow_follow_elapsed=-1
 func can_reach_contact(point: Vector3) -> bool:
  return model.can_reach_contact(model.to_local(point),family())
 func begin_parry() -> bool:
@@ -189,6 +191,9 @@ func _physics_process(delta: float) -> void:
  if action_elapsed>=0 and action_family==&"bow":
   action_point=live_aim
  update_facing(live_aim,delta)
+ if bow_follow_elapsed>=0:
+  bow_follow_elapsed+=delta
+  if bow_follow_elapsed>=Clips.duration(&"bow_release") or family()!=&"bow" or not equipped:bow_follow_elapsed=-1
  var state: StringName = &"idle"; var progress := 0.0
  var actual_speed:=Vector2(velocity.x,velocity.z).length()
  if input.length_squared()>0 and actual_speed>0.03:
@@ -224,6 +229,9 @@ func _physics_process(delta: float) -> void:
  model.displayed_item=held.get("id",&"")
  model.item_water_ml=held.get("water_ml",0)
  model.nock_visible=state==&"draw" and not contact_done
+ if bow_follow_elapsed>=0 and state not in [&"idle",&"walk",&"crouch",&"crouch_walk",&"draw"]:bow_follow_elapsed=-1
+ if bow_follow_elapsed>=0 and action_elapsed<0 and state in [&"idle",&"walk",&"crouch",&"crouch_walk"]:
+  state=&"bow_release";progress=bow_follow_elapsed/Clips.duration(&"bow_release")
  if preview_state!=&"":
   model.family_override=preview_family;state=preview_state
   model.displayed_item=game.pending_consumption.get("id",&"apple")

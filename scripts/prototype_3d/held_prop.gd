@@ -51,12 +51,14 @@ func configure(value:StringName) -> void:
 func update_pose(state:StringName,phase:float,support:Vector3,nock_visible:bool=false,target:Vector3=Vector3.INF) -> void:
  if family!=&"bow":return
  var pull:=clampf(phase,0,1) if state==&"draw" else 0.0
- var hand:=support if state==&"draw" else Vector3(0,0,-4)
+ var hand:=Vector3(0,0,-4)
+ if state==&"draw":hand=hand.lerp(support,smoothstep(.08,.26,phase))
+ if state==&"bow_release":hand.z+=sin(phase*PI*6)*exp(-phase*5)*.8
  Meshes.orient_segment(string_segments[0],Vector3(0,-14,-4),hand,0.11)
  Meshes.orient_segment(string_segments[1],hand,Vector3(0,14,-4),0.11)
- nocked.visible=nock_visible and state==&"draw"
+ nocked.visible=nock_visible and state==&"draw" and phase>=.26
  nocked.position=hand; nocked.rotation=Vector3.ZERO
- if nocked.visible and target.is_finite():nocked.basis=Basis.looking_at(target-hand,Vector3.UP,true)
+ if state==&"draw" and target.is_finite():nocked.basis=Basis.looking_at(target-hand,Vector3.UP,true)
  # The arrow is a solid shaft, not a one-pixel screen-space line.
  nocked.scale=Vector3.ONE*lerpf(0.95,1,pull)
 func show_item(id:StringName,water_ml:int=0) -> void:

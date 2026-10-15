@@ -84,8 +84,12 @@ func run():
   actor.aim_contact=Vector3(0,42,80);actor.animate(&"draw",phase,true)
   var prop=actor.held_props[&"bow"]
   var hand:Vector3=actor.to_global(actor.rig.posed[6 if actor.last_pose.active==1 else 9].origin)
-  require(prop.nocked.global_position.distance_to(hand)<0.001,"Arrow nock follows the actual drawing hand")
-  require((prop.string_segments[0].global_transform*Vector3(0,0.5,0)).distance_to(hand)<0.001,"Bow string terminates at the actual drawing hand")
+  if phase<.26:
+   require(not prop.nocked.visible,"Arrow appears after the nocking hand joins the raised bow")
+   require((prop.string_segments[0].global_transform*Vector3(0,.5,0)).distance_to(prop.to_global(Vector3(0,0,-4)))<.001,"The string stays at rest while the bow is first lifted")
+  else:
+   require(prop.nocked.global_position.distance_to(hand)<0.001,"Arrow nock follows the actual drawing hand")
+   require((prop.string_segments[0].global_transform*Vector3(0,0.5,0)).distance_to(hand)<0.001,"Bow string terminates at the actual drawing hand")
  actor.family_override=&"bottle";actor.aim_contact=Vector3.INF;actor.animate(&"drink",0.5,true)
  var mouth:Vector3=actor.to_global(actor.last_pose.body*preload("res://scripts/prototype_3d/survivor_anatomy.gd").MOUTH)
  require(actor.grip_socket.to_global(preload("res://scripts/prototype_3d/held_profiles.gd").profile(&"bottle").tip).distance_to(mouth)<actor.scale.x*2,"Bottle mouth approaches lips rather than forehead")

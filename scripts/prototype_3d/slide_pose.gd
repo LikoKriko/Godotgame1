@@ -1,46 +1,59 @@
 extends RefCounted
-## Bent-leg hip slide. Pose only: speed, duration, input and air steering stay in
-## locomotion.gd. Authored kinematics are not a measured motion-capture clip.
+## Feet-first hip slide adapted to the imported Meshy anatomy. Pose only:
+## speed, 0.46s duration and air steering remain in locomotion.gd.
 const Aim=preload("res://scripts/prototype_3d/tool_aim.gd")
 const Anatomy=preload("res://scripts/prototype_3d/survivor_anatomy.gd")
+const Profiles=preload("res://scripts/prototype_3d/held_profiles.gd")
 static func apply(pose:Dictionary,phase:float) -> void:
  var t:=clampf(phase,0,1)
- var enter:=smoothstep(0,0.28,t);var rise:=smoothstep(0.69,1,t)
- var basis:=Basis.from_euler(Vector3(-0.22,0.09,0.18))
+ var enter:=smoothstep(0,.34,t)
+ var rise:=smoothstep(.72,1,t)
+ var load:=enter*(1-rise)
+ var original:Transform3D=pose.body
  var pivot:=Vector3(0,Anatomy.HIP.y,0)
- var pelvis:=Vector3(0.6,4.7,-1.2)
- var glide:=Transform3D(basis,pelvis-basis*pivot)
- # Recover to a low, balanced stance; the runtime blends into walking/crouching.
- var recover_basis:=Basis(Vector3.RIGHT,0.12)
- var recover:=Transform3D(recover_basis,Vector3(0,20.9,0)-recover_basis*pivot)
- var body:Transform3D=(pose.body as Transform3D).interpolate_with(glide,enter).interpolate_with(recover,rise)
- var glide_feet:Array[Vector3]=[Vector3(-6,2.8,5.7),Vector3(4.7,2.1,26.2)]
- var neutral_feet:Array[Vector3]=[Vector3(-Anatomy.HIP.x,2.1,0),Vector3(Anatomy.HIP.x,2.1,0)]
- var amount:=enter*(1-rise)
+ # The outside of the folded leg and hip carry the body. Pelvis leans back;
+ # the chest curls forward relative to it rather than staying a rigid plank.
+ var hip_basis:=Basis.from_euler(Vector3(-.38,.06,.12))
+ var glide:=Transform3D(hip_basis,Vector3(.3,5.0,-1.2)-hip_basis*pivot)
+ var recovery_basis:=Basis(Vector3.RIGHT,.14)
+ var recovery:=Transform3D(recovery_basis,Vector3(0,21.5,0)-recovery_basis*pivot)
+ var pelvis:Transform3D=original.interpolate_with(glide,enter).interpolate_with(recovery,rise)
+ var lumbar:=pelvis*Vector3(0,Anatomy.HIP.y+5.5,0)
+ var curl:=Basis(pelvis.basis.x,.23*load)
+ var body:=Transform3D(curl,lumbar-curl*lumbar)*pelvis
+ var feet:Array[Vector3]=[Vector3(-1.8,3.0,15.5),Vector3(4.7,2.5,27.0)]
+ var recover_feet:Array[Vector3]=[Vector3(-Anatomy.HIP.x,2.1,0),Vector3(Anatomy.HIP.x,2.1,0)]
+ var family:StringName=pose.get("family",&"")
+ var profile:Dictionary=Profiles.profile(family)
  for side in 2:
-  pose.hips[side]=body*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
-  pose.shoulders[side]=body*Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,Anatomy.SHOULDER.z)
-  pose.legs[side].end=(pose.legs[side].end as Vector3).lerp(glide_feet[side],enter).lerp(neutral_feet[side],rise)
-  pose.legs[side].pitch=lerpf(pose.legs[side].pitch,-0.18 if side==0 else -0.32,amount)*(1-rise)
-  var hand:=body*Vector3(-10.5 if side==0 else 10.5,44,9)
+  var sign_side:float=-1 if side==0 else 1
+  pose.hips[side]=pelvis*Vector3(sign_side*Anatomy.HIP.x,Anatomy.HIP.y,0)
+  pose.shoulders[side]=body*Vector3(sign_side*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,Anatomy.SHOULDER.z)
+  pose.legs[side].end=(pose.legs[side].end as Vector3).lerp(feet[side],enter).lerp(recover_feet[side],rise)
+  pose.legs[side].pitch=lerpf(pose.legs[side].pitch,-.08 if side==0 else -.16,load)*(1-rise)
+  # A stable knee plane opens the folded leg naturally, leaving space between
+  # knee and hip. The old target folded the calf almost onto the thigh.
+  var pole:=Vector3(-1,.22,.18) if side==0 else Vector3(.06,1,.18)
+  pose.leg_poles[side]=Vector3.BACK.lerp(pole.normalized(),load).normalized()
+  var free:bool=family==&"" or (family!=&"bow" and not profile.two_hands and side!=pose.active)
+  var hand:=body*Vector3(sign_side*(9.5 if free else 8.0),44.0 if free else 39.0,14.0 if free else 12.5)
   pose.hands[side]=(pose.hands[side] as Vector3).lerp(hand,enter)
-  # The folded knee opens sideways; the leading knee stays above its heel.
-  var pole:=Vector3(-1,0.10,-0.15) if side==0 else Vector3(0.05,1,0.15)
-  pose.leg_poles[side]=Vector3.BACK.lerp(pole.normalized(),amount).normalized()
- pose.grip=(pose.grip as Vector3).lerp(body*Vector3(-3.36,37,8.5),enter)
- pose.shaft=(pose.shaft as Vector3).lerp(body.basis*Vector3(0.25,0.88,0.40).normalized(),enter).normalized()
- pose.body=body
+ pose.grip=(pose.grip as Vector3).lerp(body*Vector3(-3.36,40,11),enter)
+ pose.shaft=(pose.shaft as Vector3).lerp(body.basis*Vector3(.25,.88,.40).normalized(),enter).normalized()
+ pose.body=body;pose.pelvis=pelvis
 static func jump_from(pose:Dictionary,launch:Dictionary,phase:float) -> void:
- var amount:=smoothstep(0,0.45,phase)
+ var amount:=smoothstep(0,.45,phase)
  var target_frame:Basis=pose.get("tool_basis",Aim.frame(pose.shaft))
  var launch_frame:Basis=launch.get("tool_basis",Aim.frame(launch.shaft))
  var body:Transform3D=(launch.body as Transform3D).interpolate_with(pose.body,amount)
+ var pelvis:Transform3D=(launch.get("pelvis",launch.body) as Transform3D).interpolate_with(pose.get("pelvis",pose.body),amount)
  for side in 2:
-  pose.hips[side]=body*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
+  pose.hips[side]=pelvis*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
   pose.shoulders[side]=body*Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,Anatomy.SHOULDER.z)
   pose.legs[side].end=(launch.legs[side].end as Vector3).lerp(pose.legs[side].end,amount)
   pose.legs[side].pitch=lerpf(launch.legs[side].pitch,pose.legs[side].pitch,amount)
   pose.hands[side]=(launch.hands[side] as Vector3).lerp(pose.hands[side],amount)
   pose.leg_poles[side]=(launch.leg_poles[side] as Vector3).lerp(pose.leg_poles[side],amount).normalized()
- pose.body=body;pose.grip=(launch.grip as Vector3).lerp(pose.grip,amount)
+ pose.body=body;pose.pelvis=pelvis
+ pose.grip=(launch.grip as Vector3).lerp(pose.grip,amount)
  pose.tool_basis=launch_frame.slerp(target_frame,amount);pose.shaft=pose.tool_basis.y
