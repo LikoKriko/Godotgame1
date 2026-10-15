@@ -5,6 +5,11 @@ rama antes de descargar el ZIP, importar `project.godot` en Godot 4.7.2 y pulsar
 F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú principal.
 `day_zero_3d.tscn` sigue siendo la escena del mundo, también usada por las pruebas.
 
+Modelos vigentes: superviviente y botella de las Releases Meshy aportadas por
+el usuario; procedencia, regeneración y comparativas en [MESHY_ASSETS.md](MESHY_ASSETS.md).
+Las secciones que describen reconstrucción procedural y proyección de pinturas
+recogen etapas anteriores; esos sistemas han sido sustituidos en el personaje 3D.
+
 ## Incluido en esta integración
 
 - Cámara sobre el hombro derecho: distancia 3,6 m, desplazamiento 0,30 m, FOV
@@ -15,7 +20,7 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú prin
   tiene 24 controles, incluidos cuatro para los bajos de la tela y cuatro para
   conservar el volumen de codos y rodillas.
 - Atlas de alta resolución con acabado pixel art, paleta limitada y muestreo
-  nearest con mipmaps. El modelo y sus pinturas toman las nuevas vistas de frente/espalda del superviviente.
+  nearest con mipmaps. El superviviente conserva la geometría, UV y cuatro PNG originales del FBX Meshy.
 - Catálogo de 29 estados para manos libres y siete familias de objetos: caminar,
   correr, agacharse, deslizamiento, saltos, transiciones, equipar en movimiento,
   gestos de herramientas/armas, tensado, recogida, comer, beber, parry, daño y
@@ -350,7 +355,7 @@ conservando el rig, las proporciones aprobadas y las referencias de cuatro vista
 
 ## Referencias renovadas, ritmo y cámara (15 de octubre de 2026)
 
-Las referencias vigentes del superviviente son
+En la etapa procedural anterior se utilizaron
 `entregables/personajes/personaje1_frente.png` y `personaje1_espaldas.png`.
 Se conservan sin editar; las copias importables en
 `assets/characters/prototype_3d/reference_front.png` y `reference_back.png`

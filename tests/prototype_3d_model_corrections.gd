@@ -8,14 +8,6 @@ func require(value:bool,message:String) -> void:
 func _initialize():call_deferred("run")
 func run():
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor)
- var data:Array=actor.mesh_node.mesh.surface_get_arrays(0)
- var vertices:PackedVector3Array=data[Mesh.ARRAY_VERTEX];var colors:PackedColorArray=data[Mesh.ARRAY_COLOR];var tags:PackedVector2Array=data[Mesh.ARRAY_TEX_UV]
- var skin_top:=-100.0;var hair_top:=-100.0
- for i in vertices.size():
-  if int(tags[i].x)!=3:continue
-  if colors[i].r>0.7:skin_top=maxf(skin_top,vertices[i].y)
-  elif colors[i].r<0.38 and colors[i].g<0.27:hair_top=maxf(hair_top,vertices[i].y)
- require(hair_top>skin_top and hair_top-skin_top<2.2,"Reference hair forms a close layered scalp without spherical curls")
  var blade=actor.held_props[&"sword"].find_child("BeveledStoneBlade",true,false)
  require(blade!=null and blade.mesh.get_aabb().size.x<6.5 and blade.mesh.get_aabb().size.z<1.2,"Sword has a slender stone blade with real bevel thickness")
  actor.family_override=&"axe";actor.aim_contact=Vector3.INF;actor.animate(&"idle",0,true)
@@ -27,7 +19,7 @@ func run():
     var pose:Dictionary=Clips.sample(family,&"action",i/15.0,0,Vector3.ZERO,point)
     # The directed low-contact hinge intentionally lowers the pelvis. Keep
     # the standing-height limit for high contacts, where no bend is needed.
-    if point.y>=35:max_drop=maxf(max_drop,26.9-(pose.body*Vector3(0,26.9,0)).y)
+    if point.y>=35:max_drop=maxf(max_drop,31.0-(pose.body*Vector3(0,31,0)).y)
  require(max_drop<3.8,"High melee contacts keep crouching below six percent of character height")
  for family in [&"axe",&"pickaxe",&"sword"]:
   actor.family_override=family

@@ -17,7 +17,7 @@ func run():
      var phase:=frame/48.0;actor.animate(state,phase,family!=&"",0,phase,direction)
      for side in 2:
       var leg:Dictionary=actor.last_pose.legs[side]
-      require(absf(leg.root.distance_to(leg.joint)-12.5)<.001 and absf(leg.joint.distance_to(leg.end)-12.5)<.001,"Diagonal steps retain anatomical bone lengths")
+      require(absf(leg.root.distance_to(leg.joint)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<.001 and absf(leg.joint.distance_to(leg.end)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<.001,"Diagonal steps retain anatomical bone lengths")
       if not previous.is_empty():
        var delta:Vector3=leg.end-previous[side];delta.y=0
        if delta.length()>.02:require(absf(delta.normalized().dot(direction))>.995,"Foot travel follows the intended diagonal throughout stance and swing")

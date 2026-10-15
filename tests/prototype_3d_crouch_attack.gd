@@ -21,7 +21,7 @@ func run():
    require(actor.rig.posed[0].origin.y<standing.y-5.5,"The whole attack remains crouched instead of selecting the standing gesture")
    require(actor.grip_error<.045,"Crouched tool gestures preserve both grips")
    for leg in actor.last_pose.legs:
-    require(absf(leg.root.distance_to(leg.joint)-12.5)<.001 and absf(leg.joint.distance_to(leg.end)-12.5)<.001,"Crouched attacks bend knees without shortening legs")
+    require(absf(leg.root.distance_to(leg.joint)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<.001 and absf(leg.joint.distance_to(leg.end)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<.001,"Crouched attacks bend knees without shortening legs")
    if frame==16 and family in [&"axe",&"pickaxe",&"sword"]:
     require(actor.can_reach_contact(actor.aim_contact,family),"Reach checks use the same crouched anatomy as animation")
     require(actor.tip_socket.position.distance_to(actor.aim_contact)<.03,"Crouched attack still ends at the selected aim contact")

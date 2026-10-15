@@ -82,14 +82,16 @@ al usuario usan Europe/Madrid. El registro no sustituye terminar las tareas.
 
 ## Referencias vigentes de los modelos 3D
 
-El superviviente usa `entregables/personajes/personaje1_frente.png` y
-`personaje1_espaldas.png`. El enemigo1 usa ahora el FBX Meshy Mossclaw Boar
-aportado por el usuario en la Release `modelo-enemigo1`: ver
-`assets/enemies/first/meshy/source.json` para URL, hashes y procedencia.
-La petición de sustituir el modelo anterior tiene prioridad: conservar la
-geometría, proporciones, UV y PNG originales de ese archivo, sin reconstruirlos
-con formas procedurales ni reproyectar la lámina sobre el nuevo cuerpo.
-La ilustración `entregables/enemigos/enemigo1_joven_3d.png` se conserva como
-referencia visual histórica. Adaptar el rig al archivo importado, manteniendo
-las alturas de 1,75 m/0,875 m. El FBX no trae esqueleto ni animaciones: las
-ligaduras añadidas permiten integrar las acciones provisionales del juego.
+El superviviente usa ahora el FBX Meshy Wild Wanderer aportado por el usuario
+en la Release `modelo_personaje3d`: `assets/characters/prototype_3d/meshy/source.json`.
+La botella usa el FBX de la Release `modelo_botella_3d`:
+`assets/items/prototype_3d/bottle_meshy/source.json`. El enemigo1 usa el FBX Meshy
+Mossclaw Boar de `modelo-enemigo1`: `assets/enemies/first/meshy/source.json`.
+Las peticiones de sustituir los modelos anteriores tienen prioridad: conservar
+la geometría, proporciones, UV y PNG originales de esos archivos, sin
+reconstruirlos con formas procedurales ni reproyectar las láminas antiguas.
+Las pinturas de personajes y `entregables/enemigos/enemigo1_joven_3d.png` se
+conservan como referencias históricas. Adaptar los rigs a los archivos
+importados, manteniendo las alturas de 1,75 m/0,875 m. Los FBX no traen esqueleto
+ni animaciones; las ligaduras añadidas integran las acciones del juego.
+Ver `docs/MESHY_ASSETS.md` para regenerar el personaje y la botella.

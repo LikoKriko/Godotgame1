@@ -6,8 +6,15 @@ del cuerpo con las herramientas. Las futuras tareas de otros sistemas se
 repartirán entre otros chats; esta nota no bloquea archivos ni reserva toda la
 rama a un único hilo.
 
+El superviviente y la botella vigentes son los FBX Meshy aportados por el usuario,
+no las antiguas superficies procedurales. Ver `docs/MESHY_ASSETS.md` y
+`assets/characters/prototype_3d/meshy/rig_seeds.json`: se conservan 24 controles,
+con hombros a `(±6.2,48,1.3)`, muslo/tibia de 14,5 unidades y altura de 1,75 m.
+Si se cambian los anclajes de reposo, regenerar pesos y recurso nativo; cada
+actor conserva su propio esqueleto y comparte únicamente la malla inmutable.
+
 Puntos principales: `survivor_model.gd`, `survivor_anatomy.gd`,
-`survivor_surface.gd`, `humanoid_rig.gd`, `human_kinematics.gd`,
+`meshy_body_profile.gd`, `humanoid_rig.gd`, `human_kinematics.gd`,
 `survivor_animation.gd`, `leaf_armor.gd`, modelos/rigs del joven y escenas de
 revisión en `scripts/prototype_3d/` y `scenes/prototype_3d/`. Los materiales de
 piel y las pruebas de deformación acompañan esos cambios.

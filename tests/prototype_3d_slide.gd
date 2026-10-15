@@ -23,7 +23,7 @@ func run():
    var phase:=i/47.0;actor.aim_contact=Vector3.INF;actor.animate(&"slide",phase,family!=&"",0,0.3)
    require(actor.grip_error<0.045,"Sliding keeps the occupied palms on the real object")
    for leg in actor.last_pose.legs:
-    require(absf(leg.root.distance_to(leg.joint)-12.5)<0.001 and absf(leg.joint.distance_to(leg.end)-12.5)<0.001,"Folding preserves both leg bones")
+    require(absf(leg.root.distance_to(leg.joint)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<0.001 and absf(leg.joint.distance_to(leg.end)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<0.001,"Folding preserves both leg bones")
     require(leg.end.y>=1.0 and leg.joint.y>=0.5,"Feet and knees stay above the floor")
   for launch_phase in [0.05,0.25,0.55,0.85]:
    var launch:=Clips.sample(family,&"slide",launch_phase,0.3)

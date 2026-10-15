@@ -1,0 +1,61 @@
+# Personaje y botella Meshy aportados por el usuario
+
+El superviviente y la botella del prototipo 3D utilizan los FBX de las Releases `modelo_personaje3d` y `modelo_botella_3d`. Sus URL, SHA-256 de ZIP/FBX/PNG y rutas del original están en los respectivos `source.json`:
+
+- `assets/characters/prototype_3d/meshy/`: superviviente, 491.218 triángulos originales, 263.748 vértices en Godot tras las separaciones de UV; altura uniforme de 64 unidades, convertida a 1,75 m por el jugador y el retrato.
+- `assets/items/prototype_3d/bottle_meshy/`: botella de madera y cuerda, 883.250 triángulos originales y 472.027 vértices en Godot. El origen está en el cuello que sujeta la palma; la boca está en `(0, 2.8, 0)`. Se comparte el mismo recurso entre mano y suelo, con la misma escala física en mano y suelo (unos 28,4 cm de alto).
+
+Las mallas visibles no se remallan ni diezman. Se conservan las cuatro texturas originales, con albedo, normales, metal y rugosidad, y muestreo nearest con mipmaps. Los FBX originales quedan en `entregables/.../source/`, con `.gdignore` para evitar su importación y exportación duplicadas. El juego carga recursos nativos comprimidos; no necesita Blender ni los ZIP al ejecutarse. No se ha añadido LOD: estos recursos conservan toda la densidad de los archivos recibidos.
+
+## Ligadura y poses
+
+El FBX del superviviente no contiene esqueleto ni clips. Los 16 huesos principales usan los nombres y cadenas del rig compartido. La ligadura automática se calcula sobre una copia auxiliar voxelizada de 0,012 unidades Blender: evita las singularidades de los detalles desconectados del FBX. Solo se transfieren los pesos a la malla original mediante interpolación de la superficie más cercana; la copia auxiliar se elimina antes de exportar.
+
+Se mantienen cuatro controles de tela y cuatro collares de volumen de codos y rodillas, con un máximo de cuatro influencias normalizadas por vértice. Los collares conservan volumen al flexionar; los controles de tela afectan únicamente al pantalón oscuro importado. El recurso es compartido e inmutable, mientras que cada actor y el retrato tienen su propio esqueleto y Skin.
+
+La anatomía del prototipo 3D se ajusta a la nueva malla: caderas a 31 unidades, hombros a `(±6.2, 48, 1.3)` y muslo/tibia de 14,5 unidades. La plantilla de animación común 2D permanece como fuente de tiempos e IK. La recogida baja el cuerpo hasta alcanzar el contacto; el deslizamiento adapta la pierna extendida; las herramientas recuperan alrededor del pecho y la armadura se refita con sus huecos de brazos. La armadura se hornea alrededor de la superficie real del torso importado, conservando los huecos de brazos y evitando hundir las hojas en la piel. Las manos mantienen los agarres y la botella se alinea con los labios del nuevo personaje.
+
+La flecha tensada se orienta desde la posición real de la mano hasta el objetivo, conservando la precisión a corta y larga distancia tras el cambio de hombros.
+
+La botella es opaca: vacío, medio y lleno comparten malla e icono. El contenido de cada botella sigue siendo un estado independiente de 0–500 ml; beber, rellenar, guardar y recoger conservan esa información. El horneado futuro de iconos utiliza el render del nuevo modelo.
+
+## Regeneración
+
+Usar Godot **4.7.2**. Los comandos se ejecutan desde la raíz del repositorio, con rutas temporales fuera de los assets exportables. Primero importar los PNG con el editor.
+
+```bash
+godot --headless --editor --path . --import
+godot --headless --path . --script tools/meshy/export_human_bind.gd -- /tmp/human_joints.json
+blender -b -t 2 --python tools/meshy/convert_human.py -- entregables/personajes/personaje1/source/survivor.fbx /tmp/human_skinned.glb /tmp/human_joints.json
+godot --headless --path . --script tools/meshy/bind_human.gd -- /tmp/human_skinned.glb
+godot --headless --path . --script tools/meshy/fit_armor.gd
+blender -b -t 2 --python tools/meshy/convert_source.py -- entregables/objetos/botella/source/bottle.fbx /tmp/bottle.glb
+godot --headless --path . --script tools/meshy/bake_bottle.gd -- /tmp/bottle.glb
+```
+
+`rig_seeds.json` conserva la definición usada en la importación actual. Si cambian articulaciones o longitudes, regenerar tanto los pesos como el recurso nativo.
+
+Para la comparación independiente, exportar también el FBX humano sin rig:
+
+```bash
+blender -b -t 2 --python tools/meshy/convert_source.py -- entregables/personajes/personaje1/source/survivor.fbx /tmp/human_original.glb
+godot --headless --path . --script tools/meshy/verify_source.gd -- /tmp/human_original.glb res://assets/characters/prototype_3d/meshy/survivor_skin.res
+godot --headless --path . --script tools/meshy/verify_source.gd -- /tmp/bottle.glb res://assets/items/prototype_3d/bottle_meshy/bottle.res
+```
+
+La comparación comprueba todos los índices de triángulos, posiciones, UV y normales. Tolera únicamente la precisión del empaquetado de Godot: error observado del personaje de 0,001042 unidades de autor (~0,029 mm a escala real), UV de 0,000022 y normal de 0,00519; en la botella, posiciones y UV coinciden exactamente y las normales difieren como máximo 0,00013.
+
+Con servidor gráfico, generar vistas e iconos:
+
+```bash
+godot --path . --rendering-method gl_compatibility --script tools/meshy/review_survivor.gd -- /tmp/human_original.glb
+godot --path . --rendering-method gl_compatibility --script tools/meshy/preview_bottle.gd
+```
+
+Vistas en `docs/previews/survivor_meshy_comparison.png`, `survivor_meshy_actions.png` y `bottle_meshy.png`. La primera lámina compara el FBX original sin rig con el actor real en reposo bajo la misma iluminación y las mismas cuatro cámaras.
+
+## Validación
+
+`tests/prototype_3d_meshy_assets.gd` comprueba procedencia, PNG originales, topología, materiales, recursos compartidos, independencia de poses y contacto de la botella. Sustituye las antiguas pruebas de proyección fotográfica de brazos, cuero cabelludo procedural y UV frontal/trasera; esos sistemas se han retirado del personaje 3D. `prototype_3d_human_deformation.gd` mantiene las comprobaciones de volumen de articulaciones, límites, longitudes y continuidad sobre la malla importada. Las otras pruebas de animación, agarres, contactos, recogida, inventario y persistencia se ejecutan sobre el nuevo modelo.
+
+Cierre validado con Godot 4.7.2: importación, comparación independiente de ambos FBX, 145.005 comprobaciones de piel/articulaciones/continuidad, 8.588 de catálogo, 32.736 de marcha diagonal, contactos altos/bajos y armadura, recogida, botella reutilizable, arco, guardado y 17 comprobaciones de interfaz nativa X11. Las animaciones del enemigo vigente conservan sus 21.935 comprobaciones. La validación no incluye una sesión manual en Windows ni mediciones de rendimiento en el equipo del usuario.

@@ -832,3 +832,50 @@ Compatibility de **128 fotogramas** (16 poses/estados incluida referencia,
 cuatro fases y dos cámaras), con montajes frontal y lateral de marcha,
 golpe, sentarse, alimentación, muerte y cadáver. `git diff --check` limpio.
 No incluye prueba manual en Windows ni rendimiento del ordenador del usuario.
+
+## 2026-10-15 — Importar la botella y el superviviente Meshy del usuario
+
+Primer hito observado **22:32:24 Europe/Madrid**; cierre de comprobaciones
+**23:16:04 Europe/Madrid**. Intervalo medido parcial **43 min 40 s**.
+La descarga comenzó antes del primer hito y no se reconstruye su inicio exacto.
+Estimación comunicada durante la revisión: **45–75 minutos restantes** para
+ambos modelos, incluyendo integración y comprobaciones. Commit y push se
+realizan después de este cierre, por autorización expresa reiterada del usuario.
+
+Se actualizó primero a `de2923d`, conservando las animaciones del enemigo del
+otro departamento. Se descargaron las Releases `modelo_botella_3d` y
+`modelo_personaje3d`; los SHA-256 de archivos y PNG originales están en sus
+`source.json`. Los FBX se conservan sin editar en entregables. Se sustituyeron
+la botella y el cuerpo procedural del personaje por recursos nativos con la
+geometría y los cuatro mapas del usuario, sin remallar ni diezmar las mallas
+visibles. Primer hito de botella e inventario: **22:40:26**, con 155 pruebas de
+objetos superadas; después se ajustaron el cuello, contacto de boca y escala
+física compartida entre mano y suelo.
+
+El personaje recibe pesos por transferencia desde un proxy auxiliar de cálculo
+y mantiene la malla original. Se adaptan articulaciones, tela, recogida,
+deslizamiento, recuperación de hacha/pico y armadura horneada sobre el torso
+real. Se corrige la orientación de la flecha desde la mano efectiva hasta el
+objetivo. Se retiraron proyección fotográfica y shaders procedurales del
+personaje; sus tres pruebas específicas se sustituyen por procedencia,
+identidad de geometría/materiales, independencia de actores y contactos sobre
+los nuevos recursos, conservando las pruebas de deformación y continuidad.
+
+Godot **4.7.2**, importación final sin errores. Pruebas superadas: assets **32**,
+brazos **374**, catálogo **8588**, piel/articulaciones/continuidad **145005**,
+ritmo/cámara **1116**, ataque agachado **836**, marcha diagonal **32736**,
+deslizamiento **2027**, acciones naturales/recogida **4050**, contactos y
+separación con armadura **41**, equipo **65**, objetos físicos **155**,
+integración **739**, interacción/botella **15**, arco **69**, movimiento en vivo,
+referencias **537**, guardado **191** y movimiento del enemigo vigente **21935**.
+Interfaz real X11: **17** comprobaciones. Total numérico **218528**, además de
+las pruebas de movimiento en vivo y dos comparaciones independientes contra
+los FBX sin rig. Todos los índices de triángulos coinciden; posiciones, UV y
+normales conservan la precisión del empaquetado de Godot, documentada en
+`docs/MESHY_ASSETS.md`.
+
+Revisión visual nativa Compatibility: cuatro vistas iguales de FBX original y
+actor en juego, ocho poses con herramientas/botella/armadura, iconos transparentes
+y captura del personaje con botella equipada y caída en la escena real.
+Láminas en `docs/previews/`. `git diff --check` limpio. No incluye sesión manual
+en Windows ni rendimiento medido en el ordenador del usuario.

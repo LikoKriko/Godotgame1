@@ -1,23 +1,25 @@
 extends Node3D
 ## A leaf vest with open armholes and woven shoulder straps, not a closed poncho.
 const Meshes=preload("res://scripts/prototype_3d/prop_mesh.gd")
-const SurfaceProfile=preload("res://scripts/prototype_3d/survivor_surface.gd")
+const SurfaceProfile=preload("res://scripts/prototype_3d/meshy_body_profile.gd")
 var shell:MeshInstance3D
 static var shared_mesh:ArrayMesh
 static var shared_material:StandardMaterial3D
 static func radius(y:float) -> Vector2:
- var body_size:=SurfaceProfile.radius(y) if y>=29.4 else SurfaceProfile.pelvis_radius(y)
+ var body_size:=SurfaceProfile.radius(y)
  return body_size+Vector2.ONE*0.40
 static func shoulder_height(x:float,z:float) -> float:
  for step in 130:
-  var y:=49.5-step*.06
+  var y:=52.0-step*.06
   var size:=SurfaceProfile.radius(y)
   if pow(x/size.x,2)+pow(z/size.y,2)<=1:return y+.18
- return 44.6
+ return 48.0
+static func fit_height(y:float) -> float:return 31.0+(y-24.5)*0.84
 static func point(angle:float,y:float,offset:float=0) -> Vector3:
+ y=fit_height(y)
  var r:=radius(y)+Vector2.ONE*offset
  var x:=sin(angle);var z:=cos(angle)
- return Vector3(signf(x)*pow(absf(x),.91)*r.x,y,signf(z)*pow(absf(z),.88)*r.y)
+ return Vector3(signf(x)*pow(absf(x),.91)*r.x,y,signf(z)*pow(absf(z),.88)*r.y+SurfaceProfile.center_z(y))
 static func triangle(surface:SurfaceTool,a:Vector3,b:Vector3,c:Vector3,color:Color) -> void:
  var points:=[a,b,c];var outward:=(a+b+c)*Vector3(1,0,1)
  if (c-a).cross(b-a).dot(outward)<0:points.reverse()
@@ -65,6 +67,9 @@ func _ready() -> void:
  if shared_mesh==null:build()
  shell=MeshInstance3D.new();shell.mesh=shared_mesh;shell.material_override=shared_material;add_child(shell)
 static func build() -> void:
+ shared_mesh=load("res://assets/characters/prototype_3d/meshy/leaf_armor.res")
+ shared_material=shared_mesh.surface_get_material(0)
+static func build_procedural() -> void:
  var surface:=SurfaceTool.new();surface.begin(Mesh.PRIMITIVE_TRIANGLES)
  # Lower woven lining closes around the waist. Above it leave both armholes open.
  for row in 16:
@@ -73,29 +78,29 @@ static func build() -> void:
    var a:=column*TAU/48;var b:float=(column+1)*TAU/48
    var p:=point(a,top);var q:=point(b,top);var r:=point(b,bottom);var t:=point(a,bottom)
    if top>37.5:
-    var limit:=3.75 if top>43 else 5.8
+    var limit:=lerpf(5.4,2.3,smoothstep(37.5,43.0,top))
     if maxf(maxf(absf(p.x),absf(q.x)),maxf(absf(r.x),absf(t.x)))>limit:continue
    triangle(surface,p,q,r,Color("48502c"));triangle(surface,p,r,t,Color("48502c"))
  for row in 4:
   var top:=44.8-row*5.0
   if row<2:
    for back in [0.0,PI]:
-    for column in 3:leaf(surface,back+(column-1)*(0.52 if row==1 else 0.28)+(0.1 if row==1 else 0.0),top,6.3,0.31 if row==1 else 0.21,[Color("627b36"),Color("6e853b"),Color("586f31")][(row+column)%3])
+    for column in 3:leaf(surface,back+(column-1)*(0.52 if row==1 else 0.18)+(0.1 if row==1 else 0.0),top,6.3,0.31 if row==1 else 0.14,[Color("627b36"),Color("6e853b"),Color("586f31")][(row+column)%3])
   else:
    for column in 12:leaf(surface,(column+float(row%2)*0.5)*TAU/12,top,6.8,0.29,[Color("627b36"),Color("6e853b"),Color("586f31")][(row+column)%3])
  # The shoulder bands rest on the inner shoulder slope and clear the deltoid.
  for side in [-1,1]:
   var path:=PackedVector3Array()
   for i in 21:
-   var t:=i/20.0;var z:=lerpf(3.55,-3.55,t)
-   path.append(Vector3(side*2.4,maxf(44.6+sin(t*PI)*1.85,shoulder_height(side*2.4,z)),z))
-  for offset in [-0.5,0,0.5]:
+   var t:=i/20.0;var z:=lerpf(5.5,-1.7,t)
+   path.append(Vector3(side*2.0,maxf(48.0+sin(t*PI)*1.85,shoulder_height(side*2.0,z)),z))
+  for offset in [-0.35,0,0.35]:
    var strand:=PackedVector3Array()
    for p in path:strand.append(p+Vector3.RIGHT*offset)
    cord(surface,strand,0.13)
-  for z in [-2.8,2.8]:
+  for z in [-1.4,5.0]:
    var tie:=PackedVector3Array()
-   for i in 13:tie.append(Vector3(side*2.4+cos(i*TAU/12)*0.60,45.5+sin(i*TAU/12)*0.35,z))
+   for i in 13:tie.append(Vector3(side*2.0+cos(i*TAU/12)*0.60,49.0+sin(i*TAU/12)*0.35,z))
    cord(surface,tie,0.09)
  # Waist belt, collar binding, two vertical supports and a front knot.
  for y in [28.2,29.3]:
@@ -115,7 +120,17 @@ static func build() -> void:
  for side in [-1,1]:
   var knot:=PackedVector3Array()
   for i in 21:
-   var angle:=i*TAU/20;knot.append(Vector3(1.7+side*0.7*(1-cos(angle)),28.7+sin(angle)*0.55,radius(28.7).y+1.15))
+   var angle:=i*TAU/20;knot.append(Vector3(1.7+side*0.7*(1-cos(angle)),fit_height(28.7)+sin(angle)*0.55,SurfaceProfile.center_z(fit_height(28.7))+radius(fit_height(28.7)).y+1.15))
   cord(surface,knot,0.1)
  surface.generate_normals();shared_mesh=surface.commit()
+ # Refit protruding side leaves to the new rib cage, keeping full front/back
+ # coverage and the existing open armholes.
+ var arrays:=shared_mesh.surface_get_arrays(0)
+ var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
+ for i in vertices.size():
+  if vertices[i].y<37:continue
+  var limit:=lerpf(5.5,4.8,smoothstep(39,45,vertices[i].y))
+  vertices[i].x=clampf(vertices[i].x,-limit,limit)
+ arrays[Mesh.ARRAY_VERTEX]=vertices
+ shared_mesh=ArrayMesh.new();shared_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
  shared_material=Meshes.material(&"plain").duplicate() as StandardMaterial3D;shared_material.next_pass=null;shared_material.vertex_color_use_as_albedo=true;shared_material.cull_mode=BaseMaterial3D.CULL_DISABLED

@@ -87,8 +87,8 @@ func run():
   require(prop.nocked.global_position.distance_to(hand)<0.001,"Arrow nock follows the actual drawing hand")
   require((prop.string_segments[0].global_transform*Vector3(0,0.5,0)).distance_to(hand)<0.001,"Bow string terminates at the actual drawing hand")
  actor.family_override=&"bottle";actor.aim_contact=Vector3.INF;actor.animate(&"drink",0.5,true)
- var mouth:Vector3=actor.to_global(actor.last_pose.body*preload("res://scripts/prototype_3d/survivor_anatomy.gd").head(Vector3(0,52.6,4.8)))
- require(actor.grip_socket.to_global(Vector3(0,7,0)).distance_to(mouth)<actor.scale.x*2,"Bottle mouth approaches lips rather than forehead")
+ var mouth:Vector3=actor.to_global(actor.last_pose.body*preload("res://scripts/prototype_3d/survivor_anatomy.gd").MOUTH)
+ require(actor.grip_socket.to_global(preload("res://scripts/prototype_3d/held_profiles.gd").profile(&"bottle").tip).distance_to(mouth)<actor.scale.x*2,"Bottle mouth approaches lips rather than forehead")
  var uid:int=game.bag.held_item().uid;var location:Dictionary=game.bag.location(uid)
  game.player.action_elapsed=-1;require(game.player.select_quick(location.index) and not game.player.equipped,"Pressing active quick key frees hands")
  game.player.equip_elapsed=-1

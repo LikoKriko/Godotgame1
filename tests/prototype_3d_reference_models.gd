@@ -10,8 +10,6 @@ func _initialize():call_deferred("run")
 func run():
  var human=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(human)
  var young=load("res://scripts/prototype_3d/young_model.gd").new();root.add_child(young)
- require(FileAccess.get_sha256("res://assets/characters/prototype_3d/reference_front.png")==FileAccess.get_sha256("res://entregables/personajes/personaje1_frente.png"),"Runtime front painting preserves the supplied reference exactly")
- require(FileAccess.get_sha256("res://assets/characters/prototype_3d/reference_back.png")==FileAccess.get_sha256("res://entregables/personajes/personaje1_espaldas.png"),"Runtime back painting preserves the supplied reference exactly")
  for actor in [human,young]:
   var arrays:Array=actor.mesh_node.mesh.surface_get_arrays(0)
   var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var bones:PackedInt32Array=arrays[Mesh.ARRAY_BONES];var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]

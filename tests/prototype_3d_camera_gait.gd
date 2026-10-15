@@ -15,7 +15,7 @@ func run():
    var pose:Dictionary=Clips.sample(&"",state,t,t,Vector3.BACK)
    for side in 2:
     require(absf(pose.legs[side].end.z-baseline.legs[side].end.z*1.3)<0.01,"Visible foot travel really gains 30 percent instead of being shortened by IK")
-    require(absf(pose.legs[side].root.distance_to(pose.legs[side].joint)-12.5)<0.001 and absf(pose.legs[side].joint.distance_to(pose.legs[side].end)-12.5)<0.001,"Longer stride preserves thigh and shin lengths")
+    require(absf(pose.legs[side].root.distance_to(pose.legs[side].joint)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<0.001 and absf(pose.legs[side].joint.distance_to(pose.legs[side].end)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<0.001,"Longer stride preserves thigh and shin lengths")
     require(absf(pose.legs[side].end.y-baseline.legs[side].end.y)<0.01,"Stride adjustment preserves the support/lift curve")
    if state==&"walk":
     var hand:Vector3=pose.body.affine_inverse()*pose.hands[0]

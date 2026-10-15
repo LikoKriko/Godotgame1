@@ -20,12 +20,12 @@ func run():
  for i in range(0,weights.size(),4):
   normalized_weights = normalized_weights and absf(weights[i]+weights[i+1]+weights[i+2]+weights[i+3]-1)<0.001
  require(normalized_weights,"Every skin vertex has normalized weights")
- require(world.player.model.body_material.get_shader_parameter("painted_materials") is Texture2D,"Painted atlas is imported and assigned")
+ require(world.player.model.body_material.albedo_texture is Texture2D,"Original Meshy albedo is imported and assigned")
  var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
  var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
  var outward_torso := false
  for i in vertices.size():
-  if absf(vertices[i].x)<0.001 and vertices[i].y>39 and vertices[i].y<44 and vertices[i].z>2.5:
+  if absf(vertices[i].x)<0.2 and vertices[i].y>39 and vertices[i].y<44 and vertices[i].z>5:
    outward_torso = normals[i].z>0.5
    break
  require(outward_torso,"Torso normals face outward for correct lighting")
@@ -38,7 +38,7 @@ func run():
    for side in 2:
     var arm := 4+side*3; var leg := 10+side*3
     require(absf(bones[arm].origin.distance_to(bones[arm+1].origin)-10)<0.001,"Upper arm retains bone length")
-    require(absf(bones[leg].origin.distance_to(bones[leg+1].origin)-12.5)<0.001,"Thigh retains bone length")
+    require(absf(bones[leg].origin.distance_to(bones[leg+1].origin)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<0.001,"Thigh retains bone length")
  require(world.player.model.mesh_node.mesh==bind_mesh,"Animation never rebuilds the skin mesh")
  world.player.model.animate(&"walk",0.2,false,0,0.2,Vector3.RIGHT)
  require(world.player.model.last_pose.legs[0].end.x>-3.4,"Strafe gait moves feet sideways relative to the facing direction")

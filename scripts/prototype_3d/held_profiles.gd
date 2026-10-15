@@ -5,7 +5,7 @@ const PROFILES := {
  &"pickaxe":{"tip":Vector3(12,21,0),"two_hands":true,"support":7.25},
  &"sword":{"tip":Vector3(0,29,0),"two_hands":false,"support":0.0},
  &"bow":{"tip":Vector3(0,0,20),"two_hands":false,"support":0.0},
- &"bottle":{"tip":Vector3(0,7,0),"two_hands":false,"support":0.0},
+ &"bottle":{"tip":Vector3(0,2.8,0),"two_hands":false,"support":0.0},
  &"food":{"tip":Vector3(0,2,0),"two_hands":false,"support":0.0},
  &"carried":{"tip":Vector3(0,0,7),"two_hands":true,"support":10.0}
 }

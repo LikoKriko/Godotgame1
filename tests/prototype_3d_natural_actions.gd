@@ -56,7 +56,7 @@ func run():
     actor.animate(state,t,family!=&"",0,t,Vector3.BACK if state in [&"walk",&"run",&"crouch_walk"] else Vector3.ZERO)
     require(actor.grip_error<.045,"Natural body dynamics keep occupied hands on their grips")
     for leg in actor.last_pose.legs:
-     require(absf(leg.root.distance_to(leg.joint)-12.5)<.001 and absf(leg.joint.distance_to(leg.end)-12.5)<.001,"Dynamic weight transfer cannot stretch leg bones")
+     require(absf(leg.root.distance_to(leg.joint)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<.001 and absf(leg.joint.distance_to(leg.end)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<.001,"Dynamic weight transfer cannot stretch leg bones")
  require(actor.mesh_node.mesh==mesh,"Natural motion preserves the original bind mesh")
  var gait:=Clips.sample(&"axe",&"walk",.25,.25,Vector3.BACK)
  require(gait.body.basis.get_rotation_quaternion().angle_to(gait.pelvis.basis.get_rotation_quaternion())>.04,"Chest and pelvis counter-rotate instead of moving as one rigid block")

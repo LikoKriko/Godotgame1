@@ -37,10 +37,9 @@ func configure(value:StringName) -> void:
   for i in 2:string_segments.append(Meshes.segment(self,Vector3.ZERO,Vector3.UP,0.11,rope))
   nocked=make_arrow();add_child(nocked);nocked.hide()
  elif family==&"bottle":
-  Meshes.sphere(self,Vector3(0,1,0),Vector3(2.8,4.4,1.7),Meshes.material(&"leather",Color("ac713b")))
-  Meshes.segment(self,Vector3(0,4,0),Vector3(0,7,0),0.85,wood);Meshes.bindings(self,4.3,1.0)
-  Meshes.segment(self,Vector3(-2.2,-1.7,1.5),Vector3(2.2,-1.7,1.5),0.16,rope)
-  liquid=Meshes.sphere(self,Vector3(0,1,1.65),Vector3(1.7,2.3,0.12),Meshes.material(&"plain",Color("477a8d")));liquid.hide()
+  var bottle:=MeshInstance3D.new()
+  bottle.mesh=preload("res://assets/items/prototype_3d/bottle_meshy/bottle.res")
+  add_child(bottle)
  elif family==&"food":
   var apple:=Node3D.new();add_child(apple);item_nodes[&"apple"]=apple
   Meshes.sphere(apple,Vector3.ZERO,Vector3(1.8,1.9,1.6),Meshes.material(&"plain",Color("ac3e2f")))
@@ -49,7 +48,7 @@ func configure(value:StringName) -> void:
   for i in 5:Meshes.sphere(berries,Vector3(sin(i*2.4),float(i%2)*0.7,cos(i*2.4))*0.9,Vector3.ONE*0.85,Meshes.material(&"plain",Color("505378")))
   var ration:=Node3D.new();add_child(ration);item_nodes[&"ration"]=ration
   Meshes.sphere(ration,Vector3.ZERO,Vector3(2.7,1.4,1.1),Meshes.material(&"leather",Color("b69b65")))
-func update_pose(state:StringName,phase:float,support:Vector3,nock_visible:bool=false) -> void:
+func update_pose(state:StringName,phase:float,support:Vector3,nock_visible:bool=false,target:Vector3=Vector3.INF) -> void:
  if family!=&"bow":return
  var pull:=clampf(phase,0,1) if state==&"draw" else 0.0
  var hand:=support if state==&"draw" else Vector3(0,0,-4)
@@ -57,6 +56,7 @@ func update_pose(state:StringName,phase:float,support:Vector3,nock_visible:bool=
  Meshes.orient_segment(string_segments[1],hand,Vector3(0,14,-4),0.11)
  nocked.visible=nock_visible and state==&"draw"
  nocked.position=hand; nocked.rotation=Vector3.ZERO
+ if nocked.visible and target.is_finite():nocked.basis=Basis.looking_at(target-hand,Vector3.UP,true)
  # The arrow is a solid shaft, not a one-pixel screen-space line.
  nocked.scale=Vector3.ONE*lerpf(0.95,1,pull)
 func show_item(id:StringName,water_ml:int=0) -> void:

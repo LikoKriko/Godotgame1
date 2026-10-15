@@ -10,9 +10,9 @@ static var paints:Dictionary={}
 static func supported(id:StringName) -> bool:return id in SUPPORTED
 static func state_key(item:Dictionary) -> String:
  var id:StringName=item.get("id",&"")
- var water:int=500 if id==&"water" else clampi(int(item.get("water_ml",0)),0,500)
  var canonical_id:=&"botella" if id==&"water" else id
- return String(canonical_id)+(":"+str(water) if canonical_id==&"botella" else "")
+ # The supplied wooden bottle is opaque: all fill levels share its geometry.
+ return String(canonical_id)
 static func create(item:Dictionary) -> Node3D:
  var id:StringName=item.get("id",&"")
  if not supported(id):return null
@@ -20,7 +20,7 @@ static func create(item:Dictionary) -> Node3D:
  if not cache.has(key):cache[key]=bake(item)
  var result:=Node3D.new();result.name="PhysicalItem";result.set_meta("item_model",id)
  for part:Dictionary in cache[key]:
-  var mesh:=MeshInstance3D.new();mesh.mesh=part.mesh;mesh.material_override=part.paint;result.add_child(mesh)
+  var mesh:=MeshInstance3D.new();mesh.mesh=part.mesh;mesh.material_override=part.paint;mesh.transform=part.get("frame",Transform3D.IDENTITY);result.add_child(mesh)
  return result
 static func box(parent:Node3D,point:Vector3,size:Vector3,paint:Material) -> void:
  var node:=MeshInstance3D.new();var mesh:=BoxMesh.new();mesh.size=size;node.mesh=mesh;node.position=point;node.material_override=paint;parent.add_child(node)
@@ -90,6 +90,13 @@ static func collect(node:Node3D,frame:Transform3D=Transform3D.IDENTITY) -> Array
   if child is Node3D:records.append_array(collect(child,frame))
  return records
 static func bake(item:Dictionary) -> Array[Dictionary]:
+ if item.id in [&"botella",&"water"]:
+  var mesh:Mesh=preload("res://assets/items/prototype_3d/bottle_meshy/bottle.res")
+  var rotation:=Basis(Vector3.RIGHT,PI/2)
+  var bounds:AABB=Transform3D(rotation,Vector3.ZERO)*mesh.get_aabb()
+  var factor:=preload("res://scripts/prototype_3d/survivor_anatomy.gd").HEIGHT_METRES/64.0
+  var center:=bounds.get_center()
+  return [{"mesh":mesh,"paint":mesh.surface_get_material(0),"frame":Transform3D(rotation.scaled(Vector3.ONE*factor),Vector3(-center.x,-bounds.position.y,-center.z)*factor+Vector3.UP*0.003)}]
  var data:=source(item);var root:Node3D=data.root;var pieces:=collect(root)
  var bounds:=AABB();var started:=false
  for piece in pieces:

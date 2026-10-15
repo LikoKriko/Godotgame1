@@ -30,8 +30,8 @@ func run():
  var full:=empty.duplicate(true);full.water_ml=500
  require(Models.state_key({"id":&"water"})==Models.state_key(full),"Legacy water reuses the current full-bottle model")
  var bottle_a:Node3D=Models.create(empty);var bottle_b:Node3D=Models.create(half);var bottle_c:Node3D=Models.create(full)
- require(Models.state_key(empty)!=Models.state_key(full) and Models.state_key(half)!=Models.state_key(full),"Bottle mesh cache separates visible water states")
- require(bottle_b.get_child_count()==bottle_a.get_child_count()+1 and bottle_c.get_child_count()==bottle_b.get_child_count(),"Water changes add the liquid surface without altering the item record")
+ require(Models.state_key(empty)==Models.state_key(full) and Models.state_key(half)==Models.state_key(full),"Opaque uploaded bottle shares geometry across water states")
+ require(bottle_b.get_child(0).mesh==bottle_a.get_child(0).mesh and bottle_c.get_child(0).mesh==bottle_b.get_child(0).mesh and empty.water_ml==0 and half.water_ml==250 and full.water_ml==500,"Shared opaque geometry preserves independent fill values")
  bottle_a.free();bottle_b.free();bottle_c.free()
  for id in [&"knife",&"fibra",&"leaf_helmet"]:require(not Models.supported(id) and Models.create({"id":id})==null,"Unavailable designs keep explicit provisional markers")
  var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();game.use_test_layout=true;root.add_child(game);game.set_physics_process(false);game.player.set_physics_process(false)

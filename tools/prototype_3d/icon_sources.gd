@@ -5,11 +5,12 @@ const Legacy=preload("res://scripts/item_icons.gd")
 static func crop(texture:Texture2D,rect:Rect2) -> AtlasTexture:
  var result:=AtlasTexture.new();result.atlas=texture;result.region=rect;return result
 static func raw(id:StringName) -> Texture2D:
+ if id in [&"botella",&"botella_full",&"water"]:return load("res://assets/items/prototype_3d/bottle_meshy/icon.png")
  if Tools.DATA.has(id):return Tools.icon(id)
  if id in [&"cuero_curtido",&"cuero_sin_refinar",&"saco_sal"]:return load("res://assets/items/"+{&"cuero_curtido":"tanned_leather",&"cuero_sin_refinar":"raw_hide",&"saco_sal":"salt_bag"}[id]+".png")
  if id==&"basic_workbench":return preload("res://scripts/workbench_art.gd").SOURCE
  if id==&"flecha":return crop(preload("res://scripts/arrow_art.gd").SOURCE,preload("res://scripts/arrow_art.gd").REGION)
- if id in [&"botella",&"botella_full",&"water",&"cuero",&"hilo"]:return preload("res://scripts/container_art.gd").part({&"botella":0,&"botella_full":1,&"water":1,&"cuero":2,&"hilo":3}[id])
+ if id in [&"cuero",&"hilo"]:return preload("res://scripts/container_art.gd").part({&"botella":0,&"botella_full":1,&"water":1,&"cuero":2,&"hilo":3}[id])
  if id==&"apple":return crop(preload("res://assets/items/apple.png"),Rect2(324,158,549,642))
  if id==&"piedra":
   var rocks:=preload("res://scripts/imported_nature.gd");return rocks.texture(rocks.ROCKS[0])

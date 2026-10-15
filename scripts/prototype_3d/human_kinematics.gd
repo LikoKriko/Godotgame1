@@ -1,7 +1,7 @@
 extends RefCounted
 ## Anatomical frames: the elbow/knee plane determines roll as well as swing.
 ## +Z is the actor's front. Elbows flex forward, knees project forward.
-const SurfaceProfile=preload("res://scripts/prototype_3d/survivor_surface.gd")
+const SurfaceProfile=preload("res://scripts/prototype_3d/meshy_body_profile.gd")
 const Anatomy=preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Pose=preload("res://scripts/continuous_body_pose.gd")
 
@@ -9,24 +9,25 @@ static func arm(root:Vector3,hand:Vector3,body:Basis,side:int,free_swing:bool=fa
  var local:Vector3=body.inverse()*(hand-root)
  var raised:=smoothstep(-12,4,local.y)
  var across_chest:=smoothstep(1.0,5.0,local.x*(1 if side==0 else -1))
- var pole:=Vector3((-1 if side==0 else 1)*lerpf(0.75,2.2,across_chest),lerpf(-0.15,-0.85,raised)-across_chest*0.65,lerpf(-1.0,-0.25,raised)+across_chest*1.05)
+ var pole:=Vector3((-1 if side==0 else 1)*lerpf(0.75,2.2,across_chest),lerpf(-0.15,-0.85,raised)-across_chest*0.65,lerpf(0.2,0.9,raised)+across_chest*0.35)
  if free_swing:pole=Vector3(-0.12 if side==0 else 0.12,-0.02,-1.0)
  var result:=Pose.joint(root,hand,Pose.UPPER_ARM,Pose.FOREARM,body*pole)
  if free_swing:return result
  # Keep the upper arm outside the rib cage while preserving the hand target.
  # Continuous repulsion avoids choosing between discrete elbow poses per frame.
- var shoulder_local:=Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,0)
+ var shoulder_local:=Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,Anatomy.SHOULDER.z)
  for iteration in 5:
   var force:=Vector3.ZERO
   for fraction in [0.35,0.60,0.85]:
    var point:Vector3=shoulder_local+body.inverse()*(result.root.lerp(result.joint,fraction)-root)
-   if point.y<30 or point.y>45.5:continue
+   if point.y<34 or point.y>48.0:continue
    var radius_value:=SurfaceProfile.radius(point.y)
    var width:=radius_value.x
    var depth:=radius_value.y+0.15
-   var radius:=sqrt(pow(point.x/width,2)+pow(point.z/depth,2))
-   var penetration:=maxf(0,(1-radius)*depth+1.65)
-   var normal:=Vector3(point.x/(width*width),0,point.z/(depth*depth)).normalized()
+   var local_z:=point.z-SurfaceProfile.center_z(point.y)
+   var radius:=sqrt(pow(point.x/width,2)+pow(local_z/depth,2))
+   var penetration:=maxf(0,(1-radius)*depth+2.4)
+   var normal:=Vector3(point.x/(width*width),0,maxf(0.04,local_z/(depth*depth))).normalized()
    force+=normal*penetration
   if force.length_squared()<0.000001:break
   pole+=(force*0.7)
