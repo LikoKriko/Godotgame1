@@ -45,6 +45,10 @@ func _ready() -> void:
 func tube(joints: Array,radius_a: float,radius_b: float,color: Color,shorts: bool = false,steps: int = 12) -> void:
  if color==SKIN: radius_a*=0.8;radius_b*=0.82
  if not shorts:
+  if color==SKIN:
+   # Bury the proximal cap inside the deltoid instead of exposing a flat ring
+   # above the shoulder when the arm changes orientation.
+   joints=joints.duplicate();joints[0]=joints[0].lerp(joints[1],0.14);radius_a*=0.9
   super.tube(joints,radius_a,radius_b,color,false,steps);return
  # Octagonal anatomical sections: thigh taper, patella, calf and narrow ankle.
  var sections:=[Vector3(0,1.12,1.02),Vector3(0.18,1.1,1.06),Vector3(0.34,0.93,0.98),Vector3(0.46,0.72,0.86),Vector3(0.5,0.7,0.94),Vector3(0.58,0.76,0.82),Vector3(0.69,0.86,0.91),Vector3(0.82,0.7,0.76),Vector3(1,0.51,0.62)]
@@ -74,7 +78,7 @@ func triangle(a: Vector3,b: Vector3,c: Vector3,color: Color) -> void:
 func ellipsoid(center: Vector3,size: Vector3,color: Color,basis: Basis = Basis.IDENTITY) -> void:
  if center.y<4 and is_equal_approx(size.x,2.5):size.x=1.8
  if absf(center.x)>7.0 and absf(center.x)<7.9 and absf(center.y-44.6)<0.1 and color==SKIN:
-  append_shoulder(center,basis);return
+  return # Deltoid joins the continuous torso profile; no separate shoulder cap.
  # One continuous torso avoids the necklace-like outlines produced by
  # overlapping chest/abdomen spheres in the original sprite-authoring model.
  if center.is_equal_approx(Vector3(0,35,0)) and size.is_equal_approx(Vector3(6.5,8.5,3)):
@@ -83,22 +87,8 @@ func ellipsoid(center: Vector3,size: Vector3,color: Color,basis: Basis = Basis.I
  if center.y>=31 and center.y<=44 and center.z>2 and size.z<1.5:
   return
  super.ellipsoid(center,size,color,basis)
-func append_shoulder(center:Vector3,basis:Basis) -> void:
- var rings:Array[PackedVector3Array]=[]
- for level:Vector3 in [Vector3(-2.7,1.05,1.5),Vector3(-1.3,2.0,2.3),Vector3(0.8,2.15,2.25),Vector3(2.0,1.6,1.8),Vector3(2.4,0.65,0.9)]:
-  var ring:=PackedVector3Array()
-  for i in 8:
-   var angle:float=(i+0.5)*TAU/8
-   ring.append(center+basis*Vector3(cos(angle)*level.y,level.x,sin(angle)*level.z))
-  rings.append(ring)
- for row in rings.size()-1:
-  for i in 8:
-   var next:=(i+1)%8
-   triangle(rings[row][i],rings[row+1][next],rings[row+1][i],SKIN);triangle(rings[row][i],rings[row][next],rings[row+1][next],SKIN)
- for i in 8:
-  triangle(center+basis*Vector3.UP*2.4,rings[-1][i],rings[-1][(i+1)%8],SKIN)
 func append_torso() -> void:
- var profile := [Vector3(26.9,6.7,3),Vector3(31,6.4,2.8),Vector3(35,6.5,3),Vector3(39,7.9,3.3),Vector3(42,8.6,3.55),Vector3(44.7,8.1,3.1),Vector3(46.3,5.8,2.5),Vector3(47.5,2.5,1.8),Vector3(49.5,2,1.8)]
+ var profile := [Vector3(26.9,6.7,3),Vector3(31,6.4,2.8),Vector3(35,6.5,3),Vector3(39,7.9,3.3),Vector3(42,8.6,3.55),Vector3(44.7,8.8,3.1),Vector3(45.8,8.0,2.8),Vector3(46.7,5.8,2.4),Vector3(47.5,2.5,1.8),Vector3(49.5,2,1.8)]
  var rings: Array[PackedVector3Array] = []
  for section in profile.size()-1:
   for step in 3:
@@ -106,7 +96,13 @@ func append_torso() -> void:
    var ring := PackedVector3Array()
    for i in 24:
     var angle := i*TAU/24
-    ring.append(Vector3(cos(angle)*shape.y,shape.x,sin(angle)*shape.z))
+    var across:=cos(angle);var depth:=sin(angle)
+    # Flatter back/chest planes and subtle shoulder blades, keeping the slim waist.
+    var x:=signf(across)*pow(absf(across),0.85)*shape.y
+    var z:=signf(depth)*pow(absf(depth),0.80)*shape.z
+    if z<0 and shape.x>35 and shape.x<45:
+     z-=0.35*exp(-pow((absf(x)-4.4)/1.7,2))*sin((shape.x-35)/10*PI)
+    ring.append(Vector3(x,shape.x,z))
    rings.append(ring)
  var final_ring := PackedVector3Array()
  var shape: Vector3 = profile[-1]

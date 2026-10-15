@@ -112,6 +112,8 @@ func nose_wedge(center:Vector3,frame:Transform3D) -> void:
 func faceted_volume(center:Vector3,size:Vector3,color:Color,basis:Basis) -> void:
  var rings:Array[PackedVector3Array]=[]
  var profile:=[Vector2(-1,0.08),Vector2(-0.68,0.69),Vector2(-0.2,0.98),Vector2(0.34,0.93),Vector2(0.75,0.61),Vector2(1,0.08)]
+ if region==1 and color==FUR:profile=[Vector2(-1,0.34),Vector2(-0.75,0.65),Vector2(-0.4,0.89),Vector2(-0.05,1),Vector2(0.35,0.95),Vector2(0.7,0.68),Vector2(1,0.2)]
+ elif region==0:profile=[Vector2(-1,0.35),Vector2(-0.65,0.72),Vector2(-0.15,0.9),Vector2(0.35,1),Vector2(0.7,0.82),Vector2(1,0.3)]
  if surface_tag==1:profile=[Vector2(-1,0.70),Vector2(-0.65,0.94),Vector2(0.55,1),Vector2(1,0.70)]
  for level:Vector2 in profile:
   var ring:=PackedVector3Array()
@@ -167,7 +169,7 @@ func make_skeleton() -> void:
  for face in range(0,vertices.size(),3):
   var normal:Vector3=(vertices[face+2]-vertices[face]).cross(vertices[face+1]-vertices[face]).normalized()
   for corner in 3:
-   var index:=face+corner;var amount:=0.75 if int(tags[index].x) in [8,9] else 0.38
+   var index:=face+corner;var amount:=0.75 if int(tags[index].x) in [8,9] else 0.68
    arrays[Mesh.ARRAY_NORMAL][index]=(arrays[Mesh.ARRAY_NORMAL][index] as Vector3).lerp(normal,amount).normalized()
  var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays);mesh_node.mesh=mesh
  mesh_node.custom_aabb=AABB(Vector3(-25,-10,-25),Vector3(50,60,60))

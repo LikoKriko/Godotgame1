@@ -2,7 +2,8 @@
 
 Rama `prototype/third-person-3d`; `main` conserva el juego 2D. Seleccionar esta
 rama antes de descargar el ZIP, importar `project.godot` en Godot 4.7.2 y pulsar
-F5. La escena inicial es `scenes/prototype_3d/day_zero_3d.tscn`.
+F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú principal.
+`day_zero_3d.tscn` sigue siendo la escena del mundo, también usada por las pruebas.
 
 ## Incluido en esta integración
 
@@ -156,8 +157,7 @@ rellenar, y verifica consumo de 250 ml conservando el recipiente. La prueba de
 movimiento también cubre la ralentización de recogida y comer con correr
 automático activado. La revisión F6 permite mostrar la armadura.
 
-Pendiente: acabar los modelos del entorno, resto de objetos,
-guardado 3D. El sistema del PDF sigue pospuesto hasta
+Pendiente: acabar los modelos del entorno y el resto de objetos. El sistema del PDF sigue pospuesto hasta
 terminar toda la migración.
 
 
@@ -227,7 +227,8 @@ nervaduras finas, ataduras trenzadas y huecos para que pasen los brazos.
 
 Hacha, pico, espada y arco mantienen los mismos anclajes de agarre/contacto,
 con madera segmentada y superficies de piedra biseladas. El pico toma la
-silueta de `entregables/herramientas/pico1_3d.png`: mango doble, contrapunta ancha
+silueta de `entregables/herramientas/pico1_3d.png` y la lámina posterior
+`pico1_4vistas_3d.png`: mango doble, contrapunta ancha
 y punta de trabajo más estrecha. El arco sigue la mira durante los 0,5 s de
 tensado; al soltar se fija una línea recta desde la flecha hasta el blanco.
 La cámara consulta hasta 100 m y el proyectil desaparece a esa distancia, sin
@@ -251,3 +252,75 @@ alineación de flecha/manos, vuelo recto y 100 m), `prototype_3d_running_arms.gd
 `prototype_3d_model_corrections.gd` (geometría, flexión y holgura de armadura).
 Se revisaron también imágenes renderizadas con Compatibility; la aprobación
 artística del jugador sigue pendiente de probar esta rama en su equipo.
+
+
+## Partidas 3D: menú, guardado y carga
+
+Al pulsar F5 se muestra el menú principal con el fondo aprobado. **Jugar** crea
+una partida; si ya existe un guardado, la confirmación es una ventana integrada
+en la interfaz. Crear una partida no borra el archivo anterior. **Continuar**
+solo está disponible si hay un guardado 3D válido. La pausa tiene Continuar,
+Guardar partida, Configuración, Menú principal y Salir. El panel de muerte
+mantiene Reaparecer y Salir al menú principal.
+
+Hay una sola partida manual. Para probar: Jugar → explorar/recolectar → Esc →
+Guardar partida → Menú principal → Continuar. También se puede cerrar Godot y
+volver a pulsar F5: Continuar lee el archivo del disco. Volver al menú o cerrar
+sin guardar descarta los cambios posteriores al último guardado; no hay
+sustitución automática del guardado al crear, salir o morir.
+
+El archivo es `user://day_zero_3d.save`. En una instalación normal de Windows
+corresponde a `%APPDATA%/Godot/app_userdata/Day Zero/day_zero_3d.save`.
+El guardado 2D `day_zero_save.cfg` conserva su formato y archivo propios. No se
+convierten partidas 2D en 3D en esta versión.
+
+`scripts/prototype_3d/session.gd` gestiona el menú y el ciclo de vida de la
+partida. `save_game.gd` guarda datos JSON versionados con comprobación SHA-256;
+no instancia objetos ni scripts desde el archivo. Valida datos antes de
+restaurar, incluidos identificadores únicos y recursos originales de la semilla.
+Escribe y verifica `.tmp`, conserva el archivo válido anterior en `.bak` y
+reemplaza el principal. Si el principal falta o está dañado, Continuar recupera
+la copia válida e informa al jugador. Si ambos fallan, muestra el error sin
+iniciar silenciosamente una partida vacía.
+
+Se conservan posición, velocidad, cámara, salto/deslizamiento y recuperaciones
+del personaje; mochila, equipo, barra física, selección, usos y agua por objeto;
+recetas, experiencia, nivel, puntos, habilidades/perks y sus temporizadores;
+vida, nutrición, día/hora y enfriamiento del parry; recursos agotados o dañados;
+mesas, objetos tirados; criaturas vivas, memoria y estado de comportamiento,
+stun, cadáveres, botín y tiempo restante antes de desaparecer. Los interiores
+vacíos se regeneran por semilla y se terminan de cargar antes de reanudar una
+partida guardada dentro. El tiempo no avanza mientras el juego está cerrado.
+
+Para evitar guardar una transacción a medias, el botón pide terminar o cancelar
+una fabricación/colocación, un golpe, equipamiento o consumo en curso, o esperar
+el final de un proyectil/impacto diferido. No consume ni devuelve objetos como
+efecto secundario de guardar. Un salto o deslizamiento sí se puede guardar.
+
+Configuración tiene **Juego, Gráficos y Audio**: correr automático, seis tamaños
+del HUD, VSync, FPS, MSAA 3D y volúmenes. Se aplican y se guardan al cambiar.
+Resolución y modo de pantalla siguen bloqueados para no reintroducir el desfase
+del ratón. Los cambios gráficos no modifican el tamaño/escala del viewport.
+
+Pruebas reproducibles:
+
+- `tests/prototype_3d_saves.gd`: ciclo completo y recursos, botín, edificio,
+  errores, copia de seguridad, rutas `user://` y cancelaciones.
+- `tests/prototype_3d_save_restart.gd -- write|read /tmp/day-zero-restart-test-<nombre>.save`:
+  escribir y recuperar desde dos procesos distintos de Godot.
+- `tests/prototype_3d_session_ui.gd`: con pantalla nativa, clics reales en menú,
+  pausa, guardar/continuar y desplegable; FPS, MSAA, audio y HUD sin cambiar
+  coordenadas de entrada. Se omite explícitamente en headless.
+
+Las pruebas se ejecutaron en Godot 4.7.2 con Compatibility en Linux. La prueba
+nativa comprueba coordenadas con ratón del motor, sin un cursor superpuesto.
+
+## Reposo y unión de hombros
+
+Los brazos libres en reposo usan 165° interiores, sin movimiento cíclico. La
+transición dura 0,14 s; la carrera conserva 75° y los agarres ocupados se mantienen.
+El deltoides se integra en el perfil del torso, eliminando las piezas esféricas
+separadas y enterrando el cierre proximal del brazo. Los primeros pesos mezclan
+pecho y brazo para suavizar la unión. La espalda añade planos y relieves discretos
+en las escápulas. Cabeza y torso del joven tienen más secciones y planos marcados,
+conservando el rig, las proporciones aprobadas y las referencias de cuatro vistas.

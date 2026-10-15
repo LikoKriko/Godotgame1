@@ -70,9 +70,7 @@ func _physics_process(delta:float) -> void:
  if game==null or game.paused:return
  if health<=0:
   death_elapsed+=delta;model.animate(&"death" if death_elapsed<2 else &"corpse",minf(1,death_elapsed/2));indicator.hide()
-  if death_elapsed>=2 and corpse_area==null:
-   corpse_area=Area3D.new();corpse_area.collision_layer=16;corpse_area.collision_mask=0;corpse_area.monitoring=false;corpse_area.set_meta("creature",self);add_child(corpse_area)
-   var shape:=CollisionShape3D.new();var volume:=BoxShape3D.new();volume.size=Vector3(0.8,0.3,0.9);shape.shape=volume;shape.position.y=0.15;corpse_area.add_child(shape)
+  if death_elapsed>=2:ensure_corpse_area()
   if death_elapsed>=182:queue_free()
   return
  var stunned:=effects.remaining(&"stun")>0
@@ -128,4 +126,23 @@ func _physics_process(delta:float) -> void:
   var toward:Vector3=game.player.global_position-global_position
   if toward.length()>0.001:model.rotation.y=lerp_angle(model.rotation.y,atan2(toward.x,toward.z),1-exp(-delta*7))
  model.animate(clip,progress,punch_left,delta)
+ update_hurtboxes()
+
+func ensure_corpse_area() -> void:
+ if corpse_area!=null:return
+ corpse_area=Area3D.new();corpse_area.collision_layer=16;corpse_area.collision_mask=0;corpse_area.monitoring=false;corpse_area.set_meta("creature",self);add_child(corpse_area)
+ var shape:=CollisionShape3D.new();var volume:=BoxShape3D.new();volume.size=Vector3(0.8,0.3,0.9);shape.shape=volume;shape.position.y=0.15;corpse_area.add_child(shape)
+func restore_presentation() -> void:
+ if health<=0:
+  collision_layer=0;collision_mask=0;hurt_area.collision_layer=0
+  model.animate(&"death" if death_elapsed<2 else &"corpse",minf(1,death_elapsed/2))
+  if death_elapsed>=2:ensure_corpse_area()
+ elif effects.remaining(&"stun")>0:
+  var remaining:float=effects.remaining(&"stun");var elapsed:=1.5-remaining
+  var clip:StringName=&"stun_fall" if elapsed<0.24 else (&"stun_rise" if remaining<0.24 else &"stun_hold")
+  model.animate(clip,clampf(elapsed/0.24 if clip==&"stun_fall" else (1-remaining/0.24 if clip==&"stun_rise" else 0),0,1))
+ elif attack_elapsed>=0:model.animate(&"attack",attack_elapsed,punch_left)
+ elif rise_elapsed>=0:model.animate(&"rise",rise_elapsed/0.28,punch_left)
+ elif lower_elapsed>=0:model.animate(&"lower",lower_elapsed/0.28,punch_left)
+ else:model.animate(&"idle",phase,punch_left)
  update_hurtboxes()

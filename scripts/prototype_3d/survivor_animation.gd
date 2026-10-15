@@ -148,10 +148,22 @@ static func solve_legs(pose: Dictionary) -> Dictionary:
   pose.legs[side].pitch=pitch
  return pose
 
+static func arm_is_free(pose:Dictionary,side:int) -> bool:
+ var family:StringName=pose.get("family",&"")
+ return family==&"" or (family!=&"bow" and not Profiles.profile(family).two_hands and side!=pose.active)
+
+static func relaxed_arm(pose:Dictionary,side:int) -> Dictionary:
+ if not arm_is_free(pose,side):return {}
+ var body:Transform3D=pose.body
+ var upper:Vector3=(body.basis*Vector3(0.16*(-1 if side==0 else 1),-1,0.02)).normalized()
+ var hinge:Vector3=(body.basis.x-upper*upper.dot(body.basis.x)).normalized()
+ var forearm:=upper.rotated(hinge,-deg_to_rad(15))
+ var root:Vector3=pose.shoulders[side];var joint:=root+upper*Pose.UPPER_ARM
+ return {"root":root,"joint":joint,"end":joint+forearm*Pose.FOREARM}
+
 static func running_arm(pose:Dictionary,side:int,gait:float) -> Dictionary:
  # Occupied hands preserve their category grip, including the drawing hand.
- var family:StringName=pose.get("family",&"")
- if family!=&"" and (family==&"bow" or Profiles.profile(family).two_hands or side==pose.active):return {}
+ if not arm_is_free(pose,side):return {}
  var body:Transform3D=pose.body
  var swing:=sin((gait+side*0.5)*TAU)*deg_to_rad(18)
  var upper:Vector3=body.basis*(Basis(Vector3.RIGHT,swing)*Vector3(0.24*(-1 if side==0 else 1),-1,0)).normalized()

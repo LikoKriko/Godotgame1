@@ -2,7 +2,7 @@ config_version=5
 
 [application]
 config/name="Day Zero"
-run/main_scene="res://scenes/prototype_3d/day_zero_3d.tscn"
+run/main_scene="res://scenes/prototype_3d/day_zero.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [autoload]

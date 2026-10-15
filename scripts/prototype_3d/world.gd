@@ -1,5 +1,15 @@
 extends Node3D
-## Reviewable first slice: real 3D survivor, shoulder camera, axe and woodland.
+## Playable 3D world; the session owns the title screen and manual save lifecycle.
+signal main_menu_requested
+signal world_ready
+signal load_failed(message:String)
+signal loading_changed(value:float)
+const Save=preload("res://scripts/prototype_3d/save_game.gd")
+var world_seed:=73129
+var initial_state:Dictionary={}
+var save_path:=Save.PATH
+var save_button:Button
+var return_button:Button
 var player: CharacterBody3D
 var camera_rig: Node3D
 var paused := false
@@ -42,6 +52,7 @@ var loading_screen:Control
 var loading_progress:ProgressBar
 func _ready() -> void:
  # The 2D cursor autoload would override captured mouse mode each frame.
+ if not initial_state.is_empty():world_seed=initial_state.seed
  var cursor := get_tree().root.get_node_or_null("GameCursor")
  if cursor != null: cursor.set_process(false); cursor.hide()
  for overlay in get_tree().root.get_children():
@@ -49,6 +60,7 @@ func _ready() -> void:
   if overlay.get("name") == &"DayZeroCursor": overlay.hide(); overlay.process_mode = Node.PROCESS_MODE_DISABLED
  Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
  settings.load_settings()
+ preload("res://scripts/prototype_3d/settings_panel.gd").apply_runtime(settings,get_viewport())
  progression.reset()
  bag.reset()
  bag.move_item(&"quick",5,&"quick",0)
@@ -74,7 +86,7 @@ func build_environment() -> void:
     var boundary:=StaticBody3D.new();add_child(boundary);var limit:=CollisionShape3D.new();var wall_shape:=BoxShape3D.new();wall_shape.size=Vector3(0.3,20,world_bounds.size.y) if axis==0 else Vector3(world_bounds.size.x,20,0.3);limit.shape=wall_shape;limit.position=Vector3(sign_side*world_bounds.size.x*0.5,10,0) if axis==0 else Vector3(0,10,sign_side*world_bounds.size.y*0.5);boundary.add_child(limit);boundary.set_meta("physical_height",20.0)
  terrain=preload("res://scripts/prototype_3d/terrain_chunks.gd").new();add_child(terrain)
  var units:float=preload("res://scripts/prototype_3d/terrain_chunks.gd").METRES_PER_UNIT
- terrain.configure(73129,null,Rect2(world_bounds.position/units,world_bounds.size/units))
+ terrain.configure(world_seed,null,Rect2(world_bounds.position/units,world_bounds.size/units))
  terrain.update_observer(Vector3.ZERO)
  if use_test_layout:
   var fixture=load("res://tests/fixtures/prototype_layout.gd").new();add_child(fixture);fixture.populate(self)
@@ -84,18 +96,21 @@ func build_ui() -> void:
  var aim := Label.new(); aim.text = "·"; aim.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; aim.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
  aim.set_anchors_and_offsets_preset(Control.PRESET_CENTER); aim.offset_left = -12; aim.offset_top = -12; aim.offset_right = 12; aim.offset_bottom = 12; aim.add_theme_font_size_override("font_size",28); root.add_child(aim)
  aim.mouse_filter=Control.MOUSE_FILTER_IGNORE
- status = Label.new();status.hide();status.text="DAY ZERO · PROTOTIPO 3D";root.add_child(status)
+ status = Label.new();status.hide();status.text="";root.add_child(status)
  hud=preload("res://scripts/prototype_3d/hud.gd").new();root.add_child(hud);hud.configure(self)
  pause_panel = CenterContainer.new(); pause_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); root.add_child(pause_panel); pause_panel.hide()
  var frame := PanelContainer.new(); frame.theme = preload("res://scripts/ui_style.gd").theme(); pause_panel.add_child(frame)
  var buttons := VBoxContainer.new(); buttons.add_theme_constant_override("separation",16); frame.add_child(buttons)
  pause_title=Label.new();pause_title.text="PAUSA";buttons.add_child(pause_title)
- for caption in ["Continuar","Configuración","Reaparecer","Abrir versión 2D","Salir"]:
-  var button := preload("res://scripts/menu_button.gd").new(); button.text = caption; buttons.add_child(button)
+ for caption in ["Continuar","Guardar partida","Configuración","Reaparecer","Menú principal","Salir"]:
+  var button := preload("res://scripts/menu_button.gd").new(); button.text = caption; button.set_meta("caption",caption);buttons.add_child(button)
   if caption=="Continuar":continue_button=button;button.pressed.connect(toggle_pause)
   elif caption=="Configuración":button.pressed.connect(open_settings)
-  elif caption=="Reaparecer":respawn_button=button;button.pressed.connect(respawn)
-  else:button.pressed.connect(open_2d if caption=="Abrir versión 2D" else get_tree().quit)
+  elif caption=="Guardar partida":save_button=button;button.pressed.connect(save_current_game)
+  elif caption=="Reaparecer":respawn_button=button;button.pressed.connect(respawn);button.hide()
+  elif caption=="Menú principal":return_button=button;button.pressed.connect(request_main_menu)
+  else:button.pressed.connect(get_tree().quit)
+ var save_message:=Label.new();save_message.name="SaveMessage";save_message.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;save_message.custom_minimum_size.x=320;preload("res://scripts/ui_style.gd").set_font_size(save_message,14);buttons.add_child(save_message)
  settings_holder=CenterContainer.new();settings_holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(settings_holder);settings_holder.hide()
  settings_panel=preload("res://scripts/prototype_3d/settings_panel.gd").new();settings_holder.add_child(settings_panel);settings_panel.configure(self);settings_panel.closed.connect(close_settings)
  map_holder=CenterContainer.new();map_holder.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(map_holder);map_holder.hide()
@@ -125,7 +140,11 @@ func toggle_pause() -> void:
  if paused and player_health<=0:return
  paused = not paused; pause_panel.visible = paused
  pause_title.text="HAS MUERTO" if player_health<=0 else "PAUSA"
- continue_button.disabled=player_health<=0;respawn_button.visible=player_health<=0
+ continue_button.disabled=player_health<=0
+ for button in pause_panel.find_children("*","Button",true,false):
+  var caption:String=button.get_meta("caption","")
+  button.visible=caption!="Reaparecer" if player_health>0 else caption in ["Reaparecer","Menú principal"]
+ return_button.text="Salir" if player_health<=0 else "Menú principal"
  Input.mouse_mode = Input.MOUSE_MODE_VISIBLE if paused else Input.MOUSE_MODE_CAPTURED
 func open_settings() -> void:
  settings_from_pause=paused;paused=true;pause_panel.hide();settings_holder.show();Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
@@ -159,6 +178,8 @@ func _physics_process(delta:float) -> void:
  if not pending_consumption.is_empty() and player.preview_state==&"":finish_consumption()
  if day_cycle.advance(delta)>0:nutrition.new_day()
  nutrition.advance(delta,day_cycle.day_seconds)
+ refresh_daylight()
+func refresh_daylight() -> void:
  var daylight:Dictionary=day_cycle.sun_state()
  main_sun.light_energy=daylight.elevation*1.2;main_sun.rotation_degrees=Vector3(-lerpf(18,76,daylight.elevation),lerpf(-70,70,daylight.progress),0)
  world_ambient.ambient_light_color=daylight.ambient;world_ambient.ambient_light_energy=lerpf(0.32,0.65,daylight.elevation)
@@ -175,6 +196,9 @@ func respawn() -> void:
  bag.active_quick_uid=-1;player.equipped=false;player.death_elapsed=-1;player.action_elapsed=-1;player.equip_elapsed=-1;player.equip_recovery=0;player.parry_elapsed=-1;player.locomotion.reset();player.position=Vector3(0,0.2,2)
  player.pickup_recovery=0;player.model.wear({})
  paused=false;pause_panel.hide();Input.mouse_mode=Input.MOUSE_MODE_CAPTURED
+func request_main_menu() -> void:
+ if main_menu_requested.get_connections().is_empty():get_tree().change_scene_to_file("res://scenes/prototype_3d/day_zero.tscn")
+ else:main_menu_requested.emit()
 func open_2d() -> void:
  if get_tree().root.get_node_or_null("GameCursor") == null:
   var cursor := preload("res://scripts/cursor_overlay.gd").new(); cursor.name = "GameCursor"; get_tree().root.add_child(cursor)
@@ -342,7 +366,7 @@ func build_loading_screen(root:Control) -> void:
  var background:=ColorRect.new();background.color=Color.BLACK;background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);loading_screen.add_child(background)
  var center:=CenterContainer.new();center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);loading_screen.add_child(center)
  var layout:=VBoxContainer.new();layout.add_theme_constant_override("separation",12);center.add_child(layout)
- var label:=Label.new();label.text="Generando mundo";label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;layout.add_child(label)
+ var label:=Label.new();label.text="Cargando mundo" if not initial_state.is_empty() else "Generando mundo";label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;layout.add_child(label)
  loading_progress=ProgressBar.new();loading_progress.custom_minimum_size=Vector2(360,18);loading_progress.show_percentage=false;loading_progress.max_value=1
  var border:=StyleBoxFlat.new();border.bg_color=Color.BLACK;border.border_color=Color.WHITE;border.set_border_width_all(1);loading_progress.add_theme_stylebox_override("background",border)
  var fill:=StyleBoxFlat.new();fill.bg_color=Color.WHITE;loading_progress.add_theme_stylebox_override("fill",fill);layout.add_child(loading_progress)
@@ -351,12 +375,51 @@ func build_loading_screen(root:Control) -> void:
 func generate_content() -> void:
  await get_tree().process_frame
  environment_content=preload("res://scripts/prototype_3d/world_content.gd").new();add_child(environment_content)
- environment_content.progress_changed.connect(func(value):loading_progress.value=value)
- environment_content.completed.connect(func():
-  loading_state=false;loading_screen.hide();resume_world()
-  for view in get_tree().get_nodes_in_group("prototype_maps"):view.refresh_terrain()
- )
- environment_content.configure(self,73129)
+ environment_content.progress_changed.connect(func(value):set_loading_progress(value*0.8))
+ environment_content.completed.connect(finish_world_loading)
+ environment_content.configure(self,world_seed)
+func set_loading_progress(value:float) -> void:
+ loading_progress.value=value;loading_changed.emit(value)
+func finish_world_loading() -> void:
+ if not initial_state.is_empty():
+  if not Save.restore(self,initial_state):
+   load_failed.emit("No se pudo restaurar esta partida: sus datos no coinciden con el mundo.");return
+ else:refresh_daylight()
+ set_loading_progress(0.9)
+ # If saved indoors, the actual interior must be ready before releasing physics.
+ var required:Array=[]
+ for building in get_tree().get_nodes_in_group("prototype_buildings"):
+  if not is_ancestor_of(building):continue
+  building.stream.update_stream(player.global_position)
+  if building.stream.interior_bounds.has_point(building.to_local(player.global_position)):required.append(building.stream)
+ var deadline:=Time.get_ticks_msec()+15000
+ while true:
+  var ready_count:=0
+  for stream in required:
+   stream.update_stream(player.global_position)
+   if stream.failed:load_failed.emit("No se pudo cargar el interior de la partida.");return
+   if stream.interior_ready:ready_count+=1
+  if ready_count==required.size():break
+  if Time.get_ticks_msec()>deadline:load_failed.emit("El interior no terminó de cargar. Puedes volver a intentarlo.");return
+  set_loading_progress(0.9+0.08*ready_count/maxi(1,required.size()))
+  await get_tree().process_frame
+ for view in get_tree().get_nodes_in_group("prototype_maps"):
+  if is_ancestor_of(view):view.refresh_terrain()
+ terrain.update_observer(player.global_position);set_loading_progress(1)
+ await get_tree().process_frame
+ camera_rig.update(1)
+ initial_state.clear();loading_state=false;loading_screen.hide();resume_world();world_ready.emit()
+func save_current_game() -> Error:
+ var message:Label=pause_panel.find_child("SaveMessage",true,false)
+ var reason:=Save.save_block_reason(self)
+ if not reason.is_empty():
+  if message!=null:message.text=reason
+  return ERR_BUSY
+ var result:=Save.write(self,save_path)
+ if message!=null:message.text="Partida guardada." if result==OK else "No se pudo guardar (%s)."%error_string(result)
+ status.text="Partida guardada." if result==OK else "No se pudo guardar la partida."
+ return result
+
 func surface_height(point:Vector3) -> float:
  return environment_content.surface_height(point) if environment_content!=null else 0.0
 

@@ -14,6 +14,7 @@ var cloth_angle: Array[float] = [0.0,0.0]
 var cloth_velocity: Array[float] = [0.0,0.0]
 var previous_leg_angle: Array[float] = [0.0,0.0]
 var run_arm_blend:Array[float]=[0.0,0.0]
+var relaxed_arm_blend:Array[float]=[0.0,0.0]
 
 func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  neutral = Clips.sample(&"",&"idle",0)
@@ -95,6 +96,7 @@ static func sculpted_normals(vertices:PackedVector3Array,colors:PackedColorArray
    var i:=face+corner;var p:=vertices[i];var color:=colors[i];var amount:=0.0
    if int(tags[i].x)==0 and p.y<26:amount=0.58
    elif int(tags[i].x) in [1,2]:amount=0.25
+   elif int(tags[i].x)==0 and p.z< -0.5 and p.y>31 and p.y<45:amount=0.6
    elif p.y>42 and p.y<47.2 and absf(p.x)>5.0:amount=0.68
    if int(tags[i].x)==3 and color.r<0.38 and color.g<0.27:amount=0.88
    normals[i]=normals[i].lerp(normal,amount).normalized()
@@ -138,7 +140,11 @@ func limb_binding(vertex: Vector3,start: int,joints: Dictionary) -> Array:
  return pair(start+1,start+2,smoothstep(0.78,1.0,t))
 
 func bindings(vertex: Vector3,tag: int,cloth: bool = false) -> Array:
- if tag in [1,2]: return limb_binding(vertex,4+(tag-1)*3,arm_rest[tag-1])
+ if tag in [1,2]:
+  var side:=tag-1;var arm:Dictionary=arm_rest[side];var start:=4+side*3
+  var along:=clampf((vertex-arm.root).dot((arm.joint-arm.root).normalized()),0,Pose.UPPER_ARM)
+  if along<2.5:return pair(1,start,lerpf(0.5,1,smoothstep(0,2.5,along)))
+  return limb_binding(vertex,start,arm)
  if tag==3: return pair(3,3,0)
  if vertex.y < 26.0:
   var side := 0 if vertex.x < 0 else 1
@@ -170,6 +176,16 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
  for side in 2:
   var arm := Pose.joint(pose.shoulders[side],hands[side],Pose.UPPER_ARM,Pose.FOREARM,Vector3(-1.2 if side==0 else 1.2,-0.55,1.5))
   var clip:StringName=pose.get("clip_state",&"idle")
+  var relaxed:Dictionary=Clips.relaxed_arm(pose,side)
+  var resting:=clip==&"idle"
+  if relaxed.is_empty() or clip not in [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run"]:relaxed_arm_blend[side]=0
+  elif delta<=0:relaxed_arm_blend[side]=1.0 if resting else 0.0
+  else:relaxed_arm_blend[side]=move_toward(relaxed_arm_blend[side],1.0 if resting else 0.0,delta/0.14)
+  if relaxed_arm_blend[side]>0:
+   var blend:float=relaxed_arm_blend[side]
+   var upper:Vector3=(arm.joint-arm.root).normalized().lerp((relaxed.joint-relaxed.root).normalized(),blend).normalized()
+   var forearm:Vector3=(arm.end-arm.joint).normalized().lerp((relaxed.end-relaxed.joint).normalized(),blend).normalized()
+   arm.joint=arm.root+upper*Pose.UPPER_ARM;arm.end=arm.joint+forearm*Pose.FOREARM
   var running:=clip in [&"run",&"start_run",&"equip_run"]
   var running_pose:Dictionary=Clips.running_arm(pose,side,pose.get("gait_phase",0.0))
   var allow_transition:=clip in [&"idle",&"walk",&"stop_run",&"stop"]

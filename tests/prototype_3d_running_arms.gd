@@ -19,6 +19,14 @@ func run():
     var upper:Vector3=actor.last_pose.body.basis.inverse()*(b-a).normalized()
     require(absf(rad_to_deg(atan2(upper.z,-upper.y)))<=18.1,"Upper-arm swing remains limited and follows the torso")
     require(absf(a.distance_to(b)-10.0)<0.001 and absf(b.distance_to(c)-9.0)<0.001,"Running bends real joints without stretching bones")
+ for family in [&"",&"sword",&"bottle"]:
+  actor.family_override=family
+  for frame in 12:
+   actor.animate(&"idle",frame/12.0,family!=&"")
+   for side in 2:
+    if family!=&"" and side==actor.last_pose.active:continue
+    var a:Vector3=actor.rig.posed[4+side*3].origin;var b:Vector3=actor.rig.posed[5+side*3].origin;var c:Vector3=actor.rig.posed[6+side*3].origin
+    require(absf(rad_to_deg((a-b).angle_to(c-b))-165)<0.05,"Resting free elbow keeps 165 degrees without reverse bending")
  for family in [&"axe",&"pickaxe",&"bow"]:
   actor.family_override=family
   for frame in 12:

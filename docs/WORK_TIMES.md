@@ -53,3 +53,36 @@ superviviente equipado/corriendo, el pico nuevo, joven y árboles. La prueba de
 población pasó pero emitió al cerrar un aviso de una instancia RefCounted sin
 liberar, con cargas de interiores en segundo plano; queda anotado para el
 barrido de ciclo de vida/streaming, sin atribuirlo a un fallo visual.
+
+## 2026-10-15 — Guardado y partidas 3D, con correcciones de anatomía
+
+Alcance solicitado: una sola partida manual; menú principal, nueva partida,
+pausa y Continuar; persistir personaje y mundo. Durante el trabajo se añadieron
+reposo a 165°, unión continua de hombros, más planos en espalda y cabeza/torso
+del joven. No se dio una estimación previa para esta tanda.
+
+| Hito | UTC | Estado |
+| --- | --- | --- |
+| Primer registro del entorno tras la petición | 2026-10-15 06:56:17 | Revisión de arquitectura y comienzo de la implementación |
+| Prueba entre procesos y revisión nativa en marcha | 2026-10-15 07:13:16 | Guardado/carga integrados |
+| Pruebas funcionales y nativas pasadas | 2026-10-15 07:21:36 | 186 comprobaciones de sesión, 739 generales, 8588 de animación y 11 nativas |
+| Cierre ampliado de validación y documentación | 2026-10-15 07:25:33 | 190 comprobaciones de sesión, incluido rechazo por semilla y rutas user:// |
+
+Intervalo medido entre primer registro y cierre: **29 min 16 s**. La petición
+llegó antes del primer registro; no se dispone de su segundo exacto. No hay
+un desglose exclusivo por subsistema: guardado, interfaz, anatomía y pruebas
+se hicieron intercalados. No sumar estos hitos como si fueran tareas separadas.
+
+Validación adicional: escritura y lectura en dos procesos independientes de
+Godot; 374 comprobaciones de codos/agarres, 24 de cuerpo/armadura, 65 de equipo,
+6532 de criatura y prueba de streaming. Compatibilidad gráfica comprobada en
+ventana nativa, sin cambiar resolución ni escala del viewport. El cambio de
+ciclo de vida drena las peticiones de interiores al liberar una partida; las
+pruebas de sesión no reprodujeron el aviso anterior de RefCounted al cerrar.
+
+Al preparar la subida apareció en la rama remota
+`entregables/herramientas/pico1_4vistas_3d.png`; se incorporó el commit del usuario
+sin modificarlo y se ajustaron volumen y silueta de la cabeza del pico a esas
+vistas. Revisión nativa adicional y pruebas de equipo/armadura pasadas.
+Último hito antes de publicar: **2026-10-15 07:28:46 UTC**. Intervalo medido desde
+el primer registro: **32 min 29 s**, incluida esta ampliación de referencia.

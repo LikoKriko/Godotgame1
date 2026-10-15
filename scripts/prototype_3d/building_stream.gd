@@ -79,3 +79,15 @@ func unload() -> void:
  if was_ready:ready_changed.emit(false)
  # In-flight requests are drained without blocking. Their results are released
  # when no longer needed, or reused if the player comes back before completion.
+
+func _exit_tree() -> void:
+ # A title/new-game transition can release an interior with a request in flight.
+ # Keep draining those results through the tree rather than retaining the building.
+ if not requests.is_empty():drain_detached(requests.duplicate(),get_tree())
+static func drain_detached(pending:Dictionary,tree:SceneTree) -> void:
+ for path in pending.keys():
+  var status:=ResourceLoader.load_threaded_get_status(path)
+  if status==ResourceLoader.THREAD_LOAD_LOADED:
+   ResourceLoader.load_threaded_get(path);pending.erase(path)
+  elif status!=ResourceLoader.THREAD_LOAD_IN_PROGRESS:pending.erase(path)
+ if not pending.is_empty() and is_instance_valid(tree):tree.process_frame.connect(drain_detached.bind(pending,tree),CONNECT_ONE_SHOT)

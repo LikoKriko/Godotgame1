@@ -40,6 +40,15 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
   y barra verde; Esc cancela conservando el objeto. E abre las recetas de mesa,
   con iconos 256² y los mismos costes de sal/cuchillo y reservas que en el 2D.
 
+- Menú principal 3D, confirmación integrada de nueva partida, guardado manual y
+  Continuar desde disco. Una sola partida 3D separada del archivo 2D, validación
+  versionada, escritura temporal verificada y copia de recuperación.
+- Persistencia de recursos, mesas, criaturas/cadáveres, botín y objetos tirados,
+  además de estado del personaje, progreso, reloj y nutrición. Carga del interior
+  ocupado antes de reanudar. No se guardan golpes/consumos/proyectiles a medias.
+- Configuración Juego/Gráficos/Audio aplicable al 3D; resolución y modo de pantalla
+  permanecen bloqueados por el problema anterior del cursor.
+
 ## Pendiente de trasladar del juego 2D
 
 1. Modelos de los objetos restantes: materiales y equipo aún provisional.
@@ -49,11 +58,7 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
    diseños originales de árbol aún no tienen nueve modelos 3D específicos.
 3. Sustituir la representación provisional de objetos arrojados (iconos en el
    mundo) por modelos pequeños donde corresponda.
-4. Persistencia del mundo y sus recursos, mesas, cuerpos y objetos arrojados.
-5. Menú principal completo, nueva partida, guardado manual/continuar en un formato
-   3D separado y carga del guardado con progreso real. Ajustes restantes adecuados
-   al renderizador 3D; no reintroducir el cambio de resolución que rompía el cursor.
-6. Revisar que cada interacción del 2D tenga equivalente, además de animaciones,
+4. Revisar que cada interacción del 2D tenga equivalente, además de animaciones,
    sombras, colisiones, costes, cancelación, pausas y reaparición.
 
 ## Decisiones temporales para aclarar en la próxima sesión

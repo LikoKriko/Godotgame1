@@ -14,9 +14,9 @@ func configure(value:StringName) -> void:
   var top:=27.0 if family==&"pickaxe" else 10.0
   for x in [-0.55,0.55]:Meshes.polyline(self,PackedVector3Array([Vector3(x,-4,0),Vector3(x*1.1,3,0.15),Vector3(x*0.9,top*0.6,-0.1),Vector3(x,top,0)]),PackedFloat32Array([0.65,0.72,0.67,0.72]),wood)
   if family==&"pickaxe":
-   # Broad chipped rear stone and tapered working point from pico1_3d.png.
-   Meshes.beveled_blade(self,PackedVector2Array([Vector2(-13,18),Vector2(-13.5,19.5),Vector2(-12.2,22),Vector2(-10,24),Vector2(-7,25.4),Vector2(-4,25.8),Vector2(-1.1,24.7),Vector2(-1.5,21),Vector2(-4,19.5),Vector2(-8,18.2),Vector2(-11,17.8)]),1.8,stone)
-   Meshes.beveled_blade(self,PackedVector2Array([Vector2(1.1,25),Vector2(2.8,26.7),Vector2(5.2,26.3),Vector2(7.8,25.2),Vector2(10,23.7),Vector2(12,21),Vector2(9,21.7),Vector2(6,22),Vector2(3.1,21),Vector2(1.2,21.4)]),1.6,stone)
+   # Broad rear stone, curved working point and thickness from pico1_4vistas_3d.png.
+   Meshes.beveled_blade(self,PackedVector2Array([Vector2(-13,18),Vector2(-13.5,20.5),Vector2(-12.2,23.5),Vector2(-10,26.1),Vector2(-7,27.5),Vector2(-4,27),Vector2(-1.1,25.7),Vector2(-1.5,21),Vector2(-4,18.1),Vector2(-8,16.4),Vector2(-11,16.8)]),2.4,stone)
+   Meshes.beveled_blade(self,PackedVector2Array([Vector2(1.1,25.7),Vector2(2.8,28.1),Vector2(5.2,27.6),Vector2(7.8,26),Vector2(10,23.7),Vector2(12,21),Vector2(9,21.7),Vector2(6,22),Vector2(3.1,20.4),Vector2(1.2,21.4)]),2.1,stone)
    var binding:=Meshes.material(&"rope",Color("b9b47c"))
    for z in [-2.0,2.0]:
     for offset in [-0.55,0.0,0.55]:
