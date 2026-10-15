@@ -40,7 +40,7 @@ func configure(owner_game) -> void:
 func update_hurtboxes() -> void:
  if hurt_shapes.is_empty():return
  hurt_shapes[0].position=to_local(model.to_global(model.posed[1].origin))
- hurt_shapes[1].position=to_local(model.to_global(model.posed[1]*Vector3(0,-2.9,9.35)))
+ hurt_shapes[1].position=to_local(model.to_global(model.posed[1]*preload("res://scripts/prototype_3d/young_pose.gd").SNOUT_OFFSET))
  hurt_shapes[2].position=to_local(model.to_global(model.posed[10].origin))
  hurt_shapes[3].position=to_local(model.to_global(model.posed[13].origin))
 func sees_player() -> bool:

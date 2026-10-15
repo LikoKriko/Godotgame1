@@ -26,6 +26,23 @@ func run():
     actor.animate(state,frame/23.0,side)
     require(actor.posed[1].origin.is_finite(),"Head remains attached and finite")
  require(actor.mesh_node.mesh==mesh,"Creature animates one skinned mesh")
+ # Locate a real pink centre-line nose vertex, then verify the relocated
+ # snout collider follows that vertex through the skeleton in multiple poses.
+ var arrays:Array=mesh.surface_get_arrays(0)
+ var points:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
+ var colors:PackedColorArray=arrays[Mesh.ARRAY_COLOR]
+ var tags:PackedVector2Array=arrays[Mesh.ARRAY_TEX_UV]
+ var nose:=Vector3.ZERO
+ var pink:=Vector3(195.0/255,140.0/255,120.0/255)
+ for i in points.size():
+  if int(tags[i].x)!=1 or absf(points[i].x)>0.01:continue
+  if Vector3(colors[i].r,colors[i].g,colors[i].b).distance_to(pink)>0.05:continue
+  if points[i].z>nose.z:nose=points[i]
+ require(nose.z>18,"The rebuilt snout has an actual closed front surface")
+ for state in [&"idle",&"walk",&"attack",&"sit",&"corpse"]:
+  actor.animate(state,0.45,true);enemy.update_hurtboxes()
+  var visible_tip:Vector3=enemy.to_local(actor.to_global(actor.posed[1]*(actor.rest[1].affine_inverse()*nose)))
+  require(visible_tip.distance_to(enemy.hurt_shapes[1].position)<0.005,"Snout hurtbox follows the visible nose after the sculpt changes in %s"%state)
  var walking:=Poses.sample(&"run",0.3)
  require(walking.head.z.dot(Vector3.BACK)>0.9,"Quadruped head faces forward rather than downward")
  var left:=Poses.sample(&"attack",0.5,true);var right:=Poses.sample(&"attack",0.5,false)

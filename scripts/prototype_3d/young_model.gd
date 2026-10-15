@@ -18,7 +18,7 @@ func _ready() -> void:
  mesh_node=MeshInstance3D.new();add_child(mesh_node)
  body_material=ShaderMaterial.new();body_material.shader=preload("res://shaders/prototype_3d/young_skin.gdshader")
  body_material.set_shader_parameter("reference_views",load("res://assets/enemies/first/reference_3d.png"))
- var outline:=ShaderMaterial.new();outline.shader=preload("res://shaders/prototype_3d/young_outline.gdshader");outline.set_shader_parameter("thickness",0.035);body_material.next_pass=outline
+ var outline:=ShaderMaterial.new();outline.shader=preload("res://shaders/prototype_3d/young_outline.gdshader");outline.set_shader_parameter("thickness",0.014);body_material.next_pass=outline
  mesh_node.material_override=body_material
  pose("attack",0,4,true)
  make_skeleton()
@@ -36,7 +36,7 @@ func bone(label:String,parent:int,point:Vector3) -> void:
  skeleton.set_bone_rest(index,local);skeleton.set_bone_pose(index,local)
 func make_skeleton() -> void:
  var neutral:=Motion.sample(&"attack",0)
- bone("body",-1,Vector3.ZERO);bone("head",0,Vector3(0,21,2.5))
+ bone("body",-1,Vector3.ZERO);bone("head",0,Motion.HEAD_ANCHOR)
  for side in 2:
   var start:=rest.size();var leg:Dictionary=neutral.legs[side]
   bone("thigh_%d"%side,0,leg.root);bone("shin_%d"%side,start,leg.joint);bone("foot_%d"%side,start+1,leg.end)
@@ -85,7 +85,7 @@ func make_skeleton() -> void:
  for face in range(0,vertices.size(),3):
   var normal:Vector3=(vertices[face+2]-vertices[face]).cross(vertices[face+1]-vertices[face]).normalized()
   for corner in 3:
-   var index:=face+corner;var amount:=0.52 if int(tags[index].x) in [8,9] else 0.12
+   var index:=face+corner;var amount:=0.52 if int(tags[index].x) in [8,9] else 0.025
    arrays[Mesh.ARRAY_NORMAL][index]=(arrays[Mesh.ARRAY_NORMAL][index] as Vector3).lerp(normal,amount).normalized()
  var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays,[],{},(Mesh.ARRAY_CUSTOM_RGBA_FLOAT<<Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)|(Mesh.ARRAY_CUSTOM_RGBA_FLOAT<<Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT)|(Mesh.ARRAY_CUSTOM_RGBA_FLOAT<<Mesh.ARRAY_FORMAT_CUSTOM2_SHIFT));mesh_node.mesh=mesh;shared_skin=mesh;shared_geometry=mesh
  mesh_node.custom_aabb=AABB(Vector3(-30,-15,-35),Vector3(60,70,75))
@@ -95,7 +95,7 @@ func animate(state:StringName,phase:float,left:bool = true,delta:float = 0.0) ->
  var target:=Motion.sample(state,phase,left)
  last_pose=Motion.blend(last_pose,target,delta) if delta>0 and not last_pose.is_empty() and state!=&"attack" else target
  var body:Transform3D=last_pose.body;posed[0]=body
- posed[1]=Transform3D(last_pose.head,body*Vector3(0,21,2.5))
+ posed[1]=Transform3D(last_pose.head,body*Motion.HEAD_ANCHOR)
  for side in 2:
   for kind in 2:
    var start:=2+side*3 if kind==0 else 8+side*3

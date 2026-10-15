@@ -674,3 +674,45 @@ anterior ya no estaba disponible; se inicia una nueva y el render final termina
 sin errores de scripts o shaders. Las animaciones del enemigo1 siguen siendo
 provisionales conforme a la instrucción del usuario. No se mide rendimiento
 del usuario ni se valida Windows o audio físico en esta tarea.
+
+## 2026-10-15 — Revisión de fidelidad de formas del enemigo1 y comparativa
+
+Primer hito observado: **20:24:19 Europe/Madrid** (18:24:19 UTC).
+Cierre de revisión visual observado: **20:49:02 Europe/Madrid**
+(18:49:02 UTC). Intervalo registrado: **24 min 43 s**, sin estimación previa.
+La lectura anterior al primer hito y documentación/publicación posteriores
+quedan fuera. Incluye lectura de la referencia, varias iteraciones renderizadas,
+pruebas de perfil y encuadre, poses y comparativa final solicitada por el usuario.
+
+Se rehacen frente/coronilla, puente y disco nasal, apertura de ojos, pupilas,
+cejas, mejillas, inserción de orejas, clumps de pelaje, cresta, manchas doradas,
+puños, talones y uñas. La coronilla se adelanta; las patas quedan bajo la grupa
+y los puños se sitúan según los laterales. Los brazos conservan sus longitudes
+durante cada animación con segmentos de 7,1 y 7,5 unidades. Se actualizan el
+anclaje de cabeza y la zona de impacto del hocico. El torso conserva la anchura
+reducida y una menor profundidad que la cabeza. Se mantienen 0,875 m y 14 huesos.
+
+La malla final comparte **1277 mechones marrones, 130 dorados y 84 placas**;
+**965124 vértices / 321708 triángulos**, sin indexar. Las nuevas secciones curvas
+aumentan los vértices pese a reducir el número de mechones respecto al primer
+modelo; no se afirma una mejora de rendimiento ni se ha medido en el PC del
+usuario. Se atenúa la proyección de color y se afinan los contornos y normales.
+
+Pasan **2642** comprobaciones de malla/piel/materiales/poses, **6537** de
+criatura/combate y **539** de referencias/ligaduras. Las nuevas verificaciones
+comprueban que la geometría ligada no salga bajo el suelo y que la zona de
+impacto de la nariz siga un vértice real del hocico en cinco estados. La suite
+de malla se repite tras los últimos ajustes de pelaje y cresta.
+
+Se revisan cuatro vistas de enlace, cuatro cuadrúpedas, seis acciones con ambas
+manos y cuatro cámaras con terreno, jugador e iluminación del mundo de prueba.
+La comparativa `young_reference_comparison.png` conserva arriba la referencia
+y debajo renders reales; ambas figuras tienen la misma altura visible, sin
+estirar sus proporciones. Se actualizan la comparativa cuadrúpeda y la captura
+del juego; se añade `young_fidelity_before_after.png`. No se retoca la referencia.
+Los laterales usan ±68° aproximados; no se certifica una copia exacta ni se
+convierte la coincidencia de silueta en un porcentaje global de parecido.
+
+Publicación: se integra `976c011` del departamento de animaciones, que solo
+añade documentación. El conflicto del registro se resuelve conservando ambas
+entradas; no se modifica el código sometido a las pruebas anteriores.

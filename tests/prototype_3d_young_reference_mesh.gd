@@ -49,6 +49,7 @@ func run() -> void:
  require(texture_valid,"Paintings remain finite and blended without negative or amplified weights")
  require(regions.size()==10,"Head, torso, both arms/legs, both paws and fists all have deformable geometry")
  var bounds:=mesh.get_aabb()
+ require(bounds.position.y>=-0.0001,"Bind-pose fur and paw volumes cannot protrude below the ground plane")
  # Front sheet measures approximately 454 px wide by 385 px high.
  require(absf(bounds.size.x/bounds.size.y-454.0/385.0)<0.06,"Whole-body width/height follows the front reference silhouette")
  actor.animate(&"attack",0,true)
