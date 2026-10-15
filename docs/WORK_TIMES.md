@@ -1115,3 +1115,52 @@ e inspección ampliada de golpe bajo y arco. Incluye equipar las cuatro armas,
 golpear, tensar, puñetazo y variantes agachadas. Importación del editor y
 `git diff --check` sin errores. No incluye una sesión en el equipo del usuario.
 Cambios locales **sin commit ni push** para esta tarea.
+
+## 2026-10-16 — Departamento de hitboxes: tolerancia y alcance
+
+Primer hito medido: **01:17:10 Europe/Madrid** (23:17:10 UTC del día 15),
+tras inspeccionar alcance, selección y colisiones. Hito de validación:
+**01:18:19 Europe/Madrid**; intervalo medido de **1 min 9 s**, parcial:
+no incluye la inspección anterior ni las comprobaciones finales posteriores.
+No se dio estimación previa.
+
+Ampliación de radio de impacto en 0,15 m para árboles, piedras, arbolitos y
+joven; separación de áreas de impacto respecto a colisiones sólidas. Alcance
+horizontal de golpes de 1 m independiente del solver anatómico; límite vertical
+acotado al cuerpo más 0,35 m. Arco conserva alcance de proyectil.
+
+Verificación headless con Godot 4.6.3: 73 comprobaciones nuevas de hitboxes,
+12 de recursos, 62 de retícula, 383 de árboles, 6531 de criatura, 69 de arco y 65 de equipo.
+Se usaron directorios XDG temporales tras detectar que Godot no podía escribir
+su directorio de usuario predeterminado. Pendiente la valoración al jugar del
+usuario; las pruebas automáticas no sustituyen esa valoración.
+
+## 2026-10-16 — Enemigo1: colisión y separación entre criaturas
+
+Intervalo medido parcial: **01:21:01–01:22:52 Europe/Madrid**, **1 min 51 s**.
+La inspección inicial precede al primer hito y no se incluye; sin estimación
+previa. Incluye implementación y pruebas, no una revisión visual del jugador.
+
+La máscara del joven omitía la capa de otras criaturas. Se añade esa capa al
+movimiento y al sondeo de obstáculos; el cuerpo pasa a un cilindro de 0,875 m
+con radio derivado de la envolvente horizontal del modelo y margen de 2%.
+Se ajusta el inicio del ataque a la distancia física de parada, conservando
+impacto, daño, hurtboxes y retirada de colisión al morir.
+
+Godot 4.6.3 headless: 1000 comprobaciones de separación (tres perseguidores,
+convergencia, criatura inmóvil y arranque del ataque), 6531 de criatura/parry,
+30 de edificios/interiores y 73 de hitboxes anteriores. La tolerancia numérica
+de contacto del motor es milimétrica; el 2% es nominal sobre la envolvente,
+no una distancia fija en pantalla ni una garantía para cada extremidad animada.
+
+### Integración previa a publicación
+
+Se integró el commit de hitboxes sobre `8b341ec`, conservando el modelo Meshy,
+las animaciones nuevas, la postura de boxeo y las transiciones de equipamiento
+de los otros departamentos. El radio se recalcula con el modelo vigente;
+los umbrales de inicio/contacto del ataque también respetan su nueva distancia
+física. La prueba de persecución coloca los enemigos inicialmente según sus
+radios reales, para no partir de cuerpos ya superpuestos. Duración de esta
+integración no medida de forma completa.
+Validación tras integrar: 1000 comprobaciones de separación, 16675 de boxeo,
+73 de hitboxes, 65 de equipo y 62 de retícula; todas pasadas en Godot 4.6.3.

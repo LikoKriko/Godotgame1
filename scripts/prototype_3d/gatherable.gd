@@ -10,7 +10,7 @@ func configure(record:Dictionary) -> void:
  rewards={&"fibra":3,&"palo":2} if kind==4 else {&"hoja_bardana":int(record.yield)}
  collision_layer=16;collision_mask=0;monitoring=false
  add_to_group("prototype_saplings" if kind==4 else "prototype_burdock")
- var shape:=CollisionShape3D.new();var volume:=CylinderShape3D.new();volume.radius=0.32;volume.height=1.05 if kind==4 else 0.55;shape.shape=volume;shape.position.y=volume.height*0.5;add_child(shape)
+ var shape:=CollisionShape3D.new();var volume:=CylinderShape3D.new();volume.radius=0.47 if kind==4 else 0.32;volume.height=1.05 if kind==4 else 0.55;shape.shape=volume;shape.position.y=volume.height*0.5;add_child(shape)
  var visual:=Node3D.new();visual.scale=Vector3.ONE*UNIT;add_child(visual)
  var wood:=Meshes.material(&"wood",Color("77623d"));var green:=Meshes.material(&"leaf",Color("637644"))
  if kind==4:

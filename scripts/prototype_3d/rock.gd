@@ -12,10 +12,9 @@ func configure(size_index:int) -> void:
  add_to_group("prototype_rocks");collision_layer=1;collision_mask=0
  var collision:=CollisionShape3D.new();var shape:=SphereShape3D.new();shape.radius=height*0.52;collision.shape=shape;collision.position.y=height*0.42;add_child(collision)
  if hand_collectable:collision.disabled=true
- # A separate aim volume keeps tiny hand pickups selectable without blocking feet.
- if hand_collectable:
-  var area:=Area3D.new();area.collision_layer=16;area.collision_mask=0;area.set_meta("resource",self);add_child(area)
-  var aim:=CollisionShape3D.new();aim.shape=shape;aim.position.y=height*0.42;area.add_child(aim)
+ # Expanded impact/selection volume never changes walking collisions.
+ var area:=Area3D.new();area.collision_layer=16;area.collision_mask=0;area.set_meta("resource",self);add_child(area)
+ var aim:=CollisionShape3D.new();var aim_shape:=SphereShape3D.new();aim_shape.radius=shape.radius+0.15;aim.shape=aim_shape;aim.position.y=height*0.42;area.add_child(aim)
  visual=Node3D.new();add_child(visual)
  for i in 4:
   var node:=Meshes.sphere(visual,Vector3(sin(i*2.4)*height*0.22,height*(0.32+0.07*(i%2)),cos(i*2.4)*height*0.22),Vector3(height*0.43,height*(0.36 if i%2 else 0.48),height*0.4),Meshes.material(&"stone",Color("a4a394")))

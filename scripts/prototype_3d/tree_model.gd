@@ -29,6 +29,7 @@ func _ready() -> void:
  crown=Node3D.new();crown.name="TreeVisual";add_child(crown)
  var visual:=MeshInstance3D.new();visual.mesh=mesh_cache[key];visual.name="BarkRootsBranchesLeaves";crown.add_child(visual)
  var points:PackedVector3Array=trunk_cache[key]
+ var hit_area:=Area3D.new();hit_area.collision_layer=16;hit_area.collision_mask=0;hit_area.monitoring=false;hit_area.set_meta("resource",self);add_child(hit_area)
  # Collisions follow the visible lower trunk. Roots and foliage remain walkable.
  for i in range(0,points.size()-3,4):
   var a:Vector3=points[i];var b:Vector3=points[mini(i+4,points.size()-1)]
@@ -36,6 +37,9 @@ func _ready() -> void:
   shape.radius=Geometry.HEIGHTS[posmod(design_id,9)]*lerpf(.082,.030,clampf(a.y/visual_height(),0,1))
   shape.height=maxf(shape.radius*2,a.distance_to(b)+shape.radius*2)
   collision.shape=shape;collision.position=(a+b)*.5;collision.basis=Basis(Quaternion(Vector3.UP,a.direction_to(b)));add_child(collision)
+  var aim:=CollisionShape3D.new();var aim_shape:=CapsuleShape3D.new()
+  aim_shape.radius=shape.radius+0.15;aim_shape.height=shape.height+0.30
+  aim.shape=aim_shape;aim.transform=collision.transform;hit_area.add_child(aim)
  # Camera blockers use the real crown groups, separate from harvesting/walking.
  for group:Dictionary in crown_cache[key]:
   var blocker:=StaticBody3D.new();blocker.collision_layer=4;blocker.collision_mask=0;blocker.position=group.position;add_child(blocker)

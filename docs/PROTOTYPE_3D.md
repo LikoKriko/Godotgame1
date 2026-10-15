@@ -539,3 +539,46 @@ calor y se adaptan los anclajes de las acciones provisionales. La escena F6
 `young_review.tscn` muestra la postura original en **Postura de referencia**,
 las cuatro vistas y las acciones. Ver [YOUNG_3D.md](YOUNG_3D.md) para procedencia,
 reproducción de la conversión y capturas del archivo importado.
+
+## Hitboxes y alcance de golpes (16 de octubre de 2026)
+
+Los golpes cuerpo a cuerpo, con manos libres o cualquier arma de contacto,
+aceptan hasta 1 m horizontal desde el origen del personaje al punto seleccionado.
+La altura admitida va desde 0,35 m bajo los pies hasta 0,35 m sobre la cabeza;
+la aceptación del golpe ya no depende de que el solver de la animación alcance
+exactamente ese punto. Las animaciones conservan sus límites anatómicos.
+El arco conserva su vuelo y alcance de 100 m.
+
+Las cápsulas de impacto de los troncos y las esferas de piedras y del joven
+incluyen 0,15 m adicionales de radio. Los arbolitos pasan de 0,32 a 0,47 m de
+radio de selección. Árboles y piedras tienen áreas de impacto independientes de
+sus cuerpos sólidos; el espacio bloqueado al caminar y las copas que limitan la
+cámara conservan sus dimensiones. Las áreas se desactivan al agotar el recurso.
+Se mantienen herramientas requeridas, daños, recompensas y desgaste existentes.
+
+`tests/prototype_3d_hitboxes.gd` comprueba el límite horizontal en dieciséis
+orientaciones con/sin arma, límite vertical, selección fuera del volumen sólido
+de una roca, paso libre y retirada de áreas al agotarla, así como hitboxes de
+árboles y del joven.
+
+## Separación entre criaturas (16 de octubre de 2026)
+
+El joven usa la capa física de criaturas (`8`) y máscara `43`: suelo/estructuras,
+jugador, otras criaturas y barrera de edificios. Su cilindro físico tiene
+0,875 m de altura y un radio obtenido de la extensión horizontal máxima del
+modelo respecto a su origen, multiplicada por **1,02**. Es una envolvente
+circular estable al girar, no una colisión animada por extremidad; la separación
+visible varía con la postura y el ángulo. El 2% se aplica a esta envolvente,
+no a un número fijo de píxeles de pantalla.
+
+El sondeo de obstáculos también incluye criaturas. El comienzo y el contacto del ataque admiten
+la distancia de contacto con el nuevo cuerpo físico, para que no se detenga
+fuera del umbral de ataque. Las hurtboxes ampliadas para recibir golpes siguen
+siendo áreas independientes; un cadáver conserva la regla anterior de no
+bloquear el paso. Nuevas criaturas deben compartir la capa `8` e incluirla en
+su máscara para participar en esta colisión, además de dimensionar su cuerpo.
+
+`tests/prototype_3d_creature_spacing.gd` comprueba convergencia de tres cuerpos,
+bloqueo por una criatura detenida, sondeo para rodearla, inicio de ataque y
+persecución real de tres jóvenes. Admite hasta 1 cm de tolerancia de contacto
+del motor, inferior al margen nominal combinado de estos modelos.

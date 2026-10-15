@@ -4,6 +4,8 @@ const SPEED:=1.7
 const WANDER_SPEED:=0.85
 const ALERT_RADIUS:=7.5
 const REACH:=0.65
+const CREATURE_SPACING:=1.02
+var body_radius:=0.27
 const BOXING_CHANCE:=0.5
 const BOXING_RETRY_SECONDS:=10.0
 const BOXING_SECONDS:=20.0
@@ -35,17 +37,21 @@ var profile=preload("res://scripts/creature_profile.gd").new()
 var hurt_area:=Area3D.new()
 var hurt_shapes:Array[CollisionShape3D]=[]
 func configure(owner_game) -> void:
- game=owner_game;collision_layer=8;collision_mask=35;add_to_group("prototype_enemies");add_to_group("creatures")
- var collision:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=0.27;capsule.height=0.65;collision.shape=capsule;collision.position.y=0.325;add_child(collision)
+ game=owner_game;collision_layer=8;collision_mask=43;add_to_group("prototype_enemies");add_to_group("creatures")
  model=preload("res://scripts/prototype_3d/young_model.gd").new();add_child(model)
  var bounds:AABB=model.mesh_node.mesh.get_aabb();var unit:=0.875/bounds.size.y
  model.scale=Vector3.ONE*unit;model.position.y=-bounds.position.y*unit
+ # A rotation-independent footprint encloses the model, including its off-centre
+ # muzzle. The extra 2% is physical spacing, separate from damage hurtboxes.
+ body_radius=maxf(maxf(absf(bounds.position.x),absf(bounds.end.x)),maxf(absf(bounds.position.z),absf(bounds.end.z)))*unit*CREATURE_SPACING
+ var collision:=CollisionShape3D.new();var body:=CylinderShape3D.new()
+ body.radius=body_radius;body.height=0.875;collision.shape=body;collision.position.y=body.height*0.5;add_child(collision)
  indicator=preload("res://scripts/prototype_3d/status_indicator.gd").new();add_child(indicator)
  profile.posture_seconds=0.28
  brain.configure(4127+get_tree().get_nodes_in_group("prototype_enemies").size(),profile);model.animate(&"idle",0)
  hurt_area.collision_layer=16;hurt_area.collision_mask=0;hurt_area.monitoring=false;hurt_area.set_meta("creature",self);add_child(hurt_area)
  for radius in [0.22,0.105,0.14,0.14]:
-  var shape:=CollisionShape3D.new();var sphere:=SphereShape3D.new();sphere.radius=radius;shape.shape=sphere;hurt_area.add_child(shape);hurt_shapes.append(shape)
+  var shape:=CollisionShape3D.new();var sphere:=SphereShape3D.new();sphere.radius=radius+0.15;shape.shape=sphere;hurt_area.add_child(shape);hurt_shapes.append(shape)
  update_hurtboxes()
 func update_hurtboxes() -> void:
  if hurt_shapes.is_empty():return
@@ -91,7 +97,7 @@ func start_attack() -> void:
 func attack_clip() -> StringName:
  return &"hook" if attack_boxing else &"attack"
 func obstacle(direction:Vector3) -> bool:
- var query:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*0.35,global_position+Vector3.UP*0.35+direction*0.75,33,[get_rid()])
+ var query:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*0.35,global_position+Vector3.UP*0.35+direction*(body_radius+0.35),41,[get_rid()])
  return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 func steer(direction:Vector3,delta:float) -> Vector3:
  avoid_remaining=maxf(0,avoid_remaining-delta)
@@ -129,10 +135,10 @@ func _physics_process(delta:float) -> void:
   attack_elapsed+=delta;clip=attack_clip();progress=minf(1,attack_elapsed/duration)
   if not impact_done and attack_elapsed>=contact:
    impact_done=true
-   if distance<=REACH+0.15 and visible_player:game.enemy_contact(self,4.0 if attack_boxing else 2.0,game.parry.time-maxf(0,attack_elapsed-contact))
+   if distance<=maxf(REACH+0.15,body_radius+0.25) and visible_player:game.enemy_contact(self,4.0 if attack_boxing else 2.0,game.parry.time-maxf(0,attack_elapsed-contact))
   if attack_elapsed>=duration:
    punch_left=not punch_left
-   if visible_player and distance<=REACH+0.15:
+   if visible_player and distance<=maxf(REACH+0.15,body_radius+0.25):
     attack_elapsed=maxf(0,attack_elapsed-duration);impact_done=false;progress=attack_elapsed/duration
    else:
     attack_elapsed=-1
@@ -141,11 +147,11 @@ func _physics_process(delta:float) -> void:
  elif rise_elapsed>=0:
   rise_elapsed+=delta;clip=&"boxing_rise" if boxing_remaining>0 else &"rise";progress=minf(1,rise_elapsed/0.28)
   if rise_elapsed>=0.28:rise_elapsed=-1;standing=true
-  if rise_elapsed<0 and visible_player and distance<=REACH+.15:start_attack()
+  if rise_elapsed<0 and visible_player and distance<=maxf(REACH+.15,body_radius+.25):start_attack()
  elif lower_elapsed>=0:
   lower_elapsed+=delta;clip=&"boxing_lower" if lower_from_boxing else &"lower";progress=minf(1,lower_elapsed/0.28)
   if lower_elapsed>=0.28:lower_elapsed=-1;standing=false;lower_from_boxing=false
- elif visible_player and distance<REACH:
+ elif visible_player and distance<maxf(REACH,body_radius+0.22):
   if standing:start_attack();clip=attack_clip()
   else:rise_elapsed=0;clip=&"boxing_rise" if boxing_remaining>0 else &"rise"
  elif mode in [&"chase",&"investigate",&"walk"]:

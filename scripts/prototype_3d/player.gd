@@ -120,7 +120,9 @@ func advance_action(delta:float) -> void:
 func cancel_action() -> void:
  action_elapsed=-1;contact_done=false;bow_follow_elapsed=-1
 func can_reach_contact(point: Vector3) -> bool:
- return model.can_reach_contact(model.to_local(point),family())
+ # Gameplay reach is independent of the pose/weapon IK solver.
+ var offset:=point-global_position
+ return Vector2(offset.x,offset.z).length()<=1.0 and offset.y>=-0.35 and offset.y<=Anatomy.HEIGHT_METRES+0.35
 func begin_parry() -> bool:
  if action_elapsed>=0:return false
  parry_elapsed=0;parry_cooldown=4.0;return true
