@@ -161,3 +161,34 @@ Medición adicional de construcción en Godot headless: primera creación de los
 1000 creaciones/liberaciones posteriores en **12,118 ms**, sin aumentar la
 caché. Son costes de construcción de nodos/recursos en este entorno, no una
 medición de FPS ni de coste de renderizado en el equipo del usuario.
+
+
+## 2026-10-15 — Primera animación de deslizamiento sobre una cadera
+
+La postura fue elegida por el usuario: una pierna adelantada y la otra
+flexionada. Primer registro de esta tarea: **11:41:46 UTC** (13:41:46 Madrid).
+Hito intermedio de pruebas y revisión: **11:52:47 UTC**, intervalo observado
+**11 min 1 s**. Sin estimación previa. La petición exacta fue anterior al primer
+registro; no incluir los objetos físicos en esta duración.
+
+Se implementaron entrada desde carrera, cadera baja con inclinación y giro
+leves, rodilla plegada lateral, talón adelantado, brazos de equilibrio y
+recuperación. Los agarres permanecen unidos al objeto. El salto encadenado toma
+la última postura real y la abre gradualmente, conservando su plano de herramienta.
+La orientación del modelo acompaña el deslizamiento y el giro aéreo permitidos.
+No se cambiaron duración, distancia, frenada ni reglas de `locomotion.gd`.
+
+Validación: 2027 comprobaciones de deslizamiento/IK/agarres/continuidad, 8588 del
+catálogo, prueba de movimiento en partida y 191 de guardado. Revisión nativa
+frontal y lateral en cuatro fases, manos libres y cinco familias de objetos,
+con armadura. Se elevó la postura de las manos libres tras observar la primera
+pasada. Importación sin errores de scripts.
+
+**Alcance pendiente:** consulta de una grabación real. El proxy mantiene los
+dominios externos bloqueados; la ampliación de red aún requiere publicar el
+borrador. La secuencia se basa en la postura elegida e IK anatómico, y no se
+presenta como mocap ni como referencia externa ya contrastada. Esos minutos
+miden la primera implementación y pruebas, no la investigación aún bloqueada.
+
+Último registro antes de publicar la primera secuencia: **11:54:29 UTC**,
+intervalo observado desde el inicio **12 min 43 s**.

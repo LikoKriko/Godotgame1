@@ -4,6 +4,7 @@ const Pose = preload("res://scripts/continuous_body_pose.gd")
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Aim = preload("res://scripts/prototype_3d/tool_aim.gd")
 const Profiles = preload("res://scripts/prototype_3d/held_profiles.gd")
+const Slide=preload("res://scripts/prototype_3d/slide_pose.gd")
 const STRIDE_SCALE:=1.3
 const ARM_SWING_SCALE:=0.9
 const FAMILIES: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow",&"bottle",&"food",&"carried"]
@@ -24,13 +25,14 @@ static func duration(state: StringName,family: StringName = &"") -> float:
  if state in [&"walk",&"run"]:return (0.45 if state==&"run" else 0.60)*STRIDE_SCALE
  return 0.60
 
-static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF) -> Dictionary:
- var source_state := state
+static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF,slide_launch:Dictionary={}) -> Dictionary:
+ var source_state := &"run" if state==&"slide" else state
  if state==&"unequip": source_state=&"equip";phase=1-phase
  if state==&"draw": source_state=&"action";phase*=0.5
  if state in [&"drink",&"drink_walk"]: source_state=&"eat_walk" if state==&"drink_walk" else &"eat"
  if state in [&"parry",&"hurt"]: source_state=&"idle"
- var pose := Pose.sample(&"food" if state in [&"drink",&"drink_walk"] else family,source_state,phase,1.0 if source_state==&"equip_crouch" else movement_phase,1.0,-1)
+ var pose := Pose.sample(&"food" if state in [&"drink",&"drink_walk"] else family,source_state,movement_phase if state==&"slide" else phase,1.0 if source_state==&"equip_crouch" else movement_phase,1.0,-1)
+ pose.leg_poles=[Vector3.BACK,Vector3.BACK]
  pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state==&"run" else movement_phase
  var original_body: Transform3D = pose.body
  var body: Transform3D = original_body
@@ -87,6 +89,12 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     var local:Vector3=body.affine_inverse()*pose.hands[side]
     local.z=lerpf(3.5*Anatomy.BODY_DEPTH,local.z,ARM_SWING_SCALE)
     pose.hands[side]=body*local
+ if state==&"slide":
+  lengthen_stride(pose)
+  for side in 2:
+   var arm:=running_arm(pose,side,movement_phase)
+   if not arm.is_empty():pose.hands[side]=arm.end
+  Slide.apply(pose,phase);body=pose.body
  if family==&"axe":
   var shaft:Vector3=pose.shaft.normalized()
   var edge:Vector3=body.basis*Vector3.BACK;edge-=shaft*edge.dot(shaft)
@@ -159,6 +167,9 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  for side in 2:
   if pose.hands[side].y>30 and pose.hands[side].y<55 and absf(pose.hands[side].x)<7:
    pose.hands[side].z=maxf(pose.hands[side].z,4.8)
+ if state==&"slide_jump":
+  var launch:Dictionary=slide_launch if not slide_launch.is_empty() else sample(family,&"slide",0.55,movement_phase)
+  Slide.jump_from(pose,launch,phase)
  return solve_legs(pose)
 
 static func lengthen_stride(pose:Dictionary) -> void:
@@ -187,7 +198,7 @@ static func solve_legs(pose: Dictionary) -> Dictionary:
   var ankle: Vector3=pose.legs[side].end
   if pose.state!=&"death": ankle.x=minf(ankle.x,-boundary) if side==0 else maxf(ankle.x,boundary)
   var pitch: float=pose.legs[side].pitch
-  pose.legs[side]=Pose.joint(pose.hips[side],ankle,Pose.THIGH,Pose.SHIN,Vector3.BACK)
+  pose.legs[side]=Pose.joint(pose.hips[side],ankle,Pose.THIGH,Pose.SHIN,pose.get("leg_poles",[Vector3.BACK,Vector3.BACK])[side])
   pose.legs[side].pitch=pitch
  return pose
 

@@ -148,7 +148,10 @@ func _physics_process(delta: float) -> void:
   action_point=game.camera_rig.aim_point()
   action_heading=atan2(action_point.x-global_position.x,action_point.z-global_position.z)
  var forward: Vector3 = game.camera_rig.facing()
- model.rotation.y = lerp_angle(model.rotation.y,action_heading if action_elapsed >= 0 else atan2(forward.x,forward.z),1-exp(-delta*15))
+ var visual_heading:=action_heading if action_elapsed>=0 else atan2(forward.x,forward.z)
+ if action_elapsed<0 and locomotion.sliding():visual_heading=atan2(locomotion.slide_direction.x,locomotion.slide_direction.y)
+ elif action_elapsed<0 and locomotion.airborne() and locomotion.from_slide:visual_heading=PI/2-locomotion.jump_heading
+ model.rotation.y=lerp_angle(model.rotation.y,visual_heading,1-exp(-delta*15))
  var state: StringName = &"idle"; var progress := 0.0
  if input.length_squared()>0:
   phase = fposmod(phase+delta/Clips.duration(&"run" if running else &"walk")*locomotion.speed_factor()*movement_multiplier,1)

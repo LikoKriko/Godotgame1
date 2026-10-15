@@ -109,15 +109,17 @@ grande no se puede interrumpir. Los exteriores opacos ocultarán el interior;
 no convertirlo en un viewport ni teletransportar al cruzar una puerta.
 
 
-## Prioridad siguiente solicitada: deslizamiento humano
+## Deslizamiento humano: primera secuencia y contraste pendiente
 
-Después de los objetos físicos, rehacer la animación del deslizamiento con
-referencias reales. Mantener duración, alcance, activación con Control al
-correr y salto encadenado. Se han presentado dos posturas al usuario: cadera
-con una pierna adelantada y otra doblada, o rodillas con torso erguido; todavía
-no hay respuesta en esta revisión. No dar por elegida una postura del usuario.
+El usuario eligió una cadera apoyada, una pierna adelantada y otra flexionada.
+`slide_pose.gd` implementa entrada, apoyo bajo, recuperación y salto desde la
+última postura mostrada, con polos de rodilla y agarres continuos. Conserva
+las reglas de Control al correr, duración, distancia e inercia ya aprobadas.
+Pruebas de articulaciones, catálogo, movimiento y guardado pasadas.
 
-El proxy bloqueó las consultas de Little League y Wikipedia con HTTP 403.
-La ampliación de red quedó guardada en el borrador del entorno, pendiente de
-Revisar/Guardar y Publicar. No se han podido consultar esas fuentes todavía;
-no afirmar que la nueva animación procede de referencias ya examinadas.
+Queda contrastarla con una grabación externa real. Las consultas a Little League
+y Wikipedia se bloquearon antes de obtener contenido (proxy, HTTP 403); la
+búsqueda accesible en GitHub no produjo una referencia útil verificada.
+El borrador de red con cuatro dominios está guardado y requiere Guardar/Publicar
+en la configuración del entorno. No presentar esta animación como mocap ni
+como réplica de una referencia real ya examinada.

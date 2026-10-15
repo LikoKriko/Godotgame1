@@ -411,3 +411,34 @@ Revisión F6: `scenes/prototype_3d/item_review.tscn`, selector de objeto, botell
 llena, giro con botón derecho y zoom con rueda. No concede objetos en partida.
 `tests/prototype_3d_item_models.gd` verifica geometría, apoyo, caché, estados,
 sombras y recogida; las pruebas de botín, mesa y guardado cubren su integración.
+
+
+## Deslizamiento sobre una cadera
+
+`slide_pose.gd` sustituye la compresión sinusoidal anterior para el prototipo
+3D. El usuario eligió una pierna adelantada y la otra flexionada. La entrada
+transfiere el peso a la cadera izquierda; la rodilla plegada abre hacia un lado,
+la pierna derecha avanza con el talón y la punta levantada. El torso acompaña
+con inclinación posterior y giro leves; manos libres se elevan para equilibrar,
+y herramientas conservan sus dos agarres. La salida recupera una postura baja
+que enlaza con el movimiento normal mediante el mezclado del rig.
+
+Es una animación de cinemática anatómica, **no un movimiento capturado ni una
+réplica contrastada de un vídeo real**. La consulta externa quedó bloqueada por
+el proxy y requiere publicar el borrador de red preparado. Las proporciones,
+longitudes, apoyos y límites se verifican con las pruebas y la revisión nativa;
+el contraste con una grabación sigue pendiente.
+
+No cambia `locomotion.gd`: duración 0,46 s, distancia, frenada, Control al correr,
+salto en cualquier instante con inercia y giro máximo de 70° permanecen iguales.
+La orientación visual acompaña la dirección real de deslizamiento y del salto,
+aunque la cámara gire. El modelo conserva la última pose mostrada para iniciar
+el salto desde ella; `Slide.jump_from` abre gradualmente las piernas y mezcla
+cadera, manos, agarres y plano de la herramienta durante el primer 45% de salto.
+Las rodillas tienen polos explícitos interpolados; no se alargan los huesos.
+
+`tests/prototype_3d_slide.gd` comprueba postura central, longitudes, rodillas y
+pies sobre suelo, agarres de todas las familias y continuidad de despegues al
+principio, centro y final. Las pruebas de catálogo, movimiento y guardado
+comprueban las integraciones existentes. F6 en `animation_review.tscn` permite
+revisar slide/slide_jump con cada objeto y con armadura.

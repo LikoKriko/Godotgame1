@@ -12,6 +12,7 @@ const Profiles = preload("res://scripts/prototype_3d/held_profiles.gd")
 var axe: Node3D
 var rig = preload("res://scripts/prototype_3d/humanoid_rig.gd").new()
 var displayed_pose: Dictionary = {}
+var slide_launch_pose:Dictionary={}
 var family_override: StringName = &"default"
 var aim_contact := Vector3.INF
 var tool_frame := Basis.IDENTITY
@@ -249,13 +250,14 @@ func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: B
  return {"grip":grip,"support":grip+shaft*Profiles.profile(_item).support}
 func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0, movement_phase: float = 0.0, movement: Vector3 = Vector3.ZERO) -> void:
  var item: StringName = (&"axe" if equipped else &"") if family_override==&"default" else family_override
- var target := Clips.sample(item,state,phase,movement_phase,movement,aim_contact)
+ var target := Clips.sample(item,state,phase,movement_phase,movement,aim_contact,slide_launch_pose)
  if displayed_pose.is_empty() or delta <= 0:
   displayed_pose = target.duplicate(true)
  else:
   var blend := 1-exp(-delta*18)
   displayed_pose.body = displayed_pose.body.interpolate_with(target.body,blend)
   for side in 2:
+   displayed_pose.leg_poles[side]=(displayed_pose.leg_poles[side] as Vector3).lerp(target.leg_poles[side],blend).normalized()
    displayed_pose.shoulders[side] = displayed_pose.shoulders[side].lerp(target.shoulders[side],blend)
    displayed_pose.hands[side] = displayed_pose.hands[side].lerp(target.hands[side],blend)
    for field in ["root","joint","end"]:
@@ -312,6 +314,13 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
    var support_hand:Vector3=rig.posed[6 if last_pose.active==1 else 9].origin
    prop.update_pose(state,phase,grip_socket.transform.affine_inverse()*support_hand,nock_visible)
  tool.hide(); core_mesh.hide()
+ if state==&"slide":
+  # Capture after IK and grips, so take-off uses the pose actually rendered.
+  slide_launch_pose=displayed_pose.duplicate(true)
+  slide_launch_pose.hands=[rig.posed[6].origin,rig.posed[9].origin]
+  if item!=&"":
+   slide_launch_pose.grip=grip_socket.position;slide_launch_pose.tool_basis=grip_socket.basis;slide_launch_pose.shaft=grip_socket.basis.y
+ elif state!=&"slide_jump":slide_launch_pose.clear()
 func can_reach_contact(point: Vector3,family:StringName=&"axe") -> bool:
  var contact_pose := Clips.sample(family,&"action",0.5,0,Vector3.ZERO,point)
  return contact_pose.get("contact_reachable",false)
