@@ -977,3 +977,44 @@ golpe, recuperación, tensado, suelta y variantes agachadas; 64 adicionales con
 armadura desde delante y atrás. Importación de editor y `git diff --check` sin
 errores. No incluye Windows ni una sesión manual de juego en el equipo del
 usuario. Cambios locales **sin commit ni push** para esta tarea.
+
+
+## 2026-10-16 — Enemigo1: torso y estado de boxeo con crochet
+
+Primer hito observado **16/10 00:15:35 Europe/Madrid**; cierre de comprobaciones
+**16/10 00:23:17 Europe/Madrid**. Intervalo medido parcial **7 min 42 s**.
+Sin estimación previa ni inicio anterior registrado. Base local `99dbd72`;
+no se modifica el FBX, la malla Meshy, la ligadura, los pesos ni las texturas.
+
+Se acentúa ligeramente el acompañamiento del torso/cabeza del puñetazo normal.
+Se añade guardia erguida con ángulo interior del codo de 110°, antebrazos hacia
+arriba y puños de piedra separados de la cara. El crochet alterna los brazos,
+abre en círculo, acompaña con torso/cabeza y recupera la guardia. Las raíces de
+cadera, rodillas y pies permanecen fijas durante el golpe; se resuelve la parte
+inferior con una transformación de pelvis independiente del movimiento del torso.
+Hay incorporación, bajada y avance en guardia, seleccionables desde F6.
+
+El primer daño no letal habilita una tirada inmediata del 50 % y un reloj de
+10 s; recibir daño adicional no concede más tiradas. Un éxito activa 20 s,
+sin prolongación durante el estado. Ataques de 1,2 s frente a 1 s normal,
+contacto a 0,6 s y 4 de daño base frente a 2. Se mantienen alcance, percepción,
+obstáculos y parry. La expiración cancela golpes pendientes. Pausa congela los
+relojes; el aturdimiento cancela el ataque, pero consume tiempo del estado.
+Persisten activación, variante y temporizadores; los guardados anteriores siguen
+siendo válidos. Las reglas exactas constan en `docs/YOUNG_3D.md`.
+
+Godot **4.6.3**, cuatro suites superadas: nueva regresión de boxeo **16675**,
+movimiento y apoyos Meshy **29257**, criatura/memoria/parry **8697**, guardado
+**194**; total **54823 comprobaciones**. La regresión recorre ambos brazos,
+comprueba la distribución de 1000 semillas, daño único, alternancia, expiración,
+pausa, muerte, codos y apoyos. Incluye **15180 muestras** de vértices de piedra
+ligados frente a la envolvente convexa de la cabeza, también en las transiciones:
+ninguna muestra dentro. Se corrige un hundimiento leve de las suelas detectado
+al aumentar el giro del torso, sin cambiar la malla ni alargar las patas.
+
+Revisión nativa Compatibility: **112 fotogramas** de siete casos y **28 poses**
+adicionales en cuatro vistas; guardia, ambos crochets, entrada/salida, golpe
+normal y avance. Se inspeccionan secuencias y vistas de cuerpo completo.
+Importación del editor con acceso al socket local y `git diff --check` sin errores.
+No incluye una sesión manual en el ordenador del usuario. Cambios locales,
+**sin commit ni push** para esta tarea.

@@ -44,7 +44,8 @@ geometría ni se calculan pesos al crear un enemigo. Se mantiene la altura de
 la zona de impacto del hocico sigue su punta real. Los brazos tienen segmentos
 de 6,1 y 6,6 unidades de autoría; las patas, 4,3 y 4,4. Se conservan marcha
 cuadrúpeda, golpes alternos, sentado, comida, aturdimiento y cadáver. Vida,
-daño, memoria, botín, alcance y tiempos de acciones siguen iguales.
+memoria, botín y alcance siguen iguales. El daño y los tiempos del nuevo
+estado de boxeo se describen al final de este documento.
 
 El recurso comprimido ocupa unos 23 MiB, además de los cuatro PNG. Su detalle
 es elevado: **977782 triángulos por enemigo**, sin LOD añadido. No se ha medido
@@ -134,3 +135,39 @@ No cambian vida, daño, alcance, botín ni tiempos de combate.
 longitudes, piel deformada frente al suelo, continuidad de orientación,
 enlaces entre estados, interrupciones y cadáver inmóvil. Se complementa con
 la comprobación del FBX/PNG por SHA-256 de `young_reference_mesh`.
+
+
+## Boxeo tras recibir daño (16 de octubre de 2026)
+
+El primer daño no letal habilita una tirada inmediata del **50 %**; después
+se comprueba cada **10 segundos** de juego. Recibir más golpes no reinicia el
+reloj ni añade tiradas. Un éxito activa **20 segundos** de postura erguida:
+no se extiende un estado activo en las comprobaciones intermedias. Al terminar
+puede salir otra tirada en el siguiente límite de 10 segundos, incluido ese
+mismo instante si coincide. Pausar congela ambos relojes; morir limpia el estado.
+
+`boxing_rise` y `boxing_lower` enlazan la postura cuadrúpeda con la guardia.
+`boxing_guard` coloca los puños de piedra junto a los lados de la cabeza,
+con ángulo interior de codo de **110°** y antebrazos ascendentes; `boxing_walk`
+permite perseguir manteniendo la guardia. El estado prevalece sobre sentarse
+y comer; no elimina la percepción, el alcance ni los obstáculos existentes.
+Un aturdimiento interrumpe el ataque y, al recuperarse, vuelve a la guardia si
+quedan segundos del estado. Su reloj sigue avanzando durante el aturdimiento.
+
+`hook` alterna los brazos: apertura, recorrido circular, acompañamiento del
+torso y la cabeza, y vuelta a la guardia. Dura **1,2 segundos** frente al segundo
+del golpe normal; el contacto ocurre en la mitad, a **0,6 segundos**, y entrega
+**4 de daño base** al sistema existente de contacto/parry. No se repite el daño
+dentro de un golpe. Si el estado termina antes del contacto, se cancela ese golpe.
+Los ataques normales conservan 2 de daño y reciben un giro pequeño de torso y
+cabeza más visible. Durante ambos ataques las raíces de cadera y las patas
+permanecen estables; el torso tiene su transformación propia, con longitudes
+óseas constantes y la misma piel continua. No cambian FBX, malla, pesos ni PNG.
+
+El guardado conserva activación, temporizadores, brazo y variante de ataque.
+Los archivos anteriores sin estos campos siguen cargando. Los cinco clips
+nuevos están disponibles con etiquetas en español en la revisión F6.
+`prototype_3d_enemy_boxing.gd` comprueba probabilidad, tiempos, daño, alternancia,
+cancelación, codos, patas y separación de muestras de la piedra deformada frente
+a la envolvente convexa de la cabeza. Se complementa con las comprobaciones
+existentes de apoyos de piel, continuidad, combate, parry y guardado.

@@ -15,7 +15,7 @@ const SNOUT_OFFSET:=Vector3(0,-5.8811,14.8445)
 const HEAD_ROOT:=HEAD_ANCHOR
 const FOOT_Y:=1.5
 const FIST_Y:=5.0
-const STATES:Array[StringName]=[&"idle",&"walk",&"run",&"rise",&"attack",&"lower",&"sit_down",&"sit",&"sit_up",&"feed",&"stun_fall",&"stun_hold",&"stun_rise",&"death",&"corpse"]
+const STATES:Array[StringName]=[&"idle",&"walk",&"run",&"rise",&"attack",&"boxing_guard",&"boxing_walk",&"boxing_rise",&"boxing_lower",&"hook",&"lower",&"sit_down",&"sit",&"sit_up",&"feed",&"stun_fall",&"stun_hold",&"stun_rise",&"death",&"corpse"]
 
 static func bind_pose() -> Dictionary:
  # Fixed neutral joints used to bake the Meshy heat weights. Animation edits
@@ -29,7 +29,7 @@ static func bind_pose() -> Dictionary:
  return {"body":Transform3D.IDENTITY,"head":Basis.IDENTITY,"head_origin":HEAD_ROOT,"legs":legs,"arms":arms,"standing":1.0,"state":&"reference","phase":0.0}
 
 static func seconds(state:StringName) -> float:
- return {&"walk":.52,&"run":.26,&"rise":.28,&"lower":.28,&"attack":1.0,&"sit_down":.28,&"sit_up":.28,&"sit":4.0,&"idle":4.0,&"feed":1.5,&"stun_fall":.24,&"stun_hold":1.02,&"stun_rise":.24,&"death":2.0,&"corpse":2.0}.get(state,1.0)
+ return {&"walk":.52,&"run":.26,&"rise":.28,&"lower":.28,&"attack":1.0,&"hook":1.2,&"boxing_rise":.28,&"boxing_lower":.28,&"boxing_walk":.52,&"boxing_guard":4.0,&"sit_down":.28,&"sit_up":.28,&"sit":4.0,&"idle":4.0,&"feed":1.5,&"stun_fall":.24,&"stun_hold":1.02,&"stun_rise":.24,&"death":2.0,&"corpse":2.0}.get(state,1.0)
 
 static func body_frame(pitch:float,down:float,z:float=0.0,yaw:float=0.0,roll:float=0.0,x:float=0.0) -> Transform3D:
  var pivot:=Vector3(0,8.5,-6)
@@ -65,6 +65,21 @@ static func between(a:Dictionary,b:Dictionary,amount:float) -> Dictionary:
   pose.hands[side]=(a.hands[side] as Vector3).lerp(b.hands[side],amount)
  return pose
 
+static func boxing_setup() -> Dictionary:
+ var pose:=setup(&"guard")
+ pose.arm_poles=[]
+ for side in 2:
+  var s:float=-1 if side==0 else 1
+  # 110 degree interior elbow angle: upper-arm/forearm directions differ by 70.
+  # The stone fists sit outside the cheeks, never in front of the long snout.
+  var forearm:=Vector3(-s*.10,.96,.26).normalized()
+  var outward:=(Vector3(s,0,0)-forearm*forearm.dot(Vector3(s,0,0))).normalized()
+  var upper:=forearm*cos(deg_to_rad(70))+outward*sin(deg_to_rad(70))
+  var shoulder:=Vector3(s*SHOULDER_X,18,5.5)
+  pose.hands[side]=shoulder+upper*ARM_A+forearm*ARM_B
+  pose.arm_poles.append(upper)
+ return pose
+
 static func sample(state:StringName,phase:float,left:bool=true) -> Dictionary:
  if state==&"reference":return bind_pose()
  var t:=clampf(phase,0,1)
@@ -93,13 +108,49 @@ static func sample(state:StringName,phase:float,left:bool=true) -> Dictionary:
    pose.feet[side].z=lerpf(-4.5,-4.5,step)
    pose.feet[side].y+=sin(step*PI)*.65
    pose.hands[side]=(setup(&"quad").hands[side] as Vector3).lerp(setup(&"guard").hands[side],smoothstep(.35,1,rising))
+ elif state in [&"boxing_guard",&"boxing_walk",&"boxing_rise",&"boxing_lower",&"hook"]:
+  pose=boxing_setup()
+  if state in [&"boxing_rise",&"boxing_lower"]:
+   pose=between(setup(&"quad"),pose,smoothstep(0,1,t if state==&"boxing_rise" else 1-t))
+   # Interpolate the elbow pole too, avoiding an abrupt elbow flip on standing.
+   var amount:=smoothstep(0,1,t if state==&"boxing_rise" else 1-t)
+   for side in 2:
+    var s:float=-1 if side==0 else 1
+    pose.get_or_add("arm_poles",[]).append((pose.body.basis*Vector3(s,0,-.3)).lerp(boxing_setup().arm_poles[side],amount))
+  elif state==&"boxing_walk":
+   for side in 2:
+    var step:=Joints.stance_swing(cycle+side*.5,1.5,.7,.65)
+    pose.feet[side]+=Vector3(0,step.lift,step.z)
+    pose.pitches[side]=step.pitch*.4
+  elif state==&"hook":
+   var s:float=1 if left else -1
+   var wind:=smoothstep(0,.25,t)*(1-smoothstep(.25,.50,t))
+   var turn:=smoothstep(.25,.53,t)*(1-smoothstep(.66,1,t))
+   # Rotate about the hips without translating or lifting the planted feet.
+   pose.pelvis=Transform3D.IDENTITY
+   pose.body=body_frame(turn*.025,0,0,s*(wind*.10-turn*.20),s*turn*.018)
+   pose.head=pose.body.basis*Basis(Vector3.UP,s*(turn*.06-wind*.03))
+   for side in 2:
+    var sign_side:float=-1 if side==0 else 1
+    var hand:Vector3=pose.hands[side]
+    if (side==1)==left:
+     var opened:=Vector3(sign_side*19.0,22.0,9.0)
+     var swept:Vector3
+     var arc:=smoothstep(.25,.58,t)
+     var angle:=lerpf(PI*.5,.70,arc)
+     swept=Vector3(sign_side*(4.0+15.0*sin(angle)),22.0,9.0+10.0*cos(angle))
+     hand=hand.lerp(opened,smoothstep(0,.25,t)) if t<.25 else swept.lerp(hand,smoothstep(.66,1,t))
+     pose.arm_poles[side]=(pose.arm_poles[side] as Vector3).lerp(Vector3(sign_side,.12,-.25),smoothstep(0,.25,t)*(1-smoothstep(.66,1,t)))
+    pose.hands[side]=pose.body*hand
+    pose.arm_poles[side]=pose.body.basis*pose.arm_poles[side]
  elif state==&"attack":
   pose=setup(&"guard")
   var wind:=smoothstep(0,.27,t)*(1-smoothstep(.50,.82,t))
   var drive:=smoothstep(.27,.5,t)*(1-smoothstep(.65,1,t))
   var s:float=1 if left else -1
-  pose.body=body_frame(drive*.08,drive*.25,drive*.85-wind*.20,s*(wind*.07-drive*.10),s*drive*.018,s*(wind*.20-drive*.25))
-  pose.head=Basis(Vector3.UP,-s*drive*.025)
+  pose.pelvis=Transform3D.IDENTITY
+  pose.body=body_frame(drive*.08,drive*.12,drive*.85-wind*.20,s*(wind*.10-drive*.16),s*drive*.018,s*(wind*.20-drive*.25))
+  pose.head=pose.body.basis*Basis(Vector3.UP,-s*drive*.025)
   for side in 2:
    var sign_side:float=-1 if side==0 else 1
    var rest:=Vector3(sign_side*REST_HAND.x,REST_HAND.y,REST_HAND.z)
@@ -136,6 +187,7 @@ static func sample(state:StringName,phase:float,left:bool=true) -> Dictionary:
 
 static func solve(data:Dictionary,state:StringName,phase:float) -> Dictionary:
  var body:Transform3D=data.body
+ var pelvis:Transform3D=data.get("pelvis",body)
  var legs:Array=[];var arms:Array=[]
  for side in 2:
   var s:float=-1 if side==0 else 1
@@ -147,11 +199,11 @@ static func solve(data:Dictionary,state:StringName,phase:float) -> Dictionary:
    # Heat weights blend the rear sole into the calf. Clear the heel as the
    # short tibia swings forward, rather than stretching it through the floor.
    ankle.y+=maxf(0,ankle.z+4.5)*.27+absf(ankle.z+4.5)*.15
-  var knee_pole:=Basis(Vector3.UP,body.basis.get_euler().y)*Vector3.BACK
-  var leg:=Joints.joint(body*Vector3(s*HIP_X,8.5,-6),ankle,LEG_A,LEG_B,knee_pole)
+  var knee_pole:=Basis(Vector3.UP,pelvis.basis.get_euler().y)*Vector3.BACK
+  var leg:=Joints.joint(pelvis*Vector3(s*HIP_X,8.5,-6),ankle,LEG_A,LEG_B,knee_pole)
   leg.pitch=pitch;legs.append(leg)
-  arms.append(Joints.joint(body*Vector3(s*SHOULDER_X,18,5.5),data.hands[side],ARM_A,ARM_B,body.basis*Vector3(s,0,-.3)))
- return {"body":body,"head":data.head,"head_origin":body*HEAD_ROOT,"legs":legs,"arms":arms,"standing":data.standing,"state":state,"phase":phase}
+  arms.append(Joints.joint(body*Vector3(s*SHOULDER_X,18,5.5),data.hands[side],ARM_A,ARM_B,data.get("arm_poles",[body.basis*Vector3(-1,0,-.3),body.basis*Vector3(1,0,-.3)])[side]))
+ return {"body":body,"pelvis":pelvis,"head":data.head,"head_origin":body*HEAD_ROOT,"legs":legs,"arms":arms,"standing":data.standing,"state":state,"phase":phase}
 
 static func blend(current:Dictionary,target:Dictionary,delta:float) -> Dictionary:
  return mix(current,target,1-exp(-maxf(0,delta)*18))
@@ -159,12 +211,14 @@ static func blend(current:Dictionary,target:Dictionary,delta:float) -> Dictionar
 static func mix(current:Dictionary,target:Dictionary,amount:float) -> Dictionary:
  var pose:Dictionary=target.duplicate(true)
  pose.body=(current.body as Transform3D).interpolate_with(target.body,amount)
+ pose.pelvis=(current.get("pelvis",current.body) as Transform3D).interpolate_with(target.get("pelvis",target.body),amount)
  pose.head=(current.head as Basis).slerp(target.head,amount)
  pose.standing=lerpf(current.standing,target.standing,amount)
- var feet:Array=[];var hands:Array=[];var pitches:Array=[]
+ var feet:Array=[];var hands:Array=[];var pitches:Array=[];var poles:Array=[]
  for side in 2:
+  poles.append((current.arms[side].joint-current.arms[side].root).lerp(target.arms[side].joint-target.arms[side].root,amount))
   feet.append((current.legs[side].end as Vector3).lerp(target.legs[side].end,amount))
   hands.append((current.arms[side].end as Vector3).lerp(target.arms[side].end,amount))
   pitches.append(lerpf(current.legs[side].get("pitch",0),target.legs[side].get("pitch",0),amount))
- pose.feet=feet;pose.hands=hands;pose.pitches=pitches;pose.adjust_sole=false
+ pose.arm_poles=poles;pose.feet=feet;pose.hands=hands;pose.pitches=pitches;pose.adjust_sole=false
  return solve(pose,target.state,target.phase)

@@ -113,3 +113,13 @@ anatomía y de las mecánicas. Para referencias, fases y revisión con F6, consu
 `docs/WEAPON_ANIMATIONS_3D.md`. El arco incorpora `bow_release`, un seguimiento
 visual que no añade espera para volver a disparar. Conservar el impacto en la
 fase 0,5 y la orientación del arma calculada para ese contacto.
+
+
+## Enemigo1: guardia y crochet
+
+`young_pose.gd` incorpora `boxing_guard`, `boxing_walk`, `boxing_rise`,
+`boxing_lower` y `hook`, sin modificar el Meshy. `young_enemy.gd` gestiona la
+probabilidad tras el primer daño y los temporizadores persistentes. Ver
+`docs/YOUNG_3D.md` para reglas exactas; revisar ambos brazos en F6 y conservar
+los pies y las raíces de cadera al girar el torso. Prueba específica:
+`tests/prototype_3d_enemy_boxing.gd`.

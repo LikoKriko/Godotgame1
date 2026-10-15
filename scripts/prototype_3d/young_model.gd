@@ -44,14 +44,14 @@ func make_skeleton() -> void:
 func animate(state:StringName,phase:float,left:bool = true,delta:float = 0.0) -> void:
  var target:=Motion.sample(state,phase,left)
  if state!=previous_state:
-  interruption_pose=last_pose.duplicate(true) if delta>0 and state in [&"attack",&"death",&"stun_fall"] else {}
+  interruption_pose=last_pose.duplicate(true) if delta>0 and state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower",&"death",&"stun_fall"] else {}
   previous_state=state
- if not interruption_pose.is_empty() and state in [&"attack",&"death",&"stun_fall"]:
-  var end:=.16 if state==&"attack" else (.35 if state==&"death" else .55)
+ if not interruption_pose.is_empty() and state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower",&"death",&"stun_fall"]:
+  var end:=.16 if state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower"] else (.35 if state==&"death" else .55)
   var settle:=smoothstep(0,end,phase)
   target=Motion.mix(interruption_pose,target,settle)
   if settle>=1:interruption_pose.clear()
- last_pose=Motion.blend(last_pose,target,delta) if delta>0 and not last_pose.is_empty() and state!=&"attack" else target
+ last_pose=Motion.blend(last_pose,target,delta) if delta>0 and not last_pose.is_empty() and state not in [&"attack",&"hook"] else target
  var body:Transform3D=last_pose.body;posed[0]=body
  posed[1]=Transform3D(last_pose.head,last_pose.head_origin)
  for side in 2:

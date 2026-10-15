@@ -9,7 +9,7 @@ const Bag=preload("res://scripts/inventory.gd")
 const Items=preload("res://scripts/save_game.gd")
 const Progress=preload("res://scripts/progression.gd")
 const MOTION:=["from_slide","jump_heading","launch_heading","jump_speed","jump_elapsed","slide_elapsed","cooldown","crouch"]
-const ENEMY_FIELDS:=["health","phase","attack_elapsed","impact_done","punch_left","rise_elapsed","lower_elapsed","standing","death_elapsed","avoid_remaining"]
+const ENEMY_FIELDS:=["health","phase","attack_elapsed","impact_done","punch_left","rise_elapsed","lower_elapsed","standing","boxing_unlocked","boxing_check_remaining","boxing_remaining","attack_boxing","lower_from_boxing","death_elapsed","avoid_remaining"]
 const BRAIN_FIELDS:=["mode","remembers_player","remaining","elapsed"]
 static func vector(point:Vector3) -> Array:return [point.x,point.y,point.z]
 static func point(value:Array) -> Vector3:return Vector3(value[0],value[1],value[2])
@@ -157,8 +157,12 @@ static func valid_enemy(actor,uids:Dictionary) -> bool:
  if not item_array(actor.get("loot"),8,uids) or not number(actor.get("health"),0,10):return false
  for key in ["impact_done","punch_left","standing"]:
   if not actor.get(key) is bool:return false
- for pair in [["phase",0,1],["attack_elapsed",-1,1.01],["rise_elapsed",-1,0.29],["lower_elapsed",-1,0.29],["death_elapsed",-1,182],["avoid_remaining",0,0.71]]:
+ for pair in [["phase",0,1],["attack_elapsed",-1,1.21],["rise_elapsed",-1,0.29],["lower_elapsed",-1,0.29],["death_elapsed",-1,182],["avoid_remaining",0,0.71]]:
   if not number(actor.get(pair[0]),pair[1],pair[2]):return false
+ for key in ["boxing_unlocked","attack_boxing","lower_from_boxing"]:
+  if not actor.get(key,false) is bool:return false
+ for pair in [["boxing_check_remaining",0,10],["boxing_remaining",0,20]]:
+  if not number(actor.get(pair[0],10.0 if pair[0]=="boxing_check_remaining" else 0.0),pair[1],pair[2]):return false
  if actor.health==0 and actor.death_elapsed<0:return false
  if not actor.get("effects") is Dictionary:return false
  for id in actor.effects:
@@ -246,7 +250,8 @@ static func restore(game,data:Dictionary) -> bool:
  for entry in data.enemies:
   var actor=load("res://scripts/prototype_3d/young_enemy.gd").new();game.add_child(actor);actor.configure(game)
   actor.position=point(entry.position);actor.velocity=point(entry.velocity);actor.model.rotation.y=entry.heading;actor.avoid_direction=point(entry.avoid_direction)
-  for key in ENEMY_FIELDS:actor.set(key,entry[key])
+  for key in ENEMY_FIELDS:
+   if entry.has(key):actor.set(key,entry[key])
   actor.loot_slots.assign(entry.loot.duplicate(true));actor.effects.active=entry.effects.duplicate(true)
   for key in BRAIN_FIELDS:actor.brain.set(key,entry.brain[key])
   actor.brain.goal=point(entry.brain.goal);actor.brain.last_seen=point(entry.brain.last_seen);actor.brain.rng.state=int(entry.brain.rng)

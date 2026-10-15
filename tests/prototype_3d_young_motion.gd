@@ -53,12 +53,12 @@ func run():
      require(maximum<.65,"Full limb frames turn continuously in "+String(state))
     previous=current
  require(actor.mesh_node.mesh==mesh,"All fifteen states reuse the supplied Meshy bind mesh")
- for pair in [[&"idle",0.0,&"rise",0.0],[&"rise",1.0,&"attack",0.0],[&"attack",1.0,&"lower",0.0],[&"lower",1.0,&"idle",0.0],[&"idle",0.0,&"sit_down",0.0],[&"sit_down",1.0,&"sit",0.0],[&"sit",0.0,&"sit_up",0.0],[&"sit_up",1.0,&"idle",0.0],[&"idle",0.0,&"feed",0.0],[&"stun_fall",1.0,&"stun_hold",0.0],[&"stun_hold",0.0,&"stun_rise",0.0],[&"stun_rise",1.0,&"idle",0.0],[&"death",1.0,&"corpse",0.0]]:
+ for pair in [[&"idle",0.0,&"boxing_rise",0.0],[&"boxing_rise",1.0,&"boxing_guard",0.0],[&"boxing_guard",0.0,&"boxing_lower",0.0],[&"boxing_lower",1.0,&"idle",0.0],[&"idle",0.0,&"rise",0.0],[&"rise",1.0,&"attack",0.0],[&"attack",1.0,&"lower",0.0],[&"lower",1.0,&"idle",0.0],[&"idle",0.0,&"sit_down",0.0],[&"sit_down",1.0,&"sit",0.0],[&"sit",0.0,&"sit_up",0.0],[&"sit_up",1.0,&"idle",0.0],[&"idle",0.0,&"feed",0.0],[&"stun_fall",1.0,&"stun_hold",0.0],[&"stun_hold",0.0,&"stun_rise",0.0],[&"stun_rise",1.0,&"idle",0.0],[&"death",1.0,&"corpse",0.0]]:
   compare(Motion.sample(pair[0],pair[1]),Motion.sample(pair[2],pair[3]),String(pair[0])+" -> "+String(pair[2]))
- for loop in [&"idle",&"walk",&"run",&"sit",&"feed"]:compare(Motion.sample(loop,0),Motion.sample(loop,1),String(loop)+" loop")
+ for loop in [&"idle",&"walk",&"run",&"sit",&"feed",&"boxing_guard",&"boxing_walk"]:compare(Motion.sample(loop,0),Motion.sample(loop,1),String(loop)+" loop")
  var feed_start:Dictionary=Motion.sample(&"feed",0);var feeding:Dictionary=Motion.sample(&"feed",.20)
  require(feed_start.arms[0].end.distance_to(feeding.arms[0].end)>4,"Feeding now has a real alternating reach, not only a head nod")
- for interrupted in [&"walk",&"attack",&"sit",&"feed"]:
+ for interrupted in [&"walk",&"attack",&"sit",&"feed",&"hook",&"boxing_guard",&"boxing_walk"]:
   actor.animate(interrupted,.4,true)
   var start:Dictionary=actor.last_pose.duplicate(true)
   actor.animate(&"stun_fall",0,true,.016)
