@@ -93,7 +93,9 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
     var side:=0 if authored_vertices[i].x<0 else 1
     front_uv=SurfaceProfile.leg_cloth_uv(coordinate,side,true);back_uv=SurfaceProfile.leg_cloth_uv(coordinate,side,false)
    else:
-    front_uv=SurfaceProfile.limb_uv(point,true);back_uv=SurfaceProfile.limb_uv(point,false)
+    var side:=tag-1
+    front_uv=SurfaceProfile.arm_skin_uv(point,arm_rest[side],side,true)
+    back_uv=SurfaceProfile.arm_skin_uv(point,arm_rest[side],side,false)
    side_blend=smoothstep(-0.55,0.55,surface_normals[i].z)
    texture_uv[-1]=front_uv;projection_tags[i].y=1.0
   reference_data.append_array(PackedFloat32Array([back_uv.x,back_uv.y,side_blend,1.0 if cloth_surface else 0.0]))

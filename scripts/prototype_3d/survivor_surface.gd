@@ -50,6 +50,32 @@ static func limb_uv(point:Vector3,front:bool,cloth:bool=false) -> Vector2:
  var y:float=(610 if front else 585)+(29.4-point.y)*(21.5 if front else 23.3) if cloth else (610 if front else 585)-(point.y-29.4)*17.4
  return Vector2(((506 if front else 535)+x*PIXELS_PER_UNIT)/1086.0,y/1448.0)
 
+# Interior skin spans measured on the supplied paintings. Projecting the bind
+# arm directly into the photograph also projected its dark silhouette onto the
+# curved skin. Unwrap each arm along its own centreline and inset both borders.
+const ARM_FRONT_LEFT=[Vector3(350,346,398),Vector3(380,338,389),Vector3(430,335,387),Vector3(480,329,384),Vector3(530,312,371),Vector3(580,301,362),Vector3(630,297,338),Vector3(680,289,331),Vector3(700,285,333)]
+const ARM_FRONT_RIGHT=[Vector3(350,608,659),Vector3(380,617,665),Vector3(430,618,669),Vector3(480,620,677),Vector3(530,635,695),Vector3(580,644,705),Vector3(630,669,710),Vector3(680,678,719),Vector3(700,676,724)]
+const ARM_BACK_LEFT=[Vector3(350,369,420),Vector3(380,364,424),Vector3(430,356,422),Vector3(480,350,410),Vector3(530,329,394),Vector3(580,322,382),Vector3(630,318,356),Vector3(680,309,358),Vector3(700,305,350)]
+const ARM_BACK_RIGHT=[Vector3(350,641,691),Vector3(380,642,696),Vector3(430,642,704),Vector3(480,652,711),Vector3(530,668,733),Vector3(580,679,739),Vector3(630,706,744),Vector3(680,705,753),Vector3(700,704,757)]
+static func arm_skin_uv(point:Vector3,chain:Dictionary,side:int,front:bool) -> Vector2:
+ var upper:=Geometry3D.get_closest_point_to_segment(point,chain.root,chain.joint)
+ var lower:=Geometry3D.get_closest_point_to_segment(point,chain.joint,chain.end)
+ var upper_length:float=chain.root.distance_to(chain.joint)
+ var total:float=upper_length+chain.joint.distance_to(chain.end)
+ var first:=point.distance_squared_to(upper)<=point.distance_squared_to(lower)
+ var center:Vector3=upper if first else lower
+ var along:float=chain.root.distance_to(upper) if first else upper_length+chain.joint.distance_to(lower)
+ var row:=lerpf(350,700,clampf(along/total,0,1))
+ var photo_side:=side if front else 1-side
+ var spans:Array=(ARM_FRONT_LEFT if photo_side==0 else ARM_FRONT_RIGHT) if front else (ARM_BACK_LEFT if photo_side==0 else ARM_BACK_RIGHT)
+ var span:Vector3=spans[-1]
+ for i in spans.size()-1:
+  if row<=spans[i+1].x:
+   span=(spans[i] as Vector3).lerp(spans[i+1],clampf((row-spans[i].x)/(spans[i+1].x-spans[i].x),0,1));break
+ var across:=clampf((point.x-center.x)/2.5,-1,1)*(1 if front else -1)
+ var inset:float=maxf(10,(span.z-span.y)*0.22)
+ return Vector2(lerpf(span.y+inset,span.z-inset,across*0.5+0.5)/1086.0,row/1448.0)
+
 # Pixel bounds exclude the studio and the neighbouring bare arms. Each leg
 # unwraps around its own silhouette; the inner gap is not painted onto cloth.
 const PANTS_FRONT_LEFT=[Vector3(610,399,505),Vector3(650,397,505),Vector3(690,389,505),Vector3(730,385,485),Vector3(770,381,484),Vector3(810,376,484),Vector3(840,376,482)]

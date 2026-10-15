@@ -434,3 +434,32 @@ continuar **11**. Se renderizaron y examinaron **16 capturas finales** con y sin
 armadura. Los logs y capturas son intermedios en `/workspace/work/integration-review`.
 Linux usa llvmpipe y no hay dispositivo de audio físico; no se atribuye una
 prueba de sonido, rendimiento de usuario ni Windows a esta revisión.
+
+
+
+## 2026-10-15 — Eliminar líneas proyectadas en la piel de los brazos
+
+Inicio observado: **18:51:32 Europe/Madrid** (16:51:32 UTC). Cierre de
+implementación observado: **18:55:37 Europe/Madrid**
+(16:55:37 UTC). Duración medida hasta este hito: **4 min 5 s**.
+Sin estimación previa. Incluye diagnóstico, ajuste de UV, render y pruebas;
+la publicación posterior no está incluida en este intervalo.
+
+Diagnóstico renderizado: las líneas persistían al desactivar el contorno, y
+desaparecían al desactivar la pintura de los brazos. La proyección directa
+muestreaba el borde oscuro de las referencias. Se sustituye únicamente en los
+brazos por un recorrido longitudinal propio con márgenes interiores medidos
+en ambas imágenes. Se conservan la geometría, esqueleto, contorno y mapeados
+del torso/piernas. No se modifican imágenes originales.
+
+Pasan 10368 muestras interpoladas de textura de brazos (cero píxeles de borde),
+10 comprobaciones de superficie/UV y 145006 de deformación. La nueva prueba
+falla con el mapeado anterior en la copia aislada de `69a4d8f`: 2534 muestras
+de borde/fondo sobre 8832, antes del pulido geométrico. Revisión renderizada
+en reposo frontal/trasero/lateral y carrera/golpe/arco, con y sin armadura.
+
+Integración previa a publicar: se incorpora el avance remoto `92d3189`, que
+resuelve las comprobaciones de golpes y armadura pendientes. Los únicos
+conflictos fueron notas añadidas al final de documentos; se conservan ambas
+entradas. Tras el rebase pasan las 10368 muestras de brazos, las 10 pruebas
+de superficie/UV y las 42 comprobaciones actualizadas de contacto y armadura.

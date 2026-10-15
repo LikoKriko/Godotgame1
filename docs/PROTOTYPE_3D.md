@@ -507,3 +507,14 @@ de esas suites usan X11 y clics reales para inventario, menú, configuración y
 guardar/continuar. Revisión visual de 16 capturas con/sin armadura en reposo,
 golpe, arco, recogida y contacto bajo. La validación no incluye Windows ni una
 medición de rendimiento en el ordenador del usuario.
+
+
+
+### Piel de brazos sin líneas de la referencia
+
+Los brazos dejan de usar la proyección XY directa de la fotografía: esa
+proyección trasladaba su silueta oscura al interior de la piel curva. Cada
+brazo recorre ahora sus propias franjas de piel frontal y trasera, con márgenes
+interiores y UV fijas en reposo. Torso, piernas, geometría y contorno exterior
+conservan su tratamiento. `tests/prototype_3d_arm_skin.gd` comprueba muestras
+interpoladas y cuantizadas igual que el shader contra ambas imágenes originales.
