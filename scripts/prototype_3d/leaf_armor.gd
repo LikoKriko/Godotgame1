@@ -6,7 +6,7 @@ var shell:MeshInstance3D
 static var shared_mesh:ArrayMesh
 static var shared_material:StandardMaterial3D
 static func radius(y:float) -> Vector2:
- var rings:=[Vector3(24.5,6.5,3.2),Vector3(29,6.8,3.1),Vector3(35,6.7,3.2),Vector3(40,8.4,3.6),Vector3(44.5,8.5,3.4),Vector3(46.8,4.2,2.3)]
+ var rings:=[Vector3(24.5,6.5,3.2),Vector3(29,6.8,3.8),Vector3(35,6.7,4.0),Vector3(40,8.6,4.95),Vector3(44.5,8.8,4.0),Vector3(46.8,4.2,2.3)]
  for i in rings.size()-1:
   if y<=rings[i+1].x:
    var r:Vector3=rings[i].lerp(rings[i+1],clampf((y-rings[i].x)/(rings[i+1].x-rings[i].x),0,1))
@@ -70,28 +70,28 @@ static func build() -> void:
    var a:=column*TAU/48;var b:float=(column+1)*TAU/48
    var p:=point(a,top);var q:=point(b,top);var r:=point(b,bottom);var t:=point(a,bottom)
    if top>37.5:
-    var limit:=4.15 if top>43 else 5.8
+    var limit:=3.75 if top>43 else 5.8
     if maxf(maxf(absf(p.x),absf(q.x)),maxf(absf(r.x),absf(t.x)))>limit:continue
    triangle(surface,p,q,r,Color("48502c"));triangle(surface,p,r,t,Color("48502c"))
  for row in 4:
   var top:=44.8-row*5.0
   if row<2:
    for back in [0.0,PI]:
-    for column in 3:leaf(surface,back+(column-1)*(0.52 if row==1 else 0.4)+(0.1 if row==1 else 0.0),top,6.3,0.31,[Color("627b36"),Color("6e853b"),Color("586f31")][(row+column)%3])
+    for column in 3:leaf(surface,back+(column-1)*(0.52 if row==1 else 0.28)+(0.1 if row==1 else 0.0),top,6.3,0.31 if row==1 else 0.24,[Color("627b36"),Color("6e853b"),Color("586f31")][(row+column)%3])
   else:
    for column in 12:leaf(surface,(column+float(row%2)*0.5)*TAU/12,top,6.8,0.29,[Color("627b36"),Color("6e853b"),Color("586f31")][(row+column)%3])
  # The shoulder bands rest on the inner shoulder slope and clear the deltoid.
  for side in [-1,1]:
   var path:=PackedVector3Array()
   for i in 21:
-   var t:=i/20.0;path.append(Vector3(side*3.1,44.8+sin(t*PI)*1.85,lerpf(3.25,-3.25,t)))
+   var t:=i/20.0;path.append(Vector3(side*2.9,44.8+sin(t*PI)*1.85,lerpf(4.05,-4.05,t)))
   for offset in [-0.5,0,0.5]:
    var strand:=PackedVector3Array()
    for p in path:strand.append(p+Vector3.RIGHT*offset)
    cord(surface,strand,0.13)
   for z in [-2.8,2.8]:
    var tie:=PackedVector3Array()
-   for i in 13:tie.append(Vector3(side*3.1+cos(i*TAU/12)*0.60,45.5+sin(i*TAU/12)*0.35,z))
+   for i in 13:tie.append(Vector3(side*2.9+cos(i*TAU/12)*0.60,45.5+sin(i*TAU/12)*0.35,z))
    cord(surface,tie,0.09)
  # Waist belt, collar binding, two vertical supports and a front knot.
  for y in [28.2,29.3]:

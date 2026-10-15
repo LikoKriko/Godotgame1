@@ -36,6 +36,9 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state==&"run" else movement_phase
  var original_body: Transform3D = pose.body
  var body: Transform3D = original_body
+ # An archer opens the chest obliquely: bow arm forward, drawing shoulder back.
+ if family==&"bow" and state not in [&"death",&"pickup",&"eat",&"drink"]:
+  body.basis=body.basis*Basis(Vector3.UP,0.40)
  if state==&"action" or state==&"draw":
   # Keep the pelvis near standing height; aim with shoulder/arm IK first.
   var standing_y:=Anatomy.HIP.y
@@ -140,7 +143,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  if family==&"bow" and contact.is_finite() and state not in [&"death",&"eat",&"drink",&"pickup"]:
   var active:int=pose.active
   var drawn:=smoothstep(0,0.26,phase) if state in [&"draw",&"action"] else 0.0
-  var anchor:Vector3=body*Vector3(-2.2,46.8,5.3)
+  var anchor:Vector3=body*Vector3(3.5,46.8,7.5)
   var direction:=anchor.direction_to(contact)
   if direction.is_zero_approx():direction=Vector3.BACK
   var grip:Vector3=anchor+direction*12

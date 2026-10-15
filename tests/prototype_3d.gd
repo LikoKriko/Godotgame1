@@ -12,7 +12,7 @@ func run():
  require(world.player is CharacterBody3D and world.camera_rig.camera is Camera3D,"Prototype uses real 3D physics and perspective camera")
  require(world.player.model.axe.get_child_count()>5,"Axe contains solid blade, wooden shaft and rope geometry")
  var bind_mesh: Mesh = world.player.model.mesh_node.mesh
- require(world.player.model.rig.skeleton.get_bone_count()==20,"Humanoid has an articulated skeleton with four cloth controls")
+ require(world.player.model.rig.skeleton.get_bone_count()==24,"Humanoid has articulated bones, four cloth controls and four joint-volume collars")
  require(absf(world.player.model.mesh_node.mesh.get_aabb().size.y*world.player.model.scale.y-1.75)<0.001,"Survivor standing height is exactly 1.75 metres")
  var arrays: Array = bind_mesh.surface_get_arrays(0)
  var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]

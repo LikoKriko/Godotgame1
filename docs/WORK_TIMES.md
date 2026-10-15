@@ -192,3 +192,37 @@ miden la primera implementación y pruebas, no la investigación aún bloqueada.
 
 Último registro antes de publicar la primera secuencia: **11:54:29 UTC**,
 intervalo observado desde el inicio **12 min 43 s**.
+
+## 2026-10-15 — Anatomía, malla y catálogo de animaciones del superviviente 3D
+
+Primer registro **12:31:45 UTC** (14:31:45 Madrid). Hito de cierre de revisión
+**13:06:02 UTC** (15:06:02 Madrid): **34 min 17 s observados**, sin estimación
+previa. Incluye investigación accesible desde GitHub, lectura de las dos vistas
+originales, implementación y comprobaciones; no incluye la tarea posterior de
+árboles ni el tiempo final de publicación. No representa horas de trabajo manual
+de modelado en una herramienta externa ni una animación de captura de movimiento.
+
+Malla: nuevos perfiles de tórax/espalda/clavículas, 48 lados por sección del
+torso y 24 por anillo de miembros; detalle de ojos, mandíbula, barba, mechones,
+cierre de corona y entrepierna. Enlace entre malla y esqueleto corregido,
+controles de volumen de codos/rodillas, orientación de palmas, codos ligados al
+torso y separación continua respecto al tórax. Armadura adaptada y postura de
+arco abierta. La proyección de pinturas deja de mezclar UV frontales y
+posteriores dentro de un mismo triángulo: se corrigieron las bandas visibles
+en los codos y la unión de cuello. Los contornos de raíces de brazos enterradas
+no se proyectan como costuras falsas sobre el pecho. La tela central permanece
+en la pelvis y los bajos acompañan los muslos.
+
+Referencias realmente examinadas: OpenSim Arm26, Gait2392 Millard y
+`subject01_walk1_ik.mot` (211 muestras). BVH consultado solo para jerarquía, sin
+atribuirle una acción. Las webs de Little League/Wikipedia permanecieron
+bloqueadas por el proxy. Ver `ANIMATION_REFERENCES.md` para enlaces y límites.
+
+Validación: prueba nueva de piel deformada, enlace, UV y continuidad de 29
+acciones × 8 familias; catálogo de agarres, carrera, deslizamiento/salto,
+cámara/zancada, arco, armadura, referencia de malla, movimiento real y guardado.
+Renderizado nativo de fases frontales/laterales, con y sin armadura, y vistas
+de reposo frente/espalda/lados. Se usó también material neutro para distinguir
+un fallo de UV de un fallo de geometría. La revisión visual sigue siendo
+necesaria para valorar parecido y naturalidad; las pruebas no certifican un
+modelo idéntico a una imagen ni animación perfecta.

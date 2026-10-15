@@ -9,6 +9,8 @@ const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Aim = preload("res://scripts/prototype_3d/tool_aim.gd")
 const Profiles = preload("res://scripts/prototype_3d/held_profiles.gd")
+const Kinematics=preload("res://scripts/prototype_3d/human_kinematics.gd")
+var authored_limbs:Dictionary={}
 var axe: Node3D
 var rig = preload("res://scripts/prototype_3d/humanoid_rig.gd").new()
 var displayed_pose: Dictionary = {}
@@ -33,7 +35,8 @@ func _ready() -> void:
  body_material.set_shader_parameter("use_painted_materials",true)
  body_material.set_shader_parameter("front_reference",FRONT_REFERENCE)
  body_material.set_shader_parameter("back_reference",BACK_REFERENCE)
- var outline := ShaderMaterial.new(); outline.shader = preload("res://shaders/prototype_3d/outline.gdshader")
+ var outline := ShaderMaterial.new(); outline.shader = preload("res://shaders/prototype_3d/survivor_outline.gdshader")
+ outline.set_shader_parameter("thickness",0.085)
  body_material.next_pass = outline
  tool.hide()
  axe = preload("res://scripts/prototype_3d/stone_axe.gd").new(); add_child(axe)
@@ -50,21 +53,23 @@ func _ready() -> void:
 func tube(joints: Array,radius_a: float,radius_b: float,color: Color,shorts: bool = false,steps: int = 12) -> void:
  if color!=SKIN:
   super.tube(joints,radius_a,radius_b,color,shorts,steps);return
+ var key:=int(surface_tag) if not shorts else (10 if joints[0].x<0 else 11)
+ authored_limbs[key]={"root":joints[0],"joint":joints[1],"end":joints[2]}
  # Anatomical cross sections span both bones, with no detached elbow/knee caps.
  var sections: Array[Vector3]
  if shorts:
-  sections=[Vector3(0,1.10,1.03),Vector3(0.12,1.19,1.10),Vector3(0.26,1.14,1.10),Vector3(0.38,1.06,1.03),Vector3(0.43,0.85,0.91),Vector3(0.5,0.78,0.96),Vector3(0.58,0.83,0.88),Vector3(0.69,0.99,0.94),Vector3(0.82,0.72,0.75),Vector3(0.94,0.55,0.61),Vector3(1,0.57,0.64)]
+  sections=[Vector3(0,1.10,1.03),Vector3(0.12,1.19,1.10),Vector3(0.26,1.14,1.10),Vector3(0.38,1.06,1.03),Vector3(0.43,0.85,0.91),Vector3(0.47,0.82,0.96),Vector3(0.5,0.80,1.00),Vector3(0.53,0.81,0.95),Vector3(0.58,0.83,0.88),Vector3(0.69,0.99,0.94),Vector3(0.82,0.72,0.75),Vector3(0.94,0.55,0.61),Vector3(1,0.57,0.64)]
  else:
-  sections=[Vector3(0,0.75,0.85),Vector3(0.09,0.95,0.98),Vector3(0.23,1.07,1.00),Vector3(0.4,0.74,0.79),Vector3(0.5,0.68,0.79),Vector3(0.60,0.83,0.83),Vector3(0.74,0.72,0.69),Vector3(0.9,0.49,0.53),Vector3(1,0.47,0.49)]
+  sections=[Vector3(0,0.25,0.35),Vector3(0.045,0.85,0.92),Vector3(0.09,0.98,1.04),Vector3(0.23,1.07,1.00),Vector3(0.4,0.78,0.82),Vector3(0.46,0.72,0.78),Vector3(0.5,0.70,0.79),Vector3(0.54,0.76,0.80),Vector3(0.60,0.83,0.83),Vector3(0.74,0.72,0.69),Vector3(0.9,0.49,0.53),Vector3(1,0.47,0.49)]
  var rings:Array[PackedVector3Array]=[];var centers:Array[Vector3]=[]
- var sides:=16
+ var sides:=24
  for shape:Vector3 in sections:
   var t:=shape.x
   var center:Vector3=joints[0].lerp(joints[1],t*2) if t<=0.5 else joints[1].lerp(joints[2],(t-0.5)*2)
   if not shorts and t<0.23:
    var shoulder_blend:=1-smoothstep(0,0.23,t)
-   center+=Vector3((-1 if joints[0].x>0 else 1)*shoulder_blend,0.2*shoulder_blend,0)
-  var tangent:Vector3=(joints[1]-joints[0]).normalized() if t<0.5 else (joints[2]-joints[1]).normalized()
+   center+=Vector3((-1 if joints[0].x>0 else 1)*1.9*shoulder_blend,0.05*shoulder_blend,0)
+  var tangent:Vector3=(joints[1]-joints[0]).normalized().slerp((joints[2]-joints[1]).normalized(),smoothstep(0.4,0.6,t))
   var across:=Vector3.RIGHT-tangent*tangent.x
   if across.length_squared()<0.01:across=Vector3.BACK-tangent*tangent.z
   across=across.normalized();var front:=across.cross(tangent).normalized()
@@ -85,12 +90,28 @@ func tube(joints: Array,radius_a: float,radius_b: float,color: Color,shorts: boo
  for i in sides:
   if shorts:triangle(centers[0],rings[0][(i+1)%sides],rings[0][i],CLOTH)
   triangle(centers[-1],rings[-1][i],rings[-1][(i+1)%sides],color)
+func mesh_to_bind(point:Vector3,tag:int,skin_rig:RefCounted) -> Vector3:
+ if tag in [5,6]:
+  var side:=tag-5
+  var source:Dictionary=authored_limbs[side+1]
+  return skin_rig.arm_rest[side].end+Kinematics.hand_frame(skin_rig.arm_rest[side],Basis.IDENTITY,side)*(point-source.end)*0.84
+ if tag in [1,2]:
+  return Kinematics.retarget(point,authored_limbs[tag],skin_rig.arm_rest[tag-1])
+ if tag==0 and point.y<26.0:
+  var side:=0 if point.x<0 else 1
+  var transformed:=Kinematics.retarget(point,authored_limbs[10+side],skin_rig.neutral.legs[side])
+  # The crotch and waistband stay on the pelvis, not on either moving thigh.
+  return transformed.lerp(Anatomy.geometry(point,tag),smoothstep(23,26,point.y))
+ return Anatomy.geometry(point,tag)
 func triangle(a: Vector3,b: Vector3,c: Vector3,color: Color) -> void:
  surface.set_smooth_group(0)
  super.triangle(a,b,c,color)
 func ellipsoid(center: Vector3,size: Vector3,color: Color,basis: Basis = Basis.IDENTITY) -> void:
  if surface_tag in [1.0,2.0] and color==SKIN and size.is_equal_approx(Vector3(1.45,1.7,1.5)):
-  append_hand(center,-1.0 if surface_tag==1 else 1.0);return
+  var previous:=surface_tag
+  surface_tag=5.0 if previous==1 else 6.0
+  append_hand(center,-1.0 if previous==1 else 1.0)
+  surface_tag=previous;return
  if center.y<4 and is_equal_approx(size.x,2.5):size.x=2.3
  if color.r<0.55 and center.y<27 and size.z<0.2:return # Retired round trouser patches.
  if absf(center.x)>7.0 and absf(center.x)<7.9 and absf(center.y-44.6)<0.1 and color==SKIN:return
@@ -99,7 +120,9 @@ func ellipsoid(center: Vector3,size: Vector3,color: Color,basis: Basis = Basis.I
  if center.is_equal_approx(Vector3(0,42,0)) or center.is_equal_approx(Vector3(0,48,0)):return
  if center.is_equal_approx(Vector3(0,27.7,0)):
   # Waistband joins both cloth legs without the old spherical crotch.
-  profile_volume([Vector3(25.3,6.9,3.2),Vector3(27.5,7.0,3.3),Vector3(29.4,6.8,3.15)],CLOTH);return
+  var previous:=surface_tag;surface_tag=13
+  profile_volume([Vector3(23.0,5.6,3.0),Vector3(24.5,6.7,3.6),Vector3(26.0,6.95,3.8),Vector3(27.5,7.0,3.75),Vector3(29.4,6.8,3.65)],CLOTH)
+  surface_tag=previous;return
  if center.y>=31 and center.y<=44 and center.z>2 and size.z<1.5:return
  super.ellipsoid(center,size,color,basis)
 func profile_volume(profile:Array,color:Color,frame:Transform3D=Transform3D.IDENTITY) -> void:
@@ -117,7 +140,7 @@ func profile_volume(profile:Array,color:Color,frame:Transform3D=Transform3D.IDEN
    triangle(rings[row][i],rings[row+1][next],rings[row+1][i],color)
    triangle(rings[row][i],rings[row][next],rings[row+1][next],color)
 func append_hand(center:Vector3,side:float) -> void:
- super.ellipsoid(center+Vector3(0,-0.15,0),Vector3(1.0,1.25,0.67),SKIN)
+ super.ellipsoid(center+Vector3(0,-0.15,0),Vector3(1.18,1.38,0.63),SKIN)
  # Four fingers and an opposed thumb, all assigned to the existing hand bone.
  for finger in 4:
   var x:=side*(-0.65+finger*0.43);var length:float=[1.30,1.58,1.45,1.10][finger]
@@ -129,29 +152,37 @@ func append_hand(center:Vector3,side:float) -> void:
  var thumb:=center+Vector3(-side*0.85,0.1,0.25)
  super.tube([thumb,thumb+Vector3(-side*0.55,-0.65,0.3),thumb+Vector3(-side*0.40,-1.25,0.65)],0.4,0.3,SKIN,false,4)
 func append_torso() -> void:
- var profile := [Vector3(26.9,6.7,3),Vector3(31,6.1,2.65),Vector3(35,6.4,3),Vector3(38,7.4,3.4),Vector3(41,8.2,3.7),Vector3(43.5,9.2,3.45),Vector3(44.7,9.7,3.1),Vector3(45.8,8.5,2.7),Vector3(46.8,5.6,2.1),Vector3(47.6,2.4,1.8),Vector3(49.5,2,1.8)]
- var rings: Array[PackedVector3Array] = []
+ # Silhouette landmarks follow the supplied front/back views. Depth is sculpted
+ # separately: a projected painting must not substitute for a rib cage/scapula.
+ var profile := [Vector3(29.4,6.55,3.4),Vector3(31,6.1,3.25),Vector3(33,6.15,3.4),Vector3(35,6.4,3.65),Vector3(37,7.05,4.0),Vector3(39,7.8,4.35),Vector3(41,8.6,4.55),Vector3(43,9.15,4.15),Vector3(44.5,9.4,3.6),Vector3(45.4,8.65,3.05),Vector3(46.25,6.9,2.5),Vector3(47.0,4.65,2.1),Vector3(47.65,2.5,1.9),Vector3(49.5,2.0,1.85)]
+ var rings:Array[PackedVector3Array]=[]
+ var sides:=48
  for section in profile.size()-1:
   for step in 3:
-   var shape: Vector3 = profile[section].lerp(profile[section+1],step/3.0)
-   var ring := PackedVector3Array()
-   for i in 24:
-    var angle := i*TAU/24
+   var shape:Vector3=profile[section].lerp(profile[section+1],step/3.0)
+   var ring:=PackedVector3Array()
+   for i in sides:
+    var angle:=i*TAU/sides
     var across:=cos(angle);var depth:=sin(angle)
-    # Flatter back/chest planes and subtle shoulder blades, keeping the slim waist.
-    var x:=signf(across)*pow(absf(across),0.85)*shape.y
-    var z:=signf(depth)*pow(absf(depth),0.80)*shape.z
-    if z<0 and shape.x>35 and shape.x<45:
-     z-=0.35*exp(-pow((absf(x)-4.4)/1.7,2))*sin((shape.x-35)/10*PI)
+    var x:=signf(across)*pow(absf(across),0.91)*shape.y
+    var z:=signf(depth)*pow(absf(depth),0.88)*shape.z
+    var front:=maxf(0,depth)
+    # Real shallow pectoral/oblique planes, clavicles and sternum depression.
+    z+=front*(0.38*exp(-pow((absf(x)-3.7)/2.2,2)-pow((shape.x-41.0)/2.3,2)))
+    z-=front*0.16*exp(-x*x/0.8-pow((shape.x-40.8)/3.8,2))
+    z+=front*0.12*exp(-pow((absf(x)-1.65)/1.1,2)-pow((shape.x-34.7)/3.2,2))
+    z+=front*0.20*exp(-pow((shape.x-(45.5-absf(x)*0.10))/0.32,2))*smoothstep(0.5,2.0,absf(x))
+    if z<0:
+     z-=0.43*exp(-pow((absf(x)-4.0)/1.8,2)-pow((shape.x-41.5)/3.0,2))
+     z+=0.17*exp(-x*x/0.7-pow((shape.x-38.5)/6.0,2))
     ring.append(Vector3(x,shape.x,z))
    rings.append(ring)
- var final_ring := PackedVector3Array()
- var shape: Vector3 = profile[-1]
- for i in 24: final_ring.append(Vector3(cos(i*TAU/24)*shape.y,shape.x,sin(i*TAU/24)*shape.z))
- rings.append(final_ring)
+ var top:=PackedVector3Array()
+ for i in sides:top.append(Vector3(cos(i*TAU/sides)*2,49.5,sin(i*TAU/sides)*1.85))
+ rings.append(top)
  for row in rings.size()-1:
-  for i in 24:
-   var next := (i+1)%24
+  for i in sides:
+   var next:=(i+1)%sides
    triangle(rings[row][i],rings[row+1][next],rings[row+1][i],SKIN)
    triangle(rings[row][i],rings[row][next],rings[row+1][next],SKIN)
 func integrated_head(torso: Transform3D, _actor_basis: Basis, _direction: int, _pose_state: StringName) -> void:
@@ -164,47 +195,57 @@ func integrated_head(torso: Transform3D, _actor_basis: Basis, _direction: int, _
   super.ellipsoid(torso*Vector3(side*5.9,54.2,0.65),Vector3(0.55,1.1,0.3),SKIN.darkened(0.16),torso.basis)
   # Deep-set almond eyes, amber iris, dark pupil and restrained catchlight.
   super.ellipsoid(torso*Vector3(side*2.15,55.4,4.35),Vector3(1.45,1.0,0.55),SKIN.darkened(0.27),torso.basis)
-  super.ellipsoid(torso*Vector3(side*2.15,55.35,4.65),Vector3(1.15,0.75,0.34),Color('f1d7ad'),torso.basis)
-  super.ellipsoid(torso*Vector3(side*2.15,55.35,4.94),Vector3(0.64,0.69,0.18),Color('794423'),torso.basis)
-  super.ellipsoid(torso*Vector3(side*2.15,55.35,5.09),Vector3(0.29,0.49,0.10),Color('231610'),torso.basis)
-  super.ellipsoid(torso*Vector3(side*2.15-0.18,55.65,5.18),Vector3(0.16,0.18,0.06),Color('fff3d6'),torso.basis)
-  super.ellipsoid(torso*Vector3(side*2.2,56.8,4.6),Vector3(1.65,0.45,0.45),HAIR,torso.basis*Basis(Vector3.BACK,side*0.08))
+  super.ellipsoid(torso*Vector3(side*2.15,55.35,4.65),Vector3(1.05,0.64,0.25),Color('f1d7ad'),torso.basis)
+  super.ellipsoid(torso*Vector3(side*2.15,55.35,4.85),Vector3(0.55,0.59,0.12),Color('794423'),torso.basis)
+  super.ellipsoid(torso*Vector3(side*2.15,55.35,4.98),Vector3(0.26,0.43,0.06),Color('231610'),torso.basis)
+  super.ellipsoid(torso*Vector3(side*2.15-0.18,55.60,5.04),Vector3(0.16,0.18,0.06),Color('fff3d6'),torso.basis)
+  super.ellipsoid(torso*Vector3(side*2.2,56.8,4.6),Vector3(1.75,0.56,0.48),HAIR,torso.basis*Basis(Vector3.BACK,side*0.08))
  super.ellipsoid(torso*Vector3(0,54.4,4.65),Vector3(0.72,1.3,0.85),SKIN,torso.basis)
  super.ellipsoid(torso*Vector3(0,53.8,5.2),Vector3(1.15,0.75,0.85),SKIN.darkened(0.04),torso.basis)
  for side in [-1,1]:super.ellipsoid(torso*Vector3(side*0.65,53.5,5.45),Vector3(0.28,0.2,0.15),SKIN.darkened(0.32),torso.basis)
- # Beard underlay is continuous around the jaw; locks add shallow relief.
- for row in 4:
-  var y:=49.4+row*0.85
-  for i in 20:
-   var a:=lerpf(-1.6,1.6,i/20.0);var b:=lerpf(-1.6,1.6,(i+1)/20.0)
-   var r:=2.7+row*0.7
-   var p:=Vector3(sin(a)*r,y+absf(sin(a))*0.75,cos(a)*(3.9+row*0.15))
-   var q:=Vector3(sin(b)*r,y+absf(sin(b))*0.75,cos(b)*(3.9+row*0.15))
-   triangle(torso*p,torso*q,torso*(q+Vector3.UP*0.85),HAIR)
-   triangle(torso*p,torso*(q+Vector3.UP*0.85),torso*(p+Vector3.UP*0.85),HAIR)
- # Layered beard wraps the jaw and neck rather than a painted chin patch.
- for row in 3:
-  for i in 9:
-   var a:=lerpf(-1.4,1.4,i/8.0)
-   var y:=52.8-row*1.0+absf(sin(a))*0.65
-   var root_point:=Vector3(sin(a)*(4.8-row*0.4),y,cos(a)*4.25)
-   hair_lock(torso,root_point,root_point+Vector3(sin(a)*0.2,-1.35,0.35),0.8,HAIR.lightened(0.025*((i+row)%3)))
- for side in [-1,1]:hair_lock(torso,Vector3(side*0.1,52.9,5.05),Vector3(side*2.2,52.45,4.8),0.5,HAIR)
+ # One connected beard shell follows chin, jaw and cheeks. Its ridges are
+ # shallow relief, not detached strips intersecting the face at every frame.
+ var beard_rings:Array[PackedVector3Array]=[]
+ for row in 8:
+  var t:=row/7.0;var ring:=PackedVector3Array()
+  for i in 33:
+   var a:=lerpf(-1.65,1.65,i/32.0)
+   var width:=lerpf(2.9,5.0,t)
+   var y:=lerpf(48.8,53.1,t)+pow(absf(sin(a)),1.2)*lerpf(0.7,1.7,t)
+   var relief:=0.10*cos(a*16+t*2.0)
+   ring.append(torso*Vector3(sin(a)*(width+relief),y,cos(a)*(4.2+t*0.75+relief)))
+  beard_rings.append(ring)
+ for row in 7:
+  for i in 32:
+   var tone:=HAIR.lightened(0.018 if i%4==0 else 0.0)
+   triangle(beard_rings[row][i],beard_rings[row+1][i+1],beard_rings[row+1][i],tone)
+   triangle(beard_rings[row][i],beard_rings[row][i+1],beard_rings[row+1][i+1],tone)
+ for i in 9:
+  var a:=lerpf(-1.5,1.5,i/8.0)
+  var root_point:=Vector3(sin(a)*3.7,50.0+absf(sin(a))*0.8,cos(a)*4.6)
+  hair_lock(torso,root_point,root_point+Vector3(sin(a)*0.2,-1.2,0.1),0.58,HAIR)
+ for side in [-1,1]:hair_lock(torso,Vector3(side*0.1,53.0,5.45),Vector3(side*2.2,52.6,5.1),0.5,HAIR)
+ super.ellipsoid(torso*Vector3(0,52.35,4.9),Vector3(1.5,0.25,0.2),Color("673a26"),torso.basis)
+ super.ellipsoid(torso*Vector3(0,52.1,5.05),Vector3(1.25,0.22,0.25),SKIN.darkened(0.12),torso.basis)
  append_hair(torso)
  surface_tag=0
 func hair_lock(frame:Transform3D,root_point:Vector3,tip:Vector3,width:float,color:Color) -> void:
+ # Closed, thick tufts. Flat paper triangles made the old beard/scalp sparkle.
  var axis:=root_point.direction_to(tip)
  var outward:=Vector3(root_point.x,(root_point.y-55.5)*0.4,root_point.z).normalized()
+ outward=(outward-axis*outward.dot(axis)).normalized()
  var across:=axis.cross(outward).normalized()
- if across.length_squared()<0.1:across=Vector3.RIGHT
- var center:=root_point.lerp(tip,0.38)
- var rim:=[root_point-across*width*0.55,center-across*width,tip,center+across*width,root_point+across*width*0.55]
- var ridge:=center+outward*width*0.45
- for i in rim.size():
-  var a:Vector3=rim[i];var b:Vector3=rim[(i+1)%rim.size()]
-  if (ridge-a).cross(b-a).dot(outward)<0:
-   var swap:=a;a=b;b=swap
-  triangle(frame*a,frame*b,frame*ridge,color.lightened(0.02 if i%2==0 else 0))
+ var rings:Array[PackedVector3Array]=[]
+ for shape:Vector3 in [Vector3(0,0.48,0.26),Vector3(0.3,1,0.55),Vector3(0.68,0.65,0.42),Vector3(1,0.035,0.035)]:
+  var ring:=PackedVector3Array();var center:=root_point.lerp(tip,shape.x)
+  for i in 8:ring.append(frame*(center+across*cos(i*TAU/8)*width*shape.y+outward*sin(i*TAU/8)*width*shape.z))
+  rings.append(ring)
+ for row in rings.size()-1:
+  for i in 8:
+   var n:=(i+1)%8
+   triangle(rings[row][i],rings[row+1][n],rings[row+1][i],color)
+   triangle(rings[row][i],rings[row][n],rings[row+1][n],color)
+ for i in 8:triangle(frame*root_point,rings[0][(i+1)%8],rings[0][i],color)
 func append_hair(torso:Transform3D) -> void:
  var rings:Array[PackedVector3Array]=[]
  for row in 6:
@@ -228,8 +269,10 @@ func append_hair(torso:Transform3D) -> void:
    var y:=lerpf(lower+0.6,61.8,row/4.0)
    var r:=hair_radius(y)
    var root_point:=Vector3(cos(a)*6.05*r,y,sin(a)*5.05*r-0.15)
-   var ty:=y-1.2;var tr:=hair_radius(ty)
+   var ty:=y-2.0;var tr:=hair_radius(ty)
    hair_lock(torso,root_point,Vector3(cos(a)*6.1*tr,ty,sin(a)*5.1*tr-0.15),1.0,HAIR.lightened(0.018*((i+row)%4)))
+ # Close the crown, including views from a fully raised camera.
+ for i in 24:triangle(rings[-1][i],rings[-1][(i+1)%24],torso*Vector3(0,62.4,-0.15),HAIR)
  for i in 6:
   var x:float=(i-2.5)*1.3
   hair_lock(torso,Vector3(x,60.5,1.4),Vector3(x+1.2,62.5-absf(x)*0.08,-0.2),1.0,HAIR.lightened(0.02*(i%3)))

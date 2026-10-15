@@ -12,7 +12,8 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú prin
   atravesar paredes y copas. Movimiento relativo a la cámara.
 - Superviviente estilizado de 1,75 m y 60 kg, delgado, con piel continua,
   articulaciones estables y pantalón holgado con inercia ligera. El esqueleto
-  tiene veinte huesos, incluidos cuatro para los bajos de la tela.
+  tiene 24 controles, incluidos cuatro para los bajos de la tela y cuatro para
+  conservar el volumen de codos y rodillas.
 - Atlas de alta resolución con acabado pixel art, paleta limitada y muestreo
   nearest con mipmaps. El modelo y sus pinturas toman las nuevas vistas de frente/espalda del superviviente.
 - Catálogo de 29 estados para manos libres y siete familias de objetos: caminar,

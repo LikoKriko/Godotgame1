@@ -2,6 +2,7 @@ extends RefCounted
 ## Stable skinned mesh. Poses move bones; topology and surface detail never change.
 const Pose = preload("res://scripts/continuous_body_pose.gd")
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
+const Kinematics=preload("res://scripts/prototype_3d/human_kinematics.gd")
 const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
 var skeleton := Skeleton3D.new()
 var rest: Array[Transform3D] = []
@@ -23,12 +24,13 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  bone("neck",1,Vector3(0,48,0))
  bone("head",2,Anatomy.head(Vector3(0,55.1,0)))
  for side in 2:
-  var arm := Pose.joint(neutral.shoulders[side],neutral.hands[side],Pose.UPPER_ARM,Pose.FOREARM,Vector3(-0.35 if side==0 else 0.35,-1,0))
+  var arm:Dictionary = Clips.relaxed_arm(neutral,side)
+  neutral.hands[side]=arm.end
   arm_rest.append(arm)
   var start := rest.size()
   bone("upper_arm_%d"%side,1,arm.root)
   bone("forearm_%d"%side,start,arm.joint)
-  bone("hand_%d"%side,start+1,arm.end)
+  bone("hand_%d"%side,start+1,arm.end,Kinematics.hand_frame(arm,Basis.IDENTITY,side))
  for side in 2:
   var leg: Dictionary = neutral.legs[side]
   var start := rest.size()
@@ -38,6 +40,11 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  for side in 2:
   for panel in 2:
    bone("cloth_hem_%d_%d"%[side,panel],10+side*3,neutral.legs[side].root.lerp(neutral.legs[side].joint,0.3))
+ # One volume-preserving hinge collar per elbow/knee, appended after stable IDs.
+ for side in 2:
+  bone("elbow_volume_%d"%side,4+side*3,arm_rest[side].joint)
+ for side in 2:
+  bone("knee_volume_%d"%side,10+side*3,neutral.legs[side].joint)
  actor.add_child(skeleton)
  mesh_instance.reparent(skeleton)
  mesh_instance.skeleton = NodePath("..")
@@ -47,7 +54,7 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  var arrays: Array = mesh_instance.mesh.surface_get_arrays(0)
  var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
  var tags: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
- for i in vertices.size(): vertices[i]=Anatomy.geometry(vertices[i],int(tags[i].x))
+ for i in vertices.size(): vertices[i]=actor.mesh_to_bind(vertices[i],int(tags[i].x),self)
  arrays[Mesh.ARRAY_VERTEX]=vertices
  arrays[Mesh.ARRAY_NORMAL] = sculpted_normals(vertices,arrays[Mesh.ARRAY_COLOR],tags)
  var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
@@ -57,16 +64,26 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  for i in vertices.size():
   var cloth := colors[i].r<0.61 and colors[i].g<0.39 and vertices[i].y<25
   var blend := bindings(vertices[i],int(tags[i].x),cloth)
+  if int(tags[i].x) in [1,2]:
+   var arm:Dictionary=arm_rest[int(tags[i].x)-1]
+   var along:float=(vertices[i]-arm.root).dot(arm.root.direction_to(arm.joint))
+   colors[i].a=smoothstep(1.2,4.0,along)
   texture_uv.append(material_uv(vertices[i],colors[i]))
   # Anatomical projection of the supplied front/back paintings in bind space.
-  # Only torso and shorts use this projection; faces/hands remain real geometry.
-  if int(tags[i].x)==0 and vertices[i].y>=15.5 and vertices[i].y<=48.5 and (vertices[i].y>=29.4 or colors[i].r<0.61):
+  # Torso, shorts and arm skin share the supplied paintings in bind space.
+  # Face/hand volumes retain their individually authored features.
+  var face:=i-i%3
+  var face_height:float=(vertices[face].y+vertices[face+1].y+vertices[face+2].y)/3.0
+  var painted_body:=int(tags[i].x) in [0,13] and ((face_height>=29.4 and face_height<=49.5) or colors[face].is_equal_approx(Color8(96,77,51)))
+  if painted_body or int(tags[i].x) in [1,2]:
    var point:Vector3=vertices[i]
-   var front:=point.z>=0
+   # All three corners must sample the same painting. Interpolating mirrored
+   # front/back UVs across one triangle drew dark bands through elbow rings.
+   var front:bool=(vertices[face].z+vertices[face+1].z+vertices[face+2].z)>=0
    var horizontal:float=point.x if front else -point.x
    var waist_y:=610.0 if front else 585.0
    var image_y:=waist_y-(point.y-29.4)*17.4 if point.y>=29.4 else waist_y+(29.4-point.y)*18.5
-   texture_uv[-1]=Vector2((506.0+horizontal*21.1)/1086.0,image_y/1448.0)
+   texture_uv[-1]=Vector2(((506.0 if front else 535.0)+horizontal*21.1)/1086.0,image_y/1448.0)
    projection_tags[i].y=1.0 if front else 2.0
   if int(tags[i].x)==0 and vertices[i].y>30 and vertices[i].y<45 and colors[i].r>0.7:
    var point: Vector3 = vertices[i]
@@ -128,10 +145,10 @@ func material_uv(vertex: Vector3,color: Color) -> Vector2:
  # Keep bilinear taps inside each patch, avoiding contamination by its neighbor.
  return patch+Vector2(0.004,0.004)+Vector2(fposmod(sample.x,1),fposmod(sample.y,1))*0.492
 
-func bone(label: String, parent: int, position: Vector3) -> void:
+func bone(label: String, parent: int, position: Vector3,basis:Basis=Basis.IDENTITY) -> void:
  var index := skeleton.get_bone_count(); skeleton.add_bone(label)
  names[label] = index; parents.append(parent)
- var transform := Transform3D(Basis.IDENTITY,position)
+ var transform := Transform3D(basis,position)
  rest.append(transform); posed.append(transform)
  if parent >= 0: skeleton.set_bone_parent(index,parent)
  var local := rest[parent].affine_inverse()*transform if parent >= 0 else transform
@@ -144,19 +161,22 @@ func limb_binding(vertex: Vector3,start: int,joints: Dictionary) -> Array:
  var top: Vector3 = joints.root; var middle: Vector3 = joints.joint; var end: Vector3 = joints.end
  var first := Geometry3D.get_closest_point_to_segment(vertex,top,middle)
  var second := Geometry3D.get_closest_point_to_segment(vertex,middle,end)
+ var collar:=20+int((start-4)/3.0) if start<10 else 22+int((start-10)/3.0)
  if vertex.distance_squared_to(first) <= vertex.distance_squared_to(second):
   var t := top.distance_to(first)/top.distance_to(middle)
-  return pair(start,start+1,smoothstep(0.7,1.0,t)*0.5)
+  return pair(start,collar,smoothstep(0.80,1.0,t))
  var t := middle.distance_to(second)/middle.distance_to(end)
- if t < 0.3: return pair(start,start+1,0.5+0.5*smoothstep(0,0.3,t))
+ if t < 0.20: return pair(collar,start+1,smoothstep(0,0.20,t))
  return pair(start+1,start+2,smoothstep(0.78,1.0,t))
 
 func bindings(vertex: Vector3,tag: int,cloth: bool = false) -> Array:
+ if tag==13:return pair(0,0,0) # Waist/crotch bridge belongs to pelvis, not either thigh.
  if tag in [1,2]:
   var side:=tag-1;var arm:Dictionary=arm_rest[side];var start:=4+side*3
   var along:=clampf((vertex-arm.root).dot((arm.joint-arm.root).normalized()),0,Pose.UPPER_ARM)
-  if along<3.5:return pair(1,start,smoothstep(1.0,3.5,along))
+  if along<2.5:return pair(1,start,smoothstep(0.0,2.5,along))
   return limb_binding(vertex,start,arm)
+ if tag in [5,6]:return pair(6+(tag-5)*3,6+(tag-5)*3,0)
  if tag==3: return pair(3,3,0)
  if vertex.y < 26.0:
   var side := 0 if vertex.x < 0 else 1
@@ -173,10 +193,17 @@ func bindings(vertex: Vector3,tag: int,cloth: bool = false) -> Array:
  if vertex.y > 45: return pair(1,2,smoothstep(45,48,vertex.y))
  return pair(0,1,smoothstep(28,40,vertex.y))
 
-func orient(index: int,root: Vector3,end: Vector3,rest_end: Vector3) -> void:
- var original := rest[index].origin.direction_to(rest_end)
- var current := root.direction_to(end)
- posed[index] = Transform3D(Basis(Quaternion(original,current)),root)
+func orient_limb(start:int,chain:Dictionary,bind_chain:Dictionary) -> void:
+ # A shortest-arc quaternion alone loses the hinge plane and flips limb roll.
+ for segment in 2:
+  var rotation:=Kinematics.segment_frame(chain,segment)*Kinematics.segment_frame(bind_chain,segment).inverse()
+  posed[start+segment]=Transform3D(rotation,chain.root if segment==0 else chain.joint)
+
+func hinge_collar(index:int,chain:Dictionary,bind_chain:Dictionary) -> void:
+ var current:Vector3=(chain.joint-chain.root).normalized()+(chain.end-chain.joint).normalized()
+ var original:Vector3=(bind_chain.joint-bind_chain.root).normalized()+(bind_chain.end-bind_chain.joint).normalized()
+ var rotation:=Kinematics.frame(current,Kinematics.plane(chain))*Kinematics.frame(original,Kinematics.plane(bind_chain)).inverse()
+ posed[index]=Transform3D(rotation,chain.joint)
 
 func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
  var torso: Transform3D = pose.body
@@ -186,8 +213,9 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
  var neck: Vector3 = torso*Anatomy.HEAD_ANCHOR
  posed[3] = Transform3D(skull_basis,neck+skull_basis*(rest[3].origin-Anatomy.HEAD_ANCHOR))
  for side in 2:
-  var arm := Pose.joint(pose.shoulders[side],hands[side],Pose.UPPER_ARM,Pose.FOREARM,Vector3(-1.2 if side==0 else 1.2,-0.55,1.5))
   var clip:StringName=pose.get("clip_state",&"idle")
+  var swinging:=Clips.arm_is_free(pose,side) and clip in [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk"]
+  var arm := Kinematics.arm(pose.shoulders[side],hands[side],torso.basis,side,swinging)
   var relaxed:Dictionary=Clips.relaxed_arm(pose,side)
   var resting:=clip==&"idle"
   if relaxed.is_empty() or clip not in [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run"]:relaxed_arm_blend[side]=0
@@ -210,15 +238,15 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
    var forearm:Vector3=(arm.end-arm.joint).normalized().lerp((running_pose.end-running_pose.joint).normalized(),amount).normalized()
    arm.joint=arm.root+upper*Pose.UPPER_ARM;arm.end=arm.joint+forearm*Pose.FOREARM
   var start := 4+side*3
-  orient(start,arm.root,arm.joint,arm_rest[side].joint)
-  orient(start+1,arm.joint,arm.end,arm_rest[side].end)
-  posed[start+2] = Transform3D(posed[start+1].basis,arm.end)
+  orient_limb(start,arm,arm_rest[side])
+  hinge_collar(20+side,arm,arm_rest[side])
+  posed[start+2] = Transform3D(Kinematics.hand_frame(arm,torso.basis,side,not swinging),arm.end)
   if pose.get("family",&"")==&"" and pose.get("clip_state")==&"action":
    var close_fist:=sin(clampf(float(pose.phase),0,1)*PI)
-   posed[start+2].basis=posed[start+2].basis.scaled(Vector3(1+0.1*close_fist,1-0.12*close_fist,1+0.1*close_fist))
+   posed[start+2].basis=posed[start+2].basis*Basis.from_scale(Vector3(1+0.1*close_fist,1-0.12*close_fist,1+0.1*close_fist))
   var leg: Dictionary = pose.legs[side]; start = 10+side*3
-  orient(start,leg.root,leg.joint,neutral.legs[side].joint)
-  orient(start+1,leg.joint,leg.end,neutral.legs[side].end)
+  orient_limb(start,leg,neutral.legs[side])
+  hinge_collar(22+side,leg,neutral.legs[side])
   posed[start+2] = Transform3D(torso.basis if pose.state==&"death" else Basis(Vector3.RIGHT,leg.pitch),leg.end)
   var leg_angle := atan2((leg.joint-leg.root).z,-(leg.joint-leg.root).y)
   if delta>0:
