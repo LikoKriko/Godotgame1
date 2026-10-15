@@ -1,6 +1,7 @@
 extends RefCounted
 ## Anatomical frames: the elbow/knee plane determines roll as well as swing.
 ## +Z is the actor's front. Elbows flex forward, knees project forward.
+const SurfaceProfile=preload("res://scripts/prototype_3d/survivor_surface.gd")
 const Anatomy=preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Pose=preload("res://scripts/continuous_body_pose.gd")
 
@@ -20,8 +21,9 @@ static func arm(root:Vector3,hand:Vector3,body:Basis,side:int,free_swing:bool=fa
   for fraction in [0.35,0.60,0.85]:
    var point:Vector3=shoulder_local+body.inverse()*(result.root.lerp(result.joint,fraction)-root)
    if point.y<30 or point.y>45.5:continue
-   var width:=lerpf(5.2,7.7,smoothstep(31,44,point.y))
-   var depth:=lerpf(2.8,3.9,smoothstep(31,40,point.y))
+   var radius_value:=SurfaceProfile.radius(point.y)
+   var width:=radius_value.x
+   var depth:=radius_value.y+0.15
    var radius:=sqrt(pow(point.x/width,2)+pow(point.z/depth,2))
    var penetration:=maxf(0,(1-radius)*depth+1.65)
    var normal:=Vector3(point.x/(width*width),0,point.z/(depth*depth)).normalized()

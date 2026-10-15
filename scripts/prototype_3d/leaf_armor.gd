@@ -1,20 +1,23 @@
 extends Node3D
 ## A leaf vest with open armholes and woven shoulder straps, not a closed poncho.
 const Meshes=preload("res://scripts/prototype_3d/prop_mesh.gd")
-const Anatomy=preload("res://scripts/prototype_3d/survivor_anatomy.gd")
+const SurfaceProfile=preload("res://scripts/prototype_3d/survivor_surface.gd")
 var shell:MeshInstance3D
 static var shared_mesh:ArrayMesh
 static var shared_material:StandardMaterial3D
 static func radius(y:float) -> Vector2:
- var rings:=[Vector3(24.5,6.5,3.2),Vector3(29,6.8,3.8),Vector3(35,6.7,4.0),Vector3(40,8.6,4.95),Vector3(44.5,8.8,4.0),Vector3(46.8,4.2,2.3)]
- for i in rings.size()-1:
-  if y<=rings[i+1].x:
-   var r:Vector3=rings[i].lerp(rings[i+1],clampf((y-rings[i].x)/(rings[i+1].x-rings[i].x),0,1))
-   return Vector2(r.y*Anatomy.BODY_WIDTH+0.25,r.z*Anatomy.BODY_DEPTH+0.25)
- return Vector2(3.8,2.15)
+ var body_size:=SurfaceProfile.radius(y) if y>=29.4 else SurfaceProfile.pelvis_radius(y)
+ return body_size+Vector2.ONE*0.40
+static func shoulder_height(x:float,z:float) -> float:
+ for step in 130:
+  var y:=49.5-step*.06
+  var size:=SurfaceProfile.radius(y)
+  if pow(x/size.x,2)+pow(z/size.y,2)<=1:return y+.18
+ return 44.6
 static func point(angle:float,y:float,offset:float=0) -> Vector3:
  var r:=radius(y)+Vector2.ONE*offset
- return Vector3(sin(angle)*r.x,y,cos(angle)*r.y)
+ var x:=sin(angle);var z:=cos(angle)
+ return Vector3(signf(x)*pow(absf(x),.91)*r.x,y,signf(z)*pow(absf(z),.88)*r.y)
 static func triangle(surface:SurfaceTool,a:Vector3,b:Vector3,c:Vector3,color:Color) -> void:
  var points:=[a,b,c];var outward:=(a+b+c)*Vector3(1,0,1)
  if (c-a).cross(b-a).dot(outward)<0:points.reverse()
@@ -77,14 +80,15 @@ static func build() -> void:
   var top:=44.8-row*5.0
   if row<2:
    for back in [0.0,PI]:
-    for column in 3:leaf(surface,back+(column-1)*(0.52 if row==1 else 0.28)+(0.1 if row==1 else 0.0),top,6.3,0.31 if row==1 else 0.24,[Color("627b36"),Color("6e853b"),Color("586f31")][(row+column)%3])
+    for column in 3:leaf(surface,back+(column-1)*(0.52 if row==1 else 0.28)+(0.1 if row==1 else 0.0),top,6.3,0.31 if row==1 else 0.21,[Color("627b36"),Color("6e853b"),Color("586f31")][(row+column)%3])
   else:
    for column in 12:leaf(surface,(column+float(row%2)*0.5)*TAU/12,top,6.8,0.29,[Color("627b36"),Color("6e853b"),Color("586f31")][(row+column)%3])
  # The shoulder bands rest on the inner shoulder slope and clear the deltoid.
  for side in [-1,1]:
   var path:=PackedVector3Array()
   for i in 21:
-   var t:=i/20.0;path.append(Vector3(side*2.9,44.8+sin(t*PI)*1.85,lerpf(4.05,-4.05,t)))
+   var t:=i/20.0;var z:=lerpf(3.55,-3.55,t)
+   path.append(Vector3(side*2.9,maxf(44.6+sin(t*PI)*1.85,shoulder_height(side*2.9,z)),z))
   for offset in [-0.5,0,0.5]:
    var strand:=PackedVector3Array()
    for p in path:strand.append(p+Vector3.RIGHT*offset)
@@ -101,11 +105,11 @@ static func build() -> void:
  for back in [0.0,PI]:
   for side in [-1,1]:
    var path:=PackedVector3Array()
-   for i in 25:path.append(point(back+side*0.45,44.8-i*16.5/24,0.8))
+   for i in 25:path.append(point(back+side*0.40,44.8-i*16.5/24,0.8))
    cord(surface,path,0.10)
   var collar:=PackedVector3Array()
   for i in 25:
-   var angle:float=back+lerpf(-0.46,0.46,i/24.0);collar.append(point(angle,44.7-1.5*sin(i*PI/24),0.85))
+   var angle:float=back+lerpf(-0.40,0.40,i/24.0);collar.append(point(angle,44.7-1.5*sin(i*PI/24),0.85))
   cord(surface,collar,0.14)
  for side in [-1,1]:
   var knot:=PackedVector3Array()

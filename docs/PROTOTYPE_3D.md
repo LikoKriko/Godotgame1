@@ -90,6 +90,22 @@ modelo. Cada perfil de objeto declara punta y segundo agarre en `held_profiles.g
 
 ## Arquitectura y comprobaciones
 
+El perfil `survivor_surface.gd` comparte las medidas de cintura, caja torácica,
+cuello y cadera entre geometría, pinturas, separación de brazos y armadura.
+Los hitos frontal/trasero proceden de las imágenes entregadas; la profundidad
+se modela por separado. `humanoid_rig.gd` guarda las dos proyecciones en UV2 y
+CUSTOM0 y el shader mezcla sus **colores**, evitando interpolar coordenadas
+espejadas que atravesaban el fondo del dibujo. Cada pernera tiene su propio
+recorrido de textura. La cintura, el puente de tela y la cuerda comparten el
+contorno físico; los bajos conservan sus huesos y movimiento independientes.
+
+`tests/prototype_3d_surface_fit.gd` comprueba la malla real, sus proporciones,
+cobertura de ambas pinturas, interpolación dentro de triángulos, unión de las
+perneras y pesos de la cintura. Se complementa con las pruebas de deformación,
+articulaciones y holgura de la armadura, y con revisión renderizada desde ocho
+orientaciones. La cobertura y estabilidad numérica no certifican un parecido
+artístico perfecto: las vistas frontal/trasera no especifican toda la profundidad.
+
 `scripts/prototype_3d/` separa anatomía, catálogo de poses, IK de herramientas,
 rig humano, rig del topo, decisiones de criatura, física, cámara e interfaz.
 Una sola malla por personaje conserva pesos y UV durante toda la animación;

@@ -254,3 +254,30 @@ esta máquina. Este dato no es una medición de FPS. F6 disponible en tree_revie
 Cierre de la tanda de árboles registrado a **13:30:47 UTC**: **23 min 28 s**
 observados desde el inicio, antes del último commit/push. Se añadieron pequeñas
 ramillas visibles entre las hojas y se validó la escena de revisión independiente.
+
+## 2026-10-15 — Cintura, pinturas envolventes y ropa ajustada
+
+Inicio observado **13:36:56 UTC** (15:36:56 Madrid). Validación de integración
+cerrada a **13:58:19 UTC**: **21 min 23 s transcurridos**, incluyendo consultas e
+interrupciones de conversación; no se presentan como tiempo de ejecución
+continua. Estimación previa: 40–60 minutos adicionales para el personaje.
+
+El torso se reconstruyó con secciones medidas en ambas referencias, profundidad
+propia, cintura más estrecha y transición de caja torácica/cuello. Se ajustaron
+caderas, puente de tela, perneras y cuerda. Las pinturas frontal y posterior
+ahora se muestrean por separado y se mezclan por color en los laterales. La
+ropa usa límites propios por pierna para evitar pintar el fondo entre ellas.
+La armadura comparte el perfil y se abrieron sus ataduras superiores para
+eliminar un roce durante el golpe de hacha.
+
+Pasaron las pruebas de deformación (145006), catálogo (8588), brazos (374),
+cámara/zancada (1116), deslizamiento (2027), referencia (539), armadura/modelo
+(24), arco (69), integración (739) y movimiento real. Una prueba nueva añade
+10 comprobaciones de cobertura/proporciones/unión de tela, tomando muestras
+interiores de triángulos de ambas imágenes. Revisión nativa de frente, espalda,
+lados y diagonales, con/sin armadura, en reposo, movimiento y herramientas.
+La revisión artística sigue siendo necesaria: no se afirma identidad exacta
+con una imagen plana ni perfección de todas las animaciones.
+
+El ajuste de cámara/mira solicitado durante esta tanda se realizará después de
+publicarla, separado de los cambios del modelo.

@@ -7,7 +7,7 @@ const BODY_DEPTH := 0.82
 const HEAD_ANCHOR := Vector3(0,48.5,0)
 const HEAD_SCALE := Vector3(0.75,0.86,0.80)
 const SHOULDER := Vector3(7.6*BODY_WIDTH,45.7,0)
-const HIP := Vector3(4.4*BODY_WIDTH,26.9,0)
+const HIP := Vector3(3.20,26.9,0)
 const FOOT_HALF_WIDTH := 2.3*BODY_WIDTH
 const FOOT_GAP := 0.65
 

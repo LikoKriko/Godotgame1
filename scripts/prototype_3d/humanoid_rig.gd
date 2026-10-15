@@ -1,6 +1,7 @@
 extends RefCounted
 ## Stable skinned mesh. Poses move bones; topology and surface detail never change.
 const Pose = preload("res://scripts/continuous_body_pose.gd")
+const SurfaceProfile=preload("res://scripts/prototype_3d/survivor_surface.gd")
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Kinematics=preload("res://scripts/prototype_3d/human_kinematics.gd")
 const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
@@ -53,6 +54,7 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  mesh_instance.skin = skin
  var arrays: Array = mesh_instance.mesh.surface_get_arrays(0)
  var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+ var authored_vertices:=vertices.duplicate()
  var tags: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
  for i in vertices.size(): vertices[i]=actor.mesh_to_bind(vertices[i],int(tags[i].x),self)
  arrays[Mesh.ARRAY_VERTEX]=vertices
@@ -60,6 +62,8 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
  var texture_uv := PackedVector2Array()
  var projection_tags:=tags.duplicate()
+ var reference_data:=PackedFloat32Array()
+ var surface_normals:PackedVector3Array=arrays[Mesh.ARRAY_NORMAL]
  var indices := PackedInt32Array(); var weights := PackedFloat32Array()
  for i in vertices.size():
   var cloth := colors[i].r<0.61 and colors[i].g<0.39 and vertices[i].y<25
@@ -69,22 +73,30 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
    var along:float=(vertices[i]-arm.root).dot(arm.root.direction_to(arm.joint))
    colors[i].a=smoothstep(1.2,4.0,along)
   texture_uv.append(material_uv(vertices[i],colors[i]))
-  # Anatomical projection of the supplied front/back paintings in bind space.
-  # Torso, shorts and arm skin share the supplied paintings in bind space.
-  # Face/hand volumes retain their individually authored features.
+  # Store BOTH anatomical paintings and a bind-space side blend. Colors are
+  # blended after sampling; mirrored UV coordinates must never be interpolated.
   var face:=i-i%3
   var face_height:float=(vertices[face].y+vertices[face+1].y+vertices[face+2].y)/3.0
-  var painted_body:=int(tags[i].x) in [0,13] and ((face_height>=29.4 and face_height<=49.5) or colors[face].is_equal_approx(Color8(96,77,51)))
-  if painted_body or int(tags[i].x) in [1,2]:
+  var tag:=int(tags[i].x)
+  var torso:=tag==0 and colors[face].r>.7 and face_height>=29.4 and face_height<=49.5
+  var cloth_surface:=tag==13 or (tag==0 and colors[face].is_equal_approx(Color8(96,77,51)))
+  var painted:=torso or cloth_surface or tag in [1,2]
+  var front_uv:=texture_uv[-1];var back_uv:=front_uv;var side_blend:=1.0
+  if painted:
    var point:Vector3=vertices[i]
-   # All three corners must sample the same painting. Interpolating mirrored
-   # front/back UVs across one triangle drew dark bands through elbow rings.
-   var front:bool=(vertices[face].z+vertices[face+1].z+vertices[face+2].z)>=0
-   var horizontal:float=point.x if front else -point.x
-   var waist_y:=610.0 if front else 585.0
-   var image_y:=waist_y-(point.y-29.4)*17.4 if point.y>=29.4 else waist_y+(29.4-point.y)*18.5
-   texture_uv[-1]=Vector2(((506.0 if front else 535.0)+horizontal*21.1)/1086.0,image_y/1448.0)
-   projection_tags[i].y=1.0 if front else 2.0
+   if torso:
+    front_uv=SurfaceProfile.torso_uv(point,true);back_uv=SurfaceProfile.torso_uv(point,false)
+   elif tag==13:
+    front_uv=SurfaceProfile.pelvis_uv(point,true);back_uv=SurfaceProfile.pelvis_uv(point,false)
+   elif cloth_surface:
+    var coordinate:Vector2=actor.authored_cloth_coordinates.get(authored_vertices[i],Vector2.ZERO)
+    var side:=0 if authored_vertices[i].x<0 else 1
+    front_uv=SurfaceProfile.leg_cloth_uv(coordinate,side,true);back_uv=SurfaceProfile.leg_cloth_uv(coordinate,side,false)
+   else:
+    front_uv=SurfaceProfile.limb_uv(point,true);back_uv=SurfaceProfile.limb_uv(point,false)
+   side_blend=smoothstep(-0.55,0.55,surface_normals[i].z)
+   texture_uv[-1]=front_uv;projection_tags[i].y=1.0
+  reference_data.append_array(PackedFloat32Array([back_uv.x,back_uv.y,side_blend,1.0 if cloth_surface else 0.0]))
   if int(tags[i].x)==0 and vertices[i].y>30 and vertices[i].y<45 and colors[i].r>0.7:
    var point: Vector3 = vertices[i]
    var front := smoothstep(0.5,2.5,point.z)
@@ -98,7 +110,8 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  arrays[Mesh.ARRAY_TEX_UV2] = texture_uv
  arrays[Mesh.ARRAY_TEX_UV] = projection_tags
  arrays[Mesh.ARRAY_COLOR] = colors
- var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+ arrays[Mesh.ARRAY_CUSTOM0]=reference_data
+ var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays,[],{},Mesh.ARRAY_CUSTOM_RGBA_FLOAT<<Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
  mesh_instance.mesh = mesh
  # Animated limbs may extend beyond the standing bounds.
  mesh_instance.custom_aabb = AABB(Vector3(-30,-10,-35),Vector3(60,90,70))

@@ -6,11 +6,13 @@ const FRONT_REFERENCE = preload("res://assets/characters/prototype_3d/reference_
 const BACK_REFERENCE = preload("res://assets/characters/prototype_3d/reference_back.png")
 const GRIP_HEIGHT := 4.0
 const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
+const SurfaceProfile=preload("res://scripts/prototype_3d/survivor_surface.gd")
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Aim = preload("res://scripts/prototype_3d/tool_aim.gd")
 const Profiles = preload("res://scripts/prototype_3d/held_profiles.gd")
 const Kinematics=preload("res://scripts/prototype_3d/human_kinematics.gd")
 var authored_limbs:Dictionary={}
+var authored_cloth_coordinates:Dictionary={}
 var axe: Node3D
 var rig = preload("res://scripts/prototype_3d/humanoid_rig.gd").new()
 var displayed_pose: Dictionary = {}
@@ -52,7 +54,16 @@ func _ready() -> void:
  core_mesh.hide()
 func tube(joints: Array,radius_a: float,radius_b: float,color: Color,shorts: bool = false,steps: int = 12) -> void:
  if color!=SKIN:
-  super.tube(joints,radius_a,radius_b,color,shorts,steps);return
+  # Refit the original waist cord to the new cloth silhouette, not its old
+  # broad ellipse. The knot tails stay just in front of the same waistband.
+  if color in [Color8(128,84,43),Color8(131,86,44)] and joints[0].y>26:
+   var fitted:Array=[]
+   for p:Vector3 in joints:
+    var size:=SurfaceProfile.pelvis_radius(p.y)+Vector2.ONE*.18
+    fitted.append(Vector3(p.x/6.7*size.x/Anatomy.BODY_WIDTH,p.y,p.z/3.4*size.y/Anatomy.BODY_DEPTH))
+   super.tube(fitted,radius_a,radius_b,color,shorts,steps)
+  else:super.tube(joints,radius_a,radius_b,color,shorts,steps)
+  return
  var key:=int(surface_tag) if not shorts else (10 if joints[0].x<0 else 11)
  authored_limbs[key]={"root":joints[0],"joint":joints[1],"end":joints[2]}
  # Anatomical cross sections span both bones, with no detached elbow/knee caps.
@@ -80,8 +91,12 @@ func tube(joints: Array,radius_a: float,radius_b: float,color: Color,shorts: boo
    var angle:=segment*TAU/sides
    var hem:=0.0
    if shorts and is_equal_approx(t,0.38):hem=-0.32+0.35*sin(segment*2.7)
-   ring.append(center+across*cos(angle)*(radius_a*shape.y+cloth)+front*sin(angle)*(radius_a*shape.z+cloth)+Vector3.UP*hem)
+   var cloth_width:=lerpf(0.79,1.0,smoothstep(0.34,0.43,t)) if shorts else 1.0
+   var point:Vector3=center+across*cos(angle)*(radius_a*shape.y+cloth)*cloth_width+front*sin(angle)*(radius_a*shape.z+cloth)+Vector3.UP*hem
+   ring.append(point)
+   if shorts:authored_cloth_coordinates[point]=Vector2(cos(angle),point.y)
   rings.append(ring);centers.append(center)
+  if shorts:authored_cloth_coordinates[center]=Vector2(0,center.y)
  for row in rings.size()-1:
   var tint:=CLOTH if shorts and sections[row].x<0.38 else color
   for i in sides:
@@ -101,8 +116,20 @@ func mesh_to_bind(point:Vector3,tag:int,skin_rig:RefCounted) -> Vector3:
   var side:=0 if point.x<0 else 1
   var transformed:=Kinematics.retarget(point,authored_limbs[10+side],skin_rig.neutral.legs[side])
   # The crotch and waistband stay on the pelvis, not on either moving thigh.
-  return transformed.lerp(Anatomy.geometry(point,tag),smoothstep(23,26,point.y))
- return Anatomy.geometry(point,tag)
+  return fit_upper_cloth(transformed.lerp(Anatomy.geometry(point,tag),smoothstep(23,26,point.y)),point)
+ var result:=Anatomy.geometry(point,tag)
+ return fit_upper_cloth(result,point) if tag==0 and authored_cloth_coordinates.has(point) else result
+func fit_upper_cloth(point:Vector3,authored:Vector3) -> Vector3:
+ if authored.y<23.0:return point
+ var size:=SurfaceProfile.pelvis_radius(point.y)
+ # Upper trouser tubes meet the shared hip shell; they cannot stick through
+ # its sides and form a horizontal ledge. Preserve the individual leg hems.
+ var extent:=pow(pow(absf(point.x)/size.x,2.2)+pow(absf(point.z)/size.y,2.2),1.0/2.2)
+ if extent>1.0:
+  var amount:=smoothstep(23.0,25.3,authored.y)
+  point.x=lerpf(point.x,point.x/extent,amount)
+  point.z=lerpf(point.z,point.z/extent,amount)
+ return point
 func triangle(a: Vector3,b: Vector3,c: Vector3,color: Color) -> void:
  surface.set_smooth_group(0)
  super.triangle(a,b,c,color)
@@ -121,7 +148,9 @@ func ellipsoid(center: Vector3,size: Vector3,color: Color,basis: Basis = Basis.I
  if center.is_equal_approx(Vector3(0,27.7,0)):
   # Waistband joins both cloth legs without the old spherical crotch.
   var previous:=surface_tag;surface_tag=13
-  profile_volume([Vector3(23.0,5.6,3.0),Vector3(24.5,6.7,3.6),Vector3(26.0,6.95,3.8),Vector3(27.5,7.0,3.75),Vector3(29.4,6.8,3.65)],CLOTH)
+  var profile:Array=[]
+  for ring:Vector3 in SurfaceProfile.PELVIS:profile.append(Vector3(ring.x,ring.y/Anatomy.BODY_WIDTH,ring.z/Anatomy.BODY_DEPTH))
+  profile_volume(profile,CLOTH)
   surface_tag=previous;return
  if center.y>=31 and center.y<=44 and center.z>2 and size.z<1.5:return
  super.ellipsoid(center,size,color,basis)
@@ -154,7 +183,10 @@ func append_hand(center:Vector3,side:float) -> void:
 func append_torso() -> void:
  # Silhouette landmarks follow the supplied front/back views. Depth is sculpted
  # separately: a projected painting must not substitute for a rib cage/scapula.
- var profile := [Vector3(29.4,6.55,3.4),Vector3(31,6.1,3.25),Vector3(33,6.15,3.4),Vector3(35,6.4,3.65),Vector3(37,7.05,4.0),Vector3(39,7.8,4.35),Vector3(41,8.6,4.55),Vector3(43,9.15,4.15),Vector3(44.5,9.4,3.6),Vector3(45.4,8.65,3.05),Vector3(46.25,6.9,2.5),Vector3(47.0,4.65,2.1),Vector3(47.65,2.5,1.9),Vector3(49.5,2.0,1.85)]
+ var profile:Array=[]
+ for mark:Vector4 in SurfaceProfile.FRONT:
+  var shape:=SurfaceProfile.radius(mark.x)
+  profile.append(Vector3(mark.x,shape.x/Anatomy.BODY_WIDTH,shape.y/Anatomy.BODY_DEPTH))
  var rings:Array[PackedVector3Array]=[]
  var sides:=48
  for section in profile.size()-1:
@@ -178,7 +210,8 @@ func append_torso() -> void:
     ring.append(Vector3(x,shape.x,z))
    rings.append(ring)
  var top:=PackedVector3Array()
- for i in sides:top.append(Vector3(cos(i*TAU/sides)*2,49.5,sin(i*TAU/sides)*1.85))
+ var neck_size:=SurfaceProfile.radius(49.5)
+ for i in sides:top.append(Vector3(cos(i*TAU/sides)*neck_size.x/Anatomy.BODY_WIDTH,49.5,sin(i*TAU/sides)*neck_size.y/Anatomy.BODY_DEPTH))
  rings.append(top)
  for row in rings.size()-1:
   for i in sides:
