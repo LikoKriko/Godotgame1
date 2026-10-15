@@ -518,3 +518,16 @@ brazo recorre ahora sus propias franjas de piel frontal y trasera, con márgenes
 interiores y UV fijas en reposo. Torso, piernas, geometría y contorno exterior
 conservan su tratamiento. `tests/prototype_3d_arm_skin.gd` comprueba muestras
 interpoladas y cuantizadas igual que el shader contra ambas imágenes originales.
+
+
+## Reconstrucción del enemigo joven desde cuatro vistas
+
+La geometría nueva sustituye las aproximaciones anteriores de cabeza, torso,
+brazos, patas, pelaje y puños. Incluye 1836 mechones marrones, 128 piezas doradas,
+orejas cóncavas, cara reconstruida y 84 placas de piedra entre ambos puños.
+Conserva catorce huesos, comparte la malla ligada entre enemigos y adapta la
+anatomía de las acciones a sus proporciones. La altura sigue siendo 0,875 m.
+
+Revisión F6 en `young_review.tscn`: postura fija de referencia, botones para las
+cuatro vistas y selector de animaciones. Ver [YOUNG_3D.md](YOUNG_3D.md) para
+materiales, comprobaciones y comparación con la lámina original.

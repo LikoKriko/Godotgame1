@@ -551,3 +551,42 @@ manos libres/arco, longitud de piernas, agarres y contacto de mira; catálogo
 Revisión nativa de **40 poses** del golpe de espada agachado con/sin armadura.
 `git diff --check` limpio. Cambios **sin commit ni push**, manteniendo la
 instrucción expresa del usuario de esperar antes de publicar.
+
+
+
+## 2026-10-15 — Reconstrucción del joven desde cuatro vistas
+
+Primer hito observado: **19:05:54 Europe/Madrid** (17:05:54 UTC).
+Cierre de implementación observado: **19:39:42 Europe/Madrid**
+(17:39:42 UTC). Intervalo registrado: **33 min 48 s**.
+La lectura anterior al primer hito y la publicación posterior no se imputan
+a este intervalo. Sin estimación previa. Incluye estudio de la lámina,
+reconstrucción, revisiones renderizadas, ajustes de densidad y pruebas.
+
+Se sustituyen cabeza, torso, brazos, patas, cara, orejas, puños y pelaje.
+1836 mechones marrones y 128 dorados cerrados, con relieve y puntas propias;
+84 placas de piedra. La malla final tiene 759012 vértices de triángulos y
+253004 triángulos; se comparte ligada entre instancias, con esqueletos
+independientes. Se elimina la copia temporal de geometría. Altura 0,875 m,
+catorce huesos, anatomía adaptada y las mismas categorías de acciones y reglas
+de combate. Las imágenes originales se conservan. Se añade la comparación
+`docs/previews/young_reference_comparison.png` y el documento `YOUNG_3D.md`.
+
+Revisiones de cuatro vistas y seis acciones con ambas manos. Pasan 2560
+comprobaciones específicas de malla/piel/materiales/caché, 6531 de criatura,
+539 de referencias y ligaduras, 16 de botín y 191 de guardado. Las tres
+primeras suites se repiten tras densificar el pelaje; la de malla se repite
+tras retirar la superficie sobrante de la mandíbula. La revisión del joven
+ya no deja el marcador de contacto humano sin liberar.
+
+La fidelidad se contrasta con capturas reales; no se certifica una copia
+artística idéntica mediante pruebas numéricas ni se inventan vistas ortogonales.
+Los laterales de revisión aproximan los de la lámina mediante ±68°. No se ha
+medido rendimiento gráfico en el equipo del usuario.
+
+Integración para publicar: se incorporan `309132e`, `c6fa837` y `81d6d1f`
+del departamento de animaciones. El único conflicto está en el registro de
+tiempos añadido al final; se conservan las entradas de ambos departamentos.
+La escena de revisión conserva el control nuevo de ataque agachado del humano.
+Tras el rebase vuelven a pasar 2560 pruebas de malla detallada, 6531 de criatura
+y 539 de referencias/ligaduras.

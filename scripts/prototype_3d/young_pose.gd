@@ -1,10 +1,14 @@
 extends RefCounted
 ## Short, bent hind legs and long front arms; never reuses human proportions.
 const Joints = preload("res://scripts/continuous_body_pose.gd")
-const ARM_A:=6.3
-const ARM_B:=6.6
+const ARM_A:=6.9
+const ARM_B:=7.3
 const LEG_A:=4.4
 const LEG_B:=4.2
+const HIP_X:=6.4
+const FOOT_X:=8.6
+const SHOULDER_X:=8.3
+const REST_HAND:=Vector3(13.5,10.1,9.3)
 static func blend(current:Dictionary,target:Dictionary,delta:float) -> Dictionary:
  var amount:=1-exp(-maxf(0,delta)*18)
  target.body=(current.body as Transform3D).interpolate_with(target.body,amount)
@@ -15,8 +19,8 @@ static func blend(current:Dictionary,target:Dictionary,delta:float) -> Dictionar
   var body:Transform3D=target.body
   var foot:Vector3=current.legs[side].end.lerp(target.legs[side].end,amount)
   var hand:Vector3=current.arms[side].end.lerp(target.arms[side].end,amount)
-  target.legs[side]=Joints.joint(body*Vector3(sign_side*5.5,8.5,-1),foot,LEG_A,LEG_B,body.basis*Vector3.BACK)
-  target.arms[side]=Joints.joint(body*Vector3(sign_side*8,20,0.7),hand,ARM_A,ARM_B,body.basis*Vector3(sign_side,0,-0.3))
+  target.legs[side]=Joints.joint(body*Vector3(sign_side*HIP_X,8.5,-1),foot,LEG_A,LEG_B,body.basis*Vector3.BACK)
+  target.arms[side]=Joints.joint(body*Vector3(sign_side*SHOULDER_X,20,0.7),hand,ARM_A,ARM_B,body.basis*Vector3(sign_side,0,-0.3))
  return target
 static func sample(state: StringName,phase: float,left: bool = true) -> Dictionary:
  var walking:=state in [&"walk",&"run"]
@@ -39,16 +43,16 @@ static func sample(state: StringName,phase: float,left: bool = true) -> Dictiona
   var sign_side:float=-1 if side==0 else 1
   var hind:=Joints.stance_swing(phase+side*0.5,4.5,1.5,0.6) if walking else {"z":0.0,"lift":0.0,"pitch":0.0}
   var front:=Joints.stance_swing(phase+0.25+side*0.5,4.5,1.25,0.6) if walking else {"z":0.0,"lift":0.0,"pitch":0.0}
-  var foot:=Vector3(sign_side*5.5,1.5+float(hind.lift),lerpf(-1.6,1.5,standing)+float(hind.z))
-  foot=foot.lerp(Vector3(sign_side*6.5,1.45,6),seated).lerp(Vector3(sign_side*9,1.5,-6),fallen)
-  var leg:=Joints.joint(body*Vector3(sign_side*5.5,8.5,-1),foot,LEG_A,LEG_B,basis*Vector3.BACK)
+  var foot:=Vector3(sign_side*FOOT_X,1.5+float(hind.lift),lerpf(-1.6,1.5,standing)+float(hind.z))
+  foot=foot.lerp(Vector3(sign_side*8.8,1.45,6),seated).lerp(Vector3(sign_side*9,1.5,-6),fallen)
+  var leg:=Joints.joint(body*Vector3(sign_side*HIP_X,8.5,-1),foot,LEG_A,LEG_B,basis*Vector3.BACK)
   leg.pitch=float(hind.pitch);legs.append(leg)
-  var rest:=Vector3(sign_side*12.4,10.8,5.5)
+  var rest:=Vector3(sign_side*REST_HAND.x,REST_HAND.y,REST_HAND.z)
   var hand:=Vector3(sign_side*10.4,4+float(front.lift),12.2+float(front.z)).lerp(body*rest,standing)
   hand=hand.lerp(Vector3(sign_side*12.2,4,3),seated)
   if state==&"attack":
    var action:=Joints.gesture(rest,Vector3(sign_side*12,14.5,1),Vector3(sign_side*9.3,16.7,13.3),phase,&"fist") if (side==1)==left else rest.lerp(Vector3(sign_side*10.5,14.5,7),effort*0.5)
    hand=body*action
   hand=hand.lerp(Vector3(sign_side*16.3,4,12.2),fallen)
-  arms.append(Joints.joint(body*Vector3(sign_side*8,20,0.7),hand,ARM_A,ARM_B,basis*Vector3(sign_side,0,-0.3)))
+  arms.append(Joints.joint(body*Vector3(sign_side*SHOULDER_X,20,0.7),hand,ARM_A,ARM_B,basis*Vector3(sign_side,0,-0.3)))
  return {"body":body,"head":head_basis,"legs":legs,"arms":arms,"standing":standing}

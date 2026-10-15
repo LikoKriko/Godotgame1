@@ -15,7 +15,7 @@ var paused:=false
 var manual_phase:=0.0
 var contact_height:=1.2
 var contact_distance:=0.88
-var contact_marker:=MeshInstance3D.new()
+var contact_marker:MeshInstance3D
 var height_control:HSlider
 var distance_control:HSlider
 func _ready() -> void:
@@ -35,9 +35,16 @@ func _ready() -> void:
  for name in family_options:families.add_item("Manos libres" if name==&"" else String(name))
  column.add_child(families);families.item_selected.connect(func(index):family=family_options[index];elapsed=0)
  var states:=OptionButton.new()
- var state_options:Array[StringName]=YOUNG_STATES if species==&"young" else Clips.STATES
- for name in state_options:states.add_item(String(name))
+ var state_options:Array[StringName]=YOUNG_STATES.duplicate() if species==&"young" else Clips.STATES
+ if species==&"young":state_options.push_front(&"reference");clip=&"reference"
+ for name in state_options:states.add_item("Postura de referencia" if name==&"reference" else String(name))
  column.add_child(states);states.item_selected.connect(func(index):clip=state_options[index];elapsed=0)
+ if species==&"young":
+  var views:=HBoxContainer.new();column.add_child(views)
+  for i in 4:
+   var view:=Button.new();view.text=["Frente","Derecha","Espalda","Izquierda"][i];views.add_child(view)
+   var angle:float=[0.0,deg_to_rad(-68),PI,deg_to_rad(68)][i]
+   view.pressed.connect(func():orbit=angle)
  var slow:=CheckButton.new();slow.text="Cámara lenta";column.add_child(slow);slow.toggled.connect(func(value):speed=0.25 if value else 1.0)
  if species!=&"young":
   var armor:=CheckButton.new();armor.text="Armadura de hojas";column.add_child(armor);armor.toggled.connect(func(value):actor.wear({"id":&"burdock_armor"} if value else {}))
@@ -51,6 +58,7 @@ func _ready() -> void:
   states.item_selected.connect(func(index):
    if state_options[index] in [&"pickup",&"pickup_walk"]:height_control.value=.12;distance_control.value=.75
   )
+  contact_marker=MeshInstance3D.new()
   var sphere:=SphereMesh.new();sphere.radius=.025;sphere.height=.05;contact_marker.mesh=sphere
   var marker_material:=StandardMaterial3D.new();marker_material.albedo_color=Color("e8bf63");marker_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;contact_marker.material_override=marker_material;add_child(contact_marker)
   var pulse:=Button.new();pulse.text="Previsualizar pulso de parry";column.add_child(pulse);pulse.pressed.connect(func():actor.confirm_parry())
@@ -58,7 +66,7 @@ func _process(delta: float) -> void:
  if not paused:elapsed+=delta*speed
  if species==&"young":
   var seconds:float={&"run":0.26,&"walk":0.52,&"attack":1.0,&"rise":0.28,&"lower":0.28,&"sit":6.0,&"sit_down":0.28,&"sit_up":0.28,&"feed":4.0,&"stun_fall":0.24,&"stun_hold":1.02,&"stun_rise":0.24,&"death":2.0}.get(clip,1.0)
-  actor.animate(clip,fposmod(elapsed/seconds,1),family!=&"right",delta*speed)
+  actor.animate(&"attack" if clip==&"reference" else clip,0.0 if clip==&"reference" else fposmod(elapsed/seconds,1),family!=&"right",0.0 if clip==&"reference" else delta*speed)
  else:
   var phase:=manual_phase if paused else fposmod(elapsed/Clips.duration(clip,family),1)
   actor.family_override=family;actor.aim_contact=Vector3(0,contact_height/actor.scale.y,contact_distance/actor.scale.z)
