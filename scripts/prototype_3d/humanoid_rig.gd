@@ -221,9 +221,16 @@ func hinge_collar(index:int,chain:Dictionary,bind_chain:Dictionary) -> void:
 func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
  var torso: Transform3D = pose.body
  for i in 3: posed[i] = Transform3D(torso.basis,torso*rest[i].origin)
+ var pelvis:Transform3D=pose.get("pelvis",torso)
+ posed[0]=Transform3D(pelvis.basis,pelvis*rest[0].origin)
  # The skull stays attached to the neck, with only a small counter-rotation.
  var skull_basis := torso.basis if pose.state==&"death" else Basis.IDENTITY.slerp(torso.basis,0.2)
  var neck: Vector3 = torso*Anatomy.HEAD_ANCHOR
+ if pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"] and pose.get("look_contact",Vector3.INF).is_finite():
+  var direction:Vector3=neck.direction_to(pose.look_contact)
+  var pitch:=clampf(atan2(-direction.y,maxf(0.1,direction.z)),0,0.95)
+  var weight:float=Clips.pickup_weight(pose.phase)
+  skull_basis=skull_basis.slerp(Basis(Vector3.RIGHT,pitch),weight)
  posed[3] = Transform3D(skull_basis,neck+skull_basis*(rest[3].origin-Anatomy.HEAD_ANCHOR))
  for side in 2:
   var clip:StringName=pose.get("clip_state",&"idle")

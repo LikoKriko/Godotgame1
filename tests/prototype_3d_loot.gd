@@ -32,7 +32,10 @@ func run():
  for i in 2:await physics_frame
  require(not game.interact() and not drops[0].item.is_empty(),"Ground pickup requires free hands")
  game.player.equipped=false;game.bag.active_quick_uid=-1
- require(game.interact() and drops[0].item.is_empty(),"E retrieves ground item exactly once")
+ require(game.interact() and not drops[0].item.is_empty(),"E starts the reach while preserving the ground item until contact")
+ for frame in 60:game.player.update_facing(game.player.pickup_point,1.0/60)
+ game.player.advance_preview(game.player.Clips.duration(&"pickup")*0.5)
+ require(drops[0].item.is_empty(),"Hand contact retrieves the ground item exactly once")
  var recovered:Dictionary={}
  for item in game.bag.slots:
   if item.get("id")==&"botella":recovered=item

@@ -303,3 +303,54 @@ contacto bloqueado, punta visible e impacto real; 1116 de cámara/zancada, 69 de
 arco, 65 de equipo, 739 de integración y movimiento real. Render nativo con
 comparación del desplazamiento anterior/nuevo. Se registró la división de
 trabajo por chats en `ANIMATION_AREA.md`.
+
+
+## 2026-10-15 — Incorporación del chat de animaciones
+
+Revisión de la copia local `prototype/third-person-3d`, commit `99a5a91`:
+instrucciones, documentación, catálogo de poses, rig y pesos humanos,
+cinemática/agarres, deslizamiento, integración del jugador, modelo/poses del
+joven y escenas de revisión. Sin cambios en el código ni los recursos del juego.
+Estimación previa no registrada. Inicio de la revisión no cronometrado; no se
+atribuye una duración total exacta. Bloque final observado entre **17:55:12 y
+17:55:21 Europe/Madrid**: **9 s parciales**, no duración completa de las pruebas.
+
+Godot 4.6.3 headless: catálogo **8588 comprobaciones, 0 fallos**; criatura,
+memoria, parry y HUD **6531 comprobaciones, salida correcta**. Se redirigieron
+los directorios XDG al área de trabajo tras fallar la escritura del directorio
+de usuario predeterminado. No hubo revisión visual renderizada en esta tarea.
+La consulta de ramas remotas falló al conectar con el proxy; no se certifica
+que la copia local coincida con el último estado de GitHub.
+
+
+## 2026-10-15 — Naturalidad del superviviente y contactos cerca de la mira
+
+Primer hito observado **15:59:43 UTC** (17:59:43 Madrid); cierre de validación
+**16:21:17 UTC** (18:21:17 Madrid). Intervalo medido parcial:
+**21 min 34 s**, incluyendo lectura, edición, pruebas y
+renderizado. No se registró el comienzo exacto anterior a ese primer hito ni
+una estimación previa; no se presenta este intervalo como duración total exacta.
+
+Pelvis y pecho coordinados, transferencia de peso, entrada de movimiento,
+preparación del puño, flexión para golpes bajos, equipamiento en arco, equilibrio
+de salto, agachado y apoyos de la caída. Tensado continuo del arco sin alterar
+sus 0,5 s ni munición. Recogida dirigida de 0,72 s, paso corto al caminar,
+contacto de la mano a 0,36 s y transferencia diferida sin duplicación ni pérdida
+por mochila llena/alejamiento. Selección de corto alcance en un radio del 1,8%
+de altura del viewport; centro prioritario, superficies visibles y comprobación
+de obstáculos/alcance al contacto. Escena F6 con pausa, fase y contacto ajustable.
+Se conserva la versión 2D, anatomía, zancada/cadencia, referencias y reglas de
+herramientas. Cambios locales sin commit/push; remoto comprobado en `99a5a91`.
+
+Validación en Godot **4.6.3**: deformación humana **145006**, catálogo **8588**,
+acciones naturales/tolerancia/contactos/recogida andando **4050**, cámara/zancada
+**1116**, deslizamiento **2027**, brazos **374**, mira **62**, equipo/arco/armadura
+**65**, integración general **739**, guardado **191**, interacciones **15** y
+botín **16**: suites superadas. También pasó movimiento real con recogida y
+recuperación, ajustando su espera a la nueva duración. `git diff --check` limpio.
+Se renderizaron **288 fotogramas** de doce acciones y **64 vistas** de contacto
+en ocho orientaciones con/sin armadura, además de agachado, caída y recogida
+andando. La inspección detectó y corrigió rodillas bajo suelo y falta de alcance
+en contactos bajos del pico. Las pruebas conservan longitudes y agarres; no
+certifican naturalidad perfecta ni procedencia de mocap. La previsualización
+MP4 y las capturas quedan como material intermedio en el área de trabajo.

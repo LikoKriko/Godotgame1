@@ -29,7 +29,7 @@ func run():
  world.player.play_preview(&"",&"pickup");key(KEY_W,true)
  for i in 4:await physics_frame
  assert(world.player.velocity.length()>0.65 and world.player.velocity.length()<0.9,"Pickup reduces movement by 60 percent")
- for i in 60:await physics_frame
+ for i in 80:await physics_frame
  assert(world.player.velocity.length()>1.9,"Pickup recovers normal speed after its half-second recovery")
  world.settings.values.auto_run=true;world.player.play_preview(&"food",&"eat")
  for i in 4:await physics_frame

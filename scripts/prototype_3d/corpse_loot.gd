@@ -70,11 +70,13 @@ func spawn_drop(item:Dictionary,point:Vector3,settle:bool=true) -> Node3D:
  var drop:=preload("res://scripts/prototype_3d/world_item.gd").new();game.add_child(drop);drop.configure(item);drop.global_position=point
  if settle:drop.settle_on_ground()
  return drop
-func pickup(drop:Node3D) -> bool:
+func pickup(drop:Node3D,animate:bool=true) -> bool:
  if drop.item.is_empty():return false
  if game.player.equipped:game.status.text="Necesitas las manos libres para recogerlo.";return false
  if not store(drop.item):game.status.text="La mochila está llena.";return false
- drop.item={};drop.collision_layer=0;drop.hide();drop.queue_free();game.player.play_preview(&"",&"pickup");game.inventory_panel.refresh();game.update_hud();return true
+ drop.item={};drop.collision_layer=0;drop.hide();drop.queue_free()
+ if animate:game.player.play_preview(&"",&"pickup")
+ game.inventory_panel.refresh();game.update_hud();return true
 func _process(_delta:float) -> void:
  if window.visible and not is_instance_valid(corpse):close_window()
 func _input(event:InputEvent) -> void:

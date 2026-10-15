@@ -187,7 +187,7 @@ func respawn() -> void:
  skill_points=0;experience=0
  var preserved_skills:Dictionary=progression.skills.duplicate();progression.reset()
  for id in progression.skills:progression.skills[id]=1 if preserved_skills[id]>0 else 0
- pending_consumption.clear();player.preview_state=&""
+ pending_consumption.clear();player.preview_state=&"";player.pickup_target={};player.pickup_point=Vector3.INF
  bag.reset()
  for i in bag.slots.size():bag.slots[i]={}
  for i in bag.quick_slots.size():bag.quick_slots[i]={}
@@ -242,6 +242,10 @@ func resolve_hit(click_target=null) -> bool:
  if not enemy and not tree and not rock and not sapling:status.text="Golpe al aire";return false
  if target.health<=0 or not target_still_at(result,target):status.text="Golpe al aire";return false
  if not player.can_reach_contact(result.position):status.text="Fuera de alcance";return false
+ var shoulder:Vector3=player.model.to_global(player.model.displayed_pose.shoulders[0] if not player.model.displayed_pose.is_empty() else Vector3(0,45.7,0))
+ var path:=PhysicsRayQueryParameters3D.create(shoulder,result.position,1,[player.get_rid()])
+ var blocking:=get_world_3d().direct_space_state.intersect_ray(path)
+ if not blocking.is_empty() and target_owner(blocking.collider)!=target:status.text="Hay un obstáculo delante.";return false
  if enemy:
   var base:float=bag.held_damage() if player.equipped else 0.0
   target.take_damage(progression.combat_damage(base) if family==&"sword" else base)
@@ -272,12 +276,14 @@ func release_arrow(point:Vector3,uid:int) -> bool:
  arrow.travel(minf(24*1.75/64.0,from.distance_to(point)))
  return true
 func interact() -> bool:
- if player.action_elapsed>=0 or player.preview_state!=&"" or player_health<=0:return false
- var result:Dictionary=camera_rig.target()
+ if player.action_elapsed>=0 or player.equip_elapsed>=0 or player.parry_elapsed>=0 or player.preview_state!=&"" or player_health<=0:return false
+ var result:Dictionary=camera_rig.action_sample(true).hit
  if result.is_empty():return false
  var target=target_owner(result.collider)
  if result.position.distance_to(player.global_position)>1.75:status.text="Acércate para interactuar.";return false
- if target.is_in_group("prototype_drops"):return corpse_loot.pickup(target)
+ if target.is_in_group("prototype_drops"):
+  if player.equipped:status.text="Necesitas las manos libres para recogerlo.";return false
+  return player.begin_pickup(result)
  if target.is_in_group("prototype_enemies") and target.health<=0:return corpse_loot.open_window(target)
  if target.is_in_group("prototype_workbenches"):return workbenches.open_table(target)
  if target.is_in_group("prototype_water"):
@@ -285,12 +291,33 @@ func interact() -> bool:
   status.text=outcome.message;inventory_panel.refresh();return outcome.ok
  if target.is_in_group("prototype_burdock") and target.health>0:
   if player.equipped:status.text="Necesitas las manos libres para recogerlo.";return false
-  if not bag.add_many(target.rewards):status.text="La mochila está llena.";return false
-  target.hit();player.play_preview(&"",&"pickup");status.text="Hojas de bardana recogidas.";return true
+  return player.begin_pickup(result)
  if target.is_in_group("prototype_rocks") and target.hand_collectable and target.health>0:
   if player.equipped:status.text="Necesitas las manos libres para recogerlo.";return false
+  return player.begin_pickup(result)
+ return false
+func complete_pickup(result:Dictionary,point:Vector3) -> bool:
+ if player_health<=0 or player.equipped or not is_instance_valid(result.get("collider")):return false
+ var target=target_owner(result.collider)
+ if not target_still_at(result,target):return false
+ var local_point:Vector3=player.model.to_local(point)
+ var pose:Dictionary=player.Clips.sample(&"",&"pickup",0.5,0,Vector3.ZERO,local_point)
+ if not pose.contact_reachable:status.text="Acércate para recogerlo con la mano.";return false
+ # Check the hand path as well as camera visibility; a nearby visible item
+ # behind a wall cannot be collected through that wall.
+ var from:Vector3=player.model.to_global(pose.shoulders[1])
+ for segment in [[player.global_position+Vector3.UP,from],[from,point]]:
+  var query:=PhysicsRayQueryParameters3D.create(segment[0],segment[1],1,[player.get_rid()])
+  var obstruction:=get_world_3d().direct_space_state.intersect_ray(query)
+  if not obstruction.is_empty() and target_owner(obstruction.collider)!=target:return false
+ if target.is_in_group("prototype_drops"):return corpse_loot.pickup(target,false)
+ if target.health<=0:return false
+ if target.is_in_group("prototype_burdock"):
+  if not bag.add_many(target.rewards):status.text="La mochila está llena.";return false
+  target.hit();status.text="Hojas de bardana recogidas.";return true
+ if target.is_in_group("prototype_rocks") and target.hand_collectable:
   if not bag.add(&"piedra",target.yield_count):status.text="La mochila está llena.";return false
-  target.hit();player.play_preview(&"",&"pickup");status.text="Piedra × %d"%target.yield_count;return true
+  target.hit();status.text="Piedra × %d"%target.yield_count;return true
  return false
 func resume_world() -> void:
  paused=false;Input.mouse_mode=Input.MOUSE_MODE_CAPTURED

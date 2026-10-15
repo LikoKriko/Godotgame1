@@ -324,14 +324,23 @@ func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: B
  tool_tip = actor_basis*grip+axe.basis*Profiles.profile(_item).tip
  tool_cutting_axis = x_axis
  return {"grip":grip,"support":grip+shaft*Profiles.profile(_item).support}
-func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0, movement_phase: float = 0.0, movement: Vector3 = Vector3.ZERO) -> void:
+func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0, movement_phase: float = 0.0, movement: Vector3 = Vector3.ZERO, motion_amount:float=1.0) -> void:
  var item: StringName = (&"axe" if equipped else &"") if family_override==&"default" else family_override
  var target := Clips.sample(item,state,phase,movement_phase,movement,aim_contact,slide_launch_pose)
+ if state in [&"walk",&"run",&"crouch_walk"] and motion_amount<1:
+  var neutral:=Clips.sample(item,&"crouch" if state==&"crouch_walk" else &"idle",1.0 if state==&"crouch_walk" else 0.0)
+  target.body=neutral.body.interpolate_with(target.body,motion_amount)
+  target.pelvis=neutral.pelvis.interpolate_with(target.pelvis,motion_amount)
+  target.grip=neutral.grip.lerp(target.grip,motion_amount)
+  for side in 2:
+   target.hands[side]=neutral.hands[side].lerp(target.hands[side],motion_amount)
+   target.legs[side].end=neutral.legs[side].end.lerp(target.legs[side].end,motion_amount)
  if displayed_pose.is_empty() or delta <= 0:
   displayed_pose = target.duplicate(true)
  else:
   var blend := 1-exp(-delta*18)
   displayed_pose.body = displayed_pose.body.interpolate_with(target.body,blend)
+  displayed_pose.pelvis = (displayed_pose.get("pelvis",displayed_pose.body) as Transform3D).interpolate_with(target.get("pelvis",target.body),blend)
   for side in 2:
    displayed_pose.leg_poles[side]=(displayed_pose.leg_poles[side] as Vector3).lerp(target.leg_poles[side],blend).normalized()
    displayed_pose.shoulders[side] = displayed_pose.shoulders[side].lerp(target.shoulders[side],blend)
@@ -342,18 +351,21 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   displayed_pose.grip = displayed_pose.grip.lerp(target.grip,blend)
   displayed_pose.shaft = displayed_pose.shaft.lerp(target.shaft,blend).normalized()
   displayed_pose.active = target.active
+  displayed_pose.look_contact=target.look_contact
   displayed_pose.state = target.state; displayed_pose.phase = target.phase
   displayed_pose.family=target.family;displayed_pose.clip_state=target.clip_state;displayed_pose.gait_phase=target.gait_phase
  displayed_pose.tool_basis=target.get("tool_basis",Aim.frame(target.shaft))
- if state in [&"action",&"draw",&"death"]:
-  displayed_pose.body=target.body;displayed_pose.grip=target.grip;displayed_pose.shaft=target.shaft
+ if state in [&"action",&"draw",&"death"] or (state in [&"pickup",&"pickup_walk"] and phase>=0.5 and phase<=0.58):
+  displayed_pose.body=target.body;displayed_pose.pelvis=target.get("pelvis",target.body);displayed_pose.grip=target.grip;displayed_pose.shaft=target.shaft
+  if state in [&"pickup",&"pickup_walk"]:displayed_pose.hands[1]=target.hands[1]
+  if state==&"action" and item==&"":displayed_pose.hands=target.hands.duplicate()
  last_pose = displayed_pose
  # Re-solve the limbs after blending targets: interpolation must not shorten
  # a thigh or detach a shoulder from the moving torso.
  for side in 2:
   var body: Transform3D = last_pose.body
   last_pose.shoulders[side] = body*Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,45.7,0)
-  last_pose.hips[side] = body*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,26.9,0)
+  last_pose.hips[side] = last_pose.get("pelvis",body)*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,26.9,0)
  Clips.solve_legs(last_pose)
  var hands: Array[Vector3] = last_pose.hands.duplicate()
  grip_error = 0

@@ -11,6 +11,13 @@ var elapsed:=0.0
 var orbit:=0.0
 var orbiting:=false
 var speed:=1.0
+var paused:=false
+var manual_phase:=0.0
+var contact_height:=1.2
+var contact_distance:=0.88
+var contact_marker:=MeshInstance3D.new()
+var height_control:HSlider
+var distance_control:HSlider
 func _ready() -> void:
  Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
  var sun:=DirectionalLight3D.new();sun.rotation_degrees=Vector3(-45,-35,0);sun.shadow_enabled=true;add_child(sun)
@@ -34,19 +41,32 @@ func _ready() -> void:
  var slow:=CheckButton.new();slow.text="Cámara lenta";column.add_child(slow);slow.toggled.connect(func(value):speed=0.25 if value else 1.0)
  if species!=&"young":
   var armor:=CheckButton.new();armor.text="Armadura de hojas";column.add_child(armor);armor.toggled.connect(func(value):actor.wear({"id":&"burdock_armor"} if value else {}))
+  var pause:=CheckButton.new();pause.text="Pausar / revisar fase";column.add_child(pause);pause.toggled.connect(func(value):paused=value)
+  var phase_control:=HSlider.new();phase_control.min_value=0;phase_control.max_value=1;phase_control.step=.005;phase_control.custom_minimum_size.x=220;column.add_child(phase_control);phase_control.value_changed.connect(func(value):manual_phase=value)
+  var height_label:=Label.new();height_label.text="Altura de contacto (m)";column.add_child(height_label)
+  height_control=HSlider.new();height_control.min_value=.05;height_control.max_value=1.6;height_control.step=.01;height_control.value=contact_height;column.add_child(height_control);height_control.value_changed.connect(func(value):contact_height=value)
+  var distance_label:=Label.new();distance_label.text="Distancia de contacto (m)";column.add_child(distance_label)
+  distance_control=HSlider.new();distance_control.min_value=.3;distance_control.max_value=1.3;distance_control.step=.01;distance_control.value=contact_distance;column.add_child(distance_control);distance_control.value_changed.connect(func(value):contact_distance=value)
+  states.item_selected.connect(func(index):
+   if state_options[index] in [&"pickup",&"pickup_walk"]:height_control.value=.12;distance_control.value=.75
+  )
+  var sphere:=SphereMesh.new();sphere.radius=.025;sphere.height=.05;contact_marker.mesh=sphere
+  var marker_material:=StandardMaterial3D.new();marker_material.albedo_color=Color("e8bf63");marker_material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;contact_marker.material_override=marker_material;add_child(contact_marker)
   var pulse:=Button.new();pulse.text="Previsualizar pulso de parry";column.add_child(pulse);pulse.pressed.connect(func():actor.confirm_parry())
 func _process(delta: float) -> void:
- elapsed+=delta*speed
+ if not paused:elapsed+=delta*speed
  if species==&"young":
   var seconds:float={&"run":0.26,&"walk":0.52,&"attack":1.0,&"rise":0.28,&"lower":0.28,&"sit":6.0,&"sit_down":0.28,&"sit_up":0.28,&"feed":4.0,&"stun_fall":0.24,&"stun_hold":1.02,&"stun_rise":0.24,&"death":2.0}.get(clip,1.0)
   actor.animate(clip,fposmod(elapsed/seconds,1),family!=&"right",delta*speed)
  else:
-  var phase:=fposmod(elapsed/Clips.duration(clip,family),1)
-  actor.family_override=family;actor.aim_contact=Vector3(0,42,31)
+  var phase:=manual_phase if paused else fposmod(elapsed/Clips.duration(clip,family),1)
+  actor.family_override=family;actor.aim_contact=Vector3(0,contact_height/actor.scale.y,contact_distance/actor.scale.z)
+  contact_marker.position=actor.to_global(actor.aim_contact)
+  contact_marker.visible=clip in [&"action",&"draw",&"pickup",&"pickup_walk",&"parry"]
   actor.displayed_item=&"apple" if family==&"food" else (&"botella" if family==&"bottle" else family)
   actor.item_water_ml=500;actor.nock_visible=clip==&"draw"
   var moving:=String(clip).contains("walk") or clip in [&"run",&"start",&"stop",&"start_run",&"stop_run"]
-  actor.animate(clip,phase,family==&"axe",delta*speed,fposmod(elapsed/Clips.duration(&"run" if String(clip).contains("run") else (&"crouch_walk" if String(clip).contains("crouch") else &"walk")),1),Vector3.BACK if moving else Vector3.ZERO)
+  actor.animate(clip,phase,family==&"axe",(0.0 if paused else delta*speed),fposmod(elapsed/Clips.duration(&"run" if String(clip).contains("run") else (&"crouch_walk" if String(clip).contains("crouch") else &"walk")),1),Vector3.BACK if moving else Vector3.ZERO)
  var distance:=1.9 if species==&"young" else 3.2
  camera.position=Vector3(sin(orbit)*distance,0.8 if species==&"young" else 1.35,cos(orbit)*distance);camera.look_at(Vector3(0,0.48 if species==&"young" else 0.95,0))
 func _unhandled_input(event: InputEvent) -> void:

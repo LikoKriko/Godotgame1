@@ -18,8 +18,11 @@ func run():
  require(not game.interact() and rock.health==1,"Tool in hand prevents E pickup")
  game.player.equipped=false;game.bag.active_quick_uid=-1
  var before:int=game.bag.count(&"piedra")
- require(game.interact() and game.bag.count(&"piedra")==before+2,"Free hands collect small rock with E")
- require(game.player.preview_state==&"pickup" and not rock.visible,"Pickup has a dedicated 6-frame bend gesture")
+ require(game.interact() and game.bag.count(&"piedra")==before and rock.visible,"E starts a targeted reach without granting materials early")
+ for frame in 60:game.player.update_facing(game.player.pickup_point,1.0/60)
+ game.player.advance_preview(game.player.Clips.duration(&"pickup")*0.5)
+ require(game.bag.count(&"piedra")==before+2,"Materials transfer at hand contact")
+ require(game.player.preview_state==&"pickup" and not rock.visible,"Pickup has a dedicated targeted bend gesture")
  require(not game.interact() and game.bag.count(&"piedra")==before+2,"Repeated interaction cannot duplicate rewards")
  game.player.preview_state=&""
  game.bag.add(&"botella",1);game.bag.select_tool(&"botella");game.player.equipped=true

@@ -46,6 +46,40 @@ func target(max_distance: float = 100.0) -> Dictionary:
  var query := PhysicsRayQueryParameters3D.create(from,from+direction*max_distance,25,[player.get_rid()])
  query.collide_with_areas=true
  return get_world_3d().direct_space_state.intersect_ray(query)
+# Radius is in viewport-height units, so assistance has the same apparent size
+# at every resolution/aspect ratio. The bow retains the exact center ray.
+const ACTION_RADIUS := 0.018
+func action_sample(interaction:bool=false) -> Dictionary:
+ var exact:=aim_sample()
+ var best:Dictionary={}
+ var best_score:=INF
+ var center:=get_viewport().get_visible_rect().size*0.5
+ var radius:=get_viewport().get_visible_rect().size.y*ACTION_RADIUS
+ for ring in 3:
+  var count:=1 if ring==0 else 12
+  for sector in count:
+   var offset:=Vector2.ZERO if ring==0 else Vector2.from_angle(sector*TAU/count)*radius*ring/2.0
+   var pixel:=center+offset
+   var from:=camera.project_ray_origin(pixel)
+   var ray:=PhysicsRayQueryParameters3D.create(from,from+camera.project_ray_normal(pixel)*100.0,25,[player.get_rid()])
+   ray.collide_with_areas=true
+   var hit:=get_world_3d().direct_space_state.intersect_ray(ray)
+   if hit.is_empty():continue
+   var owner_node=game.target_owner(hit.collider)
+   if not action_candidate(owner_node,interaction):continue
+   if player.global_position.distance_to(hit.position)>1.75:continue
+   # Each candidate is a first visible surface, never a shape overlap through
+   # a wall. Prefer the center, then the smallest screen-space correction.
+   var score:=offset.length_squared()+from.distance_to(hit.position)*0.0001
+   if score<best_score:best_score=score;best=hit
+  if ring==0 and not best.is_empty():break
+ if best.is_empty():return exact
+ return {"hit":best,"point":best.position}
+func action_candidate(node,interaction:bool) -> bool:
+ if not is_instance_valid(node):return false
+ if interaction:
+  return node.is_in_group("prototype_drops") or node.is_in_group("prototype_workbenches") or node.is_in_group("prototype_water") or (node.is_in_group("prototype_enemies") and node.health<=0) or (node.is_in_group("prototype_burdock") and node.health>0) or (node.is_in_group("prototype_rocks") and node.hand_collectable and node.health>0)
+ return (node.is_in_group("prototype_enemies") or node.is_in_group("prototype_trees") or node.is_in_group("prototype_rocks") or node.is_in_group("prototype_saplings")) and node.health>0
 func aim_sample() -> Dictionary:
  # One camera ray supplies both the visible contact and the object to hit.
  # Do not raycast twice at click time or use a parallel ray from the player.

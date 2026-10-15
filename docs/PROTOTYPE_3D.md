@@ -24,7 +24,7 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú prin
 - El hacha existente tiene volumen, dos agarres y alcance anatómico. El punto
   de mira se fija al iniciar el golpe y los brazos acompañan al mango. El
   pico y la espada también tienen volumen y contacto por la mira. El arco tensa
-  durante seis pasos en 0,5 s, necesita una flecha y gasta un uso al tensar,
+  de forma continua durante 0,5 s, necesita una flecha y gasta un uso al tensar,
   incluso si se cancela; la flecha se consume únicamente al soltarla. Los rayos
   por segmento evitan atravesar objetivos entre fotogramas.
 - La dirección del cuerpo converge hacia el contacto de la mira, también en
@@ -62,7 +62,7 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú prin
   4/8/12 golpes y 4/10/15 piedras. La muestra pequeña da dos piedras, dentro del
   rango de 1–3 original. Un charco permite rellenar la botella seleccionada con E.
 - Botella y tres alimentos visibles al comer/beber. Recoger baja la velocidad un
-  60% durante 0,36 s y la recupera en 0,5 s. Al equipar se pierde un 5%, que se
+  60% durante 0,72 s y la recupera en 0,5 s. Al equipar se pierde un 5%, que se
   recupera progresivamente en 1 s. Se puede seguir caminando al sacar el objeto.
 - Espada: 3 de daño y un uso solo al impactar; hacha/pico: 1 de daño, dos usos
   contra enemigo o recurso incorrecto y uno en su función correcta. El daño
