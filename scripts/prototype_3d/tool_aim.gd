@@ -2,7 +2,7 @@ extends RefCounted
 ## Contact geometry in authoring units. +X is the axe's cutting edge, +Y its shaft.
 const BodyProfile=preload("res://scripts/prototype_3d/meshy_body_profile.gd")
 const TIP := Vector3(11,20,0)
-const SUPPORT := 7.25
+const SUPPORT := 8.25
 const MIN_ARM := 8.15
 const MAX_ARM := 18.8
 

@@ -147,3 +147,16 @@ centro de los codos, además de los apoyos y el tórax. La selección de espalda
 separa el brazo interior de las costillas e incorpora la parte alta del
 trapecio que no cubría el test anterior. Se contrastan las transformaciones de
 las sondas con las del `Skeleton3D` usado para dibujar.
+
+
+## Afinado escapular v3 (16 de octubre de 2026)
+
+El perfil vigente **`meshy_shoulders_v3`** conserva la separación anatómica de
+v2 y reduce la influencia del brazo en la superficie posterior alta, en la
+transición entre trapecio y deltoides. El límite se aplica desde 43 unidades de
+altura y se desvanece hacia la cara externa del hombro: no inmoviliza el anillo
+completo del brazo a 40–42 unidades que causaba la expansión anterior.
+La regresión comprueba ahora también la extensión del panel escapular, además
+del grosor de húmeros, antebrazos y codos. Se hornea con la misma herramienta y
+los mismos pesos de origen indicados arriba, conservando todos los buffers
+geométricos y PNG. No se requiere remodelar ni cambiar proporciones.

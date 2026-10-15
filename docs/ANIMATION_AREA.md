@@ -99,7 +99,7 @@ Ver `docs/YOUNG_3D.md` y `tests/prototype_3d_young_motion.gd`.
 La espalda y el trapecio siguen el tórax; la cara interior del brazo sigue al
 brazo. No inmovilizarla con una máscara rectangular de la espalda: produce
 ensanchamientos al levantar el húmero. El perfil vigente es
-`meshy_shoulders_v2`, descrito en `docs/MESHY_ASSETS.md`. La corrección reproducible está en
+`meshy_shoulders_v3`, descrito en `docs/MESHY_ASSETS.md`. La corrección reproducible está en
 `human_skin_weights.gd` y `tools/meshy/correct_survivor_weights.gd`, conservando
 la geometría importada. La postura de enlace usa `Anatomy.bind_pose()`.
 El deslizamiento nuevo curva el pecho respecto a la pelvis y mantiene la
@@ -125,3 +125,22 @@ probabilidad tras el primer daño y los temporizadores persistentes. Ver
 `docs/YOUNG_3D.md` para reglas exactas; revisar ambos brazos en F6 y conservar
 los pies y las raíces de cadera al girar el torso. Prueba específica:
 `tests/prototype_3d_enemy_boxing.gd`.
+
+
+## Equipar, agarres y carga de rodillas
+
+El equipamiento 3D usa `equipment_pose()` y captura los brazos realmente
+mostrados antes de cambiar de familia. La mano principal acerca el objeto y
+la izquierda se une al mango entre el 25 % y el 85 % del gesto. Transportar el
+plano del codo al cambiar de objetivo; interpolar los polos linealmente puede
+invertirlo al sacar un arma distinta. No filtrar de nuevo las manos contra las
+claves genéricas del reposo, que no son la pose relajada realmente dibujada.
+
+Porte de armas/herramientas 10° más diagonal; apoyo de hacha/pico a 8,25 unidades
+del agarre principal. Codos ocupados ligeramente más bajos, pronación continua
+hasta 12° orientada por el eje del mango. El arco conserva su línea de tiro.
+La flexión adicional de rodillas al atacar se reduce al 40 %; mantener la
+postura base de Ctrl. Para contactos bajos se aumenta la bisagra del torso.
+El perfil v3 limita la influencia del húmero en la superficie escapular sin
+inmovilizar la cara interna del brazo. Pruebas específicas de transición:
+`tests/prototype_3d_equip_transitions.gd`.

@@ -17,6 +17,7 @@ var axe: Node3D
 var rig = preload("res://scripts/prototype_3d/humanoid_rig.gd").new()
 var displayed_pose: Dictionary = {}
 var slide_launch_pose:Dictionary={}
+var equipment_from:Dictionary={}
 var family_override: StringName = &"default"
 var aim_contact := Vector3.INF
 var action_crouch:=0.0
@@ -30,6 +31,9 @@ var displayed_item:StringName=&"axe"
 var item_water_ml:=0
 var nock_visible:=false
 var leaf_armor:Node3D
+func begin_equipment_transition() -> void:
+ if displayed_pose.is_empty():equipment_from.clear();return
+ equipment_from={"body":displayed_pose.body,"pelvis":displayed_pose.get("pelvis",displayed_pose.body),"hands":[rig.posed[6].origin,rig.posed[9].origin],"poles":[rig.posed[5].origin-rig.posed[4].origin,rig.posed[8].origin-rig.posed[7].origin],"palms":[rig.posed[6].basis.orthonormalized(),rig.posed[9].basis.orthonormalized()],"forearms":[rig.posed[5].basis.orthonormalized(),rig.posed[8].basis.orthonormalized()],"axes":[rig.posed[4].origin.direction_to(rig.posed[6].origin),rig.posed[7].origin.direction_to(rig.posed[9].origin)]}
 func _ready() -> void:
  mesh_node=MeshInstance3D.new();add_child(mesh_node)
  mesh_node.mesh=IMPORTED_SKIN
@@ -54,7 +58,17 @@ func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: B
  return {"grip":grip,"support":grip+shaft*Profiles.profile(_item).support}
 func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0, movement_phase: float = 0.0, movement: Vector3 = Vector3.ZERO, motion_amount:float=1.0) -> void:
  var item: StringName = (&"axe" if equipped else &"") if family_override==&"default" else family_override
+ var equipping:=String(state).begins_with("equip") or state==&"unequip"
+ if equipping and delta>0 and (equipment_from.is_empty() or displayed_pose.get("clip_state",&"")!=state or displayed_pose.get("family",&"")!=item or phase<float(displayed_pose.get("phase",0))):begin_equipment_transition()
+ if not equipping:equipment_from.clear()
  var target := Clips.sample(item,state,phase,movement_phase,movement,aim_contact,slide_launch_pose,action_crouch)
+ if equipping and delta>0 and not equipment_from.is_empty():
+  var entry:=smoothstep(0,.65,phase)
+  target.body=(equipment_from.body as Transform3D).interpolate_with(target.body,entry)
+  target.pelvis=(equipment_from.pelvis as Transform3D).interpolate_with(target.pelvis,entry)
+  target.grip=(equipment_from.hands[target.active] as Vector3).lerp(target.grip,entry)
+  for side in 2:target.hands[side]=(equipment_from.hands[side] as Vector3).lerp(target.hands[side],entry)
+  if state!=&"unequip":target.equipment_poles=equipment_from.poles;target.equipment_palms=equipment_from.palms;target.equipment_forearms=equipment_from.forearms;target.equipment_axes=equipment_from.axes
  if state in [&"walk",&"run",&"crouch_walk"] and motion_amount<1:
   var neutral:=Clips.sample(item,&"crouch" if state==&"crouch_walk" else &"idle",1.0 if state==&"crouch_walk" else 0.0)
   target.body=neutral.body.interpolate_with(target.body,motion_amount)
@@ -83,11 +97,19 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   displayed_pose.look_contact=target.look_contact
   displayed_pose.state = target.state; displayed_pose.phase = target.phase
   displayed_pose.family=target.family;displayed_pose.clip_state=target.clip_state;displayed_pose.gait_phase=target.gait_phase
+ for key in ["equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
+  if target.has(key):displayed_pose[key]=target[key]
+  else:displayed_pose.erase(key)
  displayed_pose.tool_basis=target.get("tool_basis",Aim.frame(target.shaft))
  if state in [&"action",&"draw",&"death"] or (state in [&"pickup",&"pickup_walk"] and phase>=0.5 and phase<=0.58):
   displayed_pose.body=target.body;displayed_pose.pelvis=target.get("pelvis",target.body);displayed_pose.grip=target.grip;displayed_pose.shaft=target.shaft
   if state in [&"pickup",&"pickup_walk"]:displayed_pose.hands[1]=target.hands[1]
   if state==&"action" and item==&"":displayed_pose.hands=target.hands.duplicate()
+ if equipping:
+  # The authored/captured hand path is already eased. Filtering old generic
+  # hand targets here would discard the displayed relaxed arm on the first frame.
+  displayed_pose.grip=target.grip
+  displayed_pose.hands=target.hands.duplicate()
  last_pose = displayed_pose
  # Re-solve the limbs after blending targets: interpolation must not shorten
  # a thigh or detach a shoulder from the moving torso.
@@ -102,21 +124,27 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
  if item!=&"" and state!=&"death":
   var profile:=Profiles.profile(item)
   var grip: Vector3 = last_pose.grip
+  var secondary_limit:=lerpf(maxf(18.8,last_pose.shoulders[1-last_pose.active].distance_to(grip+last_pose.shaft*profile.support)),18.8,last_pose.get("support_weight",1.0))
   # Project onto the intersection of both arms' reachable volumes.
   for attempt in 24:
    var support: Vector3 = grip+last_pose.shaft*profile.support
    var active: int = last_pose.active
    var centers: Array = [last_pose.shoulders[active]]
-   if profile.two_hands: centers.append(last_pose.shoulders[1-active]-(support-grip))
+   if profile.two_hands and last_pose.get("support_weight",1.0)>.001:
+    centers.append(last_pose.shoulders[1-active]-(support-grip))
    for center in centers:
-    if center.distance_to(grip)>18.8: grip = center+center.direction_to(grip)*18.8
+    var reach:=lerpf(18.96,18.8,last_pose.get("equipment_weight",1.0))
+    if profile.two_hands and center!=centers[0]:reach=secondary_limit
+    if center.distance_to(grip)>reach: grip = center+center.direction_to(grip)*reach
     elif center.distance_to(grip)<8.15: grip = center+center.direction_to(grip)*8.15
   var placement := place_tool({},grip,last_pose.shaft,Basis.IDENTITY,item)
   hands[last_pose.active] = grip
-  if profile.two_hands: hands[1-last_pose.active] = placement.support
+  if profile.two_hands:
+   var join:float=last_pose.get("support_weight",1.0)
+   hands[1-last_pose.active]=placement.support if join>=1 else hands[1-last_pose.active]+(placement.support-(last_pose.grip+last_pose.shaft*profile.support))*join
   for side in 2:
    var arm := Pose.joint(last_pose.shoulders[side],hands[side],Pose.UPPER_ARM,Pose.FOREARM,Vector3(-0.35 if side==0 else 0.35,-1,0))
-   if side==last_pose.active or profile.two_hands: grip_error = maxf(grip_error,arm.end.distance_to(hands[side]))
+   if side==last_pose.active or (profile.two_hands and last_pose.get("support_weight",1.0)>=1): grip_error = maxf(grip_error,arm.end.distance_to(hands[side]))
   grip_socket.transform=Transform3D(axe.basis,grip)
   support_socket.position=hands[1-last_pose.active]
   tip_socket.position=tool_tip

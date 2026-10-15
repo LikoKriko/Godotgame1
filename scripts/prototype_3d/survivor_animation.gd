@@ -28,9 +28,10 @@ static func duration(state: StringName,family: StringName = &"") -> float:
  return 0.60
 
 static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF,slide_launch:Dictionary={},crouch_amount:float=0.0) -> Dictionary:
+ if String(state).begins_with("equip") or state==&"unequip":
+  return equipment_pose(family,state,phase,movement_phase,movement,contact)
  var source_state := &"run" if state==&"slide" else state
  if state in [&"pickup",&"pickup_walk"]:source_state=&"walk" if state==&"pickup_walk" else &"idle"
- if state==&"unequip": source_state=&"equip";phase=1-phase
  if state==&"draw" or (family==&"bow" and state==&"action"):source_state=&"idle"
  if state==&"bow_release":source_state=&"walk" if not movement.is_zero_approx() else &"idle"
  if state in [&"drink",&"drink_walk"]: source_state=&"eat_walk" if state==&"drink_walk" else &"eat"
@@ -113,6 +114,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     local.z=lerpf(3.5*Anatomy.BODY_DEPTH,local.z,ARM_SWING_SCALE)
     pose.hands[side]=body*local
  natural_motion(pose,state,phase,movement_phase,movement,contact,striding)
+ if state==&"action" and family!=&"bow":reduce_attack_knees(pose,phase,movement_phase,movement,crouch_amount)
  body=pose.body
  if state==&"slide":
   lengthen_stride(pose)
@@ -176,6 +178,69 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   Slide.jump_from(pose,launch,phase)
  return solve_legs(pose)
 
+static func equipment_pose(family:StringName,state:StringName,phase:float,gait:float,movement:Vector3,contact:Vector3) -> Dictionary:
+ var locomotion:=StringName(String(state).trim_prefix("equip_")) if String(state).begins_with("equip_") else &"idle"
+ if state==&"unequip":locomotion=&"walk" if not movement.is_zero_approx() else &"idle"
+ var cycle:=1.0 if locomotion==&"crouch" else (0.0 if locomotion==&"idle" else gait)
+ var empty:=sample(&"",locomotion,cycle,gait,movement)
+ var ready:=sample(family,locomotion,cycle,gait,movement,contact)
+ var t:=clampf(1-phase if state==&"unequip" else phase,0,1)
+ var weight:=smoothstep(0,1,t)
+ var pose:=ready.duplicate(true)
+ pose.body=empty.body.interpolate_with(ready.body,weight)
+ pose.pelvis=empty.pelvis.interpolate_with(ready.pelvis,weight)
+ pose.clip_state=state;pose.state=state;pose.phase=phase;pose.equipment_weight=weight
+ pose.support_weight=smoothstep(.25,.85,t)
+ pose.equipment_poles=[];pose.equipment_palms=[];pose.equipment_axes=[]
+ for side in 2:
+  pose.shoulders[side]=pose.body*Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,Anatomy.SHOULDER.z)
+  pose.hips[side]=pose.pelvis*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
+  var ready_arm:=relaxed_arm(ready,side) if locomotion==&"idle" else {}
+  if not ready_arm.is_empty():ready.hands[side]=ready_arm.end
+  # Match the actual relaxed limb used at idle, not the old generic hand keys.
+  var arm:=relaxed_arm(empty,side) if locomotion==&"idle" else {}
+  if arm.is_empty():arm=preload("res://scripts/prototype_3d/human_kinematics.gd").arm(empty.shoulders[side],empty.hands[side],empty.body.basis,side,true)
+  empty.hands[side]=arm.end
+  pose.equipment_poles.append(arm.joint-arm.root)
+  pose.equipment_axes.append((arm.end-arm.root).normalized())
+  pose.equipment_palms.append(preload("res://scripts/prototype_3d/human_kinematics.gd").hand_frame(arm,empty.body.basis,side))
+  pose.hands[side]=(empty.hands[side] as Vector3).lerp(ready.hands[side],weight)
+ var start:Vector3=empty.hands[pose.active]
+ var sign_side:float=-1 if pose.active==0 else 1
+ var arc:=sin(t*PI)
+ pose.grip=start.lerp(ready.grip,weight)+pose.body.basis*Vector3(sign_side*arc,arc*1.4,arc*4.0)
+ var initial:=Weapons.frame(empty.body.basis,Vector3(sign_side*.25,.96,.12),family)
+ var ending:Basis=ready.get("tool_basis",Aim.frame(ready.shaft))
+ pose.tool_basis=initial.slerp(ending,weight);pose.shaft=pose.tool_basis.y
+ if Profiles.profile(family).two_hands:
+  pose.hands[1-pose.active]=(empty.hands[1-pose.active] as Vector3).lerp(pose.grip+pose.shaft*Profiles.profile(family).support,pose.support_weight)
+ pose.hands[pose.active]=pose.grip
+ return solve_legs(pose)
+
+static func reduce_attack_knees(pose:Dictionary,phase:float,gait:float,movement:Vector3,crouch:float) -> void:
+ # Reduce the additional flexion angle to 40%, retaining the crouched/walking
+ # stance beneath the attack. Fixed bone lengths determine the new hip height.
+ var state:StringName=(&"crouch_walk" if crouch>0 else &"walk") if not movement.is_zero_approx() else (&"crouch" if crouch>0 else &"idle")
+ var base:=sample(&"",state,crouch if state==&"crouch" else gait,gait,movement)
+ var rise:=INF
+ var a:=Anatomy.THIGH;var b:=Anatomy.SHIN
+ for side in 2:
+  var hip:Vector3=pose.hips[side];var ankle:Vector3=pose.legs[side].end
+  var old_distance:=clampf(hip.distance_to(ankle),absf(a-b)+.01,a+b-.04)
+  var base_distance:=clampf((base.hips[side] as Vector3).distance_to(base.legs[side].end),absf(a-b)+.01,a+b-.04)
+  var old_angle:=acos(clampf((old_distance*old_distance-a*a-b*b)/(2*a*b),-1,1))
+  var base_angle:=acos(clampf((base_distance*base_distance-a*a-b*b)/(2*a*b),-1,1))
+  var angle:=base_angle+maxf(0,old_angle-base_angle)*.4
+  angle=minf(angle,old_angle)
+  var distance:=sqrt(a*a+b*b+2*a*b*cos(angle))
+  var horizontal:=Vector2(hip.x-ankle.x,hip.z-ankle.z).length_squared()
+  rise=minf(rise,maxf(0,ankle.y+sqrt(maxf(0,distance*distance-horizontal))-hip.y))
+ if not is_finite(rise) or rise<.00001:return
+ pose.body.origin.y+=rise;pose.pelvis.origin.y+=rise
+ for side in 2:
+  pose.shoulders[side].y+=rise;pose.hips[side].y+=rise;pose.hands[side].y+=rise
+ pose.grip.y+=rise
+
 static func pickup_weight(phase:float) -> float:
  return smoothstep(0,0.5,phase)*(1-smoothstep(0.58,1,phase))
 
@@ -223,7 +288,7 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
   if contact.is_finite() and pose.family in [&"axe",&"pickaxe",&"sword"]:
    var low:=1-smoothstep(10,35,contact.y)
    offset.y-=low*7.0*drive
-   chest_rotation.x+=low*0.18*drive
+   chest_rotation.x+=low*0.48*drive
    pelvis_rotation.x+=low*0.06*drive
    offset.z+=low*0.7*drive
  if String(state).begins_with("equip") or state==&"unequip":

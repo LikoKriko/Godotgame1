@@ -8,7 +8,10 @@ static func arm_share(point:Vector3) -> float:
  var inner:=lerpf(lerpf(6.1,4.9,lower),4.0,shoulder)
  var outer:=lerpf(lerpf(6.7,5.35,lower),6.65,shoulder)
  var lateral:=smoothstep(inner,outer,absf(point.x))
- return lateral*(1-smoothstep(46,51.5,point.y))
+ # Protect the scapular surface, while the outer deltoid and the entire
+ # detached upper-arm ring remain free to follow the humerus.
+ var scapula:=smoothstep(43,46,point.y)*(1-smoothstep(4.7,6.5,absf(point.x)))*(1-smoothstep(.2,1.8,point.z))
+ return lateral*(1-smoothstep(46,51.5,point.y))*(1-.95*scapula)
 
 static func correct(arrays:Array) -> int:
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]

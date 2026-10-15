@@ -5,11 +5,12 @@ const SurfaceProfile=preload("res://scripts/prototype_3d/meshy_body_profile.gd")
 const Anatomy=preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Pose=preload("res://scripts/continuous_body_pose.gd")
 
-static func arm(root:Vector3,hand:Vector3,body:Basis,side:int,free_swing:bool=false,draw_amount:float=0.0) -> Dictionary:
+static func arm(root:Vector3,hand:Vector3,body:Basis,side:int,free_swing:bool=false,draw_amount:float=0.0,held_amount:float=0.0) -> Dictionary:
  var local:Vector3=body.inverse()*(hand-root)
  var raised:=smoothstep(-12,4,local.y)
  var across_chest:=smoothstep(1.0,5.0,local.x*(1 if side==0 else -1))
  var pole:=Vector3((-1 if side==0 else 1)*lerpf(0.75,2.2,across_chest),lerpf(-0.15,-0.85,raised)-across_chest*0.65,lerpf(0.2,0.9,raised)+across_chest*0.35)
+ if held_amount>0:pole.y-=.28*held_amount
  if free_swing:pole=Vector3(-0.12 if side==0 else 0.12,-0.02,-1.0)
  if draw_amount>0:
   var head_right:Vector3=Basis.IDENTITY.slerp(body,.2).x
@@ -81,3 +82,12 @@ static func hand_frame(chain:Dictionary,body:Basis,side:int,gripping:bool=false)
  z=z.normalized()
  var x:=y.cross(z).normalized()
  return Basis(x,y,x.cross(y).normalized())
+
+static func grip_roll(chain:Dictionary,body:Basis,side:int,shaft:Vector3) -> float:
+ var hand:=hand_frame(chain,body,side,true)
+ var across:=shaft-hand.y*shaft.dot(hand.y)
+ if across.length_squared()<.0001:return 0.0
+ across=across.normalized()
+ # A handle is an unoriented axis: a continuous pi-periodic roll avoids
+ # flipping pronation when that axis crosses the palm's perpendicular.
+ return deg_to_rad(12)*sin(2*hand.x.signed_angle_to(across,hand.y))

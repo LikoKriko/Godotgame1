@@ -72,3 +72,33 @@ combate agachado, contrapeso, movimiento diagonal, deslizamiento y guardado.
 
 Las duraciones de golpe, daño, alcance físico, tolerancia de la mira, consumo de
 flechas, desgaste y vuelo de proyectiles permanecen bajo las mecánicas vigentes.
+
+
+## Transiciones y postura de sujeción (16 de octubre de 2026)
+
+El equipamiento ya no usa las antiguas claves genéricas que obligaban a las
+dos manos a tomar el mango desde el primer fotograma. `equipment_pose()` enlaza
+la postura vacía de cada locomoción con el porte correspondiente. En partida,
+`begin_equipment_transition()` toma las manos, codos, palmas, giro de antebrazos
+y torso que realmente se ven, también al cambiar directamente entre armas o
+interrumpir una transición. La segunda mano se une entre el 25 % y el 85 %;
+los objetivos y límites de alcance entran gradualmente. Las manos siguen la
+curva suavizada de la animación y no se filtran contra las claves genéricas
+anteriores. El plano de flexión del codo se transporta con el brazo, evitando
+la inversión que puede producir una interpolación lineal de polos.
+
+El porte de hacha, pico y espada se inclina **10° más lejos de la vertical**
+en su plano previo. El arco añade **10° de inclinación lateral** alrededor de
+la dirección de tiro, conservando la precisión de la flecha. La mano izquierda
+del hacha/pico sujeta a **8,25 unidades** a lo largo del mango, una unidad por
+encima del apoyo anterior; perfil e IK de impacto comparten ese anclaje.
+El codo del brazo ocupado baja ligeramente. Antebrazo y palma reciben una
+pronación continua de hasta **12°**, orientada por el eje real del mango;
+no se cambia el brazo libre de contrapeso ni el codo de tracción del arco.
+
+La flexión adicional de rodillas del ataque se reduce un **60 %** respecto a
+la postura base, manteniendo el agachado de Ctrl y la marcha. La altura de
+cadera se calcula con las longitudes óseas originales. Al golpear bajo, el
+pecho se inclina más desde la cadera para conservar el alcance sin compensar
+con otra sentadilla. Los impactos continúan en la mira y los tiempos de acción
+no cambian. El perfil escapular vigente se describe en `MESHY_ASSETS.md`.

@@ -23,6 +23,6 @@ func _initialize():
  surfaces[0].bone_aabbs=replacement[0].bone_aabbs
  var mesh:=ArrayMesh.new();mesh.set("_surfaces",surfaces)
  for key in original.get_meta_list():mesh.set_meta(key,original.get_meta(key))
- mesh.set_meta("torso_weight_profile","meshy_shoulders_v2")
+ mesh.set_meta("torso_weight_profile","meshy_shoulders_v3")
  assert(ResourceSaver.save(mesh,path,ResourceSaver.FLAG_COMPRESS)==OK)
  print("Corrected shoulder/arm influences on ",changed," vertices; original geometry, UV, normals and materials retained");quit()

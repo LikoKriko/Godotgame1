@@ -1065,3 +1065,53 @@ después: portar arco, tensar, equipar, puñetazo y herramientas, además de mar
 carrera, agachado, deslizamiento y recogida. Importación del editor y
 `git diff --check` sin errores. No incluye validación en el equipo del usuario.
 Cambios locales **sin commit ni push** para esta tarea.
+
+
+## 2026-10-16 — Equipar continuo, agarres, rodillas y escápulas
+
+Primer hito observado **16/10 00:56:11 Europe/Madrid**; cierre **16/10 01:14:21
+Europe/Madrid**. Intervalo medido parcial **18 min 10 s**.
+Sin estimación previa ni inicio anterior registrado. Base local `2302da6`.
+
+Se sustituye el equipamiento heredado: obligaba a ambas manos a ocupar el mango
+inmediatamente y partía de claves genéricas distintas de los brazos relajados
+que realmente se dibujan. Ahora el brazo principal acerca el equipo por una
+curva suavizada y la mano de apoyo se une entre el 25 % y el 85 %. Se captura
+la pose visible al cambiar de equipo y se conservan palmas, giro de antebrazos,
+codos y torso. La interpolación de polos se sustituye por transporte del plano
+de flexión: la prueba arco→hacha detectó un giro brusco de codo que quedó resuelto.
+Hay enlaces a reposo, marcha, carrera y agachado, incluido equipar parado con Ctrl.
+Los límites de alcance de la mano de apoyo entran gradualmente.
+
+El porte de hacha, pico y espada se inclina 10° más respecto a la vertical;
+el arco añade 10° alrededor de su línea de tiro. El apoyo izquierdo del hacha /
+pico sube de 7,25 a 8,25 unidades a lo largo del mango, compartidas por perfil
+y solver. El codo ocupado baja ligeramente y palma/antebrazo pronan de forma
+continua hasta 12°, guiados por el eje del mango. Se preservan el brazo libre
+de contrapeso de espada y el codo de tracción del arco.
+
+Se reduce al 40 % la flexión adicional de rodillas del ataque respecto a la
+postura base; el agachado de Ctrl sigue siendo una postura independiente.
+La nueva altura de cadera se calcula con longitudes óseas constantes. El torso
+se inclina más desde la cadera en golpes bajos: evita recuperar el alcance con
+otra sentadilla. Se mantienen los impactos en la mira y los tiempos de acción.
+El perfil `meshy_shoulders_v3` contiene la superficie escapular, conservando
+la movilidad y el grosor del brazo; se hornea desde los pesos de calor de origen.
+No cambian geometría, posiciones, normales, tangentes, UV, topología ni PNG.
+
+Godot **4.6.3**, **12 suites superadas**: nueva continuidad de equipamiento
+**17892**, piel Meshy y panel escapular **14690**, catálogo **8844**,
+deslizamiento/salto **2028**, contactos/armadura **41**, piel/volumen/continuidad
+**150005**, armas **28219**, contrapeso espada **1440**, acciones/mira/E **4050**,
+combate agachado **836**, equipo **65** y precisión del arco **73**;
+total **228183 comprobaciones**. La nueva suite verifica 65 fases de cada
+arma y locomoción, posiciones y giros, entrada desde la pose dibujada,
+cambios directos entre familias, salida a reposo, apoyo izquierdo, ángulo de
+porte, descenso del codo y reducción del 60 % del esfuerzo de rodillas.
+
+Revisión nativa Compatibility: **324 fotogramas finales**, 12 casos, nueve
+fases y tres cámaras (frente, lateral y espalda), con mosaicos de secuencias
+e inspección ampliada de golpe bajo y arco. Incluye equipar las cuatro armas,
+golpear, tensar, puñetazo y variantes agachadas. Importación del editor y
+`git diff --check` sin errores. No incluye una sesión en el equipo del usuario.
+Cambios locales **sin commit ni push** para esta tarea.

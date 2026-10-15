@@ -60,6 +60,7 @@ func select_quick(index:int) -> bool:
  if item.is_empty():game.status.text="Acceso rápido vacío";return false
  var definition:Dictionary=game.bag.DEFINITIONS[item.id]
  if definition.slot!=&"tool" and not definition.has("kcal"):game.status.text="Este material se guarda en la barra, pero no se usa en la mano.";return false
+ model.begin_equipment_transition()
  stowed_family=family()
  if game.bag.active_quick_uid==item.uid:game.bag.active_quick_uid=-1;equipped=false
  else:game.bag.active_quick_uid=item.uid;equipped=true;equip_recovery=1.0
@@ -213,7 +214,7 @@ func _physics_process(delta: float) -> void:
   state = &"slide_jump" if locomotion.from_slide else &"jump"
   progress = locomotion.jump_elapsed/locomotion.JUMP_SECONDS
  elif equip_elapsed >= 0:
-  equip_elapsed += delta; state = &"equip"; progress = clampf(equip_elapsed/Clips.duration(&"equip",family()),0,1)
+  equip_elapsed += delta; state = &"equip_crouch" if locomotion.crouch>0.01 else &"equip"; progress = clampf(equip_elapsed/Clips.duration(&"equip",family()),0,1)
   if input.length_squared()>0:
    state = &"equip_crouch_walk" if locomotion.crouch>0.01 else (&"equip_run" if running else &"equip_walk")
   if unequipping:state=&"unequip"

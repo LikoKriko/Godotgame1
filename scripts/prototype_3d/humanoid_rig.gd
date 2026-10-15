@@ -93,12 +93,28 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
  posed[3] = Transform3D(skull_basis,neck+skull_basis*(rest[3].origin-Anatomy.HEAD_ANCHOR))
  for side in 2:
   var clip:StringName=pose.get("clip_state",&"idle")
-  var swinging:=Clips.arm_is_free(pose,side) and clip in [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide"]
+  var swinging:=Clips.arm_is_free(pose,side) and clip in [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"equip",&"unequip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk"]
   var draw_amount:=0.0
   if pose.get("family",&"")==&"bow" and side!=pose.active:
    if clip in [&"draw",&"action"]:draw_amount=smoothstep(.12,.7,pose.phase)
    elif clip==&"bow_release":draw_amount=1-smoothstep(.45,1,pose.phase)
-  var arm := Kinematics.arm(pose.shoulders[side],hands[side],torso.basis,side,swinging,draw_amount)
+  var held:=0.0
+  var family:StringName=pose.get("family",&"")
+  if family in [&"axe",&"pickaxe",&"sword",&"bow"] and (side==pose.active or Clips.Profiles.profile(family).two_hands):
+   held=pose.get("equipment_weight",1.0)
+  var arm := Kinematics.arm(pose.shoulders[side],hands[side],torso.basis,side,swinging,draw_amount,held)
+  if pose.has("equipment_poles"):
+   var axis:Vector3=(arm.end-arm.root).normalized()
+   var previous_axis:Vector3=pose.equipment_axes[side]
+   var previous_pole:Vector3=pose.equipment_poles[side]
+   previous_pole=(previous_pole-previous_axis*previous_pole.dot(previous_axis)).normalized()
+   # Parallel transport the previous bend plane before rotating toward the new
+   # one. Linear pole interpolation can pass through zero and flip the elbow.
+   var carried:=Basis(Quaternion(previous_axis,axis))*previous_pole
+   var desired:Vector3=arm.joint-arm.root
+   desired=(desired-axis*desired.dot(axis)).normalized()
+   var pole:=carried.rotated(axis,carried.signed_angle_to(desired,axis)*pose.equipment_weight)
+   arm=Pose.joint(arm.root,arm.end,Pose.UPPER_ARM,Pose.FOREARM,pole)
   var relaxed:Dictionary=Clips.relaxed_arm(pose,side)
   var resting:=clip==&"idle"
   if relaxed.is_empty() or clip not in [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run"]:relaxed_arm_blend[side]=0
@@ -124,7 +140,21 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   orient_limb(start,arm,arm_rest[side])
   hinge_collar(20+side,arm,arm_rest[side])
   var balancing:bool=pose.get("family",&"")==&"sword" and clip==&"action" and side!=pose.active
-  posed[start+2] = Transform3D(Kinematics.hand_frame(arm,torso.basis,side,not swinging and not balancing),arm.end)
+  var palm:=Kinematics.hand_frame(arm,torso.basis,side,not swinging and not balancing)
+  if held>0 or pose.has("equipment_forearms"):
+   var roll:=Kinematics.grip_roll(arm,torso.basis,side,pose.shaft)*held
+   palm=palm.rotated(palm.y,roll)
+   var forearm_axis:Vector3=(arm.joint-arm.end).normalized()
+   var forearm_roll:=roll
+   if pose.has("equipment_forearms"):
+    var current:=posed[start+1].basis.x
+    var saved:Vector3=pose.equipment_forearms[side].x
+    current=(current-forearm_axis*current.dot(forearm_axis)).normalized()
+    saved=(saved-forearm_axis*saved.dot(forearm_axis)).normalized()
+    forearm_roll=lerpf(current.signed_angle_to(saved,forearm_axis),roll,pose.equipment_weight)
+   posed[start+1].basis=posed[start+1].basis.rotated(forearm_axis,forearm_roll)
+  if pose.has("equipment_palms"):palm=(pose.equipment_palms[side] as Basis).slerp(palm,pose.equipment_weight)
+  posed[start+2] = Transform3D(palm,arm.end)
   if clip in [&"pickup",&"pickup_walk"] and side==1:
    # Turn the fingers toward a low object while the wrist stays exactly on
    # the selected contact. Following the forearm alone drives fingertips down.

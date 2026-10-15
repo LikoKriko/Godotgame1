@@ -18,6 +18,9 @@ static func guard(body:Transform3D,family:StringName,running:float=0.0) -> Trans
  if family==&"sword":grip=Vector3(8.0,34.0,10.0);axis=Vector3(.10,.46,.88)
  grip=grip.lerp(Vector3(-3.5,39,13) if family!=&"sword" else Vector3(8.5,38,11),running)
  axis=axis.lerp(Vector3(.12,.94,.31) if family!=&"sword" else Vector3(.10,.70,.70),running)
+ # Ten degrees farther from vertical in the same carrying plane.
+ var tilt_axis:=Vector3.UP.cross(axis).normalized()
+ axis=axis.rotated(tilt_axis,deg_to_rad(10))
  return Transform3D(frame(body.basis,axis,family),body*grip)
 static func carry(pose:Dictionary,state:StringName,phase:float,_gait:float) -> void:
  var family:StringName=pose.family
@@ -114,7 +117,7 @@ static func bow(pose:Dictionary,state:StringName,t:float,contact:Vector3) -> voi
  if up.length_squared()<.01:up=Vector3.BACK-direction*direction.z
  up=up.normalized()
  var cant:=1-smoothstep(55,120,Vector2(point.x-anchor.x,point.z-anchor.z).length())
- up=up.rotated(direction,-cant*.15)
+ up=up.rotated(direction,-cant*.15-deg_to_rad(10))
  var right:=up.cross(direction).normalized()
  pose.tool_basis=Basis(right,direction.cross(right).normalized(),direction)
  pose.shaft=pose.tool_basis.y
