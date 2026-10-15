@@ -49,6 +49,7 @@ func run():
   assert(total>0.0001,"Every imported vertex must be bound")
   for j in 4:weights[i*4+j]/=total
  arrays[Mesh.ARRAY_BONES]=bones;arrays[Mesh.ARRAY_WEIGHTS]=weights
+ preload("res://scripts/prototype_3d/young_skin_weights.gd").correct(arrays)
  var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
  var material:=StandardMaterial3D.new()
  var path:="res://assets/enemies/first/meshy/"
@@ -62,6 +63,7 @@ func run():
  var indices:PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
  var triangle_count:=indices.size()/3 if not indices.is_empty() else vertices.size()/3
  assert(triangle_count==977782,"Preserve all original triangles")
+ mesh.set_meta("tail_hinge",true)
  mesh.set_meta("source_zip_sha256","f0af7cc7091dfa1c6219a23b6c609e695a1a7dae90206889fab21802ed4c3655")
  mesh.set_meta("normalized_positions_sha256",normalized_hash)
  mesh.set_meta("source_triangles",triangle_count)

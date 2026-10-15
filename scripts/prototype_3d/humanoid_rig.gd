@@ -90,6 +90,7 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   var pitch:=clampf(atan2(-direction.y,maxf(0.1,direction.z)),0,0.95)
   var weight:float=Clips.pickup_weight(pose.phase)
   skull_basis=skull_basis.slerp(Basis(Vector3.RIGHT,pitch),weight)
+ skull_basis=pose.get("head_basis",skull_basis)
  posed[3] = Transform3D(skull_basis,neck+skull_basis*(rest[3].origin-Anatomy.HEAD_ANCHOR))
  for side in 2:
   var clip:StringName=pose.get("clip_state",&"idle")
@@ -100,20 +101,15 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
    elif clip==&"bow_release":draw_amount=1-smoothstep(.45,1,pose.phase)
   var held:=0.0
   var family:StringName=pose.get("family",&"")
-  if family in [&"axe",&"pickaxe",&"sword",&"bow"] and (side==pose.active or Clips.Profiles.profile(family).two_hands):
+  if clip!=&"death" and family in [&"axe",&"pickaxe",&"sword",&"bow"] and (side==pose.active or Clips.Profiles.profile(family).two_hands):
    held=pose.get("equipment_weight",1.0)
   var arm := Kinematics.arm(pose.shoulders[side],hands[side],torso.basis,side,swinging,draw_amount,held)
+  if pose.has("arm_poles"):arm=Pose.joint(arm.root,arm.end,Pose.UPPER_ARM,Pose.FOREARM,pose.arm_poles[side])
   if pose.has("equipment_poles"):
    var axis:Vector3=(arm.end-arm.root).normalized()
    var previous_axis:Vector3=pose.equipment_axes[side]
    var previous_pole:Vector3=pose.equipment_poles[side]
-   previous_pole=(previous_pole-previous_axis*previous_pole.dot(previous_axis)).normalized()
-   # Parallel transport the previous bend plane before rotating toward the new
-   # one. Linear pole interpolation can pass through zero and flip the elbow.
-   var carried:=Basis(Quaternion(previous_axis,axis))*previous_pole
-   var desired:Vector3=arm.joint-arm.root
-   desired=(desired-axis*desired.dot(axis)).normalized()
-   var pole:=carried.rotated(axis,carried.signed_angle_to(desired,axis)*pose.equipment_weight)
+   var pole:=Kinematics.transport_pole(previous_axis,previous_pole,axis,arm.joint-arm.root,pose.equipment_weight)
    arm=Pose.joint(arm.root,arm.end,Pose.UPPER_ARM,Pose.FOREARM,pole)
   var relaxed:Dictionary=Clips.relaxed_arm(pose,side)
   var resting:=clip==&"idle"
@@ -166,7 +162,7 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   var leg: Dictionary = pose.legs[side]; start = 10+side*3
   orient_limb(start,leg,neutral.legs[side])
   hinge_collar(22+side,leg,neutral.legs[side])
-  posed[start+2] = Transform3D(pose.get("leg_frame",Basis.IDENTITY)*Basis(Vector3.RIGHT,leg.pitch),leg.end)
+  posed[start+2] = Transform3D(pose.foot_bases[side] if pose.has("foot_bases") else pose.get("leg_frame",Basis.IDENTITY)*Basis(Vector3.RIGHT,leg.pitch),leg.end)
   var leg_angle := atan2((leg.joint-leg.root).z,-(leg.joint-leg.root).y)
   if delta>0:
    var d:=minf(delta,0.033)
@@ -175,10 +171,14 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
    cloth_angle[side]=clampf(cloth_angle[side]+cloth_velocity[side]*d,-0.09,0.09)
   else: cloth_angle[side]=0;cloth_velocity[side]=0
   previous_leg_angle[side]=leg_angle
+  var cloth_display:=cloth_angle[side]
+  if clip==&"death":
+   cloth_display*=1-smoothstep(.8,1,pose.phase)
+   if pose.phase>=1:cloth_angle[side]=0;cloth_velocity[side]=0
   for panel in 2:
    var index:=16+side*2+panel
    var origin: Vector3=leg.root+posed[10+side*3].basis*(rest[index].origin-rest[10+side*3].origin)
-   posed[index]=Transform3D(posed[10+side*3].basis*Basis(Vector3.RIGHT,cloth_angle[side]*(1 if panel==0 else 0.7)),origin)
+   posed[index]=Transform3D(posed[10+side*3].basis*Basis(Vector3.RIGHT,cloth_display*(1 if panel==0 else 0.7)),origin)
  for i in posed.size():
   var parent := parents[i]
   skeleton.set_bone_pose(i,posed[parent].affine_inverse()*posed[i] if parent >= 0 else posed[i])

@@ -11,7 +11,7 @@ func run():
  world.player.set_physics_process(false)
  var enemy=get_nodes_in_group("prototype_enemies")[0];enemy.set_physics_process(false)
  var actor=enemy.model;var mesh:Mesh=actor.mesh_node.mesh
- require(actor.skeleton.get_bone_count()==14,"Creature has its own nonhuman skeleton")
+ require(actor.skeleton.get_bone_count()==15,"Creature has its own nonhuman skeleton")
  require(absf(mesh.get_aabb().size.y*actor.scale.y-0.875)<0.001,"Young creature keeps approved height")
  for state in preload("res://scripts/prototype_3d/animation_review.gd").YOUNG_STATES:
   for side in [true,false]:

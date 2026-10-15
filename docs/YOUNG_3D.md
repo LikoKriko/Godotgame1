@@ -30,8 +30,8 @@ se retiran para no confundirlas con la entrega actual.
 
 ## Integración en el juego
 
-El FBX no incluye esqueleto ni animaciones. Se añade un esqueleto de catorce
-huesos y pesos por difusión de calor de Blender; se conservan y normalizan las
+El FBX no incluye esqueleto ni animaciones. Se añade un esqueleto con catorce huesos de base y una bisagra de cola
+(quince en ejecución). Los pesos de base proceden de difusión de calor de Blender; se conservan y normalizan las
 cuatro influencias principales de cada vértice. La animación del juego se adapta a esta ligadura; el archivo de Meshy no
 aporta clips originales.
 La primera asignación analítica de pesos se descartó tras detectar estiramientos
@@ -171,3 +171,27 @@ nuevos están disponibles con etiquetas en español en la revisión F6.
 cancelación, codos, patas y separación de muestras de la piedra deformada frente
 a la envolvente convexa de la cabeza. Se complementa con las comprobaciones
 existentes de apoyos de piel, continuidad, combate, parry y guardado.
+
+
+## Persecución y caída sobre la espalda (16 de octubre de 2026)
+
+La persecución cuadrúpeda pasa de 0,26 a 0,36 s por ciclo, con mayor recorrido
+anterior y posterior y ligera inclinación del torso. La persecución en guardia
+pasa de 0,52 a 0,65 s y también amplía la zancada. No cambia la velocidad física,
+la percepción ni los tiempos o el daño de los golpes.
+
+`fall_motion.gd` comparte el orden de caída con el superviviente: apoyo de
+rodillas, pérdida progresiva del equilibrio y apertura final de extremidades.
+El enemigo conserva sus dos segundos de muerte y enlaza exactamente con un
+cadáver inmóvil. Las entradas desde marcha, ataque, crochet y sentado capturan
+la pose visible; los planos articulares se transportan para evitar inversiones.
+La zona de interacción del botín abarca la nueva pose del cadáver.
+
+La cola larga necesita una bisagra para apoyarse al lado del cuerpo sin hundirse
+al reclinarse. `young_skin_weights.gd` redistribuye solo la influencia corporal
+necesaria y añade el hueso 14, conservando los índices anteriores. El horneado
+reproducible en `tools/enemy/bind_meshy.gd` incorpora esta corrección. El parche
+`tools/enemy/bend_tail_weights.gd` conserva los buffers originales de geometría,
+normales, tangentes, UV, índices y materiales; no cambia el FBX ni los PNG.
+La pose neutra reproduce el modelo original. Pruebas de soporte, apertura,
+interrupciones y continuidad: `tests/prototype_3d_falls.gd`.

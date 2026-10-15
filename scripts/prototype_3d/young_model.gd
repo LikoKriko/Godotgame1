@@ -37,6 +37,7 @@ func make_skeleton() -> void:
  for side in 2:
   var start:=rest.size();var arm:Dictionary=neutral.arms[side]
   bone("upper_arm_%d"%side,0,arm.root);bone("forearm_%d"%side,start,arm.joint);bone("fist_%d"%side,start+1,arm.end)
+ bone("tail",0,preload("res://scripts/prototype_3d/young_skin_weights.gd").TAIL_ANCHOR)
  add_child(skeleton);mesh_node.reparent(skeleton);mesh_node.skeleton=NodePath("..")
  var skin:=Skin.new()
  for i in rest.size():skin.add_bind(i,rest[i].affine_inverse())
@@ -51,9 +52,13 @@ func animate(state:StringName,phase:float,left:bool = true,delta:float = 0.0) ->
   var settle:=smoothstep(0,end,phase)
   target=Motion.mix(interruption_pose,target,settle)
   if settle>=1:interruption_pose.clear()
- last_pose=Motion.blend(last_pose,target,delta) if delta>0 and not last_pose.is_empty() and state not in [&"attack",&"hook"] else target
+ last_pose=Motion.blend(last_pose,target,delta) if delta>0 and not last_pose.is_empty() and state not in [&"attack",&"hook",&"death",&"corpse"] else target
+ apply_pose(last_pose)
+func apply_pose(pose:Dictionary) -> void:
+ last_pose=pose
  var body:Transform3D=last_pose.body;posed[0]=body
  posed[1]=Transform3D(last_pose.head,last_pose.head_origin)
+ posed[14]=Transform3D(body.basis*Basis(Vector3.UP,last_pose.get("tail_turn",0.0)),body*rest[14].origin)
  for side in 2:
   for kind in 2:
    var start:=2+side*3 if kind==0 else 8+side*3
@@ -62,6 +67,6 @@ func animate(state:StringName,phase:float,left:bool = true,delta:float = 0.0) ->
    for segment in 2:
     var rotation:=Frames.segment_frame(limb,segment)*Frames.segment_frame(original,segment).inverse()
     posed[start+segment]=Transform3D(rotation,limb.root if segment==0 else limb.joint)
-   var end_basis:=Basis(Vector3.RIGHT,limb.get("pitch",0.0)) if kind==0 else posed[start+1].basis
+   var end_basis:Basis=(last_pose.foot_bases[side] if not last_pose.get("foot_bases",[]).is_empty() else Basis(Vector3.RIGHT,limb.get("pitch",0.0))) if kind==0 else posed[start+1].basis
    posed[start+2]=Transform3D(end_basis,limb.end)
  for i in posed.size():skeleton.set_bone_pose(i,posed[parents[i]].affine_inverse()*posed[i] if parents[i]>=0 else posed[i])

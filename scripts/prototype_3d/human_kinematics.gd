@@ -91,3 +91,11 @@ static func grip_roll(chain:Dictionary,body:Basis,side:int,shaft:Vector3) -> flo
  # A handle is an unoriented axis: a continuous pi-periodic roll avoids
  # flipping pronation when that axis crosses the palm's perpendicular.
  return deg_to_rad(12)*sin(2*hand.x.signed_angle_to(across,hand.y))
+
+static func transport_pole(previous_axis:Vector3,previous_pole:Vector3,axis:Vector3,desired:Vector3,amount:float) -> Vector3:
+ var before:Vector3=previous_pole-previous_axis*previous_pole.dot(previous_axis)
+ var after:Vector3=desired-axis*desired.dot(axis)
+ if before.length_squared()<.000001:before=after
+ if after.length_squared()<.000001:after=before
+ var carried:=Basis(Quaternion(previous_axis,axis))*before.normalized()
+ return carried.rotated(axis,carried.signed_angle_to(after.normalized(),axis)*amount)

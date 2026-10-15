@@ -144,3 +144,23 @@ postura base de Ctrl. Para contactos bajos se aumenta la bisagra del torso.
 El perfil v3 limita la influencia del húmero en la superficie escapular sin
 inmovilizar la cara interna del brazo. Pruebas específicas de transición:
 `tests/prototype_3d_equip_transitions.gd`.
+
+
+## Persecución y muerte con apoyo de rodillas
+
+`prototype_3d/fall_motion.gd` define curvas suaves compartidas para el orden
+rodillas → caída de espaldas → apertura de brazos y piernas. Se preservan
+las duraciones: tres segundos para el superviviente y dos para el enemigo1.
+La postura final se mantiene inmóvil, incluida la ropa. El superviviente captura
+la pose real al morir desde carrera, combate, arco, agachado o deslizamiento;
+si ya está a ras del suelo, enlaza directamente con la parte reclinada sin
+levantarse antes de caer. Los giros de pies y cabeza acompañan al cuerpo.
+Se transportan los planos de flexión para conservar continuidad en codos y
+rodillas; no se modifican longitudes óseas ni geometría o texturas del humano.
+
+La persecución del enemigo1 usa pasos visualmente más lentos y amplios,
+conservando su velocidad física. La cola incorpora una bisagra y pesos locales
+necesarios para dejarla a un lado durante la caída. El cadáver conserva una
+zona de recogida con E ajustada a su nueva postura. Véase `docs/YOUNG_3D.md`.
+La suite `tests/prototype_3d_falls.gd` comprueba orden de apoyos, apertura,
+continuidad desde acciones y poses bajas, soporte de piel y cadáver estable.

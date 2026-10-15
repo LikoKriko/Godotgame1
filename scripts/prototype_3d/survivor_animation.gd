@@ -5,6 +5,7 @@ const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Aim = preload("res://scripts/prototype_3d/tool_aim.gd")
 const Profiles = preload("res://scripts/prototype_3d/held_profiles.gd")
 const Weapons=preload("res://scripts/prototype_3d/weapon_motion.gd")
+const Fall=preload("res://scripts/prototype_3d/fall_motion.gd")
 const Slide=preload("res://scripts/prototype_3d/slide_pose.gd")
 const STRIDE_SCALE:=1.3
 const ARM_SWING_SCALE:=0.9
@@ -30,6 +31,10 @@ static func duration(state: StringName,family: StringName = &"") -> float:
 static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF,slide_launch:Dictionary={},crouch_amount:float=0.0) -> Dictionary:
  if String(state).begins_with("equip") or state==&"unequip":
   return equipment_pose(family,state,phase,movement_phase,movement,contact)
+ if state==&"death":
+  var dying:=sample(&"",&"idle",0)
+  dying.family=family;dying.clip_state=&"death";dying.state=&"death";dying.phase=clampf(phase,0,1)
+  return solve_legs(Fall.human(dying,phase))
  var source_state := &"run" if state==&"slide" else state
  if state in [&"pickup",&"pickup_walk"]:source_state=&"walk" if state==&"pickup_walk" else &"idle"
  if state==&"draw" or (family==&"bow" and state==&"action"):source_state=&"idle"
@@ -347,18 +352,6 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
    pose.hips[side]=pelvis*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
    pose.hands[side]=change*pose.hands[side]
  else:pose.pelvis=pose.body
- if state==&"death":
-  # Hands and feet meet the ground independently of the falling torso instead
-  # of rigidly following it below the floor. The head/chest retain clearance.
-  var settle:=smoothstep(0.35,0.85,phase)*5.8
-  pose.body.origin.y+=settle;pose.pelvis=pose.body
-  for side in 2:
-   pose.shoulders[side]=pose.body*Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,Anatomy.SHOULDER.z)
-   pose.hips[side]=pose.body*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
-   pose.hands[side].y=maxf(6.5,pose.hands[side].y+settle)
-   var fold:=smoothstep(.3,.7,phase)
-   pose.leg_poles[side]=(Vector3.BACK.lerp(Vector3.UP,fold)+Vector3((-1 if side==0 else 1)*sin(fold*PI)*1.3,0,0)).normalized()
-   pose.legs[side].end.y=maxf(2.1,pose.legs[side].end.y+settle)
 
 static func lengthen_stride(pose:Dictionary) -> void:
  # Keep the existing stance/lift curve, extending only horizontal travel.

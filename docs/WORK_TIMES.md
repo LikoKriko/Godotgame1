@@ -1220,3 +1220,42 @@ Cierre tras integrar colisiones: **2026-10-15 23:30:11 UTC**
 (**2026-10-16 01:30:11 Europe/Madrid**),
 **31 min 31 s observados** desde el primer hito. La publicación en GitHub
 se realiza después de este registro.
+
+## 16 de octubre de 2026 — Persecución y caídas de enemigo1 y superviviente
+
+Inicio observado: **16/10/2026 01:18:53 Europe/Madrid**. Cierre de
+implementación y comprobaciones: **16/10/2026 01:46:29 Europe/Madrid**.
+Duración medida: **27 min 36 s**.
+Sin estimación previa registrada. Intervalo de esta tarea, sin commit ni push.
+
+Persecución cuadrúpeda con ciclo de 0,36 s frente a 0,26 s y mayor zancada;
+en guardia, 0,65 s frente a 0,52 s. Misma velocidad física. Caídas compartidas
+con apoyo de rodillas, reclinado progresivo sobre la espalda y extremidades
+abiertas. Captura de postura al interrumpir carrera, ataques, arco, agachado
+y deslizamiento. Cadáver estable, ropa asentada e interacción de botín ajustada.
+Bisagra necesaria de cola del enemigo; se preservan geometría, proporciones,
+UV, materiales, FBX y PNG originales. Corrección local de pesos reproducible.
+
+Godot 4.6.3: **10 suites superadas, 260391 comprobaciones**: caídas **18221**,
+movimiento del enemigo **30578**, fidelidad Meshy **3423**, criatura **8697**,
+piel Meshy humana **14690**, deformación humana **150005**, equipamiento
+**17892**, boxeo **16675**, botín **16** y guardado **194**. Las tres suites
+de caídas, movimiento del enemigo y piel Meshy se repitieron tras los ajustes
+finales de contacto. Importación del editor y `git diff --check` sin errores.
+
+Inspección adicional de superficie completa en 65 fases: **17.143.620** muestras
+de vértices humanos y **33.725.965** del enemigo durante muerte, más
+**33.725.965** de persecución; sin penetraciones superiores al margen de
+0,12 unidades de autoría. Revisión nativa Compatibility: **102 fotogramas de
+muerte** (tres vistas) y **32 de persecución** (dos vistas), con inspección de
+secuencias y poses finales completas. No incluye prueba en el equipo del usuario.
+
+
+Publicación autorizada después de la implementación. Hito de integración:
+**16/10/2026 01:49:19 Europe/Madrid**. Se incorporan los commits remotos
+`301080b` (contactos y separación) y `b078b2c` (nuevos modelos Meshy) antes de
+publicar las animaciones. Único conflicto: entradas anexadas al registro de
+tiempos; se conservan ambas. Importación completa del editor sin errores.
+Comprobaciones posteriores a la integración: caídas **18221**, modelos y equipo
+**38**, hitboxes **73** y separación **1000**, todas superadas sin errores de
+script. No se registró un inicio exacto del intervalo de publicación.

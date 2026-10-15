@@ -18,6 +18,7 @@ var rig = preload("res://scripts/prototype_3d/humanoid_rig.gd").new()
 var displayed_pose: Dictionary = {}
 var slide_launch_pose:Dictionary={}
 var equipment_from:Dictionary={}
+var death_from:Dictionary={}
 var family_override: StringName = &"default"
 var aim_contact := Vector3.INF
 var action_crouch:=0.0
@@ -60,8 +61,19 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
  var item: StringName = (&"axe" if equipped else &"") if family_override==&"default" else family_override
  var equipping:=String(state).begins_with("equip") or state==&"unequip"
  if equipping and delta>0 and (equipment_from.is_empty() or displayed_pose.get("clip_state",&"")!=state or displayed_pose.get("family",&"")!=item or phase<float(displayed_pose.get("phase",0))):begin_equipment_transition()
+ if state==&"death" and death_from.is_empty() and not displayed_pose.is_empty():
+  begin_equipment_transition()
+  death_from=equipment_from.duplicate(true)
+  death_from.feet=[rig.posed[12].origin,rig.posed[15].origin]
+  death_from.foot_bases=[rig.posed[12].basis,rig.posed[15].basis]
+  death_from.leg_poles=[rig.posed[11].origin-rig.posed[10].origin,rig.posed[14].origin-rig.posed[13].origin]
+  death_from.leg_axes=[rig.posed[10].origin.direction_to(rig.posed[12].origin),rig.posed[13].origin.direction_to(rig.posed[15].origin)]
+  death_from.head=rig.posed[3].basis
+  death_from.low_start=(death_from.pelvis*Vector3(0,Anatomy.HIP.y,0)).y<15.6
+ if state!=&"death":death_from.clear()
  if not equipping:equipment_from.clear()
- var target := Clips.sample(item,state,phase,movement_phase,movement,aim_contact,slide_launch_pose,action_crouch)
+ var death_phase:=lerpf(.72,1,phase) if state==&"death" and death_from.get("low_start",false) and delta>0 else phase
+ var target := Clips.sample(item,state,death_phase,movement_phase,movement,aim_contact,slide_launch_pose,action_crouch)
  if equipping and delta>0 and not equipment_from.is_empty():
   var entry:=smoothstep(0,.65,phase)
   target.body=(equipment_from.body as Transform3D).interpolate_with(target.body,entry)
@@ -69,6 +81,20 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   target.grip=(equipment_from.hands[target.active] as Vector3).lerp(target.grip,entry)
   for side in 2:target.hands[side]=(equipment_from.hands[side] as Vector3).lerp(target.hands[side],entry)
   if state!=&"unequip":target.equipment_poles=equipment_from.poles;target.equipment_palms=equipment_from.palms;target.equipment_forearms=equipment_from.forearms;target.equipment_axes=equipment_from.axes
+ if state==&"death" and delta>0 and not death_from.is_empty():
+  var entry:=smoothstep(0,.28,phase)
+  target.body=(death_from.body as Transform3D).interpolate_with(target.body,entry)
+  target.pelvis=(death_from.pelvis as Transform3D).interpolate_with(target.pelvis,entry)
+  target.head_basis=(death_from.head as Basis).slerp(target.head_basis,entry)
+  for side in 2:
+   target.hands[side]=(death_from.hands[side] as Vector3).lerp(target.hands[side],entry)
+   target.legs[side].end=(death_from.feet[side] as Vector3).lerp(target.legs[side].end,entry)
+   target.foot_bases[side]=(death_from.foot_bases[side] as Basis).slerp(target.foot_bases[side],entry)
+   var hip:Vector3=target.pelvis*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
+   target.leg_poles[side]=preload("res://scripts/prototype_3d/human_kinematics.gd").transport_pole(death_from.leg_axes[side],death_from.leg_poles[side],hip.direction_to(target.legs[side].end),target.leg_poles[side],entry)
+  target.equipment_weight=entry
+  target.equipment_poles=death_from.poles;target.equipment_palms=death_from.palms
+  target.equipment_forearms=death_from.forearms;target.equipment_axes=death_from.axes
  if state in [&"walk",&"run",&"crouch_walk"] and motion_amount<1:
   var neutral:=Clips.sample(item,&"crouch" if state==&"crouch_walk" else &"idle",1.0 if state==&"crouch_walk" else 0.0)
   target.body=neutral.body.interpolate_with(target.body,motion_amount)
@@ -97,7 +123,8 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   displayed_pose.look_contact=target.look_contact
   displayed_pose.state = target.state; displayed_pose.phase = target.phase
   displayed_pose.family=target.family;displayed_pose.clip_state=target.clip_state;displayed_pose.gait_phase=target.gait_phase
- for key in ["equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
+ if state==&"death":displayed_pose=target.duplicate(true)
+ for key in ["head_basis","arm_poles","foot_bases","equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
   if target.has(key):displayed_pose[key]=target[key]
   else:displayed_pose.erase(key)
  displayed_pose.tool_basis=target.get("tool_basis",Aim.frame(target.shaft))

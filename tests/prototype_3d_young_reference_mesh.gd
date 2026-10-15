@@ -53,7 +53,7 @@ func run():
   valid=valid and vertices[i].is_finite() and uv[i].is_finite()
   for j in 4:
    sum+=weights[i*4+j]
-   valid=valid and bones[i*4+j]>=0 and bones[i*4+j]<14 and weights[i*4+j]>=0
+   valid=valid and bones[i*4+j]>=0 and bones[i*4+j]<15 and weights[i*4+j]>=0
   valid=valid and absf(sum-1)<0.0001
   if i%503==0:probes.append(i)
  require(valid,"Every source vertex has finite coordinates, UVs and normalized four-bone bindings")

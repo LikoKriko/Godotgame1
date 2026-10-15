@@ -183,7 +183,10 @@ func _physics_process(delta:float) -> void:
 func ensure_corpse_area() -> void:
  if corpse_area!=null:return
  corpse_area=Area3D.new();corpse_area.collision_layer=16;corpse_area.collision_mask=0;corpse_area.monitoring=false;corpse_area.set_meta("creature",self);add_child(corpse_area)
- var shape:=CollisionShape3D.new();var volume:=BoxShape3D.new();volume.size=Vector3(0.8,0.3,0.9);shape.shape=volume;shape.position.y=0.15;corpse_area.add_child(shape)
+ var shape:=CollisionShape3D.new();var volume:=BoxShape3D.new();var bounds:=AABB(to_local(model.to_global(model.posed[0]*Vector3(0,15,0))),Vector3.ZERO)
+ for transform in model.posed:bounds=bounds.expand(to_local(model.to_global(transform.origin)))
+ bounds=bounds.expand(to_local(model.to_global(model.posed[1]*Motion.SNOUT_OFFSET))).grow(.15)
+ volume.size=bounds.size;shape.shape=volume;shape.position=bounds.get_center();corpse_area.add_child(shape)
 func restore_presentation() -> void:
  if health<=0:
   collision_layer=0;collision_mask=0;hurt_area.collision_layer=0
