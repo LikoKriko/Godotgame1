@@ -4,6 +4,8 @@ const Pose = preload("res://scripts/continuous_body_pose.gd")
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Aim = preload("res://scripts/prototype_3d/tool_aim.gd")
 const Profiles = preload("res://scripts/prototype_3d/held_profiles.gd")
+const STRIDE_SCALE:=1.3
+const ARM_SWING_SCALE:=0.9
 const FAMILIES: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow",&"bottle",&"food",&"carried"]
 const STATES: Array[StringName] = [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"jump",&"slide_jump",&"equip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk",&"unequip",&"action",&"draw",&"pickup",&"pickup_walk",&"eat",&"eat_walk",&"drink",&"drink_walk",&"parry",&"hurt",&"death"]
 
@@ -13,13 +15,14 @@ static func duration(state: StringName,family: StringName = &"") -> float:
  if state in [&"pickup",&"pickup_walk"]: return 0.36
  if state==&"slide": return 0.46
  if state in [&"jump",&"slide_jump"]: return 0.66
- if state==&"crouch_walk":return 1.25
+ if state==&"crouch_walk":return 1.25*STRIDE_SCALE
  if state==&"draw": return 0.5
  if state==&"action": return 1.0125 if family==&"sword" else 0.75
  if String(state).begins_with("equip") or state==&"unequip": return 0.5 if family==&"pickaxe" else 0.42
  if state in [&"start",&"start_run"]: return 0.14
  if state in [&"stop",&"stop_run"]: return 0.18
- return 0.45 if state==&"run" else 0.60
+ if state in [&"walk",&"run"]:return (0.45 if state==&"run" else 0.60)*STRIDE_SCALE
+ return 0.60
 
 static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF) -> Dictionary:
  var source_state := state
@@ -68,12 +71,22 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   pose.grip=pose.hands[1];pose.shaft=body.basis*Vector3.LEFT
  if not movement.is_zero_approx() and state not in [&"slide",&"jump",&"slide_jump",&"death"]:
   var travel:=Vector3(movement.x,0,movement.z).normalized()
-  var walk_pose:=Pose.sample(family,&"walk",movement_phase) if state in [&"action",&"pickup_walk",&"eat_walk",&"drink_walk"] else pose
+  var walk_pose:=Pose.sample(family,&"walk",movement_phase) if state in [&"action",&"pickup_walk",&"eat_walk",&"drink_walk",&"unequip"] else pose
   for side in 2:
    var ankle: Vector3=walk_pose.legs[side].end
    var step:=ankle.z*lerpf(1,0.65,absf(travel.x))
    pose.legs[side].end=Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,ankle.y,0)+travel*step
    pose.legs[side].pitch*=travel.z
+ var striding:=state in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"] or (not movement.is_zero_approx() and state in [&"action",&"unequip"])
+ if striding:
+  lengthen_stride(pose);body=pose.body
+  # Free walking arms retain their resting depth and share the slower gait.
+  if state not in [&"run",&"start_run",&"equip_run"]:
+   for side in 2:
+    if not arm_is_free(pose,side):continue
+    var local:Vector3=body.affine_inverse()*pose.hands[side]
+    local.z=lerpf(3.5*Anatomy.BODY_DEPTH,local.z,ARM_SWING_SCALE)
+    pose.hands[side]=body*local
  if family==&"axe":
   var shaft:Vector3=pose.shaft.normalized()
   var edge:Vector3=body.basis*Vector3.BACK;edge-=shaft*edge.dot(shaft)
@@ -97,6 +110,17 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   if contact.is_finite():
    var profile:=Profiles.profile(family)
    var solution:=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands)
+   # A small weight transfer reaches a nearby high contact without lengthening
+   # the new model's arms or letting the tool leave either palm.
+   if solution.is_empty():
+    var transfer:=Vector3(contact.x,0,contact.z).normalized()*1.5
+    var reach_shoulders:Array=[pose.shoulders[0]+transfer,pose.shoulders[1]+transfer]
+    if not Aim.solve(contact,reach_shoulders,profile.tip,pose.active,profile.two_hands).is_empty():
+     transfer*=smoothstep(0.26,0.5,phase)*(1-smoothstep(0.62,1,phase))
+     body.origin+=transfer;pose.body=body;pose.grip+=transfer
+     for side in 2:
+      pose.shoulders[side]+=transfer;pose.hips[side]+=transfer;pose.hands[side]+=transfer
+     solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands)
    pose.contact_reachable=not solution.is_empty()
    if solution.is_empty():
     var center: Vector3=(pose.shoulders[0]+pose.shoulders[1])*0.5
@@ -137,6 +161,25 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
    pose.hands[side].z=maxf(pose.hands[side].z,4.8)
  return solve_legs(pose)
 
+static func lengthen_stride(pose:Dictionary) -> void:
+ # Keep the existing stance/lift curve, extending only horizontal travel.
+ # Settle the pelvis just enough to reach both planted feet with fixed bones;
+ # otherwise clamped IK would shorten the requested step or lift a support foot.
+ var settle:=0.0
+ for side in 2:
+  var ankle:Vector3=pose.legs[side].end
+  var neutral_x:float=(-1 if side==0 else 1)*Anatomy.HIP.x
+  ankle.x=neutral_x+(ankle.x-neutral_x)*STRIDE_SCALE;ankle.z*=STRIDE_SCALE
+  pose.legs[side].end=ankle
+  var hip:Vector3=pose.hips[side]
+  var horizontal:=Vector2(ankle.x-hip.x,ankle.z-hip.z).length_squared()
+  var vertical:=sqrt(maxf(0.01,pow(Pose.THIGH+Pose.SHIN-0.08,2)-horizontal))
+  settle=maxf(settle,hip.y-ankle.y-vertical)
+ var down:=Vector3.DOWN*settle
+ pose.body.origin+=down;pose.grip+=down
+ for side in 2:
+  pose.hips[side]+=down;pose.shoulders[side]+=down;pose.hands[side]+=down
+
 static func solve_legs(pose: Dictionary) -> Dictionary:
  # Each foot stays on its anatomical side, including during blended diagonals.
  var boundary:=Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*0.5
@@ -165,7 +208,7 @@ static func running_arm(pose:Dictionary,side:int,gait:float) -> Dictionary:
  # Occupied hands preserve their category grip, including the drawing hand.
  if not arm_is_free(pose,side):return {}
  var body:Transform3D=pose.body
- var swing:=sin((gait+side*0.5)*TAU)*deg_to_rad(18)
+ var swing:=sin((gait+side*0.5)*TAU)*deg_to_rad(18)*ARM_SWING_SCALE
  var upper:Vector3=body.basis*(Basis(Vector3.RIGHT,swing)*Vector3(0.24*(-1 if side==0 else 1),-1,0)).normalized()
  var hinge:=body.basis.x-upper*upper.dot(body.basis.x);hinge=hinge.normalized()
  var forearm:=upper.rotated(hinge,-deg_to_rad(105))

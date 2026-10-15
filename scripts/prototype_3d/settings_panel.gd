@@ -13,7 +13,7 @@ func configure(owner_game) -> void:
  tabs=TabContainer.new();layout.add_child(tabs)
  var gameplay:=page("Juego");auto_run=check(gameplay,"Correr automáticamente",game.settings.values.auto_run,func(value):game.settings.values.auto_run=value;save())
  size_label=Label.new();gameplay.add_child(size_label)
- hud_slider=HSlider.new();hud_slider.min_value=1;hud_slider.max_value=6;hud_slider.step=1;hud_slider.value=game.settings.values.hud_size;hud_slider.custom_minimum_size=Vector2(360,28);gameplay.add_child(hud_slider)
+ hud_slider=HSlider.new();hud_slider.min_value=1;hud_slider.max_value=5;hud_slider.step=1;hud_slider.value=game.settings.values.hud_size;hud_slider.custom_minimum_size=Vector2(360,28);gameplay.add_child(hud_slider)
  hud_slider.value_changed.connect(func(value):game.settings.values.hud_size=int(value);save())
  var graphics:=page("Gráficos")
  check(graphics,"Sincronización vertical",game.settings.values.vsync,func(value):game.settings.values.vsync=value;save())
@@ -43,8 +43,9 @@ func save() -> void:
  var result:int=game.settings.save_settings()
  apply_runtime(game.settings,get_viewport());game.settings.changed.emit();update_text()
  if result!=OK:size_label.text="No se pudo guardar la configuración."
-func update_text() -> void:size_label.text="Tamaño del HUD: %d / 6"%int(game.settings.values.hud_size)
+func update_text() -> void:size_label.text="Tamaño del HUD: %d / 5"%int(game.settings.values.hud_size)
 static func apply_runtime(settings,viewport:Viewport) -> void:
+ settings.values.hud_size=clampi(int(settings.values.hud_size),1,5)
  Engine.max_fps=int(settings.values.fps)
  viewport.msaa_3d=[Viewport.MSAA_DISABLED,Viewport.MSAA_2X,Viewport.MSAA_4X][int(settings.values.msaa)]
  if DisplayServer.get_name()!="headless":DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED if settings.values.vsync else DisplayServer.VSYNC_DISABLED)
@@ -54,3 +55,8 @@ static func apply_runtime(settings,viewport:Viewport) -> void:
   if index<0:
    AudioServer.add_bus();index=AudioServer.bus_count-1;AudioServer.set_bus_name(index,bus_name);AudioServer.set_bus_send(index,"Master")
   var value:float=settings.values[key];AudioServer.set_bus_volume_db(index,linear_to_db(maxf(value,0.0001)));AudioServer.set_bus_mute(index,value<=0 or (key=="master" and settings.values.muted))
+
+static func hud_scale(level:int) -> float:
+ # New level 1 matches former level 3: 56% of original HUD surface.
+ # Preserve the user-selected area metric; all increments refer to level 1.
+ return sqrt(0.56*(1.0+0.1*(clampi(level,1,5)-1)))

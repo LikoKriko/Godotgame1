@@ -74,7 +74,10 @@ func run():
  require(actors[0].health==0 and actors[0].death_elapsed==43 and actors[0].corpse_area!=null and not actors[0].loot_slots[0].is_empty(),"Corpse timer, loot and aim volume restore")
  require(actors[1].health==7 and actors[1].brain.remembers_player and actors[1].brain.last_seen==Vector3(-2,0,1) and absf(actors[1].effects.remaining(&"stun")-1.1)<0.001,"Living creature retains memory and stun")
  var user_path:="user://test_day_zero_3d_"+str(OS.get_process_id())+".save"
+ game.camera_rig.pitch=PI/2
  require(Save.write(game,user_path)==OK and Save.write(game,user_path)==OK and not Save.read_state(user_path).is_empty(),"user:// paths support replacement and backup outside the project")
+ require(absf(Save.read_state(user_path).player.camera[1]-PI/2)<0.000001,"A full vertical camera angle survives JSON precision and validation")
+ game.camera_rig.pitch=saved.player.camera[1]
  for suffix in ["",".bak",".tmp"]:
   if FileAccess.file_exists(user_path+suffix):DirAccess.remove_absolute(user_path+suffix)
  require(game.save_current_game()==OK and FileAccess.file_exists(path+".bak"),"Second manual save keeps a last-good backup")

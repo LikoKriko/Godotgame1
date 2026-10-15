@@ -1,7 +1,7 @@
 extends Control
 ## Reuses the approved frames and icons; scaling never changes click coordinates.
 const Style=preload("res://scripts/ui_style.gd")
-const Settings=preload("res://scripts/game_settings.gd")
+const Settings=preload("res://scripts/prototype_3d/settings_panel.gd")
 const Icons=preload("res://scripts/prototype_3d/item_icons.gd")
 var game
 var life:Label

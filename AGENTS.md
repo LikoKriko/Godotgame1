@@ -78,3 +78,13 @@ lo pida y mejorar futuras estimaciones. Guardar los datos en
 previa y duración medida. No inventar horas de inicio ni reconstruir como exactos
 intervalos no registrados: marcarlos como parciales o estimados. Los informes
 al usuario usan Europe/Madrid. El registro no sustituye terminar las tareas.
+
+
+## Referencias vigentes de los modelos 3D
+
+El superviviente usa `entregables/personajes/personaje1_frente.png` y
+`personaje1_espaldas.png`; el joven usa las cuatro vistas de
+`entregables/enemigos/enemigo1_joven_3d.png`. Son las referencias visuales
+actuales para proporciones, cara, ropa y detalles, por encima de las primeras
+aproximaciones 3D. Adaptar las animaciones y armaduras a sus mallas continuas,
+conservando huesos y agarres anatómicos. Mantener la altura de 1,75 m/0,875 m.

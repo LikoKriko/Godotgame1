@@ -15,7 +15,7 @@ func run():
   if int(tags[i].x)!=3:continue
   if colors[i].r>0.7:skin_top=maxf(skin_top,vertices[i].y)
   elif colors[i].r<0.38 and colors[i].g<0.27:hair_top=maxf(hair_top,vertices[i].y)
- require(hair_top>skin_top and hair_top-skin_top<1.2,"Short hair covers the scalp without the old spherical curls")
+ require(hair_top>skin_top and hair_top-skin_top<2.2,"Reference hair forms a close layered scalp without spherical curls")
  var blade=actor.held_props[&"sword"].find_child("BeveledStoneBlade",true,false)
  require(blade!=null and blade.mesh.get_aabb().size.x<6.5 and blade.mesh.get_aabb().size.z<1.2,"Sword has a slender stone blade with real bevel thickness")
  actor.family_override=&"axe";actor.aim_contact=Vector3.INF;actor.animate(&"idle",0,true)

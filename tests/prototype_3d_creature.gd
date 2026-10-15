@@ -50,8 +50,8 @@ func run():
  for id in world.bag.DEFINITIONS:
   var icon=preload("res://scripts/prototype_3d/item_icons.gd").get_icon(id)
   require(icon.get_size()==Vector2(256,256),"All item icons have 256px backing textures")
- for value in range(1,7):
+ for value in range(1,6):
   world.settings.values.hud_size=value;world.settings.changed.emit()
-  require(absf(world.hud.quick.scale.x-sqrt(0.4*(1+0.2*(value-1))))<0.001,"HUD levels preserve approved area scaling")
+  require(absf(world.hud.quick.scale.x-sqrt(0.56*(1+0.1*(value-1))))<0.001,"HUD levels preserve approved area scaling")
  print("%s: %d creature, memory, parry and HUD checks"%["PASS" if failures==0 else "FAIL",checks])
  world.free();quit(1 if failures else 0)

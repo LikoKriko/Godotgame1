@@ -151,7 +151,7 @@ func _physics_process(delta: float) -> void:
  model.rotation.y = lerp_angle(model.rotation.y,action_heading if action_elapsed >= 0 else atan2(forward.x,forward.z),1-exp(-delta*15))
  var state: StringName = &"idle"; var progress := 0.0
  if input.length_squared()>0:
-  phase = fposmod(phase+delta/(0.45 if running else 0.60)*locomotion.speed_factor()*movement_multiplier,1)
+  phase = fposmod(phase+delta/Clips.duration(&"run" if running else &"walk")*locomotion.speed_factor()*movement_multiplier,1)
  if action_elapsed >= 0:
   state=&"draw" if action_family==&"bow" else &"action"
   var seconds:=0.5 if action_family==&"bow" else Clips.duration(state,action_family)

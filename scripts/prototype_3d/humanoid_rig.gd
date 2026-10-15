@@ -52,11 +52,22 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
  arrays[Mesh.ARRAY_NORMAL] = sculpted_normals(vertices,arrays[Mesh.ARRAY_COLOR],tags)
  var colors: PackedColorArray = arrays[Mesh.ARRAY_COLOR]
  var texture_uv := PackedVector2Array()
+ var projection_tags:=tags.duplicate()
  var indices := PackedInt32Array(); var weights := PackedFloat32Array()
  for i in vertices.size():
   var cloth := colors[i].r<0.61 and colors[i].g<0.39 and vertices[i].y<25
   var blend := bindings(vertices[i],int(tags[i].x),cloth)
   texture_uv.append(material_uv(vertices[i],colors[i]))
+  # Anatomical projection of the supplied front/back paintings in bind space.
+  # Only torso and shorts use this projection; faces/hands remain real geometry.
+  if int(tags[i].x)==0 and vertices[i].y>=15.5 and vertices[i].y<=48.5 and (vertices[i].y>=29.4 or colors[i].r<0.61):
+   var point:Vector3=vertices[i]
+   var front:=point.z>=0
+   var horizontal:float=point.x if front else -point.x
+   var waist_y:=610.0 if front else 585.0
+   var image_y:=waist_y-(point.y-29.4)*17.4 if point.y>=29.4 else waist_y+(29.4-point.y)*18.5
+   texture_uv[-1]=Vector2((506.0+horizontal*21.1)/1086.0,image_y/1448.0)
+   projection_tags[i].y=1.0 if front else 2.0
   if int(tags[i].x)==0 and vertices[i].y>30 and vertices[i].y<45 and colors[i].r>0.7:
    var point: Vector3 = vertices[i]
    var front := smoothstep(0.5,2.5,point.z)
@@ -68,6 +79,7 @@ func initialize(actor: Node3D, mesh_instance: MeshInstance3D) -> void:
    indices.append(int(blend[slot*2])); weights.append(float(blend[slot*2+1]))
  arrays[Mesh.ARRAY_BONES] = indices; arrays[Mesh.ARRAY_WEIGHTS] = weights
  arrays[Mesh.ARRAY_TEX_UV2] = texture_uv
+ arrays[Mesh.ARRAY_TEX_UV] = projection_tags
  arrays[Mesh.ARRAY_COLOR] = colors
  var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
  mesh_instance.mesh = mesh
@@ -143,7 +155,7 @@ func bindings(vertex: Vector3,tag: int,cloth: bool = false) -> Array:
  if tag in [1,2]:
   var side:=tag-1;var arm:Dictionary=arm_rest[side];var start:=4+side*3
   var along:=clampf((vertex-arm.root).dot((arm.joint-arm.root).normalized()),0,Pose.UPPER_ARM)
-  if along<2.5:return pair(1,start,lerpf(0.5,1,smoothstep(0,2.5,along)))
+  if along<3.5:return pair(1,start,smoothstep(1.0,3.5,along))
   return limb_binding(vertex,start,arm)
  if tag==3: return pair(3,3,0)
  if vertex.y < 26.0:

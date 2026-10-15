@@ -46,7 +46,7 @@ func _process(delta: float) -> void:
   actor.displayed_item=&"apple" if family==&"food" else (&"botella" if family==&"bottle" else family)
   actor.item_water_ml=500;actor.nock_visible=clip==&"draw"
   var moving:=String(clip).contains("walk") or clip in [&"run",&"start",&"stop",&"start_run",&"stop_run"]
-  actor.animate(clip,phase,family==&"axe",delta*speed,fposmod(elapsed/0.6,1),Vector3.BACK if moving else Vector3.ZERO)
+  actor.animate(clip,phase,family==&"axe",delta*speed,fposmod(elapsed/Clips.duration(&"run" if String(clip).contains("run") else (&"crouch_walk" if String(clip).contains("crouch") else &"walk")),1),Vector3.BACK if moving else Vector3.ZERO)
  var distance:=1.9 if species==&"young" else 3.2
  camera.position=Vector3(sin(orbit)*distance,0.8 if species==&"young" else 1.35,cos(orbit)*distance);camera.look_at(Vector3(0,0.48 if species==&"young" else 0.95,0))
 func _unhandled_input(event: InputEvent) -> void:

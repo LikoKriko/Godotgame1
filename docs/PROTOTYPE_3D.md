@@ -8,13 +8,13 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú prin
 ## Incluido en esta integración
 
 - Cámara sobre el hombro derecho: distancia 3,6 m, desplazamiento 0,60 m, FOV
-  75°, sensibilidad 0,0025 rad/píxel, inclinación −60° a +65°. Una esfera evita
+  75°, sensibilidad 0,0025 rad/píxel, inclinación −90° a +90°. Una esfera evita
   atravesar paredes y copas. Movimiento relativo a la cámara.
 - Superviviente estilizado de 1,75 m y 60 kg, delgado, con piel continua,
   articulaciones estables y pantalón holgado con inercia ligera. El esqueleto
   tiene veinte huesos, incluidos cuatro para los bajos de la tela.
 - Atlas de alta resolución con acabado pixel art, paleta limitada y muestreo
-  nearest con mipmaps. Ojos, barba y marca azul conservan el diseño original.
+  nearest con mipmaps. El modelo y sus pinturas toman las nuevas vistas de frente/espalda del superviviente.
 - Catálogo de 29 estados para manos libres y siete familias de objetos: caminar,
   correr, agacharse, deslizamiento, saltos, transiciones, equipar en movimiento,
   gestos de herramientas/armas, tensado, recogida, comer, beber, parry, daño y
@@ -34,7 +34,7 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú prin
   enfriamiento 4 s y stun 1,5 s. Solo un bloqueo conseguido produce el pulso
   blanco alrededor de las manos. Indicador de stun circular reutilizable.
 - HUD con vida, calorías, hidratación, peso, día/hora, nivel, mapa y seis huecos
-  rápidos. Configuración integrada: correr automático y seis tamaños del HUD.
+  rápidos. Configuración integrada: correr automático y cinco tamaños del HUD.
 - Inventario de 32 huecos, cinco espacios de armadura, seis huecos rápidos
   físicos, arrastre, Shift + clic, reparación y retrato renderizado en 3D.
   Iconos de 256×256 a partir de los originales; símbolo provisional compartido
@@ -213,14 +213,14 @@ mochila llena, botella con contenido, contador y caducidad sin duplicaciones.
 
 ## Correcciones de modelos y puntería (15 de octubre de 2026)
 
-El cuerpo conserva el mismo rig y la altura de 1,75 m. Los hombros tienen
-casquetes biselados; las piernas, perfiles octogonales con rodilla, gemelo y
+El cuerpo conserva el mismo rig y la altura de 1,75 m. Los hombros se unen al
+perfil continuo del torso; las piernas tienen perfiles facetados con rodilla, gemelo y
 tobillo. El pelo usa una cubierta continua de mechones bajos y planos. En los
 golpes el descenso de la pelvis se limita antes de resolver el alcance con IK,
 para no sustituir el gesto de brazos por una sentadilla.
 
 Los brazos libres al correr mantienen 75° interiores en el codo y un balanceo
-máximo de 18° en el hombro, con entradas/salidas de 0,14/0,18 s. El brazo ocupado
+máximo de 16,2° en el hombro, con entradas/salidas de 0,14/0,18 s. El brazo ocupado
 por un objeto y ambos brazos con herramientas de dos manos conservan sus
 agarres. La armadura comparte la transformación del torso: hojas dentadas,
 nervaduras finas, ataduras trenzadas y huecos para que pasen los brazos.
@@ -324,3 +324,60 @@ separadas y enterrando el cierre proximal del brazo. Los primeros pesos mezclan
 pecho y brazo para suavizar la unión. La espalda añade planos y relieves discretos
 en las escápulas. Cabeza y torso del joven tienen más secciones y planos marcados,
 conservando el rig, las proporciones aprobadas y las referencias de cuatro vistas.
+
+
+## Referencias renovadas, ritmo y cámara (15 de octubre de 2026)
+
+Las referencias vigentes del superviviente son
+`entregables/personajes/personaje1_frente.png` y `personaje1_espaldas.png`.
+Se conservan sin editar; las copias importables en
+`assets/characters/prototype_3d/reference_front.png` y `reference_back.png`
+alimentan la pintura de pecho, espalda y pantalón en coordenadas de reposo.
+El muestreo usa píxeles definidos, cuantización moderada de paleta y mipmaps.
+Las vistas no proporcionan una malla 3D: el volumen lateral se reconstruye
+mediante perfiles anatómicos. Cara, cejas, iris/pupilas, nariz, barba, pelo,
+manos con dedos y piernas son geometría; no se proyectan ojos sobre brazos.
+Se ha retirado la marca azul anterior y los parches redondos del pantalón.
+
+`survivor_model.gd` mantiene veinte huesos; `humanoid_rig.gd` adapta pesos de
+hombro, piel, tela y proyección de las nuevas pinturas. La cabeza tiene volumen
+mayor y el pie un ancho compatible con la referencia. El límite de cruce entre
+pies usa este nuevo ancho. Se normaliza la altura visible a 1,75 m; una pequeña
+transferencia de peso de hasta 1,5 unidades de autoría (~4 cm) permite alcanzar
+contactos cercanos altos sin alargar huesos ni separar las manos del mango.
+La armadura sigue el torso y conserva sus huecos para los brazos.
+
+El joven se reconstruye en `young_model.gd` siguiendo
+`entregables/enemigos/enemigo1_joven_3d.png`, importada en
+`assets/enemies/first/reference_3d.png`. Tiene pelaje por capas, cresta y marcas
+vegetales doradas, hocico con fosas nasales, ojos rojos con párpados, orejas,
+marcas claras en las mejillas, colmillos, uñas, cola y puños de placas de piedra
+biseladas. Las cuatro vistas definen las siluetas y detalles. La textura toma una zona
+limpia de pelaje de la referencia; ojos, piedra y hocico no se duplican en la piel. Mantiene los
+catorce huesos no humanos y toda su rutina: cuatro apoyos, incorporarse,
+puñetazos alternos, comer, sentarse, stun, recuperación y muerte.
+
+La zancada horizontal aumenta un 30%, conservando las velocidades de caminar y
+correr (2 y 3,2 m/s). Un ciclo dura 0,78 s al caminar y 0,585 s al correr: 30%
+más tiempo, aproximadamente 23,1% menos frecuencia. Brazos y piernas comparten
+fase. El balanceo de brazos se reduce un 10%, manteniendo codos de 165° en
+reposo y 75° en carrera. El apoyo del pie y la longitud de los huesos permanecen
+constantes; la pelvis desciende solo lo necesario para alcanzar la zancada.
+
+La cámara admite ambos polos verticales y guarda/restaura esos ángulos. La
+recuperación de colisión converge a la distancia segura actual, evitando la
+oscilación entre extensión completa y retracción que provocaba el parpadeo al
+mirar arriba. Se reutilizan la esfera y su consulta física.
+
+El HUD 3D tiene cinco niveles. El nivel 1 equivale al antiguo nivel 3. Como la
+métrica elegida es superficie, el factor de cada eje es
+`sqrt(0.56 * (1 + 0.10 * (nivel - 1)))`. Los niveles ocupan 100%, 110%, 120%,
+130% y 140% de la nueva superficie base. El ajuste compartido del juego 2D
+conserva su escala anterior; HUD y colocación de mesas 3D usan la nueva escala.
+
+Comprobaciones específicas: `tests/prototype_3d_camera_gait.gd` reproduce la
+colisión de suelo al mirar arriba y comprueba amplitud/cadencia/IK;
+`prototype_3d_reference_models.gd` valida procedencia de imágenes, piel ligada,
+poses finitas y las cinco escalas del HUD. El catálogo existente revisa todos
+los estados/familias y dieciséis orientaciones de desplazamiento; la revisión
+nativa añade vistas frontales y laterales en varias fases con/sin armadura.

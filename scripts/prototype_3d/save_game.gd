@@ -98,7 +98,7 @@ static func valid(data) -> bool:
  if not in_world(p.get("position")) or not valid_vector(p.get("velocity")) or not number(p.get("heading"),-100000,100000) or not number(p.get("phase"),0,1):return false
  if not number(p.get("equip_recovery"),0,1) or not number(p.get("pickup_recovery"),0,0.5):return false
  if not number(p.get("death_elapsed"),-1,3.1) or not p.get("camera") is Array or p.camera.size()!=2:return false
- if not number(p.camera[0],-100000,100000) or not number(p.camera[1],deg_to_rad(-60),deg_to_rad(65)):return false
+ if not number(p.camera[0],-100000,100000) or not number(p.camera[1],-preload("res://scripts/prototype_3d/shoulder_camera.gd").PITCH_LIMIT-0.000001,preload("res://scripts/prototype_3d/shoulder_camera.gd").PITCH_LIMIT+0.000001):return false
  var motion=p.get("motion")
  if not motion is Dictionary or not motion.get("from_slide") is bool:return false
  for key in ["jump_heading","launch_heading"]:
@@ -239,7 +239,7 @@ static func restore(game,data:Dictionary) -> bool:
  game.player.position=point(p.position);game.player.velocity=point(p.velocity);game.player.model.rotation.y=p.heading;game.player.phase=p.phase;game.player.death_elapsed=p.death_elapsed;game.player.equip_recovery=p.equip_recovery;game.player.pickup_recovery=p.pickup_recovery
  for key in MOTION:game.player.locomotion.set(key,p.motion[key])
  game.player.locomotion.slide_direction=Vector2(p.motion.slide_direction[0],p.motion.slide_direction[1])
- game.camera_rig.yaw=p.camera[0];game.camera_rig.pitch=p.camera[1]
+ game.camera_rig.yaw=p.camera[0];game.camera_rig.pitch=clampf(p.camera[1],-game.camera_rig.PITCH_LIMIT,game.camera_rig.PITCH_LIMIT)
  for actor in game.get_tree().get_nodes_in_group("prototype_enemies"):
   if actor.game==game:actor.free()
  for entry in data.enemies:

@@ -77,5 +77,5 @@ func _process(delta:float) -> void:
    var color:=Color(0.68,0.95,0.6,0.45) if can_place(preview.global_position) else Color(0.9,0.3,0.25,0.45)
    for paint in preview_paints:paint.albedo_color=color
  if placing():
-  var factor:float=preload("res://scripts/game_settings.gd").hud_scale(game.settings.values.hud_size)
+  var factor:float=preload("res://scripts/prototype_3d/settings_panel.gd").hud_scale(game.settings.values.hud_size)
   progress.size=Vector2(220,14)*factor;progress.position=Vector2(game.hud.quick.position.x+(game.hud.quick.size.x*factor-progress.size.x)*0.5,game.hud.quick.position.y-progress.size.y-8)

@@ -45,7 +45,7 @@ func run():
  world.player.model.animate(&"walk",0.2,false,0,0.2,Vector3.FORWARD)
  require(world.player.model.last_pose.legs[0].end.z<0,"Backward gait follows the actual travel direction")
  var original:float=world.camera_rig.yaw;world.camera_rig.look(Vector2(100,100000))
- require(world.camera_rig.yaw!=original and world.camera_rig.pitch<=deg_to_rad(65),"Mouse orbit and pitch limits work")
+ require(world.camera_rig.yaw!=original and absf(world.camera_rig.pitch+PI/2)<0.00001,"Mouse orbit reaches the full downward pole without inverting")
  world.camera_rig.pitch = -0.12; world.camera_rig.yaw = 0
  world.player.position = Vector3(-0.6,0,-0.65); world.camera_rig.update(1.0)
  await physics_frame

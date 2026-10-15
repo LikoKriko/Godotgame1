@@ -86,3 +86,46 @@ sin modificarlo y se ajustaron volumen y silueta de la cabeza del pico a esas
 vistas. Revisión nativa adicional y pruebas de equipo/armadura pasadas.
 Último hito antes de publicar: **2026-10-15 07:28:46 UTC**. Intervalo medido desde
 el primer registro: **32 min 29 s**, incluida esta ampliación de referencia.
+
+
+## 2026-10-15 — Zancada, cámara, referencias nuevas y HUD 3D
+
+Alcance inicial: zancadas 30% más largas, misma velocidad, cadencia menor y
+brazos con 10% menos de amplitud y ritmo más lento; cámara vertical sin parpadeo.
+Durante la tanda se pidieron rehacer el superviviente desde dos imágenes nuevas,
+rehacer el joven conforme a sus cuatro vistas y sustituir la escala del HUD
+por cinco niveles, con el antiguo nivel 3 como nuevo nivel 1.
+No se dio una estimación previa para este alcance ampliado.
+
+| Hito | UTC | Estado |
+| --- | --- | --- |
+| Primer registro de la tanda de movimiento/cámara | 2026-10-15 07:42:04 | Inicio medido parcial; la petición exacta fue anterior |
+| Primera validación ampliada | 2026-10-15 08:06:47 | Rig, ritmo, criatura, HUD, guardado y movimiento probados |
+| Cierre de revisión nativa y documentación | 2026-10-15 08:18:21 | Modelos revisados de frente/lado/espalda y en movimiento; prueba nativa de sesión pasada |
+
+Intervalo medido hasta este hito: **36 min 17 s**. Es un intervalo combinado;
+no se dispone del inicio exclusivo de modelado del superviviente, enemigo o
+cambio de HUD. No atribuir esta duración entera a ninguno de ellos.
+
+Se reprodujo el parpadeo de cámara: alternaba una posición por encima del suelo
+con otra por debajo al recuperar hacia la distancia completa mientras seguía
+obstruida. La corrección converge a la distancia segura, admite ±90° y valida
+ese ángulo tras guardar/leer JSON. La zancada conserva huesos y apoyos; los
+brazos comparten el ciclo más largo, además de reducir su amplitud.
+
+Los nuevos modelos conservan rigs continuos de 20 y 14 huesos; se reconstruyen
+formas, manos/cara/pelo/ropa del humano y pelaje/cresta/hocico/ojos/piedra del
+joven. Las vistas del usuario son referencias de reconstrucción, no archivos
+con una malla extraíble. Se verificaron poses estáticas y fases de caminar,
+correr, agacharse, hacha, pico, espada, arco, comida, parry, deslizamiento,
+salto, muerte, stun, sentado y alimentación del joven. Dos revisiones gráficas
+detectaron defectos de unión/relieve y contaminación de texturas que se
+corrigieron antes de la publicación.
+
+Validación: 8588 comprobaciones del catálogo, 6531 de criatura/HUD, 1116 de
+zancada/cámara, 539 de referencias/piel/HUD, 374 de codos/agarres, 24 de
+cuerpo/armadura, 739 generales, 69 de arco, 191 de guardado/sesión y prueba de
+movimiento. En ventana nativa: 11 comprobaciones de menús, desplegables,
+configuración, guardado/carga y clics. La importación del editor terminó sin
+errores de scripts. El controlador llvmpipe avisa que no puede cambiar VSync;
+ese aviso pertenece a la revisión gráfica del entorno, no al proyecto.
