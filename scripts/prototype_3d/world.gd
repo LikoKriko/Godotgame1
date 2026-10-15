@@ -33,6 +33,12 @@ var experience:=0
 var pending_consumption:Dictionary={}
 var terrain:Node3D
 var combat_effects:Node3D
+var use_test_layout:=false
+var world_bounds:=Rect2(-24,-24,48,48)
+var environment_content:Node3D
+var loading_state:=false
+var loading_screen:Control
+var loading_progress:ProgressBar
 func _ready() -> void:
  # The 2D cursor autoload would override captured mouse mode each frame.
  var cursor := get_tree().root.get_node_or_null("GameCursor")
@@ -45,12 +51,14 @@ func _ready() -> void:
  progression.reset()
  bag.reset()
  bag.move_item(&"quick",5,&"quick",0)
+ if not use_test_layout:world_bounds=Rect2(-42,-28,84,56)
  build_environment()
  combat_effects=preload("res://scripts/prototype_3d/combat_effects.gd").new();add_child(combat_effects);combat_effects.game=self
  player = preload("res://scripts/prototype_3d/player.gd").new(); add_child(player); player.configure(self); player.position = Vector3(0,0.2,2.0)
  camera_rig = preload("res://scripts/prototype_3d/shoulder_camera.gd").new(); add_child(camera_rig); camera_rig.configure(self,player); camera_rig.update(1.0)
  build_ui()
  var enemy:=preload("res://scripts/prototype_3d/young_enemy.gd").new();add_child(enemy);enemy.position=Vector3(7,0.2,-4);enemy.configure(self)
+ if not use_test_layout:call_deferred("generate_content")
 func build_environment() -> void:
  var environment := WorldEnvironment.new(); var environment_settings := Environment.new()
  environment_settings.background_mode = Environment.BG_COLOR; environment_settings.background_color = Color("809495")
@@ -58,27 +66,17 @@ func build_environment() -> void:
  environment.environment = environment_settings;world_ambient=environment_settings; add_child(environment)
  var sun := DirectionalLight3D.new(); sun.rotation_degrees = Vector3(-52,-35,0); sun.light_color = Color("fff1d6"); sun.light_energy = 1.2; sun.shadow_enabled = true; add_child(sun);main_sun=sun
  var ground := StaticBody3D.new(); add_child(ground)
- var shape := CollisionShape3D.new(); var box := BoxShape3D.new(); box.size = Vector3(48,0.4,48); shape.shape = box; shape.position.y = -0.2; ground.add_child(shape)
+ var shape := CollisionShape3D.new(); var box := BoxShape3D.new(); box.size = Vector3(world_bounds.size.x,0.4,world_bounds.size.y); shape.shape = box; shape.position.y = -0.2; ground.add_child(shape)
+ if not use_test_layout:
+  for axis in 2:
+   for sign_side in [-1,1]:
+    var boundary:=StaticBody3D.new();add_child(boundary);var limit:=CollisionShape3D.new();var wall_shape:=BoxShape3D.new();wall_shape.size=Vector3(0.3,20,world_bounds.size.y) if axis==0 else Vector3(world_bounds.size.x,20,0.3);limit.shape=wall_shape;limit.position=Vector3(sign_side*world_bounds.size.x*0.5,10,0) if axis==0 else Vector3(0,10,sign_side*world_bounds.size.y*0.5);boundary.add_child(limit);boundary.set_meta("physical_height",20.0)
  terrain=preload("res://scripts/prototype_3d/terrain_chunks.gd").new();add_child(terrain)
  var units:float=preload("res://scripts/prototype_3d/terrain_chunks.gd").METRES_PER_UNIT
- terrain.configure(73129,null,Rect2(Vector2(-24,-24)/units,Vector2(48,48)/units))
+ terrain.configure(73129,null,Rect2(world_bounds.position/units,world_bounds.size/units))
  terrain.update_observer(Vector3.ZERO)
- for point in [Vector3(0,0,-1.6),Vector3(3,0,-4),Vector3(-3,0,-5),Vector3(5,0,3)]:
-  var tree := preload("res://scripts/prototype_3d/tree_model.gd").new(); add_child(tree); tree.position = point; tree.scale = Vector3.ONE*0.65
- for index in get_tree().get_nodes_in_group("prototype_trees").size():
-  var tree=get_tree().get_nodes_in_group("prototype_trees")[index]
-  var center:Vector2=Vector2(tree.position.x,tree.position.z)/units
-  terrain.sampler.add_influence(StringName("tree_%d"%index),&"dirt",Rect2(center-Vector2.ONE*25,Vector2.ONE*50),0.65)
- terrain.refresh_influences()
- var rock_points:=[Vector3(3,0,2.5),Vector3(4,0,-2.2),Vector3(-3,0,1.5),Vector3(8,0,-7)]
- for i in rock_points.size():
-  var rock:=preload("res://scripts/prototype_3d/rock.gd").new();add_child(rock);rock.position=rock_points[i];rock.configure(i)
- var water:=preload("res://scripts/prototype_3d/water_source.gd").new();add_child(water);water.position=Vector3(-2,0,4)
- # A solid test wall also provides an explicit camera collision case.
- var wall := StaticBody3D.new(); add_child(wall); wall.position = Vector3(-6,1,-2)
- var collider := CollisionShape3D.new(); var block := BoxShape3D.new(); block.size = Vector3(0.5,2,5); collider.shape = block; wall.add_child(collider)
- var visual := MeshInstance3D.new(); var cube := BoxMesh.new(); cube.size = block.size; visual.mesh = cube
- var paint := StandardMaterial3D.new(); paint.albedo_color = Color("686257"); paint.roughness = 1.0; visual.material_override = paint; wall.add_child(visual)
+ if use_test_layout:
+  var fixture=load("res://tests/fixtures/prototype_layout.gd").new();add_child(fixture);fixture.populate(self)
 func build_ui() -> void:
  var layer := CanvasLayer.new(); add_child(layer)
  var root := Control.new(); root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); root.mouse_filter = Control.MOUSE_FILTER_IGNORE; layer.add_child(root)
@@ -112,6 +110,7 @@ func build_ui() -> void:
  item_catalog=preload("res://scripts/prototype_3d/item_catalog.gd").new();root.add_child(item_catalog);item_catalog.configure(self)
  item_catalog.visibility_changed.connect(func():if not item_catalog.visible and paused and not pause_panel.visible:resume_world())
  styled_hud=hud
+ build_loading_screen(root)
 func toggle_pause() -> void:
  if inventory_panel!=null and inventory_panel.visible:inventory_panel.hide();return
  if item_catalog!=null and item_catalog.visible:item_catalog.hide();return
@@ -174,6 +173,7 @@ func open_2d() -> void:
   var cursor := preload("res://scripts/cursor_overlay.gd").new(); cursor.name = "GameCursor"; get_tree().root.add_child(cursor)
  get_tree().change_scene_to_file("res://scenes/day_zero.tscn")
 func _unhandled_input(event: InputEvent) -> void:
+ if loading_state:return
  if event is InputEventKey and event.pressed and not event.echo:
   if event.keycode == KEY_ESCAPE: toggle_pause(); get_viewport().set_input_as_handled()
   elif event.keycode>=KEY_1 and event.keycode<=KEY_6 and not paused:player.select_quick(event.keycode-KEY_1)
@@ -203,10 +203,11 @@ func resolve_hit(click_target=null) -> bool:
  var family:StringName=player.action_family if player.action_elapsed>=0 else player.family()
  var item:Dictionary=bag.held_item() if player.equipped else {}
  if not item.is_empty() and item.uses<=0:return false
+ var sapling:bool=target.is_in_group("prototype_saplings")
  var enemy:bool=target.is_in_group("prototype_enemies")
  var tree:bool=target.is_in_group("prototype_trees")
  var rock:bool=target.is_in_group("prototype_rocks")
- if not enemy and not tree and not rock:status.text="Golpe al aire";return false
+ if not enemy and not tree and not rock and not sapling:status.text="Golpe al aire";return false
  if target.health<=0 or not target_still_at(result,target):status.text="Golpe al aire";return false
  if not player.can_reach_contact(result.position):status.text="Fuera de alcance";return false
  if enemy:
@@ -214,6 +215,12 @@ func resolve_hit(click_target=null) -> bool:
   target.take_damage(progression.combat_damage(base) if family==&"sword" else base)
   if player.equipped:bag.consume_use(2 if family in [&"axe",&"pickaxe"] else 1)
   combat_effects.flash(result.position);status.text="Enemigo: %d / 10"%int(target.health);return true
+ if sapling:
+  if family!=&"":status.text="Rompe este arbolito con las manos.";return false
+  if target.health==1 and not bag.can_add_many(target.rewards):status.text="La mochila está llena.";return false
+  target.hit();combat_effects.flash(result.position)
+  if target.health==0:bag.add_many(target.rewards)
+  return true
  if rock and target.hand_collectable:status.text="Recoge esta piedra con E y las manos libres.";return false
  var correct:bool=family==(&"axe" if tree else &"pickaxe")
  if player.equipped:bag.consume_use(1 if correct or family==&"sword" else 2)
@@ -241,6 +248,10 @@ func interact() -> bool:
  if target.is_in_group("prototype_water"):
   var outcome:Dictionary=preload("res://scripts/nutrition.gd").refill(bag.held_item() if player.equipped else {})
   status.text=outcome.message;inventory_panel.refresh();return outcome.ok
+ if target.is_in_group("prototype_burdock") and target.health>0:
+  if player.equipped:status.text="Necesitas las manos libres para recogerlo.";return false
+  if not bag.add_many(target.rewards):status.text="La mochila está llena.";return false
+  target.hit();player.play_preview(&"",&"pickup");status.text="Hojas de bardana recogidas.";return true
  if target.is_in_group("prototype_rocks") and target.hand_collectable and target.health>0:
   if player.equipped:status.text="Necesitas las manos libres para recogerlo.";return false
   if not bag.add(&"piedra",target.yield_count):status.text="La mochila está llena.";return false
@@ -312,3 +323,33 @@ func _exit_tree() -> void:
  Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
  var cursor := get_tree().root.get_node_or_null("GameCursor")
  if cursor != null: cursor.show(); cursor.set_process(true)
+
+func build_loading_screen(root:Control) -> void:
+ loading_screen=Control.new();loading_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(loading_screen)
+ var background:=ColorRect.new();background.color=Color.BLACK;background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);loading_screen.add_child(background)
+ var center:=CenterContainer.new();center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);loading_screen.add_child(center)
+ var layout:=VBoxContainer.new();layout.add_theme_constant_override("separation",12);center.add_child(layout)
+ var label:=Label.new();label.text="Generando mundo";label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;layout.add_child(label)
+ loading_progress=ProgressBar.new();loading_progress.custom_minimum_size=Vector2(360,18);loading_progress.show_percentage=false;loading_progress.max_value=1
+ var border:=StyleBoxFlat.new();border.bg_color=Color.BLACK;border.border_color=Color.WHITE;border.set_border_width_all(1);loading_progress.add_theme_stylebox_override("background",border)
+ var fill:=StyleBoxFlat.new();fill.bg_color=Color.WHITE;loading_progress.add_theme_stylebox_override("fill",fill);layout.add_child(loading_progress)
+ loading_screen.visible=not use_test_layout
+ if not use_test_layout:loading_state=true;paused=true
+func generate_content() -> void:
+ await get_tree().process_frame
+ environment_content=preload("res://scripts/prototype_3d/world_content.gd").new();add_child(environment_content)
+ environment_content.progress_changed.connect(func(value):loading_progress.value=value)
+ environment_content.completed.connect(func():
+  loading_state=false;loading_screen.hide();resume_world()
+  for view in get_tree().get_nodes_in_group("prototype_maps"):view.refresh_terrain()
+ )
+ environment_content.configure(self,73129)
+func surface_height(point:Vector3) -> float:
+ return environment_content.surface_height(point) if environment_content!=null else 0.0
+
+func can_cross_jump(point:Vector3,motion:Vector3,actor_rid:RID) -> bool:
+ if motion.is_zero_approx():return true
+ var from:=Vector3(point.x,0.25,point.z)
+ var query:=PhysicsRayQueryParameters3D.create(from,from+motion+motion.normalized()*0.21,1,[actor_rid])
+ var result:=get_world_3d().direct_space_state.intersect_ray(query)
+ return result.is_empty() or float(result.collider.get_meta("physical_height",0.0))<=1.75*0.3

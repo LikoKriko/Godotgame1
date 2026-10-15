@@ -1,5 +1,7 @@
 extends StaticBody3D
 ## Stylized lobed foliage and branching trunk matching the uploaded tree palette.
+var variant_id:=0
+static var mesh_cache:Dictionary={}
 var health := 3
 var base_transform := Transform3D.IDENTITY
 var impact_remaining := 0.0
@@ -21,7 +23,7 @@ func _ready() -> void:
   var angle := i*TAU/5
   branch(Vector3(cos(angle)*0.55,0.03,sin(angle)*0.55),Vector3(0,0.35,0),0.09)
  crown = Node3D.new(); add_child(crown)
- var rng := RandomNumberGenerator.new(); rng.seed = 41
+ var rng := RandomNumberGenerator.new(); rng.seed = 41+variant_id*7919
  for i in 9:
   var angle := i*2.4; var end := Vector3(cos(angle)*0.85,2.2+rng.randf()*1.0,sin(angle)*0.85)
   branch(Vector3(0,1.5+i*0.09,0),end,0.10)
@@ -33,6 +35,7 @@ func _ready() -> void:
   var camera_shape := CollisionShape3D.new(); var sphere := SphereShape3D.new(); sphere.radius = 0.56
   camera_shape.shape = sphere; camera_body.add_child(camera_shape)
   node.material_override = material([Color("667837"),Color("7e8a43"),Color("56672e")][i%3]); crown.add_child(node)
+ bake_tree()
  base_transform = crown.transform
 func hit() -> bool:
  if health <= 0: return false
@@ -45,3 +48,28 @@ func hit() -> bool:
 func _process(delta: float) -> void:
  impact_remaining = maxf(0,impact_remaining-delta)
  if crown != null: crown.rotation.z = sin(impact_remaining*40)*0.035*impact_remaining/0.2
+
+func bake_tree() -> void:
+ var key:=posmod(variant_id,30)
+ if not mesh_cache.has(key):
+  var vertices:=PackedVector3Array();var normals:=PackedVector3Array();var colors:=PackedColorArray();var uv:=PackedVector2Array();var indices:=PackedInt32Array()
+  var nodes:Array[Node]=get_children()
+  nodes.append_array(crown.get_children())
+  for child in nodes:
+   if not child is MeshInstance3D:continue
+   var transform_to_root:Transform3D=global_transform.affine_inverse()*child.global_transform
+   var arrays:Array=child.mesh.surface_get_arrays(0);var start:=vertices.size()
+   var color:Color=child.material_override.albedo_color
+   var tint:=Color(0.94+0.02*(key%3),0.97+0.01*(key%3),0.94+0.02*(key%3))
+   for i in arrays[Mesh.ARRAY_VERTEX].size():
+    var point:Vector3=transform_to_root*arrays[Mesh.ARRAY_VERTEX][i]
+    vertices.append(point);normals.append((transform_to_root.basis.inverse().transposed()*arrays[Mesh.ARRAY_NORMAL][i]).normalized());colors.append(color*tint);uv.append(Vector2(fposmod(point.x*0.7+point.z*0.4,1),fposmod(point.y*0.7,1)))
+   for index in arrays[Mesh.ARRAY_INDEX]:indices.append(start+index)
+  var result:Array=[];result.resize(Mesh.ARRAY_MAX);result[Mesh.ARRAY_VERTEX]=vertices;result[Mesh.ARRAY_NORMAL]=normals;result[Mesh.ARRAY_COLOR]=colors;result[Mesh.ARRAY_TEX_UV]=uv;result[Mesh.ARRAY_INDEX]=indices
+  var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,result)
+  var material:=ShaderMaterial.new();material.shader=load("res://shaders/prototype_3d/tree_material.gdshader");material.set_shader_parameter("bark",load("res://assets/characters/prototype_3d/pixel_materials.png"));material.set_shader_parameter("leaves",load("res://assets/enemies/prototype_3d/pixel_materials.png"))
+  var outline:=ShaderMaterial.new();outline.shader=load("res://shaders/prototype_3d/outline.gdshader");outline.set_shader_parameter("thickness",0.0069);material.next_pass=outline;mesh.surface_set_material(0,material);mesh_cache[key]=mesh
+ for child in get_children()+crown.get_children():
+  if child is MeshInstance3D:child.hide();child.queue_free()
+ var node:=MeshInstance3D.new();node.mesh=mesh_cache[key];crown.add_child(node)
+func visual_height() -> float:return mesh_cache[posmod(variant_id,30)].get_aabb().end.y

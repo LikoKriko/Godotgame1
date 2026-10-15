@@ -12,7 +12,7 @@ func orient(game,point:Vector3) -> void:
  var toward:Vector3=point-game.player.global_position
  game.player.model.rotation.y=atan2(toward.x,toward.z)
 func run():
- var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();root.add_child(game);game.set_physics_process(false);game.player.set_physics_process(false)
+ var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();game.use_test_layout=true;root.add_child(game);game.set_physics_process(false);game.player.set_physics_process(false)
  var geometry=preload("res://scripts/prototype_3d/prop_mesh.gd")
  for end in [Vector3(4,12,-8),Vector3(0,1,0),Vector3(0,-14,-4)]:
   var segment=geometry.segment(game,Vector3(1,3,-2),end,0.11,geometry.material(&"rope"))

@@ -23,7 +23,7 @@ var profile=preload("res://scripts/creature_profile.gd").new()
 var hurt_area:=Area3D.new()
 var hurt_shapes:Array[CollisionShape3D]=[]
 func configure(owner_game) -> void:
- game=owner_game;collision_layer=8;collision_mask=3;add_to_group("prototype_enemies");add_to_group("creatures")
+ game=owner_game;collision_layer=8;collision_mask=35;add_to_group("prototype_enemies");add_to_group("creatures")
  var collision:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=0.27;capsule.height=0.65;collision.shape=capsule;collision.position.y=0.325;add_child(collision)
  model=preload("res://scripts/prototype_3d/young_model.gd").new();add_child(model)
  var bounds:AABB=model.mesh_node.mesh.get_aabb();var unit:=0.875/bounds.size.y
@@ -53,7 +53,7 @@ func take_damage(amount:float) -> void:
  health=maxf(0,health-amount)
  if health==0:death_elapsed=0;collision_layer=0;collision_mask=0;hurt_area.collision_layer=0;effects.active.clear()
 func obstacle(direction:Vector3) -> bool:
- var query:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*0.35,global_position+Vector3.UP*0.35+direction*0.75,1,[get_rid()])
+ var query:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*0.35,global_position+Vector3.UP*0.35+direction*0.75,33,[get_rid()])
  return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 func steer(direction:Vector3,delta:float) -> Vector3:
  avoid_remaining=maxf(0,avoid_remaining-delta)

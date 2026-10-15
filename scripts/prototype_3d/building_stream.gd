@@ -3,6 +3,7 @@ extends Node3D
 signal ready_changed(value:bool)
 signal load_failed(path:String)
 @export var fragments:Array[String]=[]
+@export var content_scale:=Vector3.ONE
 @export var door_offset:=Vector3.ZERO
 @export var start_distance:=18.0
 @export var ready_distance:=3.0
@@ -50,7 +51,7 @@ func update_stream(point:Vector3) -> void:
   loaded.clear()
 func begin_loading() -> void:
  active=true;built=0
- content=Node3D.new();content.name="StreamedInterior";content.hide();content.process_mode=Node.PROCESS_MODE_DISABLED;add_child(content)
+ content=Node3D.new();content.scale=content_scale;content.name="StreamedInterior";content.hide();content.process_mode=Node.PROCESS_MODE_DISABLED;add_child(content)
  for path in fragments:
   if requests.has(path) or loaded.has(path):continue
   if not ResourceLoader.exists(path,"PackedScene"):

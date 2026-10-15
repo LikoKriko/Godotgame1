@@ -133,8 +133,8 @@ transición 0,028, muestra de textura 144 unidades y paso de píxel 1.
 El renderer 3D comparte `terrain_sampler.gd` con el 2D. Las posiciones globales
 se convierten una sola vez a las unidades del sampler. Los planos comparten
 malla/texturas y las máscaras no dependen del chunk. `configure(seed,profile)`
-permite terreno sin límite; el escenario usa un Rect2 de prueba de 48×48 m.
-Caminos y distribución completa de elementos todavía deben conectarse.
+permite terreno sin límite; el escenario conserva el límite del mapa 2D, 84×56 m.
+Caminos y distribución de recursos se comparten con el generador original.
 
 La prueba gráfica `tests/prototype_3d_terrain.gd` compara cada píxel entre varios
 chunks y un único plano, también en coordenadas negativas y lejanas. Comprueba
@@ -156,6 +156,37 @@ rellenar, y verifica consumo de 250 ml conservando el recipiente. La prueba de
 movimiento también cubre la ralentización de recogida y comer con correr
 automático activado. La revisión F6 permite mostrar la armadura.
 
-Pendiente: distribución completa del entorno, resto de objetos/edificios,
-estaciones, cuerpos saqueables y guardado 3D. Las muestras nuevas no sustituyen
-ese trabajo. El sistema del PDF sigue pospuesto hasta terminar toda la migración.
+Pendiente: acabar los modelos del entorno, resto de objetos, estaciones,
+cuerpos saqueables y guardado 3D. El sistema del PDF sigue pospuesto hasta
+terminar toda la migración.
+
+
+## Población, elevaciones e interiores
+
+`world_layout.gd` adapta los datos de `test_world.gd` y `harvesting.gd`, sin
+mantener dos generadores distintos. `world_content.gd` crea recursos con un
+presupuesto de 4 ms por frame y un edificio por actualización. Con seed 73129
+hay 83 árboles y 5191 grupos de hierba; estos últimos usan quince MultiMesh,
+y cada árbol agrupa su geometría en una superficie compartida por variante.
+Los materiales reutilizan detalles en gris de los atlas existentes, a 256²,
+con muestreo de píxel y tintes contenidos. El césped no usa un segundo pase
+de contorno, que taparía sus superficies delgadas.
+
+`raised_ground.gd` convierte el contorno de cada uno de los tres sprites en
+una superficie física. Altura 0,2625 m; faldón de tierra con apoyo convexo para
+subir andando. Los objetos de más de 0,525 m bloquean el paso durante un salto;
+la altura física determina este límite, no el tamaño de su hitbox en pantalla.
+
+`camp_building.gd` adapta las posiciones y separación del campamento original.
+Los exteriores son volúmenes provisionales de madera y cubierta; aún necesitan
+la revisión artística de cada diseño. Los interiores vacíos se cargan mediante
+`building_stream.gd`, con puertas físicas y suelo de tamaño ajustado. La capa 32
+reserva la barrera de las puertas a criaturas; el jugador la ignora. No hay
+teletransporte ni cambio de escena al cruzarlas. Inicio a 18 m, prioridad a 3 m
+y descarga a 26 m, manteniendo cargada una habitación ocupada.
+
+Pruebas: `prototype_3d_population.gd` verifica semilla, grupos y lotes gráficos;
+`prototype_3d_resources.gd`, recolección y elevaciones con física real;
+`prototype_3d_camp.gd`, separación, streaming, entrada y descarga. Las pruebas
+aisladas usan `tests/fixtures/prototype_layout.gd`; la partida F5 usa siempre la
+generación completa, sin las antiguas muestras de cuatro árboles y cuatro rocas.

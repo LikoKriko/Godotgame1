@@ -130,6 +130,7 @@ func _physics_process(delta: float) -> void:
  var speed:float = SPEED*(RUN_MULTIPLIER if running else 1.0)*movement_multiplier
  var planar: Vector2 = locomotion.velocity(Vector2(direction.x,direction.z)*speed,WORLD_SCALE)
  if locomotion.from_slide: planar *= WORLD_SCALE
+ if locomotion.airborne() and not game.can_cross_jump(global_position,Vector3(planar.x,0,planar.y)*delta,get_rid()):planar=Vector2.ZERO
  velocity.x = planar.x; velocity.z = planar.y
  if not is_on_floor(): velocity.y -= GRAVITY*delta
  move_and_slide()

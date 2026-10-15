@@ -9,7 +9,7 @@ func aim(game,point:Vector3) -> void:
  game.camera_rig.update(1);game.camera_rig.camera.look_at(point)
  await physics_frame
 func run():
- var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();root.add_child(game);game.set_physics_process(false);game.player.set_physics_process(false)
+ var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();game.use_test_layout=true;root.add_child(game);game.set_physics_process(false);game.player.set_physics_process(false)
  for enemy in get_nodes_in_group("prototype_enemies"):enemy.set_physics_process(false)
  var rock=get_nodes_in_group("prototype_rocks")[0]
  game.player.position=rock.global_position+Vector3(0,0,0.9)

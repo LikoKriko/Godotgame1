@@ -7,7 +7,7 @@ func require(value:bool,message:String) -> void:
  if not value:failures+=1;push_error(message)
 func _initialize():call_deferred("run")
 func run():
- var world=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();root.add_child(world)
+ var world=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();world.use_test_layout=true;root.add_child(world)
  world.player.set_physics_process(false)
  var enemy=get_nodes_in_group("prototype_enemies")[0];enemy.set_physics_process(false)
  var actor=enemy.model;var mesh:Mesh=actor.mesh_node.mesh

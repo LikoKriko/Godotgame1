@@ -16,8 +16,9 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
 - Botella y alimentos visibles en mano. Beber/comer aplican consumo al terminar.
   Recogida con E y manos libres; botella rellenable con E sobre agua cercana.
 - Armadura de hojas en cuerpo y retrato, unida al torso completo, sin protección.
-- Árboles, cuatro tamaños de roca y un charco de prueba; extracción correcta,
-  recompensa, rechazo de herramienta errónea y animación de recogida.
+- Distribución original por semilla: grupos de árboles, rocas con sus golpes y
+  rendimientos, 24 bardanas, arbolitos, charcos, césped y cuatro elevaciones.
+  Extracción correcta, rechazo de herramienta errónea y recogida con manos libres.
 - Enemigo joven: modelo/rig, acciones, memoria y rutinas; parry y stun.
 - HUD, tamaños, correr automático y ventanas integradas sin cursor personalizado.
 - Inventario/arrastre/acceso rápido físico, reparación, creación con reserva,
@@ -25,23 +26,25 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
 - Nutrición y ciclo de 16 minutos; reaparición y reinicio de progreso definido.
 - Iconos 256×256; diseños ausentes señalados con un símbolo provisional.
 - Terreno 3D por chunks con las cuatro texturas, seed, transiciones y caché;
-  consultas de tipo/densidad y zonas de suelo desnudo junto a árboles de prueba.
-  El mapa muestra las regiones de terreno de esa misma semilla.
+  consultas de tipo/densidad, caminos y suelo desnudo junto a recursos.
+  El mapa usa la misma semilla y los límites originales de 84×56 m.
+- Campamento con seis exteriores 3D provisionales y habitaciones vacías que se
+  cargan por proximidad sin cambiar de pantalla. Puertas de 1,5×2,2 m,
+  oscurecimiento exterior al 70% y barrera que mantiene al enemigo fuera.
+- Pantalla negra de generación con barra blanca ligada al avance de creación.
 
 ## Pendiente de trasladar del juego 2D
 
 1. Modelos de los objetos restantes: materiales, equipo aún provisional y mesa.
    Ampliar variantes y revisar el acabado de los modelos con el usuario al final.
-2. Conectar caminos, agua, césped, árboles originales agrupados, rocas, bardana,
-   arbolitos y elevaciones al terreno por chunks ya trasladado. Reutilizar la
-   semilla, consultas y reglas de distribución, adaptando sus colisiones al 3D.
-3. Ampliar recolección E a plantas/objetos en suelo, colocación de mesa,
-   creación por estación, campamento y edificios. Los interiores comparten el
-   espacio exterior: carga progresiva por proximidad y descarga con histéresis;
-   no se cambian pantallas. El componente `building_stream.gd` ya prepara esto.
+2. Refinar los modelos provisionales del entorno y edificios para acercarlos a
+   todas las siluetas originales. La distribución ya está conectada; los nueve
+   diseños originales de árbol aún no tienen nueve modelos 3D específicos.
+3. Objetos arrojados recogibles con E, colocación de mesa y creación por estación.
+   El campamento y su streaming ya están conectados al escenario.
 4. Cuerpos saqueables y su inventario, objetos arrojados y persistencia del mundo.
 5. Menú principal completo, nueva partida, guardado manual/continuar en un formato
-   3D separado y pantalla de carga con progreso real. Ajustes restantes adecuados
+   3D separado y carga del guardado con progreso real. Ajustes restantes adecuados
    al renderizador 3D; no reintroducir el cambio de resolución que rompía el cursor.
 6. Revisar que cada interacción del 2D tenga equivalente, además de animaciones,
    sombras, colisiones, costes, cancelación, pausas y reaparición.
@@ -56,8 +59,9 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
 - Las familias de armas y los consumibles ya tienen modelos. Los materiales y
   objetos de colocación aún no están modelados; no confundir su presencia en el
   inventario con su migración al mundo. Solo la armadura de hojas cambia el cuerpo.
-- Rocas y agua están colocadas como muestras de prueba. Su distribución procedural
-  y los diseños completos del entorno siguen pendientes; el charco no es un lago.
+- Los modelos ambientales son una primera adaptación volumétrica: no dar por
+  terminados los diseños de árboles, edificios y plantas solo por estar colocados.
+  Los charcos aún no sustituyen lagos y las superficies de agua son simples.
 - El usuario ha confirmado de nuevo que el PDF empieza después de **toda** la
   migración, aunque esta tanda de herramientas y armadura ya esté terminada.
 - No inventar recetas, misiones, logros ni recompensas de experiencia. El botón de
@@ -83,7 +87,7 @@ ocupado permanece cargado; al alejarse se liberan nodos y recursos propios.
 Distancias temporales configurables, medidas desde la puerta: empezar a 18 m,
 prioridad de finalización a 3 m y descargar a 26 m. Presupuesto normal 2 ms por
 frame y cercano 6 ms. Estos son valores de arranque para aclarar/medir con los
-modelos reales del campamento; todavía no hay edificios colocados en este mapa.
+modelos finales del campamento; ya se colocan los seis exteriores provisionales.
 Separar el contenido en escenas pequeñas, porque instanciar un fragmento muy
 grande no se puede interrumpir. Los exteriores opacos ocultarán el interior;
 no convertirlo en un viewport ni teletransportar al cruzar una puerta.

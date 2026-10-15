@@ -31,7 +31,7 @@ func shift_click(control: Control):
   Input.parse_input_event(e); Input.flush_buffered_events(); await settle()
 func run():
  if DisplayServer.get_name() != "X11":quit(1);return
- var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();root.add_child(game)
+ var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();game.use_test_layout=true;root.add_child(game)
  root.position=Vector2i.ZERO;game.toggle_inventory(0);await settle()
  var ui=game.inventory_panel;var uid:int=game.bag.slots[0].uid
  await drag(ui.backpack_buttons[0],ui.quick_buttons[1])

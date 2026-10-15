@@ -6,7 +6,7 @@ func require(value:bool,message:String):
  if not value:failures+=1;push_error(message)
 func _initialize():call_deferred("run")
 func run():
- var world=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();root.add_child(world)
+ var world=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();world.use_test_layout=true;root.add_child(world)
  world.player.set_physics_process(false)
  await physics_frame
  require(world.player is CharacterBody3D and world.camera_rig.camera is Camera3D,"Prototype uses real 3D physics and perspective camera")

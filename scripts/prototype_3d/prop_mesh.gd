@@ -5,15 +5,24 @@ static var cylinder_mesh:CylinderMesh
 static func material(kind:StringName,color:Color=Color.WHITE) -> Material:
  var key:=String(kind)+color.to_html()
  if materials.has(key):return materials[key]
- var paint:Material
- if kind!=&"plain":
-  var textured:=ShaderMaterial.new();textured.shader=load("res://shaders/prototype_3d/prop_material.gdshader")
-  textured.set_shader_parameter("source",load("res://assets/enemies/prototype_3d/pixel_materials.png" if kind==&"stone" else "res://assets/characters/prototype_3d/pixel_materials.png"))
-  textured.set_shader_parameter("tint",Vector3(color.r,color.g,color.b));textured.set_shader_parameter("patch",Vector4(0.44,0.44,0.53,0.53 if kind==&"rope" else 0.03));paint=textured
- else:
-  var flat:=StandardMaterial3D.new();flat.roughness=1;flat.albedo_color=color;paint=flat
+ var paint:=StandardMaterial3D.new();paint.roughness=1;paint.albedo_color=color;paint.texture_filter=BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+ if kind!=&"plain":paint.albedo_texture=detail_texture(kind)
  var outline:=ShaderMaterial.new();outline.shader=load("res://shaders/prototype_3d/outline.gdshader");outline.set_shader_parameter("thickness",0.11);paint.next_pass=outline
  materials[key]=paint;return paint
+static var details:Dictionary={}
+static func detail_texture(kind:StringName) -> Texture2D:
+ var key:StringName=&"leaf" if kind==&"leaf" else (&"stone" if kind==&"stone" else (&"soil" if kind==&"soil" else (&"rope" if kind==&"rope" else &"wood")))
+ if details.has(key):return details[key]
+ var atlas:Texture2D=load("res://assets/enemies/prototype_3d/pixel_materials.png" if key in [&"stone",&"leaf"] else "res://assets/characters/prototype_3d/pixel_materials.png")
+ var size:=Vector2(atlas.get_size());var offset:=Vector2(0.03 if key==&"leaf" else 0.53,0.53 if key in [&"rope",&"leaf"] else 0.03)
+ var image:=atlas.get_image().get_region(Rect2i(Vector2i(offset*size),Vector2i(size*0.44)))
+ if key==&"soil":image=load("res://assets/environment/imported/terreno_1_4.png").get_image()
+ image.resize(256,256,Image.INTERPOLATE_NEAREST);image.convert(Image.FORMAT_RGB8)
+ for y in image.get_height():
+  for x in image.get_width():
+   var sample:=image.get_pixel(x,y);var value:=0.83+sample.get_luminance()*0.17
+   image.set_pixel(x,y,Color(value,value,value))
+ details[key]=ImageTexture.create_from_image(image);return details[key]
 static func segment(parent:Node3D,a:Vector3,b:Vector3,radius:float,paint:Material) -> MeshInstance3D:
  if cylinder_mesh==null:
   cylinder_mesh=CylinderMesh.new();cylinder_mesh.height=1;cylinder_mesh.top_radius=1;cylinder_mesh.bottom_radius=1;cylinder_mesh.radial_segments=8
