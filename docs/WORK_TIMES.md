@@ -716,3 +716,11 @@ convierte la coincidencia de silueta en un porcentaje global de parecido.
 Publicación: se integra `976c011` del departamento de animaciones, que solo
 añade documentación. El conflicto del registro se resuelve conservando ambas
 entradas; no se modifica el código sometido a las pruebas anteriores.
+
+
+## 2026-10-15 — Carpeta de entregables del enemigo1
+
+Hito observado: **19:04:17 UTC** (21:04:17 Madrid). Sin estimación previa ni
+duración total medida. Creada `entregables/enemigos/enemigo1/` con `.gitkeep`
+para conservarla en GitHub. Comprobación de ruta y cambios; no requiere pruebas
+del juego. Los entregables existentes permanecen en su ubicación.
