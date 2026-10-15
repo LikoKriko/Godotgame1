@@ -485,3 +485,30 @@ los commits publicados por los otros departamentos.
 Integración final: se incorpora también `984c370` (piel de brazos),
 conservando ambas entradas del registro de tiempos. El rig se integró sin
 conflictos de código; se revalidan marcha diagonal, piel y contactos.
+
+## 2026-10-15 — Revisión conjunta de piel de brazos y marcha diagonal
+
+Inicio observado **16:59:00 UTC** (18:59:00 Madrid); cierre de validación
+**17:01:03 UTC** (19:01:03 Madrid): **2 min 3 s observados**, sin estimación
+previa. Incluye lectura de entregas, pruebas y revisión gráfica; documentación
+y publicación posteriores fuera de ese intervalo.
+
+Revisados `984c370` (UV de brazos) y `309132e` (carriles, rodillas y pies en
+diagonal), sobre la integración anterior `92d3189`. Se conservan ambos commits.
+No se detectan fallos nuevos en las comprobaciones realizadas ni se requieren
+correcciones adicionales de código o recursos.
+
+Godot **4.7.2**, Linux: **16 suites superadas**. Marcha diagonal **32736**;
+piel de brazos **10368 muestras**, cero píxeles de borde; deformación **145006**;
+catálogo **8588**; superficie/UV **10**; referencias **539**; acciones naturales
+**4050**; modelo/contacto/armadura **42**; cámara/zancada **1116**; deslizamiento
+**2027**; brazos en carrera **374**; mira **62**; equipo **65**; integración
+general **739**; guardado **191**; y movimiento con física real.
+
+Revisión renderizada en X11/Compatibility de **24 capturas**, con/sin armadura:
+reposo frontal/trasero/lateral, hacha, espada, arco, recogida, contacto bajo y
+las cuatro diagonales, con y sin herramienta. Se mantienen los agarres y la
+corrección anterior de armadura. Intermedios en
+`/workspace/work/integration-review/round2`. No se repiten las suites de menús,
+árboles o criaturas: estas entregas no modifican esos sistemas. No incluye
+prueba en Windows, audio físico ni medición de rendimiento del usuario.
