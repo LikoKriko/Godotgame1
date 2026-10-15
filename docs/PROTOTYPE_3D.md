@@ -520,14 +520,17 @@ conservan su tratamiento. `tests/prototype_3d_arm_skin.gd` comprueba muestras
 interpoladas y cuantizadas igual que el shader contra ambas imágenes originales.
 
 
-## Reconstrucción del enemigo joven desde cuatro vistas
+## Enemigo1: modelo Meshy aportado por el usuario
 
-La geometría nueva sustituye las aproximaciones anteriores de cabeza, torso,
-brazos, patas, pelaje y puños. Incluye 1836 mechones marrones, 128 piezas doradas,
-orejas cóncavas, cara reconstruida y 84 placas de piedra entre ambos puños.
-Conserva catorce huesos, comparte la malla ligada entre enemigos y adapta la
-anatomía de las acciones a sus proporciones. La altura sigue siendo 0,875 m.
+Se retira la reconstrucción procedural y se sustituye por el FBX **Mossclaw
+Boar** de la Release `modelo-enemigo1`. Se conservan los **977782 triángulos**,
+las proporciones, UV y los cuatro PNG originales. El recurso nativo de Godot
+se comparte entre enemigos y carga directamente, sin generar el pelaje al
+iniciar la partida. Cada enemigo mantiene un esqueleto independiente de
+catorce huesos y una altura normalizada de **0,875 m**.
 
-Revisión F6 en `young_review.tscn`: postura fija de referencia, botones para las
-cuatro vistas y selector de animaciones. Ver [YOUNG_3D.md](YOUNG_3D.md) para
-materiales, comprobaciones y comparación con la lámina original.
+El FBX no incluye rig ni animaciones; se añade una ligadura por difusión de
+calor y se adaptan los anclajes de las acciones provisionales. La escena F6
+`young_review.tscn` muestra la postura original en **Postura de referencia**,
+las cuatro vistas y las acciones. Ver [YOUNG_3D.md](YOUNG_3D.md) para procedencia,
+reproducción de la conversión y capturas del archivo importado.

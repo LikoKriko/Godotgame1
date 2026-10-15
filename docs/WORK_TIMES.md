@@ -724,3 +724,48 @@ Hito observado: **19:04:17 UTC** (21:04:17 Madrid). Sin estimación previa ni
 duración total medida. Creada `entregables/enemigos/enemigo1/` con `.gitkeep`
 para conservarla en GitHub. Comprobación de ruta y cambios; no requiere pruebas
 del juego. Los entregables existentes permanecen en su ubicación.
+
+
+## 2026-10-15 — Sustitución del enemigo1 por el FBX Meshy del usuario
+
+Primer hito observado: **21:15:44 Europe/Madrid** (19:15:44 UTC).
+Cierre de implementación y revisión observado: **21:38:12 Europe/Madrid**
+(19:38:12 UTC): **22 min 28 s registrados**, sin estimación previa.
+La descarga anterior al primer hito y la documentación/publicación posterior
+no se imputan al intervalo. Las gestiones previas para obtener un enlace
+accesible tampoco forman parte de esta duración.
+
+Se descarga el ZIP de la Release `modelo-enemigo1`; su SHA-256 coincide
+exactamente con `f0af7cc7091dfa1c6219a23b6c609e695a1a7dae90206889fab21802ed4c3655`.
+El FBX original se conserva sin modificar en `entregables/enemigos/enemigo1/source`
+y los cuatro PNG, byte por byte, en `assets/enemies/first/meshy`. Se elimina la
+geometría procedural y sus dos shaders, junto con capturas antiguas de
+antes/después. Se actualizan documentación, referencia vigente y comparativas.
+
+El archivo no contiene rig ni animaciones. Se prepara una ligadura de catorce
+huesos mediante difusión de calor de Blender 4.3.2 y se exportan cuatro pesos
+normalizados por vértice. La primera asignación analítica se descarta al revisar
+estiramientos de mejillas en el golpe; la entrega utiliza difusión de calor,
+sin vértices sin ligar. Se conservan los **977782 triángulos** originales;
+**488891 vértices de autoría / 518861 de ejecución** por separaciones de UV y
+normales. Solo se normalizan escala y posición, manteniendo las proporciones
+y las imágenes. Recurso nativo preparado una vez, compartido entre instancias;
+no se generan mechones ni pesos al iniciar la partida. Se adaptan anclajes,
+longitudes y zona de impacto del hocico a la malla nueva. Altura 0,875 m.
+
+Godot 4.7.2, Linux: pasan **2573** comprobaciones de importación/identidad de
+FBX y PNG/UV/triángulos/pesos/poses/caché, **6537** de criatura/combate/contacto,
+**539** de referencias y ligaduras, **16** de botín, **191** de guardado y **739**
+de integración general. La suite de importación se repite tras incluir el FBX
+original en el repositorio y exigir su SHA-256. `git diff --check` limpio.
+
+Se revisan cuatro vistas originales, cuatro cuadrúpedas, seis acciones con
+ambas manos y cuatro cámaras con jugador, terreno y luz del mundo de prueba.
+Comparativa actualizada con renders reales del Meshy; se conserva la referencia
+artística arriba y el archivo importado debajo. No se afirma que Meshy traiga
+animaciones ni que las adaptaciones provisionales sean la animación final.
+No se valida rendimiento del PC del usuario, Windows ni audio físico.
+
+Se incluyen herramientas reproducibles para exportar anclajes, convertir el
+FBX con ligadura y preparar el recurso Godot. Se incorpora `b247ca5` del otro
+departamento antes de trabajar; añade la carpeta de entregables del enemigo1.

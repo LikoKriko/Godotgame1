@@ -1,131 +1,108 @@
-# Enemigo joven: reconstrucción desde las cuatro vistas
+# Enemigo1: Meshy Mossclaw Boar
 
-Referencia vigente, conservada sin editar:
-`entregables/enemigos/enemigo1_joven_3d.png`. La copia de ejecución continúa en
-`assets/enemies/first/reference_3d.png`.
+Por petición del usuario, se elimina la reconstrucción procedural y se utiliza
+el FBX adjunto **Meshy_AI_Mossclaw_Boar_1015190139_texture.fbx**. Se conserva una
+copia original sin modificar en `entregables/enemigos/enemigo1/source/`.
+La ilustración `entregables/enemigos/enemigo1_joven_3d.png` se mantiene como
+referencia visual; ya no se proyecta sobre el personaje ni genera su volumen.
 
-## Geometría
+## Procedencia y fidelidad del archivo
 
-`young_reference_mesh.gd` construye la superficie sólida en la postura de la
-lámina: torso compacto bajo la cabeza, cabeza baja y ancha, brazos largos adelantados,
-patas traseras cortas con separación lateral y tres uñas en cada pie. La cara
-incluye ojos rojos hundidos con apertura almendrada, cejas de pelaje, orejas
-cóncavas con interior rosa, hocico, fosas nasales, colmillos y marcas claras.
+[ZIP original en la Release modelo-enemigo1](https://github.com/LikoKriko/Godotgame1/releases/download/modelo-enemigo1/Meshy_AI_Mossclaw_Boar_1015190139_texture_fbx.zip).
+Su SHA-256 coincide con el proporcionado por el usuario:
+`f0af7cc7091dfa1c6219a23b6c609e695a1a7dae90206889fab21802ed4c3655`.
+`assets/enemies/first/meshy/source.json` registra URL, hashes del FBX/PNG,
+versiones de herramientas y estadísticas de entrada/salida.
 
-Hay **1277 mechones de pelaje marrón y 130 piezas doradas**, con bases y extremos
-cerrados, sección redondeada, relieve y puntas independientes. La distribución
-separa frente, mejillas, vientre, lomo y extremidades. La cresta sigue la cabeza
-y enlaza visualmente con la franja del lomo; los brazos tienen parches propios.
-Los puños suman **84 placas de piedra** con contornos irregulares y biseles.
-No se utilizan planos orientados hacia la cámara para simular el pelaje.
+El FBX tiene **488891 vértices de autoría y 977782 triángulos**. La conversión
+mantiene todos los triángulos; el recurso de Godot tiene **518861 vértices**
+por las separaciones necesarias de normales y UV. No se decima, remalla,
+reconstruye el pelaje ni modifican las proporciones. Se aplica una sola escala
+uniforme y una traslación para centrarlo y colocar los pies sobre el suelo.
+La postura **Postura de referencia** reproduce la geometría suministrada.
 
-La autoría se separa del rig y las decisiones de criatura. `young_model.gd`
-conserva los catorce huesos y comparte una sola malla ligada entre instancias;
-cada criatura tiene un esqueleto independiente. La malla no se reconstruye al
-animar. La copia temporal sin ligar se libera al sustituirla por la compartida.
+Se conservan byte por byte los cuatro PNG originales: color, normal, rugosidad
+y metalicidad. El material nativo de Godot usa esas UV y mapas, con nearest y
+mipmaps. Se retiran `young_reference_mesh.gd` y los shaders propios
+`young_skin.gdshader` / `young_outline.gdshader`. No hay geometría alternativa
+ni reproyección de la referencia. Las capturas viejas de antes/después también
+se retiran para no confundirlas con la entrega actual.
 
-`young_pose.gd` adapta los centros anatómicos a la reconstrucción: caderas de
-6,4 unidades laterales, apoyos de 8,6, hombros de 8,3 y postura de puños
-(±13,5; 10,2; 10,5). Los segmentos de los brazos miden 7,1 y 7,5; los de las
-patas conservan 4,4 y 4,2. Se mantienen la marcha cuadrúpeda, incorporaciones,
-puñetazos alternos, comida, sentado, aturdimiento y muerte. La altura normalizada
-en el mundo continúa siendo **0,875 m**. No se cambian vida, daño, recompensas,
-memoria ni tiempos de acciones.
+## Integración en el juego
 
-## Revisión de formas y perfil
+El FBX no incluye esqueleto ni animaciones. Se añade un esqueleto de catorce
+huesos y pesos por difusión de calor de Blender; se conservan y normalizan las
+cuatro influencias principales de cada vértice. Esto es una adaptación para
+las acciones provisionales del juego, no animaciones originales de Meshy.
+La primera asignación analítica de pesos se descartó tras detectar estiramientos
+de mejillas al golpear; la versión publicada usa la ligadura por difusión.
 
-La primera corrección (`e5c301e`) redujo el torso y pasó la inclinación
-cuadrúpeda de 55° a 31,5°. Esta revisión rehace también la cabeza: frente
-estrechada hacia la coronilla y adelantada, hocico cerrado con puente inclinado
-y disco nasal redondeado, ojos almendrados con pupilas más anchas, cejas
-inclinadas, mejillas cubiertas y orejas insertadas en el pelaje.
+`young_model.gd` carga directamente `mossclaw_skin.res`. La malla y el material
+se comparten entre enemigos; los esqueletos son independientes. No se genera
+geometría ni se calculan pesos al crear un enemigo. Se mantiene la altura de
+**0,875 m**. Los anclajes de caderas, hombros, puños y cabeza se adaptan al FBX;
+la zona de impacto del hocico sigue su punta real. Los brazos tienen segmentos
+de 6,1 y 6,6 unidades de autoría; las patas, 4,3 y 4,4. Se conservan marcha
+cuadrúpeda, golpes alternos, sentado, comida, aturdimiento y cadáver. Vida,
+daño, memoria, botín, alcance y tiempos de acciones siguen iguales.
 
-El perfil longitudinal de los volúmenes axiales utiliza `CORE_DEPTH=1.32`;
-la profundidad máxima del núcleo del torso es ahora 17,69 unidades frente a
-22,2 de la primera reconstrucción. Su anchura máxima continúa en 14,4 frente
-a 18, y la coronación queda en 24,8 frente a 27,3. La cabeza tiene mayor
-profundidad que el torso y una coronilla adelantada. No se aplica esta
-transformación a los brazos ni a las patas: sus posiciones se resuelven por IK.
+El recurso comprimido ocupa unos 23 MiB, además de los cuatro PNG. Su detalle
+es elevado: **977782 triángulos por enemigo**, sin LOD añadido. No se ha medido
+el rendimiento en el ordenador del usuario ni se afirma una mejora de FPS.
+El FBX original queda excluido de la importación por `.gdignore`; el recurso
+nativo es el que usa el juego.
 
-Los mechones tienen nueve secciones, contorno irregular, curvatura lateral y
-normales suaves. Se redistribuyen para evitar filas de escamas y el peine recto
-bajo la boca. La cresta acompaña el cráneo y el lomo con abanicos; los brazos
-tienen manchas doradas en hombros y antebrazos. El pelo cubre también el talón.
-Los vértices de patas y pies quedan por encima del plano de suelo en enlace.
+## Revisión
 
-Los puños utilizan placas contiguas con esquinas compartidas, tapas planas y
-biseles, sobre un núcleo interior: no es una esfera con líneas dibujadas ni
-fragmentos separados. La altura de los puños aumenta y su anchura se reduce.
-Las patas traseras se apoyan en z=-4,5; los apoyos delanteros en z=9,8 durante
-la cuadrupedia. El anclaje de cabeza y el desplazamiento de la nariz se declaran
-en `young_pose.gd`; la zona de impacto sigue la superficie del nuevo hocico.
+Abrir `scenes/prototype_3d/young_review.tscn` con F6. **Postura de referencia**
+muestra el archivo en reposo de enlace; los cuatro botones permiten compararlo
+con la lámina. El selector conserva las acciones y la alternancia de puños.
+Las animaciones siguen siendo provisionales, conforme a la instrucción previa
+del usuario de rehacerlas después de integrar el modelo.
 
-La superficie final tiene **965124 vértices y 321708 triángulos** sin indexar,
-compartidos entre enemigos; el contorno añade una segunda pasada de dibujo.
-No se ha medido el rendimiento en el equipo del usuario.
+![Referencia y modelo Meshy importado](previews/young_reference_comparison.png)
 
-![Antes y después de esta revisión](previews/young_fidelity_before_after.png)
+![Referencia y postura cuadrúpeda](previews/young_quadruped_comparison.png)
 
-![Referencia y reposo cuadrúpedo corregido](previews/young_quadruped_comparison.png)
+![Modelo Meshy dentro del juego](previews/young_meshy_in_game.png)
 
-![Resultado dentro del mundo jugable](previews/young_torso_in_game.png)
+Las comparativas igualan la altura visible sin deformar las imágenes. Los
+laterales se capturan a ±68° aproximados, con iluminación de revisión; la
+partida cambia luz y sombras. Son renders del modelo real, no retoques de la
+referencia. Se verifica identidad con el FBX proporcionado, no una equivalencia
+artística porcentual entre ese FBX y la ilustración.
 
-## Materiales
+## Conversión reproducible
 
-El pelaje combina una paleta controlada con color de las cuatro referencias,
-proyectado en reposo y mezclado por normales almacenadas. El shader limita la
-aportación de la imagen, cuantiza el detalle y utiliza nearest con mipmaps;
-rechaza fondo neutro, ojos, piel rosa, piedra, marfil y zonas doradas al pintar
-pelaje marrón. Los materiales no nadan ni cambian de vista durante la animación.
-La contribución de la referencia baja al 7 % para reducir manchas al modificar
-la forma; la paleta y el relieve proceden principalmente de la geometría.
-El contorno propio utiliza un grosor de 0,014 unidades de autoría, color al 62 %
-y normales suaves, con un acabado fino y color dependiente del material para
-no convertir cada superposición de mechones en una línea negra gruesa.
+Herramientas usadas: Blender **4.3.2**, Godot **4.7.2**. Ejecutar desde el proyecto
+con las rutas absolutas adecuadas para los archivos intermedios:
 
-## Revisión visual
+```sh
+godot --headless --path . --script tools/enemy/export_meshy_bind.gd -- /tmp/rig_seeds.json
+blender --background --python tools/enemy/convert_meshy.py -- \
+  entregables/enemigos/enemigo1/source/Meshy_AI_Mossclaw_Boar_1015190139_texture.fbx \
+  /tmp/mossclaw.glb /tmp/rig_seeds.json
+godot --headless --path . --script tools/enemy/bind_meshy.gd -- /tmp/mossclaw.glb
+```
 
-Abrir `scenes/prototype_3d/young_review.tscn` con **F6**. La opción inicial
-**Postura de referencia** deja el modelo quieto en la postura de la lámina.
-Los botones Frente, Derecha, Espalda e Izquierda permiten comparar las cuatro
-vistas; el botón derecho mantiene el giro libre. El selector conserva todas
-las acciones y la alternancia de puños.
-
-![Comparación de las cuatro referencias y la reconstrucción](previews/young_reference_comparison.png)
-
-Las vistas laterales de la ilustración muestran parte del frente; se utilizan
-±68° como aproximación de revisión. No son planos ortográficos de calibración.
-La comparación iguala la altura visible sin deformar las proporciones.
-Muestra capturas del modelo real con iluminación de estudio;
-la luz de la partida cambia su aspecto. El volumen entre vistas y algunos
-mechones requieren reconstrucción artística. Las pruebas no certifican una
-copia visual idéntica a la ilustración ni un porcentaje global de parecido.
-Persisten diferencias en el relieve del pelaje, la forma fina de cresta/cara y
-los laterales; no se presenta el objetivo del 80 % como una medición validada.
+El conversor exporta la malla sin remallar, añade el rig y calcula los pesos.
+El enlazador remapea los nombres de huesos al orden del juego, normaliza la
+escala, conserva posición/UV/topología, genera tangentes para el mapa normal,
+instala los cuatro PNG y guarda el recurso comprimido. Los pesos y materiales
+se preparan una vez; los usuarios del juego no necesitan Blender.
 
 ## Comprobaciones
 
-- `tests/prototype_3d_young_reference_mesh.gd`: malla real, pesos, proyecciones,
-  proporción frontal, postura de enlace, independencia de instancias y piel
-  deformada en todos los estados y ambas manos: 2642 comprobaciones, incluidas
-  81 sobre las envolventes de cabeza y torso en reposo, marcha y carrera, y una
-  sobre el plano de apoyo de la geometría ligada.
-- `tests/prototype_3d_creature.gd`: catorce huesos, altura, longitudes, rutinas,
-  memoria, parry e integración: 6537 comprobaciones, incluidas seis que localizan
-  la punta real de la nariz en la malla y verifican el contacto en cinco poses.
-- `tests/prototype_3d_reference_models.gd`: referencias y ligaduras: 539.
-- `tests/prototype_3d_loot.gd` y `tests/prototype_3d_saves.gd`: cadáveres, botín,
-  recogida y persistencia: 16 y 191 respectivamente.
+- `tests/prototype_3d_young_reference_mesh.gd`: original FBX y PNG por SHA-256,
+  identidad de posiciones/UV del recurso, 977782 triángulos, proporciones,
+  ligadura neutra, pesos, caché e independencia; deforma el modelo en todos
+  los estados y ambas manos.
+- `tests/prototype_3d_creature.gd`: altura, catorce huesos, longitudes,
+  zona de impacto sobre un vértice real del hocico, rutinas, combate y parry.
+- `tests/prototype_3d_reference_models.gd`: piel ligada y acciones de ambos actores.
+- `tests/prototype_3d_loot.gd`, `prototype_3d_saves.gd` y `prototype_3d.gd`:
+  botín, persistencia e integración del juego.
 
-Las capturas revisan las cuatro vistas, reposo cuadrúpedo, marcha, golpes de
-ambas manos, sentado, aturdimiento y cadáver. Son comprobaciones en Godot 4.7.2,
-Linux/Compatibility; no una medición de FPS en el ordenador del usuario.
-
-## Animaciones provisionales tras esta subida
-
-El usuario indica que, después de publicar esta integración, se rehacerán todas
-las animaciones del enemigo1. Los estados actuales permiten integrar y probar
-el nuevo modelo, pero no se consideran su animación definitiva. La revisión de
-esta subida comprueba integridad de malla y rig, ejecución sin errores, combate,
-botín y guardado; no exige conservar el acabado de las animaciones anteriores
-ni constituye una aprobación artística de sus movimientos actuales.
+Se revisan cuatro vistas de referencia, cuatro en cuadrupedia, seis acciones
+con ambas manos y cuatro cámaras del mundo de prueba. Godot Linux/Compatibility;
+no se valida Windows, audio físico ni rendimiento del equipo del usuario.

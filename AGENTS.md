@@ -83,8 +83,13 @@ al usuario usan Europe/Madrid. El registro no sustituye terminar las tareas.
 ## Referencias vigentes de los modelos 3D
 
 El superviviente usa `entregables/personajes/personaje1_frente.png` y
-`personaje1_espaldas.png`; el joven usa las cuatro vistas de
-`entregables/enemigos/enemigo1_joven_3d.png`. Son las referencias visuales
-actuales para proporciones, cara, ropa y detalles, por encima de las primeras
-aproximaciones 3D. Adaptar las animaciones y armaduras a sus mallas continuas,
-conservando huesos y agarres anatómicos. Mantener la altura de 1,75 m/0,875 m.
+`personaje1_espaldas.png`. El enemigo1 usa ahora el FBX Meshy Mossclaw Boar
+aportado por el usuario en la Release `modelo-enemigo1`: ver
+`assets/enemies/first/meshy/source.json` para URL, hashes y procedencia.
+La petición de sustituir el modelo anterior tiene prioridad: conservar la
+geometría, proporciones, UV y PNG originales de ese archivo, sin reconstruirlos
+con formas procedurales ni reproyectar la lámina sobre el nuevo cuerpo.
+La ilustración `entregables/enemigos/enemigo1_joven_3d.png` se conserva como
+referencia visual histórica. Adaptar el rig al archivo importado, manteniendo
+las alturas de 1,75 m/0,875 m. El FBX no trae esqueleto ni animaciones: las
+ligaduras añadidas permiten integrar las acciones provisionales del juego.

@@ -1,16 +1,20 @@
 extends RefCounted
 ## Short, bent hind legs and long front arms; never reuses human proportions.
 const Joints = preload("res://scripts/continuous_body_pose.gd")
-const ARM_A:=7.1
-const ARM_B:=7.5
-const LEG_A:=4.4
-const LEG_B:=4.2
-const HEAD_ANCHOR:=Vector3(0,21,3.3)
-const SNOUT_OFFSET:=Vector3(0,-4.65,16.5)
-const HIP_X:=6.4
-const FOOT_X:=8.6
-const SHOULDER_X:=8.3
-const REST_HAND:=Vector3(13.5,10.2,10.5)
+const ARM_A:=6.1
+const ARM_B:=6.6
+const LEG_A:=4.3
+const LEG_B:=4.4
+const HEAD_ANCHOR:=Vector3(0,22,7)
+const SNOUT_OFFSET:=Vector3(0,-5.8811,14.8445)
+const HIP_X:=7.0
+const HIP_HEIGHT:=8.5
+const HIP_Z:=-6.0
+const SHOULDER_HEIGHT:=18.0
+const SHOULDER_Z:=5.5
+const FOOT_X:=8.4
+const SHOULDER_X:=8.7
+const REST_HAND:=Vector3(10.8,9.2,13.0)
 static func blend(current:Dictionary,target:Dictionary,delta:float) -> Dictionary:
  var amount:=1-exp(-maxf(0,delta)*18)
  target.body=(current.body as Transform3D).interpolate_with(target.body,amount)
@@ -21,8 +25,8 @@ static func blend(current:Dictionary,target:Dictionary,delta:float) -> Dictionar
   var body:Transform3D=target.body
   var foot:Vector3=current.legs[side].end.lerp(target.legs[side].end,amount)
   var hand:Vector3=current.arms[side].end.lerp(target.arms[side].end,amount)
-  target.legs[side]=Joints.joint(body*Vector3(sign_side*HIP_X,8.5,-1.3),foot,LEG_A,LEG_B,body.basis*Vector3.BACK)
-  target.arms[side]=Joints.joint(body*Vector3(sign_side*SHOULDER_X,20,1.0),hand,ARM_A,ARM_B,body.basis*Vector3(sign_side,0,-0.3))
+  target.legs[side]=Joints.joint(body*Vector3(sign_side*HIP_X,HIP_HEIGHT,HIP_Z),foot,LEG_A,LEG_B,body.basis*Vector3.BACK)
+  target.arms[side]=Joints.joint(body*Vector3(sign_side*SHOULDER_X,SHOULDER_HEIGHT,SHOULDER_Z),hand,ARM_A,ARM_B,body.basis*Vector3(sign_side,0,-0.3))
  return target
 static func sample(state: StringName,phase: float,left: bool = true) -> Dictionary:
  var walking:=state in [&"walk",&"run"]
@@ -30,11 +34,11 @@ static func sample(state: StringName,phase: float,left: bool = true) -> Dictiona
  var seated:=1.0 if state==&"sit" else (smoothstep(0,1,phase) if state==&"sit_down" else (1-smoothstep(0,1,phase) if state==&"sit_up" else 0.0))
  var fallen:=smoothstep(0,1,phase) if state in [&"stun_fall",&"death"] else (1-smoothstep(0,1,phase) if state==&"stun_rise" else (1.0 if state in [&"stun_hold",&"corpse"] else 0.0))
  var effort:=sin(phase*PI) if state==&"attack" else 0.0
- var lean:=lerpf(0.55,-0.04*effort,standing)
+ var lean:=lerpf(0.20,-0.04*effort,standing)
  lean=lerpf(lean,0.14,seated)
  var basis:=Basis(Vector3.RIGHT,lerpf(lean,1.45,fallen))
  if walking:basis=Basis(Vector3.BACK,0.025*sin(phase*TAU))*basis
- var pivot:=Vector3(0,8.5,-2.5)
+ var pivot:=Vector3(0,HIP_HEIGHT,HIP_Z)
  var bob:float=-(0.25 if state==&"run" else 0.12)*(1-cos(phase*TAU*4)) if walking else -0.2*effort
  var recoil:=sin(clampf((phase-0.5)/0.18,0,1)*PI)*0.35 if state==&"attack" else 0.0
  var body:=Transform3D(basis,pivot-basis*pivot+Vector3(0,bob-3*seated-3.0*fallen,-recoil))
@@ -47,14 +51,14 @@ static func sample(state: StringName,phase: float,left: bool = true) -> Dictiona
   var front:=Joints.stance_swing(phase+0.25+side*0.5,4.5,1.25,0.6) if walking else {"z":0.0,"lift":0.0,"pitch":0.0}
   var foot:=Vector3(sign_side*FOOT_X,1.5+float(hind.lift),-4.5+float(hind.z))
   foot=foot.lerp(Vector3(sign_side*8.8,1.45,6),seated).lerp(Vector3(sign_side*9,1.5,-6),fallen)
-  var leg:=Joints.joint(body*Vector3(sign_side*HIP_X,8.5,-1.3),foot,LEG_A,LEG_B,basis*Vector3.BACK)
+  var leg:=Joints.joint(body*Vector3(sign_side*HIP_X,HIP_HEIGHT,HIP_Z),foot,LEG_A,LEG_B,basis*Vector3.BACK)
   leg.pitch=float(hind.pitch);legs.append(leg)
   var rest:=Vector3(sign_side*REST_HAND.x,REST_HAND.y,REST_HAND.z)
-  var hand:=Vector3(sign_side*10.4,4+float(front.lift),9.8+float(front.z)).lerp(body*rest,standing)
+  var hand:=Vector3(sign_side*10.8,4.5+float(front.lift),14.0+float(front.z)).lerp(body*rest,standing)
   hand=hand.lerp(Vector3(sign_side*12.2,4,3),seated)
   if state==&"attack":
-   var action:=Joints.gesture(rest,Vector3(sign_side*12,14.5,1),Vector3(sign_side*9.3,16.7,13.3),phase,&"fist") if (side==1)==left else rest.lerp(Vector3(sign_side*10.5,14.5,7),effort*0.5)
+   var action:=Joints.gesture(rest,Vector3(sign_side*11.5,15.0,5.0),Vector3(sign_side*9.0,16.0,16.0),phase,&"fist") if (side==1)==left else rest.lerp(Vector3(sign_side*10.2,14.0,9.0),effort*0.5)
    hand=body*action
   hand=hand.lerp(Vector3(sign_side*16.3,4,12.2),fallen)
-  arms.append(Joints.joint(body*Vector3(sign_side*SHOULDER_X,20,1.0),hand,ARM_A,ARM_B,basis*Vector3(sign_side,0,-0.3)))
+  arms.append(Joints.joint(body*Vector3(sign_side*SHOULDER_X,SHOULDER_HEIGHT,SHOULDER_Z),hand,ARM_A,ARM_B,basis*Vector3(sign_side,0,-0.3)))
  return {"body":body,"head":head_basis,"legs":legs,"arms":arms,"standing":standing}
