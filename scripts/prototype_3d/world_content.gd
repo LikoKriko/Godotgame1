@@ -32,7 +32,7 @@ func _process(_delta:float) -> void:
 func spawn_resource(record:Dictionary) -> void:
  var node:Node3D
  if record.kind==2:
-  var tree:=preload("res://scripts/prototype_3d/tree_model.gd").new();tree.variant_id=record.variant;add_child(tree)
+  var tree:=preload("res://scripts/prototype_3d/tree_model.gd").new();tree.variant_id=record.variant;tree.design_id=record.get("design",0);add_child(tree)
   tree.scale=Vector3.ONE*(record.height/tree.visual_height());node=tree
  elif record.kind==1:
   var rock:=preload("res://scripts/prototype_3d/rock.gd").new();add_child(rock);rock.configure(0 if record.hand_collectable else 2)

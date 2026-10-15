@@ -58,8 +58,9 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
 1. Modelos de los objetos restantes: materiales y equipo aún provisional.
    Ampliar variantes y revisar el acabado de los modelos con el usuario al final.
 2. Refinar los modelos provisionales del entorno y edificios para acercarlos a
-   todas las siluetas originales. La distribución ya está conectada; los nueve
-   diseños originales de árbol aún no tienen nueve modelos 3D específicos.
+   todas las siluetas originales. Los árboles ya tienen nueve bases volumétricas
+   específicas, 36 variantes compartidas y revisión de 360°; siguen pendientes
+   los modelos definitivos de edificios y otras plantas.
 3. Completar los modelos de objetos cuyo diseño todavía falta; los objetos con
    referencia disponible ya usan modelos sólidos al tirarlos.
 4. Revisar que cada interacción del 2D tenga equivalente, además de animaciones,

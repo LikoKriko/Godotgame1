@@ -226,3 +226,31 @@ de reposo frente/espalda/lados. Se usó también material neutro para distinguir
 un fallo de UV de un fallo de geometría. La revisión visual sigue siendo
 necesaria para valorar parecido y naturalidad; las pruebas no certifican un
 modelo idéntico a una imagen ni animación perfecta.
+
+## 2026-10-15 — Nueve modelos de árbol y superficies propias
+
+Inicio observado **13:07:19 UTC** (15:07:19 Madrid). Hito de integración y
+revisión **13:29:04 UTC**: **21 min 45 s observados**, todavía antes del cierre y
+publicación. Estimación comunicada durante la tanda: 20–30 minutos adicionales
+para su pulido y pruebas; se registra separadamente de la nueva cintura.
+
+Se reconstruyeron nueve siluetas a partir de una única vista por diseño,
+completando ramas y copas en profundidad, raíces, curvas y hojas cerradas con
+pliegues. Hubo varias pasadas: se retiraron rellenos esféricos visibles, se
+ensancharon hojas que parecían púas, se ajustó su orientación, irregularidad y
+color, y se cerraron extremos de madera. Dos mapas propios de 512×512 sustituyen
+los atlas de personaje/enemigo. Caché de 36 variantes, una superficie por árbol,
+colisiones del tronco curvado y cámara independiente. Se conserva la población
+y escala originales.
+
+Pruebas: 383 comprobaciones específicas de formas/360°/recursos/interacciones,
+739 de integración del prototipo, 27 de población y 191 de guardado. La prueba
+de contacto se reposicionó para apuntar al nuevo tronco curvado a distancia
+alcanzable, en lugar del vacío que ocupaba el cilindro antiguo. Renderizado de
+los nueve diseños en ocho orientaciones y vistas por encima/debajo de la copa.
+Población medida: 83 árboles y 5191 grupos de césped, carga observada 3222 ms en
+esta máquina. Este dato no es una medición de FPS. F6 disponible en tree_review.
+
+Cierre de la tanda de árboles registrado a **13:30:47 UTC**: **23 min 28 s**
+observados desde el inicio, antes del último commit/push. Se añadieron pequeñas
+ramillas visibles entre las hojas y se validó la escena de revisión independiente.

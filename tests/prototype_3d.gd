@@ -47,7 +47,10 @@ func run():
  var original:float=world.camera_rig.yaw;world.camera_rig.look(Vector2(100,100000))
  require(world.camera_rig.yaw!=original and absf(world.camera_rig.pitch+PI/2)<0.00001,"Mouse orbit reaches the full downward pole without inverting")
  world.camera_rig.pitch = -0.12; world.camera_rig.yaw = 0
- world.player.position = Vector3(-0.6,0,-0.65); world.camera_rig.update(1.0)
+ world.player.position = Vector3(-0.45,0,-0.9); world.camera_rig.update(1.0)
+ # Aim at the new curved trunk, rather than the empty centre of the old cylinder.
+ var first_tree=get_nodes_in_group("prototype_trees")[0]
+ world.camera_rig.camera.look_at(first_tree.global_position+Vector3(0,1.39,0))
  await physics_frame
  require(not world.camera_rig.target().is_empty(),"Reticle selects a real trunk with a physics ray")
  var selected: Dictionary = world.camera_rig.target()
