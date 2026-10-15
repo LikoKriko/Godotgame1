@@ -7,7 +7,7 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú prin
 
 ## Incluido en esta integración
 
-- Cámara sobre el hombro derecho: distancia 3,6 m, desplazamiento 0,60 m, FOV
+- Cámara sobre el hombro derecho: distancia 3,6 m, desplazamiento 0,30 m, FOV
   75°, sensibilidad 0,0025 rad/píxel, inclinación −90° a +90°. Una esfera evita
   atravesar paredes y copas. Movimiento relativo a la cámara.
 - Superviviente estilizado de 1,75 m y 60 kg, delgado, con piel continua,
@@ -27,6 +27,11 @@ F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú prin
   durante seis pasos en 0,5 s, necesita una flecha y gasta un uso al tensar,
   incluso si se cancela; la flecha se consume únicamente al soltarla. Los rayos
   por segmento evitan atravesar objetivos entre fotogramas.
+- La dirección del cuerpo converge hacia el contacto de la mira, también en
+  reposo; al desplazarse durante un golpe sigue mirando al punto fijado al
+  iniciarlo. El arco sigue la mira hasta soltar la flecha. El punto blanco se
+  dibuja en el centro exacto del viewport, independiente de la tipografía o el
+  tamaño del HUD. La cámara y el impacto toman el mismo contacto físico.
 - Joven topo de 0,875 m, esqueleto propio de catorce huesos: cuatro apoyos al
   caminar/correr, levantarse para alternar puños, sentarse, comer de árboles,
   stun y muerte. Persigue al 85% de la caminata del jugador y deambula al 42,5%.

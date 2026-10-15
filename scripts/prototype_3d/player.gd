@@ -77,10 +77,24 @@ func strike() -> bool:
   game.bag.consume_use()
  action_uid=item.get("uid",-1)
  action_elapsed=0;contact_done=false
- action_target=game.camera_rig.target();action_point=game.camera_rig.aim_point()
- var forward:Vector3=action_point-global_position
- action_heading=atan2(forward.x,forward.z)
+ var aim:Dictionary=game.camera_rig.aim_sample()
+ action_target=aim.hit;action_point=aim.point
+ action_heading=heading_to(action_point)
  return true
+func heading_to(point:Vector3) -> float:
+ var toward:=Vector2(point.x-global_position.x,point.z-global_position.z)
+ # At the vertical poles the reticle can be directly over our own feet. Keep
+ # camera yaw there instead of making tiny surface offsets flip the whole body.
+ if toward.length_squared()<.04:
+  var forward:Vector3=game.camera_rig.facing()
+  return atan2(forward.x,forward.z)
+ return atan2(toward.x,toward.y)
+func update_facing(point:Vector3,delta:float) -> void:
+ var visual_heading:=heading_to(action_point if action_elapsed>=0 else point)
+ if action_elapsed>=0:action_heading=visual_heading
+ elif locomotion.sliding():visual_heading=atan2(locomotion.slide_direction.x,locomotion.slide_direction.y)
+ elif locomotion.airborne() and locomotion.from_slide:visual_heading=PI/2-locomotion.jump_heading
+ model.rotation.y=lerp_angle(model.rotation.y,visual_heading,1-exp(-maxf(0,delta)*15))
 func advance_action(delta:float) -> void:
  if action_elapsed<0:return
  var seconds:=0.5 if action_family==&"bow" else Clips.duration(&"action",action_family)
@@ -144,14 +158,10 @@ func _physics_process(delta: float) -> void:
  if not is_on_floor(): velocity.y -= GRAVITY*delta
  move_and_slide()
  game.camera_rig.update(delta)
+ var live_aim:Vector3=game.camera_rig.aim_point()
  if action_elapsed>=0 and action_family==&"bow":
-  action_point=game.camera_rig.aim_point()
-  action_heading=atan2(action_point.x-global_position.x,action_point.z-global_position.z)
- var forward: Vector3 = game.camera_rig.facing()
- var visual_heading:=action_heading if action_elapsed>=0 else atan2(forward.x,forward.z)
- if action_elapsed<0 and locomotion.sliding():visual_heading=atan2(locomotion.slide_direction.x,locomotion.slide_direction.y)
- elif action_elapsed<0 and locomotion.airborne() and locomotion.from_slide:visual_heading=PI/2-locomotion.jump_heading
- model.rotation.y=lerp_angle(model.rotation.y,visual_heading,1-exp(-delta*15))
+  action_point=live_aim
+ update_facing(live_aim,delta)
  var state: StringName = &"idle"; var progress := 0.0
  if input.length_squared()>0:
   phase = fposmod(phase+delta/Clips.duration(&"run" if running else &"walk")*locomotion.speed_factor()*movement_multiplier,1)
@@ -196,7 +206,7 @@ func _physics_process(delta: float) -> void:
    if preview_state==&"pickup":pickup_recovery=0.5
    preview_state=&""
  model.aim_contact=model.to_local(action_point) if state in [&"action",&"draw"] else Vector3.INF
- if family()==&"bow" and equipped:model.aim_contact=model.to_local(game.camera_rig.aim_point())
+ if family()==&"bow" and equipped:model.aim_contact=model.to_local(live_aim)
  if state==&"parry" and guard_point.is_finite():model.aim_contact=model.to_local(guard_point)
  var local_travel: Vector3 = (model.global_basis.inverse()*direction).normalized()
  model.animate(state,progress,equipped or (unequipping and state==&"unequip"),delta,phase,local_travel)

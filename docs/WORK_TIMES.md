@@ -281,3 +281,25 @@ con una imagen plana ni perfección de todas las animaciones.
 
 El ajuste de cámara/mira solicitado durante esta tanda se realizará después de
 publicarla, separado de los cambios del modelo.
+
+## 2026-10-15 — Mira cercana y convergencia del cuerpo
+
+Inicio observado **14:00:09 UTC** (16:00:09 Madrid), después de publicar el
+modelo en `979623f`. Primer hito registrado **14:03:34 UTC** (3 min 25 s).
+Reanudación observada **15:14:33 UTC**, validación nativa **15:16:49 UTC**
+(2 min 16 s del segundo bloque). El intervalo intermedio no tiene registro
+continuo de trabajo y **no se imputa como duración activa**. Estos son hitos
+parciales, no una medición completa del tiempo de la tarea.
+
+El usuario escogió reducir a la mitad el desplazamiento lateral: 0,60 → 0,30 m.
+El cuerpo converge al contacto real en vez de seguir una línea paralela a la
+cámara. Un golpe mantiene su contacto al moverse; el arco conserva seguimiento
+hasta el disparo. El raycast de inicio entrega juntos objeto y punto. Se
+sustituyó el glifo de la mira por un punto geométrico centrado: en el render de
+1280×720 los cuatro píxeles blancos rodean exactamente (640,360).
+
+Pruebas: 62 específicas de proyección, tamaños de viewport/HUD, 16 rumbos,
+contacto bloqueado, punta visible e impacto real; 1116 de cámara/zancada, 69 de
+arco, 65 de equipo, 739 de integración y movimiento real. Render nativo con
+comparación del desplazamiento anterior/nuevo. Se registró la división de
+trabajo por chats en `ANIMATION_AREA.md`.

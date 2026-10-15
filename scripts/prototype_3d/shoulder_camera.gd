@@ -1,7 +1,7 @@
 extends Node3D
 ## Deadlock-style right shoulder orbit. A sphere cast prevents camera clipping.
 const DISTANCE := 3.6
-const SHOULDER := 0.60
+const SHOULDER := 0.30
 const SENSITIVITY := 0.0025
 const PITCH_LIMIT := PI*0.5
 const BOOM_OFFSET := Vector3(SHOULDER,0.12,DISTANCE)
@@ -46,8 +46,11 @@ func target(max_distance: float = 100.0) -> Dictionary:
  var query := PhysicsRayQueryParameters3D.create(from,from+direction*max_distance,25,[player.get_rid()])
  query.collide_with_areas=true
  return get_world_3d().direct_space_state.intersect_ray(query)
-func aim_point() -> Vector3:
+func aim_sample() -> Dictionary:
+ # One camera ray supplies both the visible contact and the object to hit.
+ # Do not raycast twice at click time or use a parallel ray from the player.
  var result:=target()
- if not result.is_empty():return result.position
  var center:=get_viewport().get_visible_rect().size/2
- return camera.project_ray_origin(center)+camera.project_ray_normal(center)*100.0
+ var point:Vector3=result.position if not result.is_empty() else camera.project_ray_origin(center)+camera.project_ray_normal(center)*100.0
+ return {"hit":result,"point":point}
+func aim_point() -> Vector3:return aim_sample().point

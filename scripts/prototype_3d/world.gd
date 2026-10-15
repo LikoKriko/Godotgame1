@@ -93,9 +93,7 @@ func build_environment() -> void:
 func build_ui() -> void:
  var layer := CanvasLayer.new(); add_child(layer)
  var root := Control.new(); root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); root.mouse_filter = Control.MOUSE_FILTER_IGNORE; layer.add_child(root)
- var aim := Label.new(); aim.text = "·"; aim.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; aim.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
- aim.set_anchors_and_offsets_preset(Control.PRESET_CENTER); aim.offset_left = -12; aim.offset_top = -12; aim.offset_right = 12; aim.offset_bottom = 12; aim.add_theme_font_size_override("font_size",28); root.add_child(aim)
- aim.mouse_filter=Control.MOUSE_FILTER_IGNORE
+ var aim:=preload("res://scripts/prototype_3d/reticle.gd").new();aim.name="Reticle";root.add_child(aim)
  status = Label.new();status.hide();status.text="";root.add_child(status)
  hud=preload("res://scripts/prototype_3d/hud.gd").new();root.add_child(hud);hud.configure(self)
  pause_panel = CenterContainer.new(); pause_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); root.add_child(pause_panel); pause_panel.hide()
