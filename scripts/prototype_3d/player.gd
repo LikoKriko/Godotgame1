@@ -63,6 +63,9 @@ func select_quick(index:int) -> bool:
 func strike() -> bool:
  if action_elapsed>=0 or equip_elapsed>=0 or parry_elapsed>=0 or preview_state!=&"" or game.player_health<=0:return false
  var item:Dictionary=game.bag.held_item() if equipped else {}
+ if item.get("id")==&"basic_workbench":
+  var target:Dictionary=game.camera_rig.target()
+  return not target.is_empty() and game.workbenches.begin_placement(target.position)
  if not item.is_empty() and (item.id==&"botella" or game.bag.DEFINITIONS[item.id].has("kcal")):
   var location:Dictionary=game.bag.location(item.uid)
   return game.consume_item(location.index,location.kind==&"quick")
@@ -107,6 +110,8 @@ func _physics_process(delta: float) -> void:
   model.animate(&"death",minf(1,death_elapsed/3),false,delta);game.camera_rig.update(delta)
   if death_elapsed>=3 and not game.paused:game.toggle_pause()
   return
+ if game.workbenches!=null and game.workbenches.placing():
+  velocity=Vector3.ZERO;model.family_override=&"carried";model.animate(&"idle",0,false,delta);game.camera_rig.update(delta);return
  parry_cooldown=maxf(0,parry_cooldown-delta)
  equip_recovery=maxf(0,equip_recovery-delta)
  pickup_recovery=maxf(0,pickup_recovery-delta)

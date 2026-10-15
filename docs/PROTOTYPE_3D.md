@@ -156,8 +156,8 @@ rellenar, y verifica consumo de 250 ml conservando el recipiente. La prueba de
 movimiento también cubre la ralentización de recogida y comer con correr
 automático activado. La revisión F6 permite mostrar la armadura.
 
-Pendiente: acabar los modelos del entorno, resto de objetos, estaciones,
-cuerpos saqueables y guardado 3D. El sistema del PDF sigue pospuesto hasta
+Pendiente: acabar los modelos del entorno, resto de objetos,
+guardado 3D. El sistema del PDF sigue pospuesto hasta
 terminar toda la migración.
 
 
@@ -190,3 +190,23 @@ Pruebas: `prototype_3d_population.gd` verifica semilla, grupos y lotes gráficos
 `prototype_3d_camp.gd`, separación, streaming, entrada y descarga. Las pruebas
 aisladas usan `tests/fixtures/prototype_layout.gd`; la partida F5 usa siempre la
 generación completa, sin las antiguas muestras de cuatro árboles y cuatro rocas.
+
+
+La mesa básica usa `prototype_3d/workbenches.gd`: seleccionar en acceso rápido,
+apuntar a suelo libre cercano y pulsar clic. La previsualización muestra su
+huella real; se bloquea en agua, objetos, jugadores o terrenos elevados.
+Colocarla lleva 3 s y Esc conserva el objeto. La barra verde clara se sitúa
+sobre el acceso rápido y escala con el HUD. `workbench.gd` tiene cuatro patas
+con colisión y sombra reales, a 0,875 m de altura. Con E se abre la ventana
+compartida de creación en estación (nivel 1), conservando desbloqueos y costes.
+`tests/prototype_3d_workbench.gd` comprueba colocación, cancelación, inmovilidad,
+colisión, entrada/salida de la ventana y curtido con desgaste de sal/cuchillo.
+
+
+`corpse_loot.gd` adapta el almacén de ocho espacios a los cuerpos 3D. La selección
+se habilita al completar la caída; el cuerpo conserva su inventario durante 3 min.
+La recogida respeta slots y estados individuales. Tirar crea un `world_item.gd`
+seleccionable con E; la representación del suelo es aún un icono 256² orientado
+hacia la cámara, pendiente del modelo de cada material. La recogida usa manos
+libres y la animación inclinada. `prototype_3d_loot.gd` cubre transferencia,
+mochila llena, botella con contenido, contador y caducidad sin duplicaciones.

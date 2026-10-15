@@ -32,17 +32,24 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
   cargan por proximidad sin cambiar de pantalla. Puertas de 1,5×2,2 m,
   oscurecimiento exterior al 70% y barrera que mantiene al enemigo fuera.
 - Pantalla negra de generación con barra blanca ligada al avance de creación.
+- Cadáver del joven accesible tras 2 s, ocho huecos en dos filas; Recoger y Tirar,
+  contador real de mochila, recogida E con manos libres y conservación de usos
+  y agua por objeto. Desaparición tras 180 s más la caída. El cuero sin refinar
+  de prueba conserva el comportamiento del 2D.
+- Mesa básica colocable con clic durante 3 s, personaje quieto, previsualización
+  y barra verde; Esc cancela conservando el objeto. E abre las recetas de mesa,
+  con iconos 256² y los mismos costes de sal/cuchillo y reservas que en el 2D.
 
 ## Pendiente de trasladar del juego 2D
 
-1. Modelos de los objetos restantes: materiales, equipo aún provisional y mesa.
+1. Modelos de los objetos restantes: materiales y equipo aún provisional.
    Ampliar variantes y revisar el acabado de los modelos con el usuario al final.
 2. Refinar los modelos provisionales del entorno y edificios para acercarlos a
    todas las siluetas originales. La distribución ya está conectada; los nueve
    diseños originales de árbol aún no tienen nueve modelos 3D específicos.
-3. Objetos arrojados recogibles con E, colocación de mesa y creación por estación.
-   El campamento y su streaming ya están conectados al escenario.
-4. Cuerpos saqueables y su inventario, objetos arrojados y persistencia del mundo.
+3. Sustituir la representación provisional de objetos arrojados (iconos en el
+   mundo) por modelos pequeños donde corresponda.
+4. Persistencia del mundo y sus recursos, mesas, cuerpos y objetos arrojados.
 5. Menú principal completo, nueva partida, guardado manual/continuar en un formato
    3D separado y carga del guardado con progreso real. Ajustes restantes adecuados
    al renderizador 3D; no reintroducir el cambio de resolución que rompía el cursor.
@@ -57,7 +64,7 @@ vínculo/confianza: [PDF original](design/Day_Zero_Sistema_de_Confianza_y_Marcas
   sus cambios de postura duran 0,28 s. La memoria se descarta al llegar, no al
   perder visión. Estos parámetros son ajustables sin cambiar la estructura.
 - Las familias de armas y los consumibles ya tienen modelos. Los materiales y
-  objetos de colocación aún no están modelados; no confundir su presencia en el
+  objetos adicionales aún no están modelados; no confundir su presencia en el
   inventario con su migración al mundo. Solo la armadura de hojas cambia el cuerpo.
 - Los modelos ambientales son una primera adaptación volumétrica: no dar por
   terminados los diseños de árboles, edificios y plantas solo por estar colocados.

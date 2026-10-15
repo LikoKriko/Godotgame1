@@ -9,6 +9,8 @@ var brain=preload("res://scripts/prototype_3d/creature_brain.gd").new()
 var effects=preload("res://scripts/status_effects.gd").new()
 var indicator:MeshInstance3D
 var health:=10.0
+var loot_slots:Array[Dictionary]=[{},{},{},{},{},{},{},{}]
+var corpse_area:Area3D
 var phase:=0.0
 var attack_elapsed:=-1.0
 var impact_done:=false
@@ -51,7 +53,9 @@ func stun(seconds:float) -> void:
 func take_damage(amount:float) -> void:
  if health<=0:return
  health=maxf(0,health-amount)
- if health==0:death_elapsed=0;collision_layer=0;collision_mask=0;hurt_area.collision_layer=0;effects.active.clear()
+ if health==0:
+  death_elapsed=0;collision_layer=0;collision_mask=0;hurt_area.collision_layer=0;effects.active.clear()
+  loot_slots[0]=game.bag.make_item(&"cuero_sin_refinar",1)
 func obstacle(direction:Vector3) -> bool:
  var query:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*0.35,global_position+Vector3.UP*0.35+direction*0.75,33,[get_rid()])
  return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
@@ -66,6 +70,9 @@ func _physics_process(delta:float) -> void:
  if game==null or game.paused:return
  if health<=0:
   death_elapsed+=delta;model.animate(&"death" if death_elapsed<2 else &"corpse",minf(1,death_elapsed/2));indicator.hide()
+  if death_elapsed>=2 and corpse_area==null:
+   corpse_area=Area3D.new();corpse_area.collision_layer=16;corpse_area.collision_mask=0;corpse_area.monitoring=false;corpse_area.set_meta("creature",self);add_child(corpse_area)
+   var shape:=CollisionShape3D.new();var volume:=BoxShape3D.new();volume.size=Vector3(0.8,0.3,0.9);shape.shape=volume;shape.position.y=0.15;corpse_area.add_child(shape)
   if death_elapsed>=182:queue_free()
   return
  var stunned:=effects.remaining(&"stun")>0

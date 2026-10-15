@@ -26,6 +26,7 @@ var map_holder:CenterContainer
 var inventory_panel:Control
 var item_catalog:Control
 var workbenches=null
+var corpse_loot:Node
 var styled_hud:Control
 var progression=preload("res://scripts/progression.gd").new()
 var skill_points:=0
@@ -110,8 +111,13 @@ func build_ui() -> void:
  item_catalog=preload("res://scripts/prototype_3d/item_catalog.gd").new();root.add_child(item_catalog);item_catalog.configure(self)
  item_catalog.visibility_changed.connect(func():if not item_catalog.visible and paused and not pause_panel.visible:resume_world())
  styled_hud=hud
+ workbenches=preload("res://scripts/prototype_3d/workbenches.gd").new();add_child(workbenches);workbenches.configure(self,root)
+ corpse_loot=preload("res://scripts/prototype_3d/corpse_loot.gd").new();add_child(corpse_loot);corpse_loot.configure(self,root)
  build_loading_screen(root)
 func toggle_pause() -> void:
+ if corpse_loot!=null and corpse_loot.window.visible:corpse_loot.close_window();return
+ if workbenches!=null and workbenches.placing():workbenches.cancel_placement();return
+ if workbenches!=null and workbenches.window.visible:workbenches.window.hide();return
  if inventory_panel!=null and inventory_panel.visible:inventory_panel.hide();return
  if item_catalog!=null and item_catalog.visible:item_catalog.hide();return
  if map_holder!=null and map_holder.visible:toggle_map();return
@@ -158,6 +164,7 @@ func _physics_process(delta:float) -> void:
  world_ambient.ambient_light_color=daylight.ambient;world_ambient.ambient_light_energy=lerpf(0.32,0.65,daylight.elevation)
 func respawn() -> void:
  player_health=20;level=1;nutrition.reset();parry.reset()
+ if workbenches!=null:workbenches.cancel_placement();workbenches.window.hide()
  skill_points=0;experience=0
  var preserved_skills:Dictionary=progression.skills.duplicate();progression.reset()
  for id in progression.skills:progression.skills[id]=1 if preserved_skills[id]>0 else 0
@@ -174,6 +181,9 @@ func open_2d() -> void:
  get_tree().change_scene_to_file("res://scenes/day_zero.tscn")
 func _unhandled_input(event: InputEvent) -> void:
  if loading_state:return
+ if workbenches!=null and workbenches.placing():
+  if event is InputEventKey and event.pressed and event.keycode==KEY_ESCAPE:workbenches.cancel_placement();get_viewport().set_input_as_handled()
+  return
  if event is InputEventKey and event.pressed and not event.echo:
   if event.keycode == KEY_ESCAPE: toggle_pause(); get_viewport().set_input_as_handled()
   elif event.keycode>=KEY_1 and event.keycode<=KEY_6 and not paused:player.select_quick(event.keycode-KEY_1)
@@ -245,6 +255,9 @@ func interact() -> bool:
  if result.is_empty():return false
  var target=target_owner(result.collider)
  if result.position.distance_to(player.global_position)>1.75:status.text="Acércate para interactuar.";return false
+ if target.is_in_group("prototype_drops"):return corpse_loot.pickup(target)
+ if target.is_in_group("prototype_enemies") and target.health<=0:return corpse_loot.open_window(target)
+ if target.is_in_group("prototype_workbenches"):return workbenches.open_table(target)
  if target.is_in_group("prototype_water"):
   var outcome:Dictionary=preload("res://scripts/nutrition.gd").refill(bag.held_item() if player.equipped else {})
   status.text=outcome.message;inventory_panel.refresh();return outcome.ok
