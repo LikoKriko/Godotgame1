@@ -271,7 +271,7 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   var leg: Dictionary = pose.legs[side]; start = 10+side*3
   orient_limb(start,leg,neutral.legs[side])
   hinge_collar(22+side,leg,neutral.legs[side])
-  posed[start+2] = Transform3D(torso.basis if pose.state==&"death" else Basis(Vector3.RIGHT,leg.pitch),leg.end)
+  posed[start+2] = Transform3D(torso.basis if pose.state==&"death" else pose.get("leg_frame",Basis.IDENTITY)*Basis(Vector3.RIGHT,leg.pitch),leg.end)
   var leg_angle := atan2((leg.joint-leg.root).z,-(leg.joint-leg.root).y)
   if delta>0:
    var d:=minf(delta,0.033)

@@ -61,3 +61,18 @@ físico de revisión. `tests/prototype_3d_natural_actions.gd` cubre la toleranci
 en tres resoluciones, prioridad central, oclusión, anatomía, apoyos, mano real
 en el contacto, transferencia diferida, repetición, alejamiento y mochila llena.
 Las pruebas no acreditan naturalidad perfecta ni equivalencia con mocap.
+
+
+## Trayectoria de marcha diagonal
+
+`leg_frame` orienta juntos los carriles de apoyo, los polos de rodilla y los
+pies al caminar diagonalmente. La pelvis acompaña con medio giro y el torso
+conserva la orientación de apuntado. La separación se limita perpendicularmente
+a esos carriles, evitando cortar la mitad interior de la zancada con el eje X
+frontal y convertir el paso en un abanico lateral. La amplitud se escala desde
+la posición neutral de cada carril; la orientación se mezcla entre fotogramas.
+Caminar hacia atrás mantiene el pie orientado hacia delante en su diagonal.
+La recogida andando conserva su colocación específica. No cambian velocidad,
+cadencia ni longitudes anatómicas. `prototype_3d_diagonal_gait.gd` comprueba las
+trayectorias completas en las cuatro diagonales, pies renderizados, huesos y
+agarres para las ocho familias y caminar/correr/agachado.

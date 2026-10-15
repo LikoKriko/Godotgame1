@@ -34,6 +34,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  if state in [&"parry",&"hurt"]: source_state=&"idle"
  var pose := Pose.sample(&"food" if state in [&"drink",&"drink_walk"] else family,source_state,movement_phase if state==&"slide" else phase,1.0 if source_state==&"equip_crouch" else movement_phase,1.0,-1)
  pose.leg_poles=[Vector3.BACK,Vector3.BACK]
+ pose.leg_frame=Basis.IDENTITY
  pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state==&"run" else movement_phase
  pose.look_contact=contact
  var original_body: Transform3D = pose.body
@@ -78,11 +79,18 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   pose.grip=pose.hands[1];pose.shaft=body.basis*Vector3.LEFT
  if not movement.is_zero_approx() and state not in [&"slide",&"jump",&"slide_jump",&"death"]:
   var travel:=Vector3(movement.x,0,movement.z).normalized()
+  # Rotate the stance lanes and knee/foot frames together. Keeping the old
+  # frontal lanes clips the inward half of a diagonal step into a sideways fan.
+  var forward_travel:=travel if travel.z>=0 else -travel
+  var yaw:=clampf(atan2(forward_travel.x,forward_travel.z),-PI/4,PI/4)*smoothstep(0,0.35,absf(travel.z))
+  if state!=&"pickup_walk":
+   pose.leg_frame=Basis(Vector3.UP,yaw)
+   pose.leg_poles=[pose.leg_frame*Vector3.BACK,pose.leg_frame*Vector3.BACK]
   var walk_pose:=Pose.sample(family,&"walk",movement_phase) if state in [&"action",&"pickup_walk",&"eat_walk",&"drink_walk",&"unequip"] else pose
   for side in 2:
    var ankle: Vector3=walk_pose.legs[side].end
    var step:=ankle.z*lerpf(1,0.65,absf(travel.x))
-   pose.legs[side].end=Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,ankle.y,0)+travel*step
+   pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,0,0)+Vector3.UP*ankle.y+travel*step
    pose.legs[side].pitch*=travel.z
  var striding:=state in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"] or (not movement.is_zero_approx() and state in [&"action",&"unequip"])
  if striding:
@@ -213,7 +221,7 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
   # Weight passes onto the support leg. Pelvis and rib cage counter-rotate;
   # occupied hands travel with the rib cage instead of an independent bob.
   offset.x=-wave*0.32
-  pelvis_rotation=Vector3(0,wave*0.035,wave*0.012)
+  pelvis_rotation=Vector3(0,wave*0.035+pose.leg_frame.get_euler().y*0.5,wave*0.012)
   chest_rotation=Vector3(0,-wave*0.025,-wave*0.014)
  elif state==&"idle":
   var breath:=sin(phase*TAU)
@@ -307,8 +315,8 @@ static func lengthen_stride(pose:Dictionary) -> void:
  var settle:=0.0
  for side in 2:
   var ankle:Vector3=pose.legs[side].end
-  var neutral_x:float=(-1 if side==0 else 1)*Anatomy.HIP.x
-  ankle.x=neutral_x+(ankle.x-neutral_x)*STRIDE_SCALE;ankle.z*=STRIDE_SCALE
+  var neutral:Vector3=pose.get("leg_frame",Basis.IDENTITY)*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,0,0)
+  ankle.x=neutral.x+(ankle.x-neutral.x)*STRIDE_SCALE;ankle.z=neutral.z+(ankle.z-neutral.z)*STRIDE_SCALE
   pose.legs[side].end=ankle
   var hip:Vector3=pose.hips[side]
   var horizontal:=Vector2(ankle.x-hip.x,ankle.z-hip.z).length_squared()
@@ -320,11 +328,15 @@ static func lengthen_stride(pose:Dictionary) -> void:
   pose.hips[side]+=down;pose.shoulders[side]+=down;pose.hands[side]+=down
 
 static func solve_legs(pose: Dictionary) -> Dictionary:
- # Each foot stays on its anatomical side, including during blended diagonals.
+ # Keep each foot in its own stance lane, rotated with diagonal travel.
  var boundary:=Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*0.5
  for side in 2:
   var ankle: Vector3=pose.legs[side].end
-  if pose.state!=&"death": ankle.x=minf(ankle.x,-boundary) if side==0 else maxf(ankle.x,boundary)
+  if pose.state!=&"death":
+   var across:Vector3=pose.get("leg_frame",Basis.IDENTITY).x
+   var lateral:=ankle.dot(across)
+   var safe:=minf(lateral,-boundary) if side==0 else maxf(lateral,boundary)
+   ankle+=across*(safe-lateral)
   var pitch: float=pose.legs[side].pitch
   pose.legs[side]=Pose.joint(pose.hips[side],ankle,Pose.THIGH,Pose.SHIN,pose.get("leg_poles",[Vector3.BACK,Vector3.BACK])[side])
   pose.legs[side].pitch=pitch

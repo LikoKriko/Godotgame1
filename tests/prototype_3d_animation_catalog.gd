@@ -27,7 +27,7 @@ func run():
    for frame in 24:
     var travel:=Vector3(sin(direction*TAU/16),0,cos(direction*TAU/16))
     actor.animate(state,frame/24.0,false,0.016,frame/24.0,travel)
-    var feet:float=actor.rig.posed[15].origin.x-actor.rig.posed[12].origin.x
+    var feet:float=(actor.rig.posed[15].origin-actor.rig.posed[12].origin).dot(actor.last_pose.get("leg_frame",Basis.IDENTITY).x)
     require(feet>=3.02,"Feet cannot intersect during lateral or diagonal locomotion")
  for point in [Vector3(0,42,31),Vector3(4,35,30),Vector3(-4,48,31)]:
   actor.family_override=&"axe";actor.aim_contact=point

@@ -463,3 +463,25 @@ resuelve las comprobaciones de golpes y armadura pendientes. Los únicos
 conflictos fueron notas añadidas al final de documentos; se conservan ambas
 entradas. Tras el rebase pasan las 10368 muestras de brazos, las 10 pruebas
 de superficie/UV y las 42 comprobaciones actualizadas de contacto y armadura.
+
+## 2026-10-15 — Corrección de la marcha diagonal
+
+Primer hito observado **18:51:53 Madrid**; cierre de comprobaciones
+**18:56:35 Madrid**. Intervalo medido parcial **4 min 42 s**;
+no se registró una estimación previa ni el inicio exacto anterior al primer hito.
+Se giran conjuntamente carriles de apoyo, rodillas y pies hacia la diagonal,
+con acompañamiento parcial de pelvis y mezcla de orientación. Se conserva la
+cadencia, velocidad, anatomía y la recogida con su postura específica.
+
+Se incorporaron primero `c99e19b` y `92d3189` de modelaje/integración, conservando
+sus cambios y revalidando el ajuste sobre ellos. Godot 4.6.3: **32736**
+comprobaciones de trayectoria, orientación, huesos y agarres en cuatro diagonales,
+ocho familias y tres marchas; catálogo **8588**, deformación **145006**, acciones
+naturales **4050**, cámara/zancada **1116** y correcciones de modelo/armadura **42**:
+todas superadas. Revisión nativa de dieciséis poses de marcha diagonal con/sin
+hacha sobre el modelo actualizado; `git diff --check` limpio. El commit conserva
+los commits publicados por los otros departamentos.
+
+Integración final: se incorpora también `984c370` (piel de brazos),
+conservando ambas entradas del registro de tiempos. El rig se integró sin
+conflictos de código; se revalidan marcha diagonal, piel y contactos.

@@ -364,6 +364,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
  else:
   var blend := 1-exp(-delta*18)
   displayed_pose.body = displayed_pose.body.interpolate_with(target.body,blend)
+  displayed_pose.leg_frame=(displayed_pose.get("leg_frame",Basis.IDENTITY) as Basis).slerp(target.leg_frame,blend)
   displayed_pose.pelvis = (displayed_pose.get("pelvis",displayed_pose.body) as Transform3D).interpolate_with(target.get("pelvis",target.body),blend)
   for side in 2:
    displayed_pose.leg_poles[side]=(displayed_pose.leg_poles[side] as Vector3).lerp(target.leg_poles[side],blend).normalized()
