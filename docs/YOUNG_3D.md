@@ -73,3 +73,12 @@ copia visual idéntica a la ilustración.
 Las capturas revisan las cuatro vistas, reposo cuadrúpedo, marcha, golpes de
 ambas manos, sentado, aturdimiento y cadáver. Son comprobaciones en Godot 4.7.2,
 Linux/Compatibility; no una medición de FPS en el ordenador del usuario.
+
+## Animaciones provisionales tras esta subida
+
+El usuario indica que, después de publicar esta integración, se rehacerán todas
+las animaciones del enemigo1. Los estados actuales permiten integrar y probar
+el nuevo modelo, pero no se consideran su animación definitiva. La revisión de
+esta subida comprueba integridad de malla y rig, ejecución sin errores, combate,
+botín y guardado; no exige conservar el acabado de las animaciones anteriores
+ni constituye una aprobación artística de sus movimientos actuales.

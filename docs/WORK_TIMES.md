@@ -590,3 +590,32 @@ tiempos añadido al final; se conservan las entradas de ambos departamentos.
 La escena de revisión conserva el control nuevo de ataque agachado del humano.
 Tras el rebase vuelven a pasar 2560 pruebas de malla detallada, 6531 de criatura
 y 539 de referencias/ligaduras.
+
+## 2026-10-15 — Revisión conjunta de ataques agachado y nuevo enemigo1
+
+Inicio observado **17:42:54 UTC** (19:42:54 Madrid); cierre de validación
+**17:45:56 UTC** (19:45:56 Madrid): **3 min 2 s observados**, sin estimación
+previa. Incluye lectura de entregas, pruebas, capturas y registro del alcance
+provisional de las animaciones; la publicación posterior queda fuera.
+
+Revisados juntos `81d6d1f` (ataques agachado y contrapeso de espada) y `684f9a1`
+(reconstrucción del joven), conservando la integración previa `c6fa837`.
+El usuario aclara durante la revisión que rehacerá todas las animaciones del
+enemigo1 después de esta subida. Se documentan como provisionales en
+`YOUNG_3D.md`; no se exige conservar su acabado anterior ni se certifica el
+actual como definitivo. No se requieren correcciones adicionales de código.
+
+Godot **4.7.2**, Linux: **19 suites superadas**. Ataques agachado/teclas Ctrl
+**836**; contrapeso de espada **1440**; malla/pesos/materiales del joven **2560**;
+criatura/combate/parry **6531**; referencias **539**; botín **16**; guardado **191**;
+deformación humana **145006**; catálogo **8588**; contacto/armadura **42**;
+acciones naturales **4050**; marcha diagonal **32736**; piel de brazos **10368
+muestras** sin bordes; cámara/zancada **1116**; deslizamiento **2027**; equipo
+**65**; mira **62**; movimiento con física real e integración general **739**.
+
+Se renderizan y examinan **22 capturas** en X11/Compatibility: diez de hacha y
+espada agachado con/sin armadura, y doce del nuevo joven (cuatro vistas y ocho
+estados/variantes). El shader y la geometría se renderizan sin errores. Logs y
+capturas intermedios en `/workspace/work/integration-review/round3`.
+No incluye Windows, medición de FPS del usuario, prueba de audio físico ni
+aprobación artística final de las animaciones del enemigo1.
