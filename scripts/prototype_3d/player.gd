@@ -173,6 +173,7 @@ func _physics_process(delta: float) -> void:
  jump_was_pressed = jump_pressed
  locomotion.steer_air(Vector2(direction.x,direction.z),delta)
  locomotion.advance(delta,control and not locomotion.sliding())
+ model.action_crouch=locomotion.crouch if is_on_floor() else 0.0
  running = running and locomotion.crouch < 0.01
  var movement_multiplier:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-0.05*equip_recovery)
  movement_multiplier*=0.4 if preview_state==&"pickup" else 1-0.6*pickup_recovery/0.5

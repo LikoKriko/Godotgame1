@@ -512,3 +512,42 @@ corrección anterior de armadura. Intermedios en
 `/workspace/work/integration-review/round2`. No se repiten las suites de menús,
 árboles o criaturas: estas entregas no modifican esos sistemas. No incluye
 prueba en Windows, audio físico ni medición de rendimiento del usuario.
+
+
+## 2026-10-15 — Brazo libre como contrapeso en el ataque de espada
+
+Primer hito observado **19:11:16 Europe/Madrid**, cierre de validación
+**19:13:49 Europe/Madrid**. Intervalo parcial medido **2 min 33 s**;
+no se registró el comienzo exacto anterior al hito ni una estimación previa.
+El brazo vacío se extiende hacia fuera y ligeramente atrás durante preparación
+e impacto, conserva una flexión suave de codo y vuelve gradualmente al reposo.
+La palma utiliza la orientación de mano libre. Se conservan la trayectoria,
+agarre, punto de mira y duración del golpe de espada y las demás familias.
+
+Godot 4.6.3: **1440** comprobaciones específicas de extensión, separación del
+torso, continuidad, huesos, agarre y contactos bajos/medios/altos con/sin armadura;
+catálogo **8588**, deformación **145006** y modelo/contactos/armadura **42**:
+todas superadas. Revisión nativa de **40 poses** en cuatro ángulos y cinco fases,
+con/sin armadura; `git diff --check` limpio. Cambios locales sobre `309132e`,
+**sin commit ni push por instrucción expresa del usuario**.
+
+
+## 2026-10-15 — Golpear manteniendo Ctrl/agachado
+
+Primer hito observado **19:15:43 Europe/Madrid**; cierre de validación
+**19:18:15 Europe/Madrid**. Intervalo medido parcial **2 min 32 s**;
+no se registró el inicio exacto anterior al hito ni una estimación previa.
+La postura agachada se aplica al golpe/tensado antes de calcular IK/contacto;
+el jugador transmite el nivel suave de agachado de locomoción al modelo y la
+comprobación de alcance usa la misma anatomía. Así no se incorpora al atacar
+con Ctrl, puede encadenar golpes y caminar agachado mientras ataca. Soltar Ctrl
+permite recuperar la postura de pie sin bloquear el gesto. La revisión F6
+incluye «Atacar agachado». Se conserva el contrapeso de espada pendiente.
+
+Godot 4.6.3: **836** comprobaciones específicas, incluidas teclas físicas Ctrl,
+ataques repetidos de hacha/pico/espada, marcha agachada, soltar Ctrl, poses de
+manos libres/arco, longitud de piernas, agarres y contacto de mira; catálogo
+**8588**, deformación **145006**, contrapeso de espada **1440**: todo superado.
+Revisión nativa de **40 poses** del golpe de espada agachado con/sin armadura.
+`git diff --check` limpio. Cambios **sin commit ni push**, manteniendo la
+instrucción expresa del usuario de esperar antes de publicar.

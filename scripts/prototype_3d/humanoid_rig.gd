@@ -264,7 +264,8 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   var start := 4+side*3
   orient_limb(start,arm,arm_rest[side])
   hinge_collar(20+side,arm,arm_rest[side])
-  posed[start+2] = Transform3D(Kinematics.hand_frame(arm,torso.basis,side,not swinging),arm.end)
+  var balancing:bool=pose.get("family",&"")==&"sword" and clip==&"action" and side!=pose.active
+  posed[start+2] = Transform3D(Kinematics.hand_frame(arm,torso.basis,side,not swinging and not balancing),arm.end)
   if pose.get("family",&"")==&"" and pose.get("clip_state")==&"action":
    var close_fist:=sin(clampf(float(pose.phase),0,1)*PI)
    posed[start+2].basis=posed[start+2].basis*Basis.from_scale(Vector3(1+0.1*close_fist,1-0.12*close_fist,1+0.1*close_fist))

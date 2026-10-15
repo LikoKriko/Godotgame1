@@ -25,7 +25,7 @@ static func duration(state: StringName,family: StringName = &"") -> float:
  if state in [&"walk",&"run"]:return (0.45 if state==&"run" else 0.60)*STRIDE_SCALE
  return 0.60
 
-static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF,slide_launch:Dictionary={}) -> Dictionary:
+static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF,slide_launch:Dictionary={},crouch_amount:float=0.0) -> Dictionary:
  var source_state := &"run" if state==&"slide" else state
  if state in [&"pickup",&"pickup_walk"]:source_state=&"walk" if state==&"pickup_walk" else &"idle"
  if state==&"unequip": source_state=&"equip";phase=1-phase
@@ -47,6 +47,13 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var standing_y:=Anatomy.HIP.y
   var pelvis:Vector3=body*Vector3(0,standing_y,0)
   body.origin.y+=maxf(0,standing_y-1.2-pelvis.y)
+ # Crouching is a stance layer on the gesture, applied before tool/contact IK.
+ # Lowering a finished standing animation would move its tip off the aim point.
+ if state in [&"action",&"draw"] and crouch_amount>0:
+  var amount:=clampf(crouch_amount,0,1)
+  var hinge:=Basis(Vector3.RIGHT,0.08*amount)
+  var pivot:=Vector3(0,Anatomy.HIP.y,0)
+  body=Transform3D(hinge,pivot-hinge*pivot+Vector3(0,-6.0*amount,-0.45*amount))*body
  # An impact transfers weight through the chest and pelvis before settling.
  var recoil := 0.0
  if state==&"action": recoil=sin(clampf((phase-0.5)/0.16,0,1)*PI)*exp(-maxf(0,phase-0.5)*4)
@@ -161,6 +168,15 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     var amount:=smoothstep(0.26,0.5,phase)*(1-smoothstep(0.62,1,phase))
     var aimed:Basis=pose.get("tool_basis",Aim.frame(pose.shaft)).slerp(solution.basis,amount)
     pose.grip=pose.grip.lerp(solution.grip,amount);pose.shaft=aimed.y;pose.tool_basis=aimed
+ if family==&"sword" and state==&"action":
+  # The empty arm opens away from the strike as a counterweight. Keep a soft
+  # elbow instead of locking the joint, then return smoothly after the effort.
+  var free_side:int=1-pose.active
+  var opening:=smoothstep(0,0.28,phase)*(1-smoothstep(0.62,1,phase))
+  var outward:Vector3=Vector3(-0.86 if free_side==0 else 0.86,-0.38,-0.34).normalized()
+  var counterweight:Vector3=pose.shoulders[free_side]+body.basis*outward*18.3
+  var relaxed:Dictionary=relaxed_arm(pose,free_side)
+  pose.hands[free_side]=relaxed.end.lerp(counterweight,opening)
  if family==&"bow" and contact.is_finite() and state not in [&"death",&"eat",&"drink",&"pickup"]:
   var active:int=pose.active
   var drawn:=smoothstep(0,0.26,phase) if state in [&"draw",&"action"] else 0.0

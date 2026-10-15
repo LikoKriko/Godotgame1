@@ -41,6 +41,7 @@ func _ready() -> void:
  var slow:=CheckButton.new();slow.text="Cámara lenta";column.add_child(slow);slow.toggled.connect(func(value):speed=0.25 if value else 1.0)
  if species!=&"young":
   var armor:=CheckButton.new();armor.text="Armadura de hojas";column.add_child(armor);armor.toggled.connect(func(value):actor.wear({"id":&"burdock_armor"} if value else {}))
+  var crouched:=CheckButton.new();crouched.text="Atacar agachado";column.add_child(crouched);crouched.toggled.connect(func(value):actor.action_crouch=1.0 if value else 0.0)
   var pause:=CheckButton.new();pause.text="Pausar / revisar fase";column.add_child(pause);pause.toggled.connect(func(value):paused=value)
   var phase_control:=HSlider.new();phase_control.min_value=0;phase_control.max_value=1;phase_control.step=.005;phase_control.custom_minimum_size.x=220;column.add_child(phase_control);phase_control.value_changed.connect(func(value):manual_phase=value)
   var height_label:=Label.new();height_label.text="Altura de contacto (m)";column.add_child(height_label)

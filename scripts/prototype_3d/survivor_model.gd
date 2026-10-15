@@ -19,6 +19,7 @@ var displayed_pose: Dictionary = {}
 var slide_launch_pose:Dictionary={}
 var family_override: StringName = &"default"
 var aim_contact := Vector3.INF
+var action_crouch:=0.0
 var tool_frame := Basis.IDENTITY
 var grip_socket := Node3D.new()
 var support_socket := Node3D.new()
@@ -350,7 +351,7 @@ func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: B
  return {"grip":grip,"support":grip+shaft*Profiles.profile(_item).support}
 func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0, movement_phase: float = 0.0, movement: Vector3 = Vector3.ZERO, motion_amount:float=1.0) -> void:
  var item: StringName = (&"axe" if equipped else &"") if family_override==&"default" else family_override
- var target := Clips.sample(item,state,phase,movement_phase,movement,aim_contact,slide_launch_pose)
+ var target := Clips.sample(item,state,phase,movement_phase,movement,aim_contact,slide_launch_pose,action_crouch)
  if state in [&"walk",&"run",&"crouch_walk"] and motion_amount<1:
   var neutral:=Clips.sample(item,&"crouch" if state==&"crouch_walk" else &"idle",1.0 if state==&"crouch_walk" else 0.0)
   target.body=neutral.body.interpolate_with(target.body,motion_amount)
@@ -435,7 +436,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
    slide_launch_pose.grip=grip_socket.position;slide_launch_pose.tool_basis=grip_socket.basis;slide_launch_pose.shaft=grip_socket.basis.y
  elif state!=&"slide_jump":slide_launch_pose.clear()
 func can_reach_contact(point: Vector3,family:StringName=&"axe") -> bool:
- var contact_pose := Clips.sample(family,&"action",0.5,0,Vector3.ZERO,point)
+ var contact_pose := Clips.sample(family,&"action",0.5,0,Vector3.ZERO,point,{},action_crouch)
  return contact_pose.get("contact_reachable",false)
 func wear(item:Dictionary) -> void:leaf_armor.visible=item.get("id")==&"burdock_armor"
 func confirm_parry() -> void:
