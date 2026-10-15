@@ -96,8 +96,10 @@ Ver `docs/YOUNG_3D.md` y `tests/prototype_3d_young_motion.gd`.
 
 ## Superviviente Meshy: espalda y deslizamiento
 
-La zona central de la espalda sigue el tórax; no debe quedar asignada a los
-brazos por la difusión automática. La corrección reproducible está en
+La espalda y el trapecio siguen el tórax; la cara interior del brazo sigue al
+brazo. No inmovilizarla con una máscara rectangular de la espalda: produce
+ensanchamientos al levantar el húmero. El perfil vigente es
+`meshy_shoulders_v2`, descrito en `docs/MESHY_ASSETS.md`. La corrección reproducible está en
 `human_skin_weights.gd` y `tools/meshy/correct_survivor_weights.gd`, conservando
 la geometría importada. La postura de enlace usa `Anatomy.bind_pose()`.
 El deslizamiento nuevo curva el pecho respecto a la pelvis y mantiene la

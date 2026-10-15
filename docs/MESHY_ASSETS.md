@@ -68,10 +68,10 @@ no depende del reposo animado ni de las correcciones de apoyo. Mantiene las
 articulaciones originales al editar un movimiento.
 
 La ligadura automática asignaba casi todo el peso de algunos vértices de la
-espalda a los brazos. En una acción, puntos de la zona escapular se alejaban
-hasta 8,48 unidades del tórax. `human_skin_weights.gd` limita esa influencia en
-el pecho/espalda central y la transfiere al pecho, con una transición gradual
-hacia los deltoides. Se corrigen 42943 vértices, sin mover posiciones, normales,
+espalda a los brazos. La primera corrección, `meshy_torso_v1`, se describe aquí
+como antecedente; queda sustituida por la versión v2 indicada más abajo. En una acción, puntos de la zona escapular se alejaban
+hasta 8,48 unidades del tórax. La primera versión limitaba esa influencia en
+el pecho/espalda central y la transfería al pecho. Se corrigieron 42943 vértices, sin mover posiciones, normales,
 tangentes, UV ni triángulos. Los buffers geométricos publicados se conservan
 byte a byte; el recurso solo actualiza ligadura, límites de huesos y metadatos.
 El FBX y los cuatro PNG permanecen intactos. La corrección se hornea una vez,
@@ -108,3 +108,42 @@ Los gestos de las cuatro familias de armas/herramientas se documentan en
 `WEAPON_ANIMATIONS_3D.md`. Usan los mismos buffers de piel y geometría; la nueva
 suelta del arco orienta el codo de tracción respecto a la cabeza y mantiene el
 anclaje de la muñeca junto a la mandíbula.
+
+
+## Reparación de hombros y volumen de brazos (16 de octubre de 2026)
+
+La máscara rectangular v1 incluía vértices de la cara interior del brazo:
+en la postura original ese brazo pasa por dentro de la anchura máxima del tórax.
+Al elevarlo, la cara interior quedaba retenida por el pecho y la exterior
+acompañaba al húmero, estirando la piel y produciendo brazos anchos. Además,
+el recorte superior de la máscara dejaba parte del trapecio ligada al brazo.
+El problema afectaba también a portar/equipar objetos y al puñetazo sin arma.
+
+`human_skin_weights.gd`, perfil **`meshy_shoulders_v2`**, separa las superficies
+del torso y los brazos según las secciones reales de la postura de enlace:
+no usa la caja exterior del tórax para inmovilizar la cara interna del brazo.
+La transición se abre gradualmente en el deltoides y termina antes del cuello.
+Se conservan las proporciones relativas de húmero, antebrazo, mano y collar de
+codo de la ligadura original; no se escala ningún brazo ni se cambian sus
+longitudes. La transición inferior distingue las cuerdas de la cintura de los
+brazos. Se conservan FBX, posiciones, normales, tangentes, UV, topología y PNG;
+solo cambian pesos, límites de huesos y el metadato del perfil.
+
+La importación reproducible normal (`convert_human.py` + `bind_human.gd`) aplica
+v2 directamente sobre los pesos de calor originales. Para migrar desde v1 se
+recuperan primero esos pesos, evitando propagar la pérdida de influencias del
+brazo causada por v1. El recurso de `c0bcd4b` tiene exactamente la misma
+geometría y contiene la ligadura anterior a esa máscara:
+
+```sh
+git show c0bcd4b:assets/characters/prototype_3d/meshy/survivor_skin.res > /tmp/day-zero-survivor-heat.res
+godot --headless --path . --script tools/meshy/correct_survivor_weights.gd -- /tmp/day-zero-survivor-heat.res
+```
+
+La herramienta rechaza fuentes cuya geometría no coincida. Aplicar la
+corrección de nuevo sobre v2 no modifica los pesos. La prueba de movimiento
+mide ahora la distancia de la piel al eje de ambos húmeros y antebrazos y al
+centro de los codos, además de los apoyos y el tórax. La selección de espalda
+separa el brazo interior de las costillas e incorpora la parte alta del
+trapecio que no cubría el test anterior. Se contrastan las transformaciones de
+las sondas con las del `Skeleton3D` usado para dibujar.

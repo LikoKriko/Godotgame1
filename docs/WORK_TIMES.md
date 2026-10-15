@@ -1018,3 +1018,50 @@ normal y avance. Se inspeccionan secuencias y vistas de cuerpo completo.
 Importación del editor con acceso al socket local y `git diff --check` sin errores.
 No incluye una sesión manual en el ordenador del usuario. Cambios locales,
 **sin commit ni push** para esta tarea.
+
+
+## 2026-10-16 — Reparar expansión del torso y los brazos del superviviente
+
+Primer hito observado **16/10 00:27:48 Europe/Madrid**; cierre **16/10 00:38:50
+Europe/Madrid**. Intervalo medido parcial **11 min 2 s**.
+No hubo estimación previa ni inicio anterior registrado. Base local `e2bdeb4`.
+
+La captura del usuario identifica un defecto real que las comprobaciones
+anteriores no detectaban. La máscara v1 fijaba al pecho parte de la superficie
+interna del brazo, incluida dentro de la anchura total de la caja del torso.
+Al levantar el brazo, la superficie exterior acompañaba al húmero y la interior
+quedaba retenida: se ensanchaba la piel. El recorte superior también dejaba
+vértices del trapecio ligados al brazo. Se verifica que las transformaciones
+reales del esqueleto coinciden con las sondas de CPU: no es un error de cámara.
+
+Se sustituye por `meshy_shoulders_v2`: separación por secciones anatómicas,
+transición del deltoides al trapecio, conservación de las influencias relativas
+del brazo y de los collares de codo, y distinción de las cuerdas de la cintura.
+Se parte de los pesos originales de `c0bcd4b`, para recuperar las influencias
+que había eliminado v1. La herramienta acepta esa fuente y exige identidad
+geométrica; el importador aplica la misma corrección. Repetirla sobre v2 no
+cambia pesos. No se alteran los movimientos, agarres, tiempos ni mecánicas.
+
+En los casos de diagnóstico de arco, puñetazo, espada y hacha, el exceso radial
+del brazo superior respecto al eje óseo pasa de aproximadamente **4,92–5,69**
+unidades a **0,033–0,045**. Es una medida geométrica de esas poses, no de FPS.
+Se mantienen byte por byte posiciones, normales, tangentes, UV y topología
+(**491218 triángulos**), además del FBX y los PNG. Solo se actualizan los pesos,
+los límites óseos y el metadato de ligadura del recurso.
+
+Godot **4.6.3**, seis suites superadas: regresión Meshy ampliada **12656**,
+piel/volumen/continuidad **150005**, procedencia Meshy **32**, contactos/armadura
+**41**, trayectorias de armas **27806** y deslizamiento/salto **2028**;
+total **192568 comprobaciones**. Las sondas cubren ambos húmeros, antebrazos y
+codos en todas las familias y estados, además de tórax, trapecio alto, suelo
+y contacto de recogida. Se corrige la selección anterior que confundía la cara
+interior del brazo con la espalda, y se añade la zona superior que omitía.
+Las sondas usan las transformaciones comprobadas contra `Skeleton3D`.
+
+Revisión nativa Compatibility: **330 fotogramas finales exportados**, con
+22 casos, cinco fases y tres cámaras. Se inspeccionan mosaicos frontales,
+laterales y traseros de las fases centrales y comparaciones ampliadas antes /
+después: portar arco, tensar, equipar, puñetazo y herramientas, además de marcha,
+carrera, agachado, deslizamiento y recogida. Importación del editor y
+`git diff --check` sin errores. No incluye validación en el equipo del usuario.
+Cambios locales **sin commit ni push** para esta tarea.

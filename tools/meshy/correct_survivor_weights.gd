@@ -3,7 +3,12 @@ extends SceneTree
 func _initialize():
  var path:="res://assets/characters/prototype_3d/meshy/survivor_skin.res"
  var original:Mesh=load(path)
- var arrays:=original.surface_get_arrays(0)
+ var args:=OS.get_cmdline_user_args()
+ var source:Mesh=load(args[0]) if not args.is_empty() else original
+ var arrays:=source.surface_get_arrays(0)
+ var current:=original.surface_get_arrays(0)
+ for i in arrays.size():
+  if i not in [Mesh.ARRAY_BONES,Mesh.ARRAY_WEIGHTS]:assert(var_to_bytes(current[i])==var_to_bytes(arrays[i]),"Source weights must match the exact shipped geometry")
  var before:=arrays.duplicate(true)
  var changed:=preload("res://scripts/prototype_3d/human_skin_weights.gd").correct(arrays)
  for i in arrays.size():
@@ -18,6 +23,6 @@ func _initialize():
  surfaces[0].bone_aabbs=replacement[0].bone_aabbs
  var mesh:=ArrayMesh.new();mesh.set("_surfaces",surfaces)
  for key in original.get_meta_list():mesh.set_meta(key,original.get_meta(key))
- mesh.set_meta("torso_weight_profile","meshy_torso_v1")
+ mesh.set_meta("torso_weight_profile","meshy_shoulders_v2")
  assert(ResourceSaver.save(mesh,path,ResourceSaver.FLAG_COMPRESS)==OK)
- print("Corrected torso influences on ",changed," vertices; original geometry, UV, normals and materials retained");quit()
+ print("Corrected shoulder/arm influences on ",changed," vertices; original geometry, UV, normals and materials retained");quit()
