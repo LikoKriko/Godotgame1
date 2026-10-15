@@ -404,3 +404,33 @@ falla en tres comprobaciones (descenso en golpes y holgura de armadura en hacha
 y espada). Se reproduce exactamente el mismo fallo en una copia aislada del
 commit remoto `69a4d8f`, sin el pulido: son fallos previos a esta integración.
 No se alteran los criterios ni las animaciones del otro departamento.
+
+## 2026-10-15 — Revisión y corrección conjunta de departamentos
+
+Primer hito cronometrado **16:30:56 UTC** (18:30:56 Madrid). Cierre de validación
+**16:41:01 UTC** (18:41:01 Madrid): **10 min 5 s observados**, sin estimación
+previa. Incluye obtención de entregas, reproducción de fallos, correcciones,
+pruebas y revisión gráfica; no incluye el inicio anterior al primer hito ni
+la documentación y publicación posteriores.
+
+Base remota `c99e19b`, que incluye la entrega de animación `69a4d8f`. Revisión
+en copia aislada para conservar la copia local anterior. Ajustadas las ataduras
+superiores de hojas y la preferencia de agarre adelantado de la espada. No se
+recorta la cobertura de hojas ni se cambian agarres de dos manos. El primer
+ensayo de preferencia de agarre aplicado también a herramientas de dos manos
+producía una discontinuidad; se descartó y la prueba de continuidad volvió a pasar.
+
+Se reproducen los tres fallos comunicados por modelado. El límite global antiguo
+de descenso no corresponde a los nuevos contactos bajos: se conserva en golpes
+altos y se añaden comprobaciones de alcance, punta y apoyo para los bajos.
+La holgura de 1,3 unidades se comprueba en 33 fases frente a las ocho anteriores;
+ese muestreo detectó otros roces intermedios, corregidos antes de cerrar.
+
+Godot 4.7.2: 23 suites superadas. Entre ellas, deformación **145006**, catálogo
+**8588**, acciones naturales **4050**, integración **739**, modelos/contacto/
+armadura **42**, pelo **33**, guardado **191**, criatura **6531**, árboles **383**.
+Suites X11 con clics reales: inventario **17** y menú/configuración/guardar/
+continuar **11**. Se renderizaron y examinaron **16 capturas finales** con y sin
+armadura. Los logs y capturas son intermedios en `/workspace/work/integration-review`.
+Linux usa llvmpipe y no hay dispositivo de audio físico; no se atribuye una
+prueba de sonido, rendimiento de usuario ni Windows a esta revisión.

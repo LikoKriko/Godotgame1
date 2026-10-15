@@ -36,6 +36,9 @@ static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int
    # Keep the hands in front of the torso instead of solving through the chest.
    if grip.z<4.1 or support.z<4.1: continue
    var score := pow(degrees-52.0,2)*0.01+absf(roll)*5+absf(d0-d1)*0.2
+   # A long one-handed blade can reach the target with its palm almost in
+   # the chest. Prefer forward grips so the upper arm clears clothing too.
+   if not two_hands:score+=pow(maxf(0,8.0-grip.z),2)*4.0
    if score<best_score:
     best_score=score;best={"grip":grip,"basis":basis,"tip":point,"support":support}
  return best

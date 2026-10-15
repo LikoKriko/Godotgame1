@@ -483,3 +483,27 @@ pies sobre suelo, agarres de todas las familias y continuidad de despegues al
 principio, centro y final. Las pruebas de catálogo, movimiento y guardado
 comprueban las integraciones existentes. F6 en `animation_review.tscn` permite
 revisar slide/slide_jump con cada objeto y con armadura.
+
+## Revisión conjunta de animación y modelado — 15 de octubre de 2026
+
+Entregas revisadas juntas: animación `69a4d8f` y modelado `c99e19b`, ya presentes
+en `prototype/third-person-3d`. Se ajustan las ataduras superiores de la armadura
+al recorrido de los brazos. La selección del agarre de espada favorece una mano
+adelantada, manteniendo el punto físico de impacto; el mango deja de acercar el
+brazo al interior de la vestimenta. Se conservan el rig, las referencias y la
+cobertura de hojas, sin cambiar la selección de agarres de dos manos.
+
+La prueba de modelos conserva el límite de descenso de 3,8 unidades para golpes
+altos. Los contactos bajos del nuevo catálogo requieren flexión: se comprueban
+alcance, coincidencia de punta y contacto, y rodillas/pies sobre el suelo. La
+holgura mínima de armadura sigue siendo 1,3 unidades, ahora muestreada en 33
+fases por acción en lugar de ocho, incluyendo las fases intermedias de impacto.
+
+Validación conjunta con Godot 4.7.2 en Linux/Compatibility: 23 suites superadas,
+incluidas deformación humana, catálogo, pelo, superficie/UV, referencias, brazos,
+cámara, deslizamiento, mira, equipo, arco, interacciones, botín, guardado,
+movimiento, sistemas, criatura, árboles, integración general y modelos. Dos
+de esas suites usan X11 y clics reales para inventario, menú, configuración y
+guardar/continuar. Revisión visual de 16 capturas con/sin armadura en reposo,
+golpe, arco, recogida y contacto bajo. La validación no incluye Windows ni una
+medición de rendimiento en el ordenador del usuario.

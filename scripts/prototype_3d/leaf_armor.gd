@@ -88,28 +88,29 @@ static func build() -> void:
   var path:=PackedVector3Array()
   for i in 21:
    var t:=i/20.0;var z:=lerpf(3.55,-3.55,t)
-   path.append(Vector3(side*2.9,maxf(44.6+sin(t*PI)*1.85,shoulder_height(side*2.9,z)),z))
+   path.append(Vector3(side*2.4,maxf(44.6+sin(t*PI)*1.85,shoulder_height(side*2.4,z)),z))
   for offset in [-0.5,0,0.5]:
    var strand:=PackedVector3Array()
    for p in path:strand.append(p+Vector3.RIGHT*offset)
    cord(surface,strand,0.13)
   for z in [-2.8,2.8]:
    var tie:=PackedVector3Array()
-   for i in 13:tie.append(Vector3(side*2.9+cos(i*TAU/12)*0.60,45.5+sin(i*TAU/12)*0.35,z))
+   for i in 13:tie.append(Vector3(side*2.4+cos(i*TAU/12)*0.60,45.5+sin(i*TAU/12)*0.35,z))
    cord(surface,tie,0.09)
  # Waist belt, collar binding, two vertical supports and a front knot.
  for y in [28.2,29.3]:
   var path:=PackedVector3Array()
   for i in 97:path.append(point(i*TAU/96,y,0.88))
   cord(surface,path,0.16)
+ # Keep the upper binding medial to the arm sweep; the leaf coverage remains.
  for back in [0.0,PI]:
   for side in [-1,1]:
    var path:=PackedVector3Array()
-   for i in 25:path.append(point(back+side*0.40,44.8-i*16.5/24,0.8))
+   for i in 25:path.append(point(back+side*0.32,44.8-i*16.5/24,0.8))
    cord(surface,path,0.10)
   var collar:=PackedVector3Array()
   for i in 25:
-   var angle:float=back+lerpf(-0.40,0.40,i/24.0);collar.append(point(angle,44.7-1.5*sin(i*PI/24),0.85))
+   var angle:float=back+lerpf(-0.32,0.32,i/24.0);collar.append(point(angle,44.7-1.5*sin(i*PI/24),0.85))
   cord(surface,collar,0.14)
  for side in [-1,1]:
   var knot:=PackedVector3Array()
