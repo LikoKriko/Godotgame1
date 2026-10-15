@@ -354,3 +354,53 @@ andando. La inspección detectó y corrigió rodillas bajo suelo y falta de alca
 en contactos bajos del pico. Las pruebas conservan longitudes y agarres; no
 certifican naturalidad perfecta ni procedencia de mocap. La previsualización
 MP4 y las capturas quedan como material intermedio en el área de trabajo.
+
+
+## 2026-10-15 — Contexto del chat de modelado y texturas
+
+Hito final observado: **2026-10-15 17:51:13 CEST**. Inicio sin registrar; duración total
+no medida. Sin estimación previa: revisión exploratoria de alcance.
+
+Revisión de AGENTS.md, documentación 3D/migración, árboles, referencias de
+animación y documento de confianza/afinidad. Inspección visual de referencias
+y atlas de personajes, enemigo, herramientas, armadura, edificio y terreno;
+lectura de generadores de modelos, materiales y escenas de revisión.
+Rama local observada: `prototype/third-person-3d`. No se consultó el remoto,
+no se modificaron modelos/texturas y no se ejecutaron pruebas ni un render 3D.
+Este chat se dedica a modelado y texturas; la zona de animaciones ya consta
+en `ANIMATION_AREA.md`. La revisión no constituye aprobación artística final.
+
+
+## 2026-10-15 — Primer pulido de hombros y pelo del superviviente
+
+Inicio observado: **17:52:35 Europe/Madrid** (15:52:35 UTC).
+Cierre observado: **18:02:32 Europe/Madrid**
+(16:02:32 UTC). Duración medida: **9 min 57 s**, incluidas
+lectura, ajustes, capturas, comprobaciones y documentación. Sin estimación previa.
+
+Referencias frontal y trasera originales conservadas. Perfil proximal del brazo
+y tórax superior ajustados, normales del hombro suavizadas y contorno de raíces
+enterradas corregido. Cubierta de pelo separada del cráneo y mechones más amplios,
+escalonados y barridos; nuca cubierta. Esqueleto y agarres conservados.
+
+Godot 4.7.2: 145006 comprobaciones de deformación, 539 de referencias/poses,
+24 de escultura/armadura, 10 de superficie/UV y 33 rayos de cobertura del pelo,
+todas pasadas. Revisión nativa de 16 capturas: cuatro ángulos en reposo y dos
+por carrera/golpe/arco con y sin armadura. Comparativa antes/después guardada en
+`/workspace/work/modeling-review/comparison.png` y mostrada en el chat. Cambios locales en `prototype/third-person-3d`; sin push.
+
+
+### Publicación solicitada e integración con animaciones
+
+Hito observado: 2026-10-15 18:30:07 CEST.
+Duración de publicación sin medir; sin estimación previa. El usuario solicita
+commit y push. El primer push se rechaza por avance concurrente de la rama.
+Se integra `69a4d8f` mediante rebase, conservando ambos registros de tiempos;
+los cambios de modelos y rig se combinan sin conflicto de código.
+
+Tras integrar: pasan 145006 comprobaciones de deformación, 33 rayos de pelo y
+4050 comprobaciones de las nuevas acciones. `prototype_3d_model_corrections.gd`
+falla en tres comprobaciones (descenso en golpes y holgura de armadura en hacha
+y espada). Se reproduce exactamente el mismo fallo en una copia aislada del
+commit remoto `69a4d8f`, sin el pulido: son fallos previos a esta integración.
+No se alteran los criterios ni las animaciones del otro departamento.

@@ -71,7 +71,7 @@ func tube(joints: Array,radius_a: float,radius_b: float,color: Color,shorts: boo
  if shorts:
   sections=[Vector3(0,1.10,1.03),Vector3(0.12,1.19,1.10),Vector3(0.26,1.14,1.10),Vector3(0.38,1.06,1.03),Vector3(0.43,0.85,0.91),Vector3(0.47,0.82,0.96),Vector3(0.5,0.80,1.00),Vector3(0.53,0.81,0.95),Vector3(0.58,0.83,0.88),Vector3(0.69,0.99,0.94),Vector3(0.82,0.72,0.75),Vector3(0.94,0.55,0.61),Vector3(1,0.57,0.64)]
  else:
-  sections=[Vector3(0,0.25,0.35),Vector3(0.045,0.85,0.92),Vector3(0.09,0.98,1.04),Vector3(0.23,1.07,1.00),Vector3(0.4,0.78,0.82),Vector3(0.46,0.72,0.78),Vector3(0.5,0.70,0.79),Vector3(0.54,0.76,0.80),Vector3(0.60,0.83,0.83),Vector3(0.74,0.72,0.69),Vector3(0.9,0.49,0.53),Vector3(1,0.47,0.49)]
+  sections=[Vector3(0,0.25,0.35),Vector3(0.025,0.66,0.66),Vector3(0.055,0.94,0.91),Vector3(0.10,1.04,1.01),Vector3(0.16,1.08,1.03),Vector3(0.23,1.04,1.00),Vector3(0.4,0.78,0.82),Vector3(0.46,0.72,0.78),Vector3(0.5,0.70,0.79),Vector3(0.54,0.76,0.80),Vector3(0.60,0.83,0.83),Vector3(0.74,0.72,0.69),Vector3(0.9,0.49,0.53),Vector3(1,0.47,0.49)]
  var rings:Array[PackedVector3Array]=[];var centers:Array[Vector3]=[]
  var sides:=24
  for shape:Vector3 in sections:
@@ -79,7 +79,9 @@ func tube(joints: Array,radius_a: float,radius_b: float,color: Color,shorts: boo
   var center:Vector3=joints[0].lerp(joints[1],t*2) if t<=0.5 else joints[1].lerp(joints[2],(t-0.5)*2)
   if not shorts and t<0.23:
    var shoulder_blend:=1-smoothstep(0,0.23,t)
-   center+=Vector3((-1 if joints[0].x>0 else 1)*1.9*shoulder_blend,0.05*shoulder_blend,0)
+   # Bury the attachment inside the rib cage, then round over the deltoid.
+   # Extra proximal sections replace the straight conical shoulder edge.
+   center+=Vector3((-1 if joints[0].x>0 else 1)*1.65*shoulder_blend,0.25*sin(PI*clampf(t/0.23,0,1))+0.05*shoulder_blend,0)
   var tangent:Vector3=(joints[1]-joints[0]).normalized().slerp((joints[2]-joints[1]).normalized(),smoothstep(0.4,0.6,t))
   var across:=Vector3.RIGHT-tangent*tangent.x
   if across.length_squared()<0.01:across=Vector3.BACK-tangent*tangent.z
@@ -198,6 +200,10 @@ func append_torso() -> void:
     var across:=cos(angle);var depth:=sin(angle)
     var x:=signf(across)*pow(absf(across),0.91)*shape.y
     var z:=signf(depth)*pow(absf(depth),0.88)*shape.z
+    # The paintings include the deltoid silhouette. Let the arm supply that
+    # outer volume rather than extending the thorax into a square shoulder.
+    var shoulder:=smoothstep(42.5,44.5,shape.x)*(1-smoothstep(46.25,47.65,shape.x))
+    x*=1-0.12*shoulder*pow(absf(across),4)
     var front:=maxf(0,depth)
     # Real shallow pectoral/oblique planes, clavicles and sternum depression.
     z+=front*(0.38*exp(-pow((absf(x)-3.7)/2.2,2)-pow((shape.x-41.0)/2.3,2)))
@@ -281,34 +287,52 @@ func hair_lock(frame:Transform3D,root_point:Vector3,tip:Vector3,width:float,colo
  for i in 8:triangle(frame*root_point,rings[0][(i+1)%8],rings[0][i],color)
 func append_hair(torso:Transform3D) -> void:
  var rings:Array[PackedVector3Array]=[]
- for row in 6:
-  var t:=row/5.0;var ring:=PackedVector3Array()
-  for i in 24:
-   var a:=i*TAU/24;var front:=maxf(0,sin(a))
-   var lower:=51.0+front*7.25
+ for row in 10:
+  var t:=row/9.0;var ring:=PackedVector3Array()
+  for i in 48:
+   var a:=i*TAU/48
+   var lower:=hairline(a)
    var y:=lerpf(lower,62.15,t)
    var radius:=hair_radius(y)
-   ring.append(torso*Vector3(cos(a)*6.0*radius,y,sin(a)*5.0*radius-0.15))
+   ring.append(torso*Vector3(cos(a)*6.15*radius,y,sin(a)*5.35*radius-0.15))
   rings.append(ring)
- for row in 5:
-  for i in 24:
-   var n:=(i+1)%24
+ for row in rings.size()-1:
+  for i in 48:
+   var n:=(i+1)%48
    triangle(rings[row][i],rings[row+1][n],rings[row+1][i],HAIR)
    triangle(rings[row][i],rings[row][n],rings[row+1][n],HAIR)
- for row in 4:
-  for i in 14:
-   var a:float=(i+float(row%2)*0.5)*TAU/14
-   var front:=maxf(0,sin(a));var lower:=51.1+front*7.25
-   var y:=lerpf(lower+0.6,61.8,row/4.0)
-   var r:=hair_radius(y)
-   var root_point:=Vector3(cos(a)*6.05*r,y,sin(a)*5.05*r-0.15)
-   var ty:=y-2.0;var tr:=hair_radius(ty)
-   hair_lock(torso,root_point,Vector3(cos(a)*6.1*tr,ty,sin(a)*5.1*tr-0.15),1.0,HAIR.lightened(0.018*((i+row)%4)))
+ # Broad swept locks overlap the cap; stagger their lengths and direction so
+ # the silhouette reads as the reference's tousled hair, not rows of scales.
+ for row in 3:
+  for i in 11:
+   var a:float=(i+float(row)*0.37)*TAU/11
+   var lower:=hairline(a)
+   var y:=lerpf(lower+1.65,61.2,row/3.0)+0.22*sin(i*2.4+row)
+   var end_y:=maxf(lower-0.45,y-2.35-0.35*sin(i*1.7))
+   var sweep:=0.17+0.10*sin(i*2.1+row)
+   var root_point:=hair_point(a,y,0.08)
+   var tip:=hair_point(a+sweep,end_y,0.18)
+   hair_lock(torso,root_point,tip,1.25+0.18*sin(i*1.9+row),HAIR.lightened(0.025*((i+row)%3)))
  # Close the crown, including views from a fully raised camera.
- for i in 24:triangle(rings[-1][i],rings[-1][(i+1)%24],torso*Vector3(0,62.4,-0.15),HAIR)
- for i in 6:
-  var x:float=(i-2.5)*1.3
-  hair_lock(torso,Vector3(x,60.5,1.4),Vector3(x+1.2,62.5-absf(x)*0.08,-0.2),1.0,HAIR.lightened(0.02*(i%3)))
+ for i in 48:triangle(rings[-1][i],rings[-1][(i+1)%48],torso*Vector3(0,62.4,-0.15),HAIR)
+ # Quiff and crown are sculpted outside the cap, with a consistent swept
+ # direction. The old roots lay inside it, leaving only isolated spikes.
+ for row in 3:
+  for i in 5:
+   var x:float=(i-2)*1.5+0.25*sin(row*2.0+i)
+   var z:float=2.9-row*2.1
+   var y:float=60.0+0.60*(1-absf(x)/4.0)+0.30*row
+   hair_lock(torso,Vector3(x,y,z),Vector3(x+0.65,62.45-0.16*absf(x)-0.12*row,z-1.6),1.32+0.10*sin(i+row),HAIR.lightened(0.025*((i+row)%3)))
+ # Cover the rear crown as well: short top spikes alone expose a broad,
+ # featureless patch of cap when the player is viewed from behind.
+ for i in 7:
+  var x:float=(i-3)*0.95
+  hair_lock(torso,Vector3(x,61.85-0.10*absf(x),-1.65),Vector3(x*0.92+0.45,59.4+0.15*sin(i*1.9),-4.9),1.10,HAIR.lightened(0.025*(i%3)))
+func hairline(angle:float) -> float:
+ return 50.0+8.0*smoothstep(-0.35,0.60,sin(angle))
+func hair_point(angle:float,y:float,lift:float) -> Vector3:
+ var r:=hair_radius(y)
+ return Vector3(cos(angle)*(6.15*r+lift),y,sin(angle)*(5.35*r+lift)-0.15)
 func hair_radius(y:float) -> float:
  var values:=[Vector2(49.5,0.55),Vector2(51.0,0.75),Vector2(54,0.99),Vector2(56,1.02),Vector2(58,0.98),Vector2(60,0.81),Vector2(62.5,0.12)]
  for i in values.size()-1:

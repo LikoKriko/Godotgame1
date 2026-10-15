@@ -137,10 +137,12 @@ static func sculpted_normals(vertices:PackedVector3Array,colors:PackedColorArray
   for corner in 3:
    var i:=face+corner;var p:=vertices[i];var color:=colors[i];var amount:=0.0
    if int(tags[i].x)==0 and p.y<26:amount=0.58
-   elif int(tags[i].x) in [1,2]:amount=0.25
+   elif int(tags[i].x) in [1,2]:
+    # Keep the shoulder rounded; retain restrained planes down the limbs.
+    amount=lerpf(0.06,0.25,1-smoothstep(40,44,p.y))
    elif int(tags[i].x)==0 and p.z< -0.5 and p.y>31 and p.y<45:amount=0.6
-   elif p.y>42 and p.y<47.2 and absf(p.x)>5.0:amount=0.68
-   if int(tags[i].x)==3 and color.r<0.38 and color.g<0.27:amount=0.88
+   elif p.y>42 and p.y<47.2 and absf(p.x)>5.0:amount=0.08
+   if int(tags[i].x)==3 and color.r<0.38 and color.g<0.27:amount=0.40
    normals[i]=normals[i].lerp(normal,amount).normalized()
  return normals
 

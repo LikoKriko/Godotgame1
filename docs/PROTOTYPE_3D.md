@@ -459,6 +459,25 @@ el salto desde ella; `Slide.jump_from` abre gradualmente las piernas y mezcla
 cadera, manos, agarres y plano de la herramienta durante el primer 45% de salto.
 Las rodillas tienen polos explícitos interpolados; no se alargan los huesos.
 
+## Primer pulido de modelado: hombros y pelo (15 de octubre de 2026)
+
+La inserción de los brazos añade secciones proximales y un perfil de deltoides
+redondeado. El tórax cede su volumen lateral superior al brazo, evitando la
+repisa de los hombros. El sombreado conserva planos discretos en los miembros
+y suaviza esa unión; el pase de contorno descarta las raíces enterradas para
+que no dejen caras negras coplanares sobre el pecho.
+
+El pelo conserva la paleta y las referencias frontal/trasera: cubierta más
+densa situada fuera del cráneo, nuca cubierta y mechones volumétricos más anchos,
+de longitudes escalonadas y barrido irregular. Se conserva el esqueleto, las UV
+en reposo, las proporciones y los agarres. No se modifican los PNG originales.
+
+`tests/prototype_3d_hair_coverage.gd` lanza 33 rayos contra la geometría real para
+detectar cuero cabelludo expuesto en la nuca, parte posterior y frente superior.
+Complementa las pruebas de deformación, referencias, proporciones y armadura.
+Revisión renderizada con Godot 4.7.2 Compatibility: cuatro orientaciones en
+reposo y dos orientaciones en carrera, golpe y tensado de arco, con/sin armadura.
+
 `tests/prototype_3d_slide.gd` comprueba postura central, longitudes, rodillas y
 pies sobre suelo, agarres de todas las familias y continuidad de despegues al
 principio, centro y final. Las pruebas de catálogo, movimiento y guardado
