@@ -320,3 +320,55 @@ su orientación relativa al deslizar. El guardado registra el lado y restaura
 la pose correcta; los archivos anteriores siguen aceptándose sin ese campo.
 F6 incluye ambos clips. Pruebas específicas: `prototype_3d_animation_polish.gd`
 y ampliación de `prototype_3d_player_motion.gd`, además de las suites compartidas.
+
+
+## Rendimiento de golpes y búsqueda de agarres (16-10-2026)
+
+Corrección sobre `dd604ef`, última versión remota comprobada. Al golpear,
+`survivor_animation.gd` resuelve la pose de impacto en cada fotograma.
+`weapon_motion.gd` puede probar hasta 40 transferencias de apoyo; cada llamada
+a `tool_aim.gd` recorría 1647 orientaciones. Un objetivo imposible —incluido
+el punto a unos 100 m que entrega la cámara al golpear al aire— podía repetir
+unas 70000 pruebas por fotograma. El contacto se resolvía otra vez después
+de encontrar una transferencia válida.
+
+`tool_aim.gd` conserva el objetivo y la anatomía, pero descarta antes de buscar
+si la distancia supera brazo + punta, o brazo de apoyo + distancia punta/apoyo.
+Son límites geométricos necesarios, no una reducción del alcance. Precalcula
+senos/cosenos y prioridad de las mismas 1647 orientaciones, visita primero las
+de menor coste y abandona cuando ninguna restante puede mejorar el resultado.
+En empates conserva el orden original. Los candidatos descartados no necesitan
+raíces cuadradas ni construir una Basis.
+
+Se reutilizan consultas idénticas mediante claves por valor con contacto,
+ambos hombros, punta, lado activo, uso de dos manos, transformación completa
+del torso, separación de apoyo y límites del mango. También se guardan fallos;
+128 entradas como máximo y resultados copiados al devolverlos. Cambiar arma,
+pose, dirección, posición o agarre no reutiliza una solución incompatible.
+No se cuantizan contactos ni se modifica daño, duración, modelos o texturas.
+
+Comparación del personaje completo, 65 fases por secuencia, Godot 4.6.3
+headless en la misma máquina; mediana del tiempo CPU de `animate()`:
+
+| Caso | Anterior | Corregido |
+| --- | ---: | ---: |
+| Hacha, contacto bajo (0,14,28) | 16,416 ms | 0,403 ms |
+| Pico, contacto bajo (0,14,28) | 14,488 ms | 0,393 ms |
+| Hacha, objetivo lejano (0,40,3600) | 20,956 ms | 0,420 ms |
+| Pico, objetivo lejano (0,40,3600) | 20,384 ms | 0,395 ms |
+| Espada, contacto muy cercano (0,30,4) | 25,833 ms | 0,364 ms |
+
+Son costes de animación, no mediciones de FPS globales ni del PC del usuario.
+La primera consulta difícil de espada cercana, aún sin resultado reutilizable,
+registró 22,678 ms; el percentil 95 de esa secuencia baja de 37,128 a 0,405 ms.
+Los contactos que cambian continuamente se benefician de límites y orden de
+búsqueda; la reutilización exige igualdad exacta de todos sus parámetros.
+
+Prueba reproducible:
+`godot --headless --path . --script tests/prototype_3d_tool_aim_performance.gd`.
+La referencia congelada de `dd604ef` queda exclusivamente en fixtures de test.
+Compara 989 consultas, incluidas ambas manos, posturas agachadas, cambios de
+perfil y contactos cercanos/lejanos; comprueba resultados repetidos, aislamiento
+de devoluciones, memoria limitada y mejora relativa frente al cálculo anterior.
+Las suites de golpes, oclusión, agachado, mira, equipamiento y movimiento del
+jugador permanecen vigentes. Se revisan también fotogramas nativos completos.

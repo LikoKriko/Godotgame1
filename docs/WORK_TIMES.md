@@ -1857,3 +1857,56 @@ completarse con la configuración de arranque 3D porque requiere el autoload
 `GameCursor` del 2D. Se comprueba el ajuste compartido con la suite específica
 3D de 14 casos y con el menú nativo, sin alterar el arranque del juego.
 No se ha medido rendimiento en el PC del usuario ni generado un EXE en esta tarea.
+
+
+### Bloqueo de rendimiento al golpear con armas/herramientas
+
+Inicio observado **21:41:40 Europe/Madrid**; cierre de verificación
+**21:49:16 Europe/Madrid**, 16 de octubre de 2026:
+**7 min 36 s** medidos. Intervalo parcial desde el primer reloj
+registrado; sin estimación previa. Incluye actualización, perfilado, arreglo,
+pruebas y revisión visual; no incluye commit/push ni EXE.
+
+Se integra por avance rápido `dd604ef`, última versión remota, conservando sus
+cambios de mundo/streaming. Se vuelve a consultar remoto al cerrar: sin nuevas
+revisiones. El bloqueo coincide con la búsqueda repetida de pose de impacto:
+hasta 40 transferencias por 1647 orientaciones, también al golpear al aire o
+fuera de alcance. Se añaden límites de alcance geométricos, candidatos
+precalculados en orden de coste y reutilización exacta limitada a 128 entradas,
+incluidos resultados vacíos. Se conserva el resultado original del solucionador,
+la anatomía, agarres, punta sobre la mira, duración y daño.
+
+Godot 4.6.3: **9 suites, 85003 comprobaciones superadas**. Rendimiento/equivalencia
+1983; golpes/oclusión 28663; afinado del personaje 5733; acciones naturales
+4050; ataques agachados 836; hitboxes 73; equipamiento 17892; arco 73;
+respuesta del jugador 25700. La prueba nueva compara 989 consultas con el
+solucionador original, resultados repetidos, cambios de todos los parámetros,
+mutación de devoluciones, memoria acotada y mejora temporal relativa. Para
+144 consultas: original **44,584 ms**, corregido **0,401 ms** en esa ejecución.
+
+Perfilado del personaje completo, 65 fases: hacha contra objetivo lejano pasa
+de **20,956 a 0,420 ms** de mediana CPU por fotograma; contacto bajo de
+**16,416 a 0,403 ms**. Pico bajo: **14,488 a 0,393 ms**. Espada muy cercana:
+**25,833 a 0,364 ms** de mediana; primera consulta difícil no reutilizada
+**22,678 ms**, percentil 95 posterior **0,405 ms** frente a **37,128 ms**.
+Se documentan límites y metodología en `ANIMATION_AREA.md`. Estos valores no
+son FPS globales ni una medición en el equipo del usuario.
+
+Revisión nativa Compatibility/OpenGL: 135 fotogramas de tres vistas, incluidos
+hacha/pico pequeños, contactos bajos y espada. La búsqueda conserva contacto,
+agarres y oclusión. Capturas internas sin publicar. Se detiene un proceso de
+revisión facial propio que había quedado abierto de una tarea anterior; los
+benchmarks comparativos del personaje se ejecutan después, con ambas versiones
+en el mismo proceso. `git diff --check` sin errores.
+
+
+### Publicación de la corrección de rendimiento de golpes
+
+Commit y push autorizados por el usuario. Inicio observado **21:51:56
+Europe/Madrid**; comprobaciones previas al commit completadas a las
+**21:52:15 Europe/Madrid**, 16 de octubre de 2026:
+**0 min 19 s** medidos, intervalo parcial desde el primer reloj.
+Sin estimación previa. Rama y diferencias comprobadas; GitHub sigue en
+`dd604ef`, sin nuevas revisiones que integrar. Se conservan las nueve suites
+y 85003 comprobaciones del hito anterior; `git diff --check` sin errores.
+El intervalo no incluye el commit ni el push posteriores.
