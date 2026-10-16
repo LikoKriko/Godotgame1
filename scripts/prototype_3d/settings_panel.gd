@@ -26,6 +26,11 @@ func configure(owner_game) -> void:
  var aa:=OptionButton.new();aa.name="MSAA"
  for caption in ["Desactivado","2×","4×"]:aa.add_item(caption)
  aa.select(int(game.settings.values.msaa));aa.item_selected.connect(func(index):game.settings.values.msaa=index;save());row.add_child(aa)
+ row=HBoxContainer.new();graphics.add_child(row);label=Label.new();label.text="Generación de mundo";row.add_child(label)
+ var generation:=OptionButton.new();generation.name="WorldGeneration";var distances:=[100,200,400]
+ for value in distances:generation.add_item("%d metros%s"%[value," (base)" if value==200 else ""])
+ generation.select(distances.find(int(game.settings.values.world_generation)))
+ generation.item_selected.connect(func(index):game.settings.values.world_generation=distances[index];save());row.add_child(generation)
  label=Label.new();label.text="Resolución y modo de pantalla: bloqueados temporalmente.";Style.set_font_size(label,13);graphics.add_child(label)
  var audio:=page("Audio")
  for key in ["master","music","effects"]:

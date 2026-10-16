@@ -5,6 +5,8 @@ var game
 var materials=preload("res://scripts/prototype_3d/quality_materials.gd").new()
 var meshes=preload("res://scripts/prototype_3d/quality_meshes.gd").new()
 var entries:Dictionary={}
+var mesh_uses:Dictionary={}
+var material_uses:Dictionary={}
 var elapsed:=0.0
 var revision:=0
 func configure(owner_game) -> void:
@@ -37,9 +39,33 @@ func register(reference:WeakRef) -> void:
   var count:int=node.multimesh.instance_count if node.multimesh.visible_instance_count<0 else mini(node.multimesh.visible_instance_count,node.multimesh.instance_count)
   for i in count:entry.instances.append({"transform":node.multimesh.get_instance_transform(i),"state":{},"color":node.multimesh.get_instance_color(i) if node.multimesh.use_colors else Color.WHITE,"custom":node.multimesh.get_instance_custom_data(i) if node.multimesh.use_custom_data else Color()})
  entries[id]=entry
- node.tree_exiting.connect(func():entries.erase(id),CONNECT_ONE_SHOT)
+ var mesh_id:int=entry.mesh.get_instance_id()
+ mesh_uses[mesh_id]=int(mesh_uses.get(mesh_id,0))+1
+ track_entry_materials(entry,true)
+ # MeshInstance destruction still queries its material RIDs during tree exit.
+ # Release shared LOD/material caches after that destruction has finished.
+ node.tree_exiting.connect(unregister.bind(id),CONNECT_ONE_SHOT|CONNECT_DEFERRED)
+func track_material(source:Material,add:bool) -> void:
+ if source==null:return
+ var id:=source.get_instance_id()
+ var count:int=int(material_uses.get(id,0))+(1 if add else -1)
+ if count>0:material_uses[id]=count
+ else:material_uses.erase(id);materials.forget(source)
+ if source.next_pass!=null:track_material(source.next_pass,add)
+func track_entry_materials(entry:Dictionary,add:bool) -> void:
+ track_material(entry.material,add)
+ for surface in entry.mesh.get_surface_count():track_material(entry.mesh.surface_get_material(surface),add)
+ for source in entry.get("overrides",[]):track_material(source,add)
+func unregister(id:int) -> void:
+ if not entries.has(id):return
+ var entry:Dictionary=entries[id]
+ track_entry_materials(entry,false)
+ var mesh_id:int=entry.mesh.get_instance_id()
+ mesh_uses[mesh_id]-=1
+ if mesh_uses[mesh_id]==0:mesh_uses.erase(mesh_id);meshes.forget(entry.mesh)
+ entries.erase(id)
 func _process(delta:float) -> void:
- if game==null or game.paused or not is_instance_valid(game.player):return
+ if game==null or (game.paused and not game.loading_state) or not is_instance_valid(game.player):return
  var before:int=meshes.cache.size();meshes.collect()
  if before!=meshes.cache.size():revision+=1
  elapsed+=delta
@@ -54,6 +80,7 @@ func update_quality(delta:float,observer:Vector3=Vector3.INF,forward:Vector3=Vec
   var node=entry.node.get_ref()
   if not is_instance_valid(node) or not node.is_inside_tree():continue
   if node.material_override!=entry.material and (node.material_override==null or not node.material_override.has_meta("distance_quality_variant")):
+   track_material(entry.material,false);track_material(node.material_override,true)
    entry.material=node.material_override;entry.quality=-1
   if node is MultiMeshInstance3D:update_batch(node,entry,observer,forward,delta);continue
   var point:Vector3=node.to_global(entry.mesh.get_aabb().get_center())

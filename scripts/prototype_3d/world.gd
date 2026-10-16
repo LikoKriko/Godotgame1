@@ -65,14 +65,21 @@ func _ready() -> void:
  progression.reset()
  bag.reset()
  bag.move_item(&"quick",5,&"quick",0)
- if not use_test_layout:world_bounds=Rect2(-42,-28,84,56)
+ if not use_test_layout:
+  world_bounds=preload("res://scripts/prototype_3d/stream_layout.gd").BOUNDS
+  # The opaque loading UI remains visible; skip drawing the world underneath
+  # while chunks and their distance budgets are still being prepared.
+  hide()
  build_environment()
  combat_effects=preload("res://scripts/prototype_3d/combat_effects.gd").new();add_child(combat_effects);combat_effects.game=self
  player = preload("res://scripts/prototype_3d/player.gd").new(); add_child(player); player.configure(self); player.position = Vector3(0,0.2,2.0)
+ if not initial_state.is_empty():player.position=Save.point(initial_state.player.position)
  camera_rig = preload("res://scripts/prototype_3d/shoulder_camera.gd").new(); add_child(camera_rig); camera_rig.configure(self,player); camera_rig.update(1.0)
  build_ui()
  var enemy:=preload("res://scripts/prototype_3d/young_enemy.gd").new();add_child(enemy);enemy.position=Vector3(7,0.2,-4);enemy.configure(self)
  distance_optimization=preload("res://scripts/prototype_3d/distance_optimization.gd").new();add_child(distance_optimization);distance_optimization.configure(self)
+ settings.changed.connect(refresh_generation_distance)
+ refresh_generation_distance()
  if not use_test_layout:call_deferred("generate_content")
 func build_environment() -> void:
  var environment := WorldEnvironment.new(); var environment_settings := Environment.new()
@@ -88,7 +95,10 @@ func build_environment() -> void:
     var boundary:=StaticBody3D.new();add_child(boundary);var limit:=CollisionShape3D.new();var wall_shape:=BoxShape3D.new();wall_shape.size=Vector3(0.3,20,world_bounds.size.y) if axis==0 else Vector3(world_bounds.size.x,20,0.3);limit.shape=wall_shape;limit.position=Vector3(sign_side*world_bounds.size.x*0.5,10,0) if axis==0 else Vector3(0,10,sign_side*world_bounds.size.y*0.5);boundary.add_child(limit);boundary.set_meta("physical_height",20.0)
  terrain=preload("res://scripts/prototype_3d/terrain_chunks.gd").new();add_child(terrain)
  var units:float=preload("res://scripts/prototype_3d/terrain_chunks.gd").METRES_PER_UNIT
- terrain.configure(world_seed,null,Rect2(world_bounds.position/units,world_bounds.size/units))
+ var profile=preload("res://scripts/terrain_profile.gd").new()
+ if not use_test_layout:profile.chunk_size=1024;profile.chunks_per_frame=8;profile.preload_chunks=0;profile.retain_chunks=1;profile.cache_limit=16
+ terrain.progressive_window=not use_test_layout
+ terrain.configure(world_seed,profile,Rect2(world_bounds.position/units,world_bounds.size/units))
  terrain.update_observer(Vector3.ZERO)
  if use_test_layout:
   var fixture=load("res://tests/fixtures/prototype_layout.gd").new();add_child(fixture);fixture.populate(self)
@@ -172,7 +182,7 @@ func enemy_contact(attacker,damage:float,contact_time:float) -> void:
  if parry.impact(attacker,damage,contact_time):player.model.confirm_parry()
 func _physics_process(delta:float) -> void:
  if paused:return
- terrain.update_observer(player.global_position)
+ terrain.update_observer(player.global_position,Vector2.ONE*generation_radius()*2)
  for hit in parry.advance(delta):player_health=maxf(0,player_health-hit.damage)
  progression.health=player_health;progression.advance(delta)
  if not pending_consumption.is_empty() and player.preview_state==&"":finish_consumption()
@@ -432,10 +442,10 @@ func finish_world_loading() -> void:
   await get_tree().process_frame
  for view in get_tree().get_nodes_in_group("prototype_maps"):
   if is_ancestor_of(view):view.refresh_terrain()
- terrain.update_observer(player.global_position);set_loading_progress(1)
+ terrain.update_observer(player.global_position,Vector2.ONE*generation_radius()*2);set_loading_progress(1)
  await get_tree().process_frame
  camera_rig.update(1)
- initial_state.clear();loading_state=false;loading_screen.hide();resume_world();world_ready.emit()
+ initial_state.clear();loading_state=false;show();loading_screen.hide();resume_world();world_ready.emit()
 func save_current_game() -> Error:
  var message:Label=pause_panel.find_child("SaveMessage",true,false)
  var reason:=Save.save_block_reason(self)
@@ -456,3 +466,9 @@ func can_cross_jump(point:Vector3,motion:Vector3,actor_rid:RID) -> bool:
  var query:=PhysicsRayQueryParameters3D.create(from,from+motion+motion.normalized()*0.21,1,[actor_rid])
  var result:=get_world_3d().direct_space_state.intersect_ray(query)
  return result.is_empty() or float(result.collider.get_meta("physical_height",0.0))<=1.75*0.3
+
+func generation_radius() -> int:
+ return 14 if use_test_layout else int(settings.values.world_generation)
+func refresh_generation_distance() -> void:
+ if terrain!=null and is_instance_valid(player):terrain.update_observer(player.global_position,Vector2.ONE*generation_radius()*2)
+ if environment_content!=null and environment_content.has_method("set_radius"):environment_content.set_radius(generation_radius())

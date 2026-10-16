@@ -53,7 +53,7 @@ func run():
  require(enemy.distance_suspended and enemy.position==point and enemy.attack_elapsed==.23,"Disk-state restoration immediately suspends the far actor with its original unfinished action")
  var viewport:=SubViewport.new();game.add_child(viewport)
  var portrait:=MeshInstance3D.new();portrait.mesh=SphereMesh.new();viewport.add_child(portrait)
- var visual:=MeshInstance3D.new();visual.mesh=SphereMesh.new();game.add_child(visual);visual.position=game.player.position+Vector3(0,0,-70)
+ var visual:=MeshInstance3D.new();visual.mesh=SphereMesh.new();visual.material_override=StandardMaterial3D.new();game.add_child(visual);visual.position=game.player.position+Vector3(0,0,-70)
  await process_frame
  game.camera_rig.camera.global_basis=Basis.IDENTITY
  game.distance_optimization.update_quality(.1)
@@ -63,6 +63,12 @@ func run():
  var source:Mesh=entry.mesh
  visual.position=game.player.position+Vector3(0,0,-10);game.distance_optimization.update_quality(.1)
  require(visual.mesh==source and entry.quality==100,"Moving close restores the exact original mesh")
+ var source_id:int=source.get_instance_id();var material_id:int=entry.material.get_instance_id()
+ visual.free();await process_frame;game.distance_optimization.meshes.finish()
+ require(not game.distance_optimization.meshes.cache.has(source_id),"Unloading the last instance releases cached geometry instead of retaining every explored chunk")
+ var retained:=false
+ for key in game.distance_optimization.materials.variants:retained=retained or key.begins_with(str(material_id)+":")
+ require(not retained,"Unloading the last material user releases its distance variants")
  var batch:=MultiMeshInstance3D.new();var instances:=MultiMesh.new();instances.transform_format=MultiMesh.TRANSFORM_3D;instances.mesh=SphereMesh.new();instances.instance_count=2
  instances.set_instance_transform(0,Transform3D(Basis.IDENTITY,game.player.position+Vector3(0,0,-10)))
  instances.set_instance_transform(1,Transform3D(Basis.IDENTITY,game.player.position+Vector3(0,0,-80)))

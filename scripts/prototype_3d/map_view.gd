@@ -1,5 +1,5 @@
 extends Control
-## Orthographic overview of the finite 3D test ground, without fog of war.
+## Orthographic overview of the finite streamed 3D world, without fog of war.
 var game
 var ground:Texture2D
 static var ground_cache:Dictionary={}

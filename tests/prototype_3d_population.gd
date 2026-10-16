@@ -13,9 +13,9 @@ func run():
  if game.loading_state:game.free();quit(1);return
  game.paused=true
  var content=game.environment_content;var layout=content.layout
- require(game.world_bounds==layout.bounds,"3D finite bounds retain original 2D world dimensions")
- require(content.resource_nodes.size()==layout.records.size(),"Every seeded resource receives one 3D representation")
- require(get_nodes_in_group("prototype_burdock").size()==24,"All 24 original individual plants migrate")
+ require(game.world_bounds.get_area()>=40000000 and game.world_bounds.encloses(layout.bounds),"Large world contains the preserved starting layout")
+ require(content.resource_nodes.size()>=layout.records.size(),"Starting resources are retained alongside the streamed extension")
+ require(get_nodes_in_group("prototype_burdock").size()>=24,"All 24 original individual plants remain in the initial window")
  require(get_nodes_in_group("prototype_platforms").size()==4,"All four elevations migrate")
  var variants:Dictionary={}
  for platform in get_nodes_in_group("prototype_platforms"):
@@ -31,10 +31,10 @@ func run():
    if node is MeshInstance3D and not node.is_queued_for_deletion():draw_surfaces+=node.mesh.get_surface_count()
  require(draw_surfaces==trees.size(),"Each tree draws a merged surface instead of dozens of mesh parts")
  var grass_count:=0
- for node in content.get_children():
+ for node in content.find_children("*","Node3D",true,false):
   if node.get_script()==preload("res://scripts/prototype_3d/ground_cover.gd"):
    for batch in node.get_children():grass_count+=batch.multimesh.instance_count
- require(grass_count==layout.source.grass_tufts.size() and grass_count>100,"Seeded grass is batched without losing its distribution")
+ require(grass_count>=layout.source.grass_tufts.size() and grass_count>100,"Seeded grass is batched without losing its distribution")
  var data=preload("res://scripts/prototype_3d/world_layout.gd").new();data.generate(73129)
  require(var_to_str(data.records)==var_to_str(layout.records),"Returning to the seed reproduces all resource placements")
  print("%s: %d 3D population checks; %d trees, %d grass tufts, loading %d ms"%["PASS" if failures==0 else "FAIL",checks,trees.size(),grass_count,Time.get_ticks_msec()-started])

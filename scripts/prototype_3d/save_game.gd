@@ -4,7 +4,7 @@ const PATH:="user://day_zero_3d.save"
 const FORMAT:="day-zero-3d"
 const VERSION:=1
 const LAYOUT_VERSION:=1
-const MAX_BYTES:=8*1024*1024
+const MAX_BYTES:=16*1024*1024
 const Bag=preload("res://scripts/inventory.gd")
 const Items=preload("res://scripts/save_game.gd")
 const Progress=preload("res://scripts/progression.gd")
@@ -21,7 +21,7 @@ static func valid_vector(value) -> bool:
   if not number(component,-10000,10000):return false
  return true
 static func in_world(value) -> bool:
- return valid_vector(value) and absf(float(value[0]))<=42 and absf(float(value[2]))<=28 and number(value[1],-2,30)
+ return valid_vector(value) and absf(float(value[0]))<=3200 and absf(float(value[2]))<=3200 and number(value[1],-2,30)
 static func rng_value(value) -> bool:return value is String and value.length()<=20 and value.is_valid_int()
 static func normalized(value):
  # JSON numbers are decoded as floats by Godot. Restore exact small integer fields;
@@ -38,7 +38,9 @@ static func normalized(value):
  return value
 static func capture(game) -> Dictionary:
  var resources:Dictionary={}
- for id in game.environment_content.resource_nodes:resources[id]=game.environment_content.resource_nodes[id].health
+ if game.environment_content.has_method("snapshot_resources"):resources=game.environment_content.snapshot_resources()
+ else:
+  for id in game.environment_content.resource_nodes:resources[id]=game.environment_content.resource_nodes[id].health
  var motion:Dictionary={}
  for key in MOTION:motion[key]=game.player.locomotion.get(key)
  motion.slide_direction=[game.player.locomotion.slide_direction.x,game.player.locomotion.slide_direction.y]
@@ -136,7 +138,7 @@ static func valid(data) -> bool:
  if not integer(data.nutrition.get("calories"),0,2147483647) or not number(data.nutrition.get("hydration"),0,2000) or not integer(data.nutrition.get("water_today"),0,2147483647):return false
  if not integer(data.clock.get("day"),1,2147483647) or not number(data.clock.get("hour"),0,23.999999999):return false
  if not number(data.parry.get("remaining"),0,4) or not data.parry.get("used") is bool:return false
- if data.resources.size()>20000:return false
+ if data.resources.size()>200000:return false
  for id in data.resources:
   if not id is String or not integer(data.resources[id],0,12):return false
  if not data.get("tables") is Array or data.tables.size()>2048:return false
@@ -225,11 +227,16 @@ static func write(game,path:String=PATH) -> Error:
  return result
 static func matches_world(game,data:Dictionary) -> bool:
  var nodes:Dictionary=game.environment_content.resource_nodes
- if data.resources.size()!=nodes.size():return false
- for id in data.resources:
-  if not nodes.has(id) or data.resources[id]>nodes[id].health:return false
- for actor in data.enemies:
-  if not actor.brain.tree.is_empty() and not nodes.has(actor.brain.tree):return false
+ if game.environment_content.has_method("matches_resources"):
+  if not game.environment_content.matches_resources(data.resources):return false
+  for actor in data.enemies:
+   if not actor.brain.tree.is_empty() and game.environment_content.stream_layout.record_for(actor.brain.tree).is_empty():return false
+ else:
+  if data.resources.size()!=nodes.size():return false
+  for id in data.resources:
+   if not nodes.has(id) or data.resources[id]>nodes[id].health:return false
+  for actor in data.enemies:
+   if not actor.brain.tree.is_empty() and not nodes.has(actor.brain.tree):return false
  return true
 static func restore(game,data:Dictionary) -> bool:
  if not valid(data) or game.world_seed!=data.seed or not matches_world(game,data):return false
@@ -242,10 +249,12 @@ static func restore(game,data:Dictionary) -> bool:
  game.nutrition.calories_today=data.nutrition.calories;game.nutrition.hydration_ml=data.nutrition.hydration;game.nutrition.water_today_ml=data.nutrition.water_today
  game.day_cycle.day=data.clock.day;game.day_cycle.hour=data.clock.hour
  game.parry.reset();game.parry.last_activation=-4+data.parry.remaining;game.parry.used=data.parry.used
- for id in data.resources:
-  var node=game.environment_content.resource_nodes[id]
-  if data.resources[id]==0:node.health=1;node.hit()
-  else:node.health=data.resources[id]
+ if game.environment_content.has_method("restore_resources"):game.environment_content.restore_resources(data.resources)
+ else:
+  for id in data.resources:
+   var node=game.environment_content.resource_nodes[id]
+   if data.resources[id]==0:node.health=1;node.hit()
+   else:node.health=data.resources[id]
  var p:Dictionary=data.player
  game.player.bow_follow_elapsed=-1
  game.player.reset_motion_state()

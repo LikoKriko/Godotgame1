@@ -1812,3 +1812,48 @@ Sin estimación previa. Se comprueban rama, estado, diferencias y remoto:
 GitHub continúa en `cedeb33`, sin cambios nuevos que integrar.
 Se conservan las 18 suites y 336277 comprobaciones del hito anterior;
 `git diff --check` sin errores. El intervalo no incluye el push posterior.
+
+
+## 16 de octubre de 2026 — Mundo de 40,96 km² y generación por proximidad
+
+Primer hito horario observado: **19:02:32 Europe/Madrid**, posterior a las
+lecturas iniciales. Primer bloque observado hasta **19:23:09 Europe/Madrid**:
+**20 min 37 s** parciales. La sesión se retoma tras «sigue»; primer hito
+registrado de la reanudación **21:37:02 Europe/Madrid**. Cierre de
+implementación, documentación y verificación previa al push:
+**21:40:07 Europe/Madrid**. El intervalo entre ambos bloques no se
+considera trabajo activo; no se reconstruye una duración total exacta.
+Sin estimación inicial; al terminar las pruebas se comunican 3–5 minutos
+para documentación y publicación. El push posterior no se incluye en este hito.
+
+Alcance: mundo de 6400×6400 m, ventana configurable de 100/200/400 m con
+200 m por defecto, terreno y recursos progresivos, conservación de la zona
+inicial, descarga de nodos y cachés, guardado de cambios y continuación en
+ubicaciones lejanas. Se mantiene la optimización visual y de enemigos a 150 m.
+Se conserva `cedeb33` y se integra también `04806c2`, la entrega de animación
+publicada mientras se desarrollaba la generación; sin conflictos de contenido.
+Detalles en `docs/WORLD_STREAMING.md`.
+
+Godot 4.7.2: mundo/streaming **207 comprobaciones**, ajustes y persistencia
+**14**, calidad/recursos **75768**, distancia y cachés **43 headless / 45
+nativas**, guardado/sesión **44**, población **27**, integración **739** y
+animación integrada **5733**. Terreno compartido **12833** y streaming de
+interiores superados; continuidad gráfica 3D, determinismo y caché verificados
+con OpenGL nativo. El menor número de comprobaciones del guardado respecto a
+la prueba antigua refleja la tabla dispersa de cambios, en lugar de recorrer
+todos los recursos sin modificar.
+
+Revisión nativa de inicio, menú de gráficos y X=2100/Z=−1800 completada.
+La primera revisión nativa excedió el límite temporal con el mundo dibujándose
+bajo la pantalla de carga; ahora se prepara oculto y se aplican ya sus LOD.
+Se corrigió una carrera de creación/liberación de RIDs: meshoptimizer trabaja
+en el hilo secundario, pero los ArrayMesh de render se crean en el principal
+y la liberación de cachés espera a la salida del nodo. La prueba de viaje
+completa se repite sin errores del motor tras esa corrección. Importación
+final y `git diff --check` limpios.
+
+Se intentó además la suite heredada 2D `settings_application.gd`; no puede
+completarse con la configuración de arranque 3D porque requiere el autoload
+`GameCursor` del 2D. Se comprueba el ajuste compartido con la suite específica
+3D de 14 casos y con el menú nativo, sin alterar el arranque del juego.
+No se ha medido rendimiento en el PC del usuario ni generado un EXE en esta tarea.

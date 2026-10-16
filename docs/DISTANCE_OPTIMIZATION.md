@@ -60,9 +60,9 @@ recursos fuente compartidos pueden seguir en caché: no se descarga toda su
 memoria de recursos. El guardado admite actores lejanos y vuelve a suspenderlos
 al cargar si corresponde.
 
-El mapa actual es menor que ese umbral; la suspensión se verifica con actores
-colocados expresamente a mayor distancia. No se amplía el terreno ni se aplica
-la optimización adicional de detener cálculos de cadáveres inmóviles.
+El mundo ampliado se describe en [WORLD_STREAMING.md](WORLD_STREAMING.md).
+La suspensión a 150 m se mantiene con cualquiera de los tres radios de
+generación. La optimización adicional de cadáveres inmóviles sigue aplazada.
 
 ## Verificación
 

@@ -3,6 +3,9 @@ extends Node3D
 const METRES_PER_UNIT:=1.75/64.0
 const Profile = preload("res://scripts/terrain_profile.gd")
 const Sampler = preload("res://scripts/terrain_sampler.gd")
+var progressive_window:=false
+var observer_cell:=Vector2i(999999,999999)
+var observer_view:=Vector2.ZERO
 var profile = Profile.new()
 var sampler = Sampler.new()
 var shared_material: ShaderMaterial
@@ -26,6 +29,7 @@ func configure(seed_number: int,configuration = null,bounds: Rect2 = Rect2()) ->
  for path in profile.texture_paths:
   if not ResourceLoader.exists(path): return false
  clear_chunks()
+ observer_cell=Vector2i(999999,999999);observer_view=Vector2.ZERO
  textures.clear()
  for path in profile.texture_paths: textures.append(load(path))
  sampler.configure(seed_number,profile)
@@ -74,7 +78,7 @@ func update_window(center: Vector2,view_size: Vector2,_immediate: bool = false) 
  # Initial visible geometry is cheap (shared mesh/textures); no first-frame holes.
  # Normal travel stays progressive because the prefetch ring is already ahead.
  for key in visible_keys:
-  if not active.has(key): activate(key); pending.erase(key)
+  if not active.has(key) and (not progressive_window or chunk_rect(key).get_center().distance_to(center)<profile.chunk_size*2):activate(key);pending.erase(key)
  advance_generation()
 func advance_generation() -> void:
  for i in mini(profile.chunks_per_frame,pending.size()): activate(pending.pop_front())
@@ -82,7 +86,7 @@ func activate(key: Vector2i) -> void:
  if active.has(key): return
  if cached.has(key):
   var restored: Node3D = cached[key]; cached.erase(key); cache_order.erase(key); restored.show(); active[key] = restored; reuses += 1; return
- var node := MeshInstance3D.new(); node.mesh = mesh
+ var node := MeshInstance3D.new(); node.mesh = mesh;node.set_meta("streamed_terrain",true)
  var rect := chunk_rect(key)
  if bounded: rect = rect.intersection(clip_bounds)
  if rect.size != Vector2.ONE*profile.chunk_size:
@@ -117,7 +121,14 @@ func _exit_tree() -> void:
  cached.clear(); active.clear()
 
 func update_observer(point:Vector3,view_metres:Vector2=Vector2(28,28)) -> void:
- update_window(Vector2(point.x,point.z)/METRES_PER_UNIT,view_metres/METRES_PER_UNIT)
+ if progressive_window:
+  var cell:=Vector2i(floori(point.x/8),floori(point.z/8))
+  if cell==observer_cell and view_metres==observer_view:return
+  observer_cell=cell;observer_view=view_metres
+  update_window((Vector2(cell)*8+Vector2.ONE*4)/METRES_PER_UNIT,(view_metres+Vector2.ONE*8)/METRES_PER_UNIT)
+ else:update_window(Vector2(point.x,point.z)/METRES_PER_UNIT,view_metres/METRES_PER_UNIT)
+func _process(_delta:float) -> void:
+ if progressive_window:advance_generation()
 func terrain_at(point:Vector3) -> StringName:
  return sampler.type_at(Vector2(point.x,point.z)/METRES_PER_UNIT)
 func density_at(point:Vector3) -> float:

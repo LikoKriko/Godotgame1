@@ -2,6 +2,11 @@ extends RefCounted
 ## Mip bias implements a resolution budget without making texture copies each tick.
 var shaders:Dictionary={}
 var variants:Dictionary={}
+func forget(source:Material) -> void:
+ if source==null:return
+ var prefix:=str(source.get_instance_id())+":"
+ for key in variants.keys():
+  if key.begins_with(prefix):variants.erase(key)
 const PARAM:=&"distance_quality"
 static func bias(percent:int) -> float:return -log(maxf(.01,percent/100.0))/log(2.0)
 func material(source:Material,percent:int,current:Material=null) -> Material:

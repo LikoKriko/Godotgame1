@@ -10,6 +10,11 @@ el usuario; procedencia, regeneración y comparativas en [MESHY_ASSETS.md](MESHY
 Las secciones que describen reconstrucción procedural y proyección de pinturas
 recogen etapas anteriores; esos sistemas han sido sustituidos en el personaje 3D.
 
+Mundo vigente: **6,4 × 6,4 km (40,96 km²)**, generado por proximidad.
+Configuración → Gráficos → Generación de mundo: 100/200/400 metros,
+200 por defecto. Generación, persistencia y pruebas en
+[WORLD_STREAMING.md](WORLD_STREAMING.md).
+
 ## Incluido en esta integración
 
 - Cámara sobre el hombro derecho: distancia 3,6 m, desplazamiento 0,30 m, FOV
@@ -76,10 +81,10 @@ recogen etapas anteriores; esos sistemas han sido sustituidos en el personaje 3D
 - Muerte del jugador en 3 s y reaparición sin objetos ni perks, a nivel 1,
   conservando las habilidades desbloqueadas en su primer nivel.
 
-Este es un prototipo en migración, no el juego 2D trasladado por completo. El
-escenario de pruebas sigue siendo una superficie limitada de 48×48 m renderizada por chunks con cuatro
-árboles, rocas, un charco y una pared; edificios, generación por chunks y otras mecánicas se
-registran en [MIGRATION_3D.md](MIGRATION_3D.md).
+El escenario aislado de pruebas conserva su superficie de 48×48 m con cuatro
+árboles, rocas, un charco y una pared. La partida normal utiliza el mundo amplio
+y la carga por proximidad descritos en [WORLD_STREAMING.md](WORLD_STREAMING.md).
+El seguimiento de la migración está en [MIGRATION_3D.md](MIGRATION_3D.md).
 
 ## Controles y escenas de revisión
 
@@ -161,8 +166,10 @@ transición 0,028, muestra de textura 144 unidades y paso de píxel 1.
 El renderer 3D comparte `terrain_sampler.gd` con el 2D. Las posiciones globales
 se convierten una sola vez a las unidades del sampler. Los planos comparten
 malla/texturas y las máscaras no dependen del chunk. `configure(seed,profile)`
-permite terreno sin límite; el escenario conserva el límite del mapa 2D, 84×56 m.
-Caminos y distribución de recursos se comparten con el generador original.
+permite terreno sin límite. La partida 3D lo limita a 6400×6400 m y usa chunks
+de terreno de 28 m, ocho activaciones por fotograma, una corona de retención y
+16 chunks ocultos en caché. Caminos y sampler se comparten con el generador
+original; sus 84×56 m se conservan como zona inicial, extendida por streaming.
 
 La prueba gráfica `tests/prototype_3d_terrain.gd` compara cada píxel entre varios
 chunks y un único plano, también en coordenadas negativas y lejanas. Comprueba
@@ -216,7 +223,8 @@ Pruebas: `prototype_3d_population.gd` verifica semilla, grupos y lotes gráficos
 `prototype_3d_resources.gd`, recolección y elevaciones con física real;
 `prototype_3d_camp.gd`, separación, streaming, entrada y descarga. Las pruebas
 aisladas usan `tests/fixtures/prototype_layout.gd`; la partida F5 usa siempre la
-generación completa, sin las antiguas muestras de cuatro árboles y cuatro rocas.
+generación de la ventana local, sin las antiguas muestras de cuatro árboles y
+cuatro rocas. El resto del mundo se genera al avanzar.
 
 
 La mesa básica usa `prototype_3d/workbenches.gd`: seleccionar en acceso rápido,

@@ -83,7 +83,9 @@ renderer.update_window(camera_center, viewport_size / camera.zoom, true)
 # Repetir update_window cuando se actualice la cámara.
 ```
 
-Esto no amplía la generación de objetos ni las colisiones del mapa de pruebas.
+Ese ejemplo corresponde al renderizador independiente. La partida 3D amplía
+también el mundo físico y la generación de objetos mediante
+[WORLD_STREAMING.md](WORLD_STREAMING.md).
 
 ## Verificación
 

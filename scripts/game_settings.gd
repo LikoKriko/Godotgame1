@@ -1,7 +1,7 @@
 extends RefCounted
 signal changed
 const PATH := "user://day_zero_settings.cfg"
-const DEFAULTS := {"auto_run": false,"sharp_camera": false,"hud_size": 1,"muted": false,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "msaa": 0, "window_mode": 0, "resolution": Vector2i(1920,1080)}
+const DEFAULTS := {"auto_run": false,"sharp_camera": false,"hud_size": 1,"muted": false,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "msaa": 0, "world_generation": 200, "window_mode": 0, "resolution": Vector2i(1920,1080)}
 var values: Dictionary = DEFAULTS.duplicate()
 var applied_display: Array = []
 var resolution_locked := OS.get_name() == "Windows"
@@ -19,6 +19,7 @@ func load_settings() -> void:
 	for key in ["master","music","effects"]:
 		values[key] = clampf(float(values[key]),0,1)
 	values["fps"] = int(values["fps"]) if int(values["fps"]) in [0,30,60,120,144] else 60
+	values["world_generation"] = int(values["world_generation"]) if int(values["world_generation"]) in [100,200,400] else 200
 	values["msaa"] = clampi(int(values["msaa"]),0,2)
 	values["window_mode"] = clampi(int(values["window_mode"]),0,2)
 	if not values["resolution"] is Vector2i or values["resolution"].x < 800 or values["resolution"].y < 600:
