@@ -1596,3 +1596,78 @@ comparación cercana de piel y escena del juego.
 
 No incluye medición de FPS ni sesión manual en el ordenador del usuario.
 Se incorporan los últimos cambios de los otros departamentos antes de publicar.
+
+
+## 16 de octubre de 2026 — Retardo de orientación de 0,15 segundos
+
+Primer hito horario observado **16:23:17 Europe/Madrid**; cierre
+**16:24:22 Europe/Madrid**. Intervalo parcial medido: **1 min 5 s**;
+no incluye las lecturas iniciales anteriores a ese hito. Sin estimación previa.
+
+Se reduce `facing_delay.gd` de 1 a 0,15 segundos, conservando el historial
+continuo de mira y su interpolación. Actualizadas la documentación vigente y
+las comprobaciones existentes para cambios sucesivos de dirección, giro
+continuo y límite de memoria a 30, 60 y 120 FPS. Godot 4.6.3:
+`tests/prototype_3d_player_motion.gd` superada, **25688 comprobaciones**;
+`git diff --check` sin errores. Cambio local, sin commit ni push en esta tarea.
+
+
+## 16 de octubre de 2026 — Apertura mayor y cavidad oral del enemigo1
+
+Primer hito horario observado **16:35:19 Europe/Madrid**; cierre de
+implementación y pruebas **16:57:59 Europe/Madrid**. Intervalo parcial medido:
+**22 min 40 s**; no incluye las lecturas anteriores a ese primer
+hito. Sin estimación previa. Cambios locales; se conserva intacta la corrección
+pendiente del retardo de mira a 0,15 s. Sin commit ni push en esta tarea.
+
+Mandíbula de 0,035 a 0,11 rad y corte del labio de 14,1 a 14,8 unidades.
+Comparación directa con la versión anterior: apertura máxima de **0,234568 a
+1,110160 unidades**, **4,73 veces** mayor. Prueba independiente contra el
+ángulo anterior en el mismo borde frontal: aumento de **3,1465 veces**.
+Cinco controles faciales y ciclo de dos segundos conservados; sin cambios en
+las curvas corporales ni en las duraciones de los ataques.
+
+Revestimiento convertido en techo, fondo y suelo, unidos exactamente a los
+labios y con fondo detrás de los cuatro colmillos. Colapso completo sobre la
+línea del labio al cerrar; ninguna superficie oscura con área en reposo.
+Normales y orden de triángulos orientados hacia el espacio interior, con
+reverso descartado. Cinco tonos oscuros sencillos sin las franjas de contraste
+anteriores. Durante la revisión se descartaron variantes de revestimiento
+curvo que aún parecían una lámina al verlas desde abajo.
+
+Máscara del maxilar para fijar los dos colmillos superiores, inferiores con
+giro rígido y transición más amplia sobre el tejido mandibular. Se corrigen
+las regiones de las pruebas anteriores: algunas comprobaban puntos de los
+puños de piedra en vez de los colmillos reales. La pertenencia al hueso de
+cabeza excluye expresamente puños, brazos, torso y piernas de los cinco
+controles. No se modifican los FBX, PNG, UV ni atributos originales. La malla
+derivada subdivide **56 triángulos**; conserva el prefijo original completo.
+
+Godot 4.6.3: **8 suites superadas, 324018 comprobaciones**: facial **248391**,
+fidelidad Meshy **3935**, movimiento/piel **35126**, boxeo **4465**, rutina
+**3691**, guardado **196**, criatura **9993** y caídas **18221**. Se comprueban
+65 muestras, apertura mínima solicitada, cuatro colmillos reales, cinco
+controles, cuerpo/cuello inmóviles, labios y pesos compartidos, revestimiento
+siempre dentro de la altura de los labios, fondo detrás de la dentadura,
+orientación interior y cierre degenerado sin piezas flotantes. Ningún
+triángulo de la piel se invierte. Para la apertura mayor, límites de tejido
+revisados a área 0,65–1,85 y arista 0,78–1,45; máximos medidos **1,82644** y
+**1,42796**. El cuerpo fuera de la cara mantiene desplazamiento facial cero.
+`git diff --check` sin errores. Revisión nativa en Compatibility/OpenGL con
+frente, ambos lados, perfil y vista inferior, reposo y ambos ataques; los
+fotogramas de revisión quedan en el directorio de trabajo, sin publicarse.
+No incluye prueba en el equipo del usuario.
+
+
+### Publicación conjunta de las dos correcciones anteriores
+
+Inicio observado **16:59:19 Europe/Madrid**; cierre de integración y
+verificación previa al push **17:01:35 Europe/Madrid**: **2 min 16 s** medidos,
+sin estimación previa adicional. Commit y push autorizados por el usuario.
+Se integra `ace01fe`, modelo optimizado del superviviente del otro departamento,
+y se conserva íntegro su registro al resolver el único conflicto de anexos en
+este documento. Importación del editor sin errores y respuesta del jugador
+repetida sobre el modelo nuevo: **25688 comprobaciones superadas**. Las ocho
+suites anteriores del enemigo y la revisión visual permanecen válidas; no se
+modifican sus archivos al integrar el modelo del superviviente. El tiempo de
+push posterior no está incluido en este hito.

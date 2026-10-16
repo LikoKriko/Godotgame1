@@ -169,7 +169,7 @@ continuidad desde acciones y poses bajas, soporte de piel y cadáver estable.
 ## Respuesta del superviviente: cámara, retirada, salto y sprint
 
 `facing_delay.gd` mantiene un historial temporal de la dirección de la mira:
-la orientación normal y la postura del arco siguen la cámara con un segundo
+la orientación normal y la postura del arco siguen la cámara con 0,15 segundos
 de retraso, también si el ratón continúa girando. La cámara responde al instante.
 Golpes, tiro y recogida conservan el contacto de la mira y el giro hacia él;
 los deslizamientos fijan su orientación al iniciarse.
@@ -250,14 +250,23 @@ quedan fuera de todas las máscaras. Los colmillos superiores permanecen en el
 maxilar; los inferiores giran con la mandíbula y su tejido circundante, sin
 estirarlos ni separar sus puntas por el color de la textura.
 
-La abertura utiliza un corte en la línea del labio: subdivide cuarenta triángulos
+La abertura utiliza un corte en la línea del labio: subdivide cincuenta y seis triángulos
 de la superficie original e interpola UV y pesos en sus bordes. En reposo
 reproduce la superficie cerrada, conservando todos los vértices originales
 como prefijo, sus atributos originales y el material/PNG aportado. Una segunda
 superficie de la misma malla forma el revestimiento hundido hacia dentro; sus
 bordes comparten posiciones, deformaciones y pesos con ambos labios. Sustituye
-la pieza independiente anterior. Textura interior de cinco tonos oscuros del
-hocico, píxeles nítidos y muestreo nearest; no se modifican los archivos fuente.
+la pieza independiente anterior. El labio se sitúa a 14,8 unidades y la
+mandíbula gira 0,11 radianes. Su apertura máxima medida es 4,73 veces la de la
+revisión anterior (1,1102 frente a 0,2346 unidades del modelo).
+
+Al cerrarse, el revestimiento completo se colapsa sobre la línea del labio:
+no queda una lámina oscura con profundidad. Al abrirse se despliega formando techo, fondo y suelo por detrás de los
+colmillos y entre las alturas de ambos labios. El reverso se descarta y el fondo interior mira hacia la abertura.
+Las máscaras respetan el volumen real de los cuatro colmillos y excluyen
+los puños de piedra usando la pertenencia a la cabeza en la ligadura.
+Textura interior sencilla de cinco tonos oscuros del hocico, píxeles nítidos
+y muestreo nearest; no se modifican los archivos fuente.
 
 El gesto facial completo dura **2 segundos**, con reloj independiente del
 ataque normal (**1 s**) y crochet (**1,2 s**). Empieza con el ataque y termina
@@ -266,9 +275,8 @@ el gesto no reinicia su reloj. Al morir o quedar aturdido se cierra suavemente
 desde los valores actuales durante 0,16 s. Las expresiones son independientes
 por instancia; la geometría derivada se comparte mediante caché. Las formas
 absolutas usan mezcla normalizada, suma de pesos limitada a uno y conservan
-las normales/tangentes del
-modelo para evitar cambios de iluminación al activar los cinco controles.
+las normales/tangentes del modelo para evitar cambios de iluminación al activar los cinco controles.
 
 Pruebas: `tests/prototype_3d_enemy_face.gd` y
-`tests/prototype_3d_young_reference_mesh.gd`. Capturas actualizadas en
-[boca interior](previews/enemigo1-boca-interior-2026-10-16/README.md).
+`tests/prototype_3d_young_reference_mesh.gd`. Galería publicada de la revisión
+anterior a esta última corrección: [boca interior](previews/enemigo1-boca-interior-2026-10-16/README.md).

@@ -24,11 +24,15 @@ func sample_floor(actor,arrays:Array) -> float:
 func run():
  for fps in [30,60,120]:
   var delayed:=Delay.new();delayed.sample(Vector3.BACK,0)
-  for frame in fps-1:require(delayed.sample(Vector3.RIGHT,1.0/fps).distance_to(Vector3.BACK)<.0001,"Camera posture holds for the first second")
-  delayed.sample(Vector3.RIGHT,1.0/fps)
-  require(delayed.sample(Vector3.RIGHT,1.0/fps).distance_to(Vector3.RIGHT)<.0001,"Camera posture follows after one second at every frame rate")
-  for frame in fps*2:delayed.sample(Vector3(float(frame),0,1),1.0/fps)
-  require(delayed.history.size()<=fps+3,"Continuous turning consumes bounded history rather than waiting for mouse release")
+  for target in [Vector3.RIGHT,Vector3.FORWARD]:
+   var previous:=Vector3.BACK if target==Vector3.RIGHT else Vector3.RIGHT
+   for frame in int(floor(.15*fps)):require(delayed.sample(target,1.0/fps).distance_to(previous)<.0001,"Every camera change keeps a 0.15-second delay")
+   for frame in 2:delayed.sample(target,1.0/fps)
+   require(delayed.sample(target,0).distance_to(target)<.0001,"Camera posture follows after 0.15 seconds, within one sampled frame")
+  for frame in fps*2:
+   var actual:Vector3=delayed.sample(Vector3(float(frame),0,1),1.0/fps)
+   if frame>int(ceil(.15*fps))+1:require(actual.distance_to(Vector3(frame-.15*fps,0,1))<.0001,"Continuous camera motion follows exactly 0.15 seconds behind at every frame rate")
+  require(delayed.history.size()<=int(ceil(.15*fps))+3,"Continuous turning consumes bounded history rather than waiting for mouse release")
   var response:=Response.new();response.advance(Vector2.UP,true,0,.16)
   require(response.stage==&"maximum" and absf(response.speed-1)<.0001,"Sprint starts with a separate idle-to-walk transition")
   response.advance(Vector2.UP,true,0,.5)

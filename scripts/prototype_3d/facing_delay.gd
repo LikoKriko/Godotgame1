@@ -1,6 +1,6 @@
 extends RefCounted
 ## A time history, rather than a debounce: continuous mouse motion still follows.
-const SECONDS:=1.0
+const SECONDS:=0.15
 var clock:=0.0
 var history:Array[Dictionary]=[]
 func sample(offset:Vector3,delta:float) -> Vector3:
