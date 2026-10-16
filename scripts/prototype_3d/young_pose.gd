@@ -83,7 +83,61 @@ static func boxing_setup() -> Dictionary:
   pose.arm_poles.append(upper)
  return pose
 
+static var use_keyframes:=true
+static var clip_keys:Dictionary={}
+const KEY_COUNT:=256
+const CACHED_STATES:=[&"walk",&"run",&"sit",&"sleep",&"boxing_guard",&"boxing_walk"]
 static func sample(state:StringName,phase:float,left:bool=true) -> Dictionary:
+ if not use_keyframes or not state in CACHED_STATES:return sample_exact(state,phase,left)
+ if not clip_keys.has(state):prepare_clip(state)
+ var clip:Dictionary=clip_keys[state]
+ var phase_value:=clampf(phase,0,1)
+ var bin:=mini(int(phase_value*KEY_COUNT),KEY_COUNT-1)
+ var index:int=clip.bins[bin]
+ while index+1<clip.bins[bin+1] and clip.times[index+1]<phase_value:index+=1
+ var weight:float=(phase_value-clip.times[index])/(clip.times[index+1]-clip.times[index])
+ return interpolate_keys(clip.poses[index],clip.poses[index+1],weight,state,phase_value)
+static func prepare_clip(state:StringName) -> void:
+ var poses:Array=[];var times:=PackedFloat64Array();var bins:=PackedInt32Array()
+ var a:Dictionary=sample_exact(state,0);poses.append(a);times.append(0)
+ for i in KEY_COUNT:
+  bins.append(times.size()-1)
+  var t0:=float(i)/KEY_COUNT;var t1:=float(i+1)/KEY_COUNT
+  var b:Dictionary=sample_exact(state,t1)
+  refine_keys(state,t0,a,t1,b,0,times,poses)
+  a=b
+ bins.append(times.size()-1)
+ clip_keys[state]={"times":times,"poses":poses,"bins":bins}
+static func refine_keys(state:StringName,t0:float,a:Dictionary,t1:float,b:Dictionary,depth:int,times:PackedFloat64Array,poses:Array) -> void:
+ var error:=0.0
+ for fraction in [.25,.5,.75]:
+  var t:=lerpf(t0,t1,fraction)
+  var exact:Dictionary=sample_exact(state,t)
+  var approximate:Dictionary=interpolate_keys(a,b,fraction,state,t)
+  for kind in ["legs","arms"]:
+   for side in 2:
+    for point in ["root","joint","end"]:error=maxf(error,exact[kind][side][point].distance_to(approximate[kind][side][point]))
+ if error>.001 and depth<8:
+  var middle:=(t0+t1)*.5;var pose:Dictionary=sample_exact(state,middle)
+  refine_keys(state,t0,a,middle,pose,depth+1,times,poses)
+  refine_keys(state,middle,pose,t1,b,depth+1,times,poses)
+ else:times.append(t1);poses.append(b)
+static func interpolate_keys(a:Dictionary,b:Dictionary,weight:float,state:StringName,phase:float) -> Dictionary:
+ var body:Transform3D=(a.body as Transform3D).interpolate_with(b.body,weight)
+ var legs:Array=[];var arms:Array=[]
+ for side in 2:
+  var sign_side:float=-1 if side==0 else 1
+  var root:Vector3=body*Vector3(sign_side*HIP_X,8.5,-6)
+  var end:Vector3=(a.legs[side].end as Vector3).lerp(b.legs[side].end,weight)
+  var pole:Vector3=(a.legs[side].joint-a.legs[side].root).lerp(b.legs[side].joint-b.legs[side].root,weight)
+  var leg:=Joints.joint(root,end,LEG_A,LEG_B,pole)
+  leg.pitch=lerpf(a.legs[side].pitch,b.legs[side].pitch,weight);legs.append(leg)
+  root=body*Vector3(sign_side*SHOULDER_X,18,5.5)
+  end=(a.arms[side].end as Vector3).lerp(b.arms[side].end,weight)
+  pole=(a.arms[side].joint-a.arms[side].root).lerp(b.arms[side].joint-b.arms[side].root,weight)
+  arms.append(Joints.joint(root,end,ARM_A,ARM_B,pole))
+ return {"foot_bases":[],"tail_turn":lerpf(a.tail_turn,b.tail_turn,weight),"body":body,"pelvis":body,"head":(a.head as Basis).slerp(b.head,weight),"head_origin":body*HEAD_ROOT,"legs":legs,"arms":arms,"standing":a.standing,"state":state,"phase":phase}
+static func sample_exact(state:StringName,phase:float,left:bool=true) -> Dictionary:
  if state==&"reference":return bind_pose()
  var t:=clampf(phase,0,1)
  var pose:=setup(&"quad")

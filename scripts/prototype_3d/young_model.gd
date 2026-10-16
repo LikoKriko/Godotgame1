@@ -18,6 +18,8 @@ var mesh_node:MeshInstance3D
 var body_material:StandardMaterial3D
 var last_pose:Dictionary={}
 var bind_pose:Dictionary={}
+var inverse_bind_frames:Array[Basis]=[]
+var use_bind_frame_cache:=true
 var previous_state:StringName=&"reference"
 var interruption_pose:Dictionary={}
 const Frames=preload("res://scripts/prototype_3d/human_kinematics.gd")
@@ -37,6 +39,10 @@ func bone(label:String,parent:int,point:Vector3) -> void:
 func make_skeleton() -> void:
  var neutral:=Motion.bind_pose()
  bind_pose=neutral
+ for side in 2:
+  for kind in 2:
+   var chain:Dictionary=neutral.legs[side] if kind==0 else neutral.arms[side]
+   for segment in 2:inverse_bind_frames.append(Frames.segment_frame(chain,segment).inverse())
  bone("body",-1,Vector3.ZERO);bone("head",0,Motion.HEAD_ANCHOR)
  for side in 2:
   var start:=rest.size();var leg:Dictionary=neutral.legs[side]
@@ -72,7 +78,8 @@ func apply_pose(pose:Dictionary,delta:float=0.0) -> void:
    var limb:Dictionary=last_pose.legs[side] if kind==0 else last_pose.arms[side]
    var original:Dictionary=bind_pose.legs[side] if kind==0 else bind_pose.arms[side]
    for segment in 2:
-    var rotation:=Frames.segment_frame(limb,segment)*Frames.segment_frame(original,segment).inverse()
+    var reference:Basis=inverse_bind_frames[(side*2+kind)*2+segment] if use_bind_frame_cache else Frames.segment_frame(original,segment).inverse()
+    var rotation:=Frames.segment_frame(limb,segment)*reference
     posed[start+segment]=Transform3D(rotation,limb.root if segment==0 else limb.joint)
    var end_basis:Basis=(last_pose.foot_bases[side] if not last_pose.get("foot_bases",[]).is_empty() else Basis(Vector3.RIGHT,limb.get("pitch",0.0))) if kind==0 else posed[start+1].basis
    posed[start+2]=Transform3D(end_basis,limb.end)

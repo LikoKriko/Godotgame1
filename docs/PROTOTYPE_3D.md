@@ -618,3 +618,13 @@ Texturas y mallas reducen su detalle por distancia y orientación de cámara,
 con recuperación gradual al volver a mirar. Los enemigos se suspenden desde
 150 m conservando su acción. Umbrales, implementación, comprobaciones y límites
 en [DISTANCE_OPTIMIZATION.md](DISTANCE_OPTIMIZATION.md).
+
+
+## Caché de sombreado y ciclos del enemigo (16 de octubre de 2026)
+
+El terreno prepara sus máscaras por chunk y conserva el muestreo original del
+detalle. Los ciclos repetitivos del enemigo usan keyframes compartidos con
+subdivisión adaptativa, conservando la resolución de sus articulaciones y los
+tiempos de las acciones. Método, límites y mediciones en
+[SHADING_ANIMATION_OPTIMIZATION.md](SHADING_ANIMATION_OPTIMIZATION.md);
+[capturas antes/después](previews/shading-animation-2026-10-16/README.md).

@@ -95,3 +95,9 @@ el nodo ha terminado de salir del árbol.
 Las distancias mayores exigen más memoria y trabajo de renderizado. Las
 pruebas del entorno usan Linux y renderizado por software; no equivalen a una
 medición de FPS ni a una prueba del ejecutable en el ordenador del usuario.
+
+
+Las máscaras visuales de biomas y caminos se preparan ahora en una caché
+asíncrona ligada a estos mismos chunks. La disposición y las consultas del
+sampler permanecen como fuente de generación. Detalles y comparación visual
+en [SHADING_ANIMATION_OPTIMIZATION.md](SHADING_ANIMATION_OPTIMIZATION.md).

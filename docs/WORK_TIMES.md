@@ -1917,3 +1917,32 @@ El intervalo no incluye el commit ni el push posteriores.
 Creada `entregables/enemigos/enemigo3` con `.gitkeep` para conservarla en Git.
 Existencia comprobada el 17/10/2026 a las 14:10 (Europe/Madrid).
 Sin estimación previa; duración no cronometrada.
+
+
+## 2026-10-16/17 — Optimización de sombreado y animaciones
+
+Alcance: máscaras de biomas/caminos calculadas en segundo plano, keyframes
+compartidos de seis ciclos del enemigo y matrices de referencia reutilizadas.
+Estimación comunicada anteriormente: 40–60 minutos adicionales. Intervalo
+parcial observado el 16/10: 21:47:08–22:45:01 Europe/Madrid, 57 min 53 s;
+no representa toda la duración de aquella sesión. La publicación quedó
+interrumpida por un fallo del servicio de revisión automática de permisos.
+No se cuenta el tiempo entre sesiones como trabajo activo.
+
+37 parejas de capturas y galería revisadas: variación media del terreno
+0,004–0,033/255; diferencias mínimas de bordes en poses interpoladas.
+Mediciones aisladas en llvmpipe: ~27 % menos tiempo de terreno y
+9,8–16,1 % menos CPU de animación. No son FPS globales ni medición del PC
+del usuario. Fuentes FBX/PNG y colisiones intactas.
+
+Pruebas completadas: keyframes/anatomía 126372, máscaras 11, rutina 3691,
+cara 248391, boxeo 4465, distancia 43, guardado 44, mundo 207, pulido 5733
+y herramientas 1983; continuidad visual nativa del terreno superada.
+Una ejecución de guardado bajo carga simultánea excedió su plazo; la suite
+aisladamente pasó sus 44 comprobaciones.
+
+Reanudación el 17/10: importación final sin errores, repetición de keyframes
+y máscaras superada, integración con las nuevas entregas remotas de enemigo3,
+conservadas sin cambios. Se publican comparativas y scripts para reproducirlas.
+Intervalo parcial de cierre: 14:17:27–14:18:49 Europe/Madrid, 1 min 22 s;
+excluye el commit y push posteriores.

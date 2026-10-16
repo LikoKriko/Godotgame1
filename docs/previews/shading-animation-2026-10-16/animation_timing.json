@@ -1,0 +1,112 @@
+{
+  "0.0": {
+    "attack": {
+      "after_us": 33.3953333333333,
+      "before_us": 39.2596666666667,
+      "reduction_percent": 14.9372978204943
+    },
+    "boxing_guard": {
+      "after_us": 31.2206666666667,
+      "before_us": 38.7976666666667,
+      "reduction_percent": 19.529524971433
+    },
+    "boxing_walk": {
+      "after_us": 30.9536666666667,
+      "before_us": 41.911,
+      "reduction_percent": 26.1442898841195
+    },
+    "idle": {
+      "after_us": 28.8876666666667,
+      "before_us": 35.053,
+      "reduction_percent": 17.5886039235824
+    },
+    "run": {
+      "after_us": 31.306,
+      "before_us": 40.5463333333333,
+      "reduction_percent": 22.7895658464802
+    },
+    "sit": {
+      "after_us": 30.5453333333333,
+      "before_us": 37.9966666666667,
+      "reduction_percent": 19.6104921484341
+    },
+    "sleep": {
+      "after_us": 30.4456666666667,
+      "before_us": 45.2156666666667,
+      "reduction_percent": 32.6656689790412
+    },
+    "walk": {
+      "after_us": 32.2326666666667,
+      "before_us": 41.1656666666667,
+      "reduction_percent": 21.7001222701766
+    }
+  },
+  "0.01666666666667": {
+    "attack": {
+      "after_us": 35.0793333333333,
+      "before_us": 40.8156666666667,
+      "reduction_percent": 14.0542438769427
+    },
+    "boxing_guard": {
+      "after_us": 62.937,
+      "before_us": 70.8123333333333,
+      "reduction_percent": 11.1214148194523
+    },
+    "boxing_walk": {
+      "after_us": 66.71,
+      "before_us": 79.4953333333333,
+      "reduction_percent": 16.0831243762737
+    },
+    "idle": {
+      "after_us": 63.8803333333333,
+      "before_us": 71.45,
+      "reduction_percent": 10.5943550268253
+    },
+    "run": {
+      "after_us": 68.7626666666667,
+      "before_us": 80.3783333333333,
+      "reduction_percent": 14.4512410060754
+    },
+    "sit": {
+      "after_us": 66.6596666666667,
+      "before_us": 75.5636666666667,
+      "reduction_percent": 11.7834408953156
+    },
+    "sleep": {
+      "after_us": 70.7983333333333,
+      "before_us": 81.0773333333333,
+      "reduction_percent": 12.6780193395606
+    },
+    "walk": {
+      "after_us": 68.4293333333333,
+      "before_us": 75.878,
+      "reduction_percent": 9.81663547624696
+    }
+  },
+  "cold_preparation": {
+    "boxing_guard": {
+      "keys": 257,
+      "ms": 29.845
+    },
+    "boxing_walk": {
+      "keys": 269,
+      "ms": 32.917
+    },
+    "run": {
+      "keys": 309,
+      "ms": 41.098
+    },
+    "sit": {
+      "keys": 257,
+      "ms": 27.709
+    },
+    "sleep": {
+      "keys": 257,
+      "ms": 35.787
+    },
+    "walk": {
+      "keys": 309,
+      "ms": 41.793
+    }
+  }
+}

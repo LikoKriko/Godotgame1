@@ -411,6 +411,13 @@ func build_loading_screen(root:Control) -> void:
  if not use_test_layout:loading_state=true;paused=true
 func generate_content() -> void:
  await get_tree().process_frame
+ # Shared keyframes are prepared behind the loading screen, never on the
+ # first walking/running frame. The authored functions remain the reference.
+ var motion=preload("res://scripts/prototype_3d/young_pose.gd")
+ if motion.use_keyframes:
+  for state in motion.CACHED_STATES:
+   if not motion.clip_keys.has(state):motion.prepare_clip(state)
+   await get_tree().process_frame
  environment_content=preload("res://scripts/prototype_3d/world_content.gd").new();add_child(environment_content)
  environment_content.progress_changed.connect(func(value):set_loading_progress(value*0.8))
  environment_content.completed.connect(finish_world_loading)

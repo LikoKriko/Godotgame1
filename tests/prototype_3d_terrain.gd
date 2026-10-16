@@ -11,6 +11,9 @@ func capture(terrain,point:Vector2) -> Image:
  var world_point:=Vector3(point.x*Chunks.METRES_PER_UNIT,0,point.y*Chunks.METRES_PER_UNIT)
  camera.look_at_from_position(world_point+Vector3.UP*10,world_point,Vector3.FORWARD)
  terrain.update_window(point,Vector2(256,256))
+ var deadline:=Time.get_ticks_msec()+10000
+ while terrain.mask_cache.busy() and Time.get_ticks_msec()<deadline:await process_frame
+ require(not terrain.mask_cache.busy(),"Mask preparation completes before native continuity comparison")
  for i in 3:await process_frame;await RenderingServer.frame_post_draw
  return viewport.get_texture().get_image()
 func run():

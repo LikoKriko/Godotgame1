@@ -3,6 +3,8 @@ extends Node3D
 const METRES_PER_UNIT:=1.75/64.0
 const Profile = preload("res://scripts/terrain_profile.gd")
 const Sampler = preload("res://scripts/terrain_sampler.gd")
+var use_mask_cache:=true
+var mask_cache=preload("res://scripts/prototype_3d/terrain_mask_cache.gd").new()
 var progressive_window:=false
 var observer_cell:=Vector2i(999999,999999)
 var observer_view:=Vector2.ZERO
@@ -42,6 +44,7 @@ func configure(seed_number: int,configuration = null,bounds: Rect2 = Rect2()) ->
  mesh = PlaneMesh.new(); mesh.size = Vector2.ONE*profile.chunk_size*METRES_PER_UNIT
  return true
 func clear_chunks() -> void:
+ mask_cache.finish()
  for node in active.values(): node.free()
  for node in cached.values(): node.free()
  active.clear(); cached.clear(); cache_order.clear(); pending.clear(); wanted.clear(); last_view = Rect2(); last_center = Vector2.INF
@@ -54,6 +57,7 @@ func update_window(center: Vector2,view_size: Vector2,_immediate: bool = false) 
  var view := Rect2(center-view_size/2,view_size)
  if view == last_view and pending.is_empty(): return
  last_view = view; last_center = center
+ mask_cache.observer=center
  var load_area := view.grow(profile.preload_chunks*profile.chunk_size)
  var retain_area := view.grow(profile.retain_chunks*profile.chunk_size)
  wanted.clear()
@@ -71,7 +75,7 @@ func update_window(center: Vector2,view_size: Vector2,_immediate: bool = false) 
   var node: Node3D = active[key]; active.erase(key); node.hide(); cached[key] = node
   cache_order.append(key)
  while cache_order.size() > profile.cache_limit:
-  var key: Vector2i = cache_order.pop_front(); cached[key].free(); cached.erase(key)
+  var key: Vector2i = cache_order.pop_front(); cached[key].free(); cached.erase(key);mask_cache.forget(key)
  for i in range(pending.size()-1,-1,-1):
   if not wanted.has(pending[i]): pending.remove_at(i)
  pending.sort_custom(func(a,b): return chunk_rect(a).get_center().distance_squared_to(center) < chunk_rect(b).get_center().distance_squared_to(center))
@@ -96,6 +100,15 @@ func activate(key: Vector2i) -> void:
  add_child(node); active[key] = node; generations += 1
 func material_for(rect: Rect2) -> ShaderMaterial:
  var result: ShaderMaterial = shared_material.duplicate()
+ var key:=coordinate(rect.position+Vector2.ONE*.01)
+ if use_mask_cache:
+  mask_cache.request(key,chunk_rect(key),sampler,profile)
+  if mask_cache.data.has(key):
+   var grid:Dictionary=mask_cache.data[key]
+   result.shader=preload("res://shaders/prototype_3d/chunk_ground_cached.gdshader")
+   for uniform in shared_material.shader.get_shader_uniform_list():result.set_shader_parameter(uniform.name,shared_material.get_shader_parameter(uniform.name))
+   result.set_shader_parameter("biome_mask",grid.texture);result.set_shader_parameter("mask_origin",grid.origin);result.set_shader_parameter("mask_size",grid.size);result.set_shader_parameter("mask_step",mask_cache.STEP)
+
  result.set_shader_parameter("existing_paths",sampler.existing_paths)
  var bounds := PackedVector4Array(); var types := PackedVector2Array()
  for influence in sampler.influences:
@@ -110,6 +123,7 @@ func material_for(rect: Rect2) -> ShaderMaterial:
  result.set_shader_parameter("ambient_tint",Vector3(ambient_tint.r,ambient_tint.g,ambient_tint.b))
  return result
 func refresh_influences() -> void:
+ mask_cache.invalidate()
  for key in active: active[key].material_override = material_for(chunk_rect(key))
  for key in cached: cached[key].material_override = material_for(chunk_rect(key))
 func set_ambient(color: Color) -> void:
@@ -118,6 +132,7 @@ func set_ambient(color: Color) -> void:
  for node in active.values()+cached.values(): node.material_override.set_shader_parameter("ambient_tint",Vector3(color.r,color.g,color.b))
 func _exit_tree() -> void:
  # Hidden cached nodes still belong to this parent and are freed automatically.
+ mask_cache.finish()
  cached.clear(); active.clear()
 
 func update_observer(point:Vector3,view_metres:Vector2=Vector2(28,28)) -> void:
@@ -128,6 +143,9 @@ func update_observer(point:Vector3,view_metres:Vector2=Vector2(28,28)) -> void:
   update_window((Vector2(cell)*8+Vector2.ONE*4)/METRES_PER_UNIT,(view_metres+Vector2.ONE*8)/METRES_PER_UNIT)
  else:update_window(Vector2(point.x,point.z)/METRES_PER_UNIT,view_metres/METRES_PER_UNIT)
 func _process(_delta:float) -> void:
+ for key in mask_cache.collect():
+  if active.has(key):active[key].material_override=material_for(chunk_rect(key))
+  elif cached.has(key):cached[key].material_override=material_for(chunk_rect(key))
  if progressive_window:advance_generation()
 func terrain_at(point:Vector3) -> StringName:
  return sampler.type_at(Vector2(point.x,point.z)/METRES_PER_UNIT)
