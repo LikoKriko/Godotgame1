@@ -1483,3 +1483,14 @@ apertura y cierre, ambos golpes/brazos y cavidad anclada a la cabeza.
 Revisión nativa previa: **81 fotogramas** de reposo y ambos ataques, nueve fases
 y tres cámaras de cara, con inspección ampliada. Importación del editor y
 `git diff --check` sin errores. No incluye prueba en el equipo del usuario.
+
+
+Publicación de implementación completada en `c422e88`. Hito posterior de
+capturas: **16/10/2026 13:59:07 Europe/Madrid**; el inicio exacto de la
+subida/captura no se registró por separado. Tras el push se generan **108
+fotogramas nativos nuevos**: 81 de detalle y 27 de cuerpo completo. Se publican
+19 capturas seleccionadas en tres láminas (detalle, secuencia y cuerpo completo)
+y README en `docs/previews/enemigo1-boca-2026-10-16/`. Comprobados el interior
+oscuro, cierre en reposo y unión visible de cabeza, cuello y cuerpo. La copia
+temporal de comportamientos se elimina tras verificar su conservación y quedar
+la implementación guardada en el commit. Sin prueba en el equipo del usuario.
