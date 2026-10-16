@@ -176,8 +176,8 @@ conservan sus alturas y reglas, compartiendo ahora el afloramiento entregado.
 
 | Recurso | Release | Archivo válido | Triángulos originales | Altura de autor |
 | --- | --- | --- | ---: | ---: |
-| Hacha | `modelo_hacha3d` | `hacha1_3d.zip` | 3.104 | 32 |
-| Pico | `modelo_pico3d` | `pico3dmodelo.zip` | 255.100 | 36 |
+| Hacha | `modelo_hacha3d` | `hacha1_3d.zip` | 3.104 | 19,2 |
+| Pico | `modelo_pico3d` | `pico3dmodelo.zip` | 255.100 | 21,6 |
 | Arco | `modelo_arco1_3d` | `arco1_3d.zip` | 5.215 | 28 |
 | Armadura | `modelo_armadurahojas_3d` | `armadurahojas_3d.zip` | 10.425 | 29 |
 | Roca | `modelo_roca1_3d` | `roca1_3d.zip` | 755.810 | 1 m de base |
@@ -194,7 +194,7 @@ reciben escala uniforme, rotación y traslación. El hacha se orienta por el
 eje real del mango antes de medir su filo. `anchors.gd` exporta la punta
 real del hacha/pico: las animaciones apuntan con ella al contacto. No se
 reconstruyen herramientas mediante primitivas. Los dos mangos importados usan
-8,25 unidades entre palmas; el solucionador recibe la separación de cada perfil
+4,95 unidades entre palmas tras la reducción al 60 % (antes 8,25); el solucionador recibe la separación de cada perfil
 en vez de asumir la de las herramientas anteriores. Comprueba también el
 volumen de la cabeza y usa el menor traslado hacia delante que permite el
 golpe bajo (hasta 4,5 unidades), conservando longitudes y la reducción de
@@ -320,3 +320,37 @@ continuidad, giro retardado, puñetazos alternos, saltos/deslizamiento, combate
 agachado, armas, arco, recogida, armadura, guardado y 17 comprobaciones de
 interfaz nativa X11 con el retrato. No sustituye una prueba en el equipo del
 usuario ni una medición de FPS.
+
+
+## Hacha y pico al 60 % — 16 de octubre de 2026
+
+Por petición del usuario, ambos modelos se reducen **un 40 % en los tres ejes**:
+la altura del hacha pasa de 32 a 19,2 unidades de autoría (0,525 m) y la del
+pico de 36 a 21,6 (0,590625 m). El mundo y los objetos soltados comparten
+las mallas redimensionadas; no hay una escala distinta al soltarlas. Las UV,
+triángulos, normales y PNG originales permanecen iguales.
+
+`props.json` mantiene la calibración original de cada fuente y aplica
+`model_scale: 0.6` al final, antes de medir sus anclajes. `grip_bottom: -4`
+coloca el extremo inferior a la distancia que cubren los dedos de la mano:
+se ajusta el punto de agarre, sin alterar el tamaño obtenido. `anchors.gd`
+exporta punta real, escala, apoyo de segunda mano y límites del mango. Los
+perfiles usan esos valores, sin volver a aplicar la escala. La separación
+de palmas pasa de 8,25 a **4,95 unidades** (unos 13,5 cm).
+
+La preparación desplaza el mango hacia delante para dejar libre la cabeza.
+Los contactos bajos añaden una inclinación continua del torso alrededor de
+la cadera, hasta 0,36 radianes, y el menor traslado de apoyo necesario, con
+límite de ocho unidades. Los pies siguen plantados, las rodillas conservan
+su corrección anterior y los huesos mantienen su longitud. Se conservan las
+fases de preparación, golpe, extracción y recuperación y los enlaces de
+equipar/desequipar. El solucionador y sus pruebas toman los límites reales
+del mango reducido para no tratar como sólido un mango imaginario más largo.
+No cambian daño, desgaste ni reglas de alcance del sistema de combate.
+
+Las pruebas comprueban además la altura exacta solicitada, el apoyo de mano,
+la punta sobre un vértice real, dimensiones del objeto soltado, las manos
+durante equipamiento/locomoción y la malla completa frente a torso y cabeza.
+La comparación independiente con ambos FBX conserva todos los índices,
+posiciones transformadas, UV y normales dentro de precisión nativa.
+Captura actual: `previews/tools_reduced_grips.png`.

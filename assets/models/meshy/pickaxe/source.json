@@ -10,5 +10,7 @@
     "albedo": "64f326c33fb116aa3db2d5eb94dbfebf22b61ed7486c78735b06f36a9a1b79cd",
     "roughness": "4e9ae9f62686cab4799fb2bd84ec1f7d9d8da6ecd7f38036308c47a6591af228",
     "metallic": "0394ee392c70e4c47aed2919af369491013c645c61716e549a56cb45f85d2ca6"
-  }
+  },
+  "applied_model_scale": 0.6,
+  "runtime_authoring_height": 21.6
 }

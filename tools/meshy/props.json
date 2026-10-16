@@ -4,14 +4,18 @@
     "folder": "res://assets/models/meshy/axe/",
     "input": "/tmp/day-zero-meshy/axe.glb",
     "height": 32,
-    "bottom": -4
+    "bottom": -4,
+    "model_scale": 0.6,
+    "grip_bottom": -4
   },
   {
     "id": "pickaxe",
     "folder": "res://assets/models/meshy/pickaxe/",
     "input": "/tmp/day-zero-meshy/pickaxe.glb",
     "height": 36,
-    "bottom": -4
+    "bottom": -4,
+    "model_scale": 0.6,
+    "grip_bottom": -4
   },
   {
     "id": "bow",

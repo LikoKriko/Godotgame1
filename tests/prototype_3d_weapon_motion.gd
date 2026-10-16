@@ -30,7 +30,8 @@ func run():
      # The shaft/blade centre must clear the actual torso envelope. Tool meshes
      # retain their authored thickness; arm/armor volume has a separate suite.
      for step in 12:
-      var point:Vector3=actor.grip_socket.transform*Vector3(0,lerpf(-4,29 if family==&"sword" else 20,step/11.0),0)
+      var span:Vector2=preload("res://scripts/prototype_3d/held_profiles.gd").profile(family).get("shaft_range",Vector2(-4,29))
+      var point:Vector3=actor.grip_socket.transform*Vector3(0,lerpf(span.x,span.y,step/11.0),0)
       var local:Vector3=actor.last_pose.body.affine_inverse()*point
       var skull_local:Vector3=actor.rig.posed[3].affine_inverse()*point-Vector3(0,.5,2.2)
       var skull_radius:=Vector3(skull_local.x/5.1,skull_local.y/6.2,skull_local.z/6.2).length()

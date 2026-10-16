@@ -56,6 +56,9 @@ func bake_one(definition:Dictionary) -> void:
   offset.x=-center.x*factor;offset.z=-center.z*factor
  if definition.id=="leaf_armor":offset.z+=2.2
  if definition.id=="axe":offset=definition.axe_offset
+ var model_scale:float=definition.get("model_scale",1.0)
+ factor*=model_scale;offset*=model_scale
+ if definition.has("grip_bottom"):offset.y+=float(definition.grip_bottom)-float(definition.bottom)*model_scale
  var points:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var normals:PackedVector3Array=arrays[Mesh.ARRAY_NORMAL];var tangents:PackedFloat32Array=arrays[Mesh.ARRAY_TANGENT]
  for i in points.size():
   points[i]=rotation*points[i]*factor+offset;normals[i]=rotation*normals[i]
@@ -72,14 +75,14 @@ func bake_one(definition:Dictionary) -> void:
  mesh.surface_set_material(0,material)
  assert((arrays[Mesh.ARRAY_INDEX] as PackedInt32Array).size()/3==int(definition.triangles))
  mesh.set_meta("source_triangles",int(definition.triangles));mesh.set_meta("source_zip_sha256",definition.zip_sha256)
- mesh.set_meta("uniform_scale",factor);mesh.set_meta("translation",offset);mesh.set_meta("rotation",rotation)
+ mesh.set_meta("model_scale",model_scale);mesh.set_meta("uniform_scale",factor);mesh.set_meta("translation",offset);mesh.set_meta("rotation",rotation)
  if definition.id in ["pickaxe","axe"]:
   var tip:=Vector3(-INF,0,0)
   for point in points:
    if point.x>tip.x:tip=point
   mesh.set_meta("tip",tip)
   var anchors:=FileAccess.open(folder+"anchors.gd",FileAccess.WRITE)
-  anchors.store_string("extends RefCounted\n# Measured from the real source mesh; regenerate with bake_props.gd.\nconst TIP:=Vector3(%.9f,%.9f,%.9f)\n"%[tip.x,tip.y,tip.z]);anchors.close()
+  anchors.store_string("extends RefCounted\n# Measured from the real source mesh; regenerate with bake_props.gd.\nconst TIP:=Vector3(%.9f,%.9f,%.9f)\nconst MODEL_SCALE:=%.9f\nconst SUPPORT:=%.9f\nconst SHAFT_BOTTOM:=%.9f\nconst SHAFT_TOP:=%.9f\n"%[tip.x,tip.y,tip.z,model_scale,8.25*model_scale,mesh.get_aabb().position.y,mesh.get_aabb().end.y]);anchors.close()
  if definition.id=="bow":
   var string_tip:=Vector3.ZERO;var found:=false
   for point in points:

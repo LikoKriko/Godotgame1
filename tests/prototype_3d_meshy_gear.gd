@@ -31,6 +31,13 @@ func run():
  require(other.leaf_armor.skeleton.get_bone_pose(4).is_equal_approx(original),"Animating armor cannot change another actor")
  for family:StringName in [&"axe",&"pickaxe"]:
   var native:Mesh=load("res://assets/models/meshy/"+String(family)+"/model.res")
+  var profile:Dictionary=preload("res://scripts/prototype_3d/held_profiles.gd").profile(family)
+  require(is_equal_approx(native.get_aabb().size.y,19.2 if family==&"axe" else 21.6),"Held tool is exactly forty percent shorter")
+  require(is_equal_approx(profile.support,4.95),"Supporting palm scales with the shortened handle")
+  var dropped=preload("res://scripts/prototype_3d/item_models.gd").create({"id":family})
+  var size:Vector3=preload("res://scripts/prototype_3d/item_models.gd").bounds(dropped).size
+  require(absf(size[size.max_axis_index()]-native.get_aabb().size.y*1.75/64)<.001,"Dropped tool keeps the resized held tool's physical dimensions")
+  dropped.free()
   var tip:Vector3=preload("res://scripts/prototype_3d/held_profiles.gd").profile(family).tip
   var closest:=INF
   for point:Vector3 in native.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:closest=minf(closest,point.distance_to(tip))

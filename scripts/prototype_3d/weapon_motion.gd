@@ -36,6 +36,15 @@ static func carry(pose:Dictionary,state:StringName,phase:float,_gait:float) -> v
   pose.shaft=pose.tool_basis.y
 static func melee(pose:Dictionary,t:float,contact:Vector3,impact_pose:Dictionary={}) -> void:
  var family:StringName=pose.family;var profile:=Profiles.profile(family)
+ # A shorter handle needs a modest hip hinge for low contacts, with the
+ # same planted feet and fixed arm lengths. Apply continuously over the stroke.
+ if family in [&"axe",&"pickaxe"] and profile.tip.length()<16 and contact.is_finite():
+  var weight:=smoothstep(.26,.5,t)*(1-smoothstep(.62,1,t))
+  var pitch:float=.36*(1-smoothstep(22,36,contact.y))*weight
+  var turn:=Basis(Vector3.RIGHT,pitch);var pivot:=Vector3(0,31,0)
+  var next:Transform3D=pose.body*Transform3D(turn,pivot-turn*pivot)
+  var delta:Transform3D=next*pose.body.affine_inverse();pose.body=next
+  for side in 2:pose.shoulders[side]=delta*pose.shoulders[side];pose.hands[side]=delta*pose.hands[side]
  var solution:Dictionary={}
  if not impact_pose.is_empty():
   solution={"grip":impact_pose.grip,"basis":impact_pose.tool_basis}
@@ -44,32 +53,32 @@ static func melee(pose:Dictionary,t:float,contact:Vector3,impact_pose:Dictionary
   pose.body.origin+=transfer;pose.pelvis.origin+=transfer
   for side in 2:pose.shoulders[side]+=transfer;pose.hips[side]+=transfer;pose.hands[side]+=transfer
  elif contact.is_finite():
-  solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support)
+  solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support,profile.get("shaft_range",Vector2(-4,28)))
   if solution.is_empty():
    # Retarget the measured source tip without changing limb lengths or the
    # reduced knee bend. Use the smallest forward weight shift that can reach.
-   for distance in [1.5,2.0,2.5,3.0,3.5,4.0,4.5]:
+   for distance in ([1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,6.0,7.0,8.0] if profile.tip.length()<16 else [1.5,2.0,2.5,3.0,3.5,4.0,4.5]):
     var transfer:=Vector3(contact.x,0,contact.z).normalized()*float(distance)
     var shoulders:Array=[pose.shoulders[0]+transfer,pose.shoulders[1]+transfer]
-    if Aim.solve(contact,shoulders,profile.tip,pose.active,profile.two_hands,Transform3D(pose.body.basis,pose.body.origin+transfer),profile.support).is_empty():continue
+    if Aim.solve(contact,shoulders,profile.tip,pose.active,profile.two_hands,Transform3D(pose.body.basis,pose.body.origin+transfer),profile.support,profile.get("shaft_range",Vector2(-4,28))).is_empty():continue
     transfer*=smoothstep(.26,.5,t)*(1-smoothstep(.62,1,t))
     pose.reach_transfer=transfer
     pose.body.origin+=transfer;pose.pelvis.origin+=transfer
     for side in 2:pose.shoulders[side]+=transfer;pose.hips[side]+=transfer;pose.hands[side]+=transfer
-    solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support)
+    solution=Aim.solve(contact,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support,profile.get("shaft_range",Vector2(-4,28)))
     break
   pose.contact_reachable=not solution.is_empty()
   if solution.is_empty():
    var center:Vector3=(pose.shoulders[0]+pose.shoulders[1])*.5
-   solution=Aim.solve(center+center.direction_to(contact)*30,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support)
+   solution=Aim.solve(center+center.direction_to(contact)*30,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support,profile.get("shaft_range",Vector2(-4,28)))
  var body:Transform3D=pose.body
  var rest:=guard(body,family)
- var wind_grip:=Vector3(-1.5,46.0,14.0)
+ var wind_grip:=Vector3(-1.5,46.0,18.0)
  var wind_axis:=Vector3(.35,.936,.03)
  var hit_grip:=Vector3(-1,34,15)
  var hit_axis:=Vector3(.10,.14,.98)
  if family==&"pickaxe":
-  wind_grip=Vector3(-2,46,14);wind_axis=Vector3(.03,.99,.06)
+  wind_grip=Vector3(-2,46,18);wind_axis=Vector3(.03,.99,.06)
   hit_grip=Vector3(-1,29,16);hit_axis=Vector3(0,-.45,.89)
  elif family==&"sword":
   wind_grip=Vector3(12,43,10);wind_axis=Vector3(.14,.96,-.24)

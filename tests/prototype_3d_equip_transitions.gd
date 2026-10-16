@@ -52,7 +52,7 @@ func run():
   var profile:=Profiles.profile(family)
   if profile.two_hands:
    var left:Vector3=actor.grip_socket.transform.affine_inverse()*actor.rig.posed[9].origin
-   require(absf(left.y-8.25)<.03 and Vector2(left.x,left.z).length()<.03,"Anatomical left hand holds one unit higher along the handle")
+   require(absf(left.y-profile.support)<.03 and Vector2(left.x,left.z).length()<.03,"Anatomical left hand holds the support anchor of the resized handle")
   for side in 2:
    if side!=actor.last_pose.active and not profile.two_hands:continue
    var start:=4+side*3

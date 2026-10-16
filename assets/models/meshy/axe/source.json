@@ -11,5 +11,7 @@
     "roughness": "a4514b2e33edc83a6863093c84108bd656a282bf4a95a89f2ba467f11afe2c59",
     "normal": "1ebce3b241b8066d8b75d256b908b01e64ba8bf51b4ee287cd7e4fe5a2b82299",
     "metallic_roughness": "5de3dbe3d86e42855f1e80ba52dbf00153acf5cb3232df2787f26a70c7c1c0c1"
-  }
+  },
+  "applied_model_scale": 0.6,
+  "runtime_authoring_height": 19.2
 }

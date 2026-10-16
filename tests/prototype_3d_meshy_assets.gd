@@ -10,8 +10,8 @@ func run():
  var definitions=[
   ["res://assets/characters/prototype_3d/meshy/","survivor_skin.res",20878,64.0],
   ["res://assets/items/prototype_3d/bottle_meshy/","bottle.res",883250,10.4],
-  ["res://assets/models/meshy/axe/","model.res",3104,32.0],
-  ["res://assets/models/meshy/pickaxe/","model.res",255100,36.0],
+  ["res://assets/models/meshy/axe/","model.res",3104,19.2],
+  ["res://assets/models/meshy/pickaxe/","model.res",255100,21.6],
   ["res://assets/models/meshy/bow/","model.res",5215,28.0],
   ["res://assets/models/meshy/leaf_armor/","model.res",10425,29.0],
   ["res://assets/models/meshy/rock1/","model.res",755810,1.0]]

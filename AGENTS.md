@@ -121,3 +121,11 @@ mapa normal con una máscara por vértice; no altera posiciones, UV, índices
 ni PNG originales. El pelo y la ropa conservan su detalle. Regenerar con
 `transfer_survivor.py` y `bind_human.gd ... transferred`, no con el horneado
 automático antiguo. Ver `docs/MESHY_ASSETS.md`.
+
+El hacha y el pico usan ahora el **60 % del tamaño anterior**, por solicitud
+del usuario. `tools/meshy/props.json` declara `model_scale: 0.6` y el ajuste
+del agarre `grip_bottom: -4`. Usar los anclajes generados en
+`assets/models/meshy/{axe,pickaxe}/anchors.gd`: las palmas se separan 4,95
+unidades y las puntas/límites corresponden a las mallas pequeñas. No aplicar
+una segunda escala al sostenerlos o soltarlos. Conservar longitudes de huesos
+y los agarres al cambiar animaciones.

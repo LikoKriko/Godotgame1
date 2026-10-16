@@ -13,7 +13,7 @@ static func frame(shaft: Vector3) -> Basis:
  x=x.normalized()
  return Basis(x,y,x.cross(y).normalized())
 
-static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int = 0,two_hands: bool = true,body:Transform3D=Transform3D.IDENTITY,support_distance:float=SUPPORT) -> Dictionary:
+static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int = 0,two_hands: bool = true,body:Transform3D=Transform3D.IDENTITY,support_distance:float=SUPPORT,shaft_range:Vector2=Vector2(-4,28)) -> Dictionary:
  var center: Vector3 = (shoulders[0]+shoulders[1])*0.5
  var forward := center.direction_to(point)
  if forward.is_zero_approx(): forward=Vector3.BACK
@@ -49,7 +49,7 @@ static func solve(point: Vector3,shoulders: Array,tip: Vector3 = TIP,active: int
    if score>=best_score:continue
    var clear:=true
    for shaft_sample in 17:
-    var along:float=-4.0+shaft_sample*2.0
+    var along:float=lerpf(shaft_range.x,shaft_range.y,shaft_sample/16.0)
     var shaft_point:Vector3=grip+y*along
     var head_local:Vector3=skull_inverse*(shaft_point-head)
     if (head_local/Vector3(5.1,6.2,6.2)).length_squared()<1.04:clear=false;break

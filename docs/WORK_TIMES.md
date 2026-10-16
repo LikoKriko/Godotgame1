@@ -1708,3 +1708,52 @@ del superviviente y comprobar su ruta original; su lógica anterior esperaba un
 StandardMaterial3D. Importación final y render nativo sin errores; restauración
 del fotograma otra vez idéntica. `git diff --check` limpio. El push posterior
 no está incluido en este intervalo.
+
+
+## 2026-10-16 — Hacha y pico un 40 % más pequeños
+
+Alcance: reducir uniformemente ambos modelos al 60 % de su tamaño anterior,
+recalibrar punta/apoyo/mango, revisar agarres en animaciones y objetos soltados.
+Estimación previa: no comunicada para esta tanda.
+
+| Hito | UTC | Europe/Madrid |
+| --- | --- | --- |
+| Primera comprobación de fuentes y anclajes | 2026-10-16 16:35:22 | 2026-10-16 18:35:22 |
+| Cierre de implementación y validación | 2026-10-16 16:48:19 | 2026-10-16 18:48:19 |
+
+Tiempo observado hasta este cierre: **12 min 57 s**; commit/push posteriores
+no incluidos. Se sincronizó `c1fd069`, conservando la optimización por distancia
+y los últimos cambios de los otros departamentos.
+
+Hacha: altura de 32 a 19,2 unidades (0,525 m). Pico: de 36 a 21,6 unidades
+(0,590625 m). Se multiplican los tres ejes por 0,6, sin modificar originales,
+UV, normales, triángulos ni PNG. La segunda palma pasa de 8,25 a 4,95 unidades
+de separación. El punto principal se recoloca sobre el mango reducido para
+cubrir la longitud real de los dedos; el extremo inferior queda a -4 unidades
+respecto al agarre. Los anclajes exportados incluyen punta, escala, apoyo y
+límites reales, también usados al comprobar oclusión.
+
+Se adapta la preparación para despejar la cabeza y el golpe bajo con una
+inclinación continua de cadera/torso, conservando pies, longitudes de huesos
+y corrección de rodillas. Daño, desgaste y reglas de alcance de combate
+permanecen iguales. Los objetos soltados utilizan la misma malla pequeña.
+Los iconos conservan su encuadre normalizado: la forma no ha cambiado.
+
+Validación: **302558 comprobaciones en 14 suites**: armas/contacto/oclusión
+28121; equipar/desequipar 17892; contactos bajos y armadura 42; geometría real
+y dimensiones soltadas 44; objetos físicos 147; equipo 65; procedencia/mapas
+105; combate agachado 836; piel Meshy 15194; anatomía/volumen/continuidad
+155005; catálogo 9100; optimización por distancia X11 43; recursos LOD y
+texturas 75768; guardado 196.
+
+La comprobación adicional de mipmaps inicialmente detectó la caché anterior
+a la importación de los ajustes recién recibidos. Tras completar la
+importación del editor, pasa sin cambios en esos ajustes. La prueba por
+distancia se ejecutó con X11 para comprobar también los buffers MultiMesh.
+La comparación independiente de ambos FBX da posiciones y UV exactas tras
+la transformación uniforme/agarre; normales con error menor de 0,00013 por
+empaquetado. Importación y `git diff --check` sin errores.
+
+Captura de revisión real: `docs/previews/tools_reduced_grips.png`, ocho poses
+de reposo, marcha, equipamiento y golpe bajo entre ambas herramientas. No
+incluye medición de FPS ni sesión manual en el equipo del usuario.
