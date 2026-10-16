@@ -237,3 +237,59 @@ malla. La regresión de boxeo comprueba ambos puños reales en todas las fases,
 con la misma separación mínima respecto al casco convexo de la cabeza. La
 transferencia conserva las animaciones publicadas, incluida la bisagra de cola
 y la caída interrumpida desde marcha, golpe, crochet y postura sentada.
+## Daño real, rutina nocturna y comportamiento tranquilo
+
+El sorteo y todos los accesos al crochet exigen `damage_received > 0`, además
+de la activación de boxeo. Solo `take_damage` registra una pérdida efectiva de
+vida; daño nulo, curación, temporizadores o indicadores antiguos no la simulan.
+Se preservan 50 %, reintento cada diez segundos, guardia de veinte segundos,
+contacto y cuatro de daño. Al cargar, se limpia el boxeo sin daño registrado;
+los archivos antiguos infieren el daño previo de la vida perdida, sin activar
+el boxeo de un enemigo intacto. No se cambian los clips de ataques existentes.
+
+Entre las 23:00 inclusive y las 06:00 exclusive del reloj del juego, un enemigo
+tranquilo usa `sleep_down`, `sleep` y `wake_up`: baja a un descanso recogido con
+respiración suave y luego se incorpora. Detecta al jugador hasta veinte metros
+durante la noche y el despertar; la visión sigue comprobando obstáculos. La
+alerta y la memoria tienen prioridad, de modo que no se duerme mientras busca
+a un jugador detectado. Recibir daño también lo despierta. El sorteo de boxeo
+se suspende durante el descanso; si el primer golpe lo despierta, el primer
+sorteo pendiente se resuelve al acabar de incorporarse.
+
+Se conserva el ciclo original sentarse → sentado → levantarse, con sus poses y
+tiempos. La presentación al cargar respeta sentado, comida, sueño y locomoción.
+La selección de hábitat favorece grupos de árboles vivos y visibles. La meta se
+separa del tronco según la huella física y el radio de sus colisiones bajas;
+la llegada se mide horizontalmente y cerca de la meta. Al llegar se ejecuta el
+clip `feed` existente, con duración de dos a diez segundos y pausa de ocho a
+dieciséis segundos antes de otra comida. Un tronco destruido interrumpe comer.
+
+Los estados, temporizadores, pausa de comida y daño recibido se guardan con
+compatibilidad anterior. F6 incluye acostarse, dormir y despertarse. El modelo,
+las texturas, los pesos y todas las muestras de las animaciones anteriores se
+conservan: las nuevas poses usan el rig compartido sin rehacer el enemigo1.
+Pruebas específicas: `tests/prototype_3d_enemy_routine.gd` y guardado ampliado.
+
+
+## Mandíbula y mejillas durante los ataques
+
+`young_face.gd` añade una forma de mezcla relativa compartida a la malla reducida
+vigente. Conserva byte por byte los buffers de reposo: posiciones, normales,
+tangentes, UV, índices y pesos. Conserva también metadatos, límites y material
+original. La expresión es independiente por enemigo y no modifica los archivos
+FBX, PNG ni la malla horneada del departamento de modelaje.
+
+El ataque normal y el crochet abren suavemente la mandíbula y tensan ligeramente
+las mejillas alrededor del contacto. La máscara se limita a la zona baja y
+anterior de la cara, con cero desplazamiento en cuello, unión de la cabeza,
+cuerpo, ojos y extremo de la nariz. El movimiento máximo es inferior a media
+unidad de autoría; las pruebas limitan el estiramiento de aristas al 28 % y el
+cambio de área al 35 %, y prohíben invertir triángulos. Las costuras UV reciben
+el mismo desplazamiento al compartir posición de origen.
+
+Una pequeña cavidad ahuecada sigue la transformación de la cabeza: tono rosado
+marrón del hocico, más oscuro hacia el fondo. Solo aparece al abrir la boca.
+Reposo y otras acciones conservan la cara original. Una interrupción cierra
+la expresión gradualmente. Se mantienen los quince huesos, la animación corporal,
+los agarres y la unión entre cabeza y torso. Prueba específica:
+`tests/prototype_3d_enemy_face.gd`.

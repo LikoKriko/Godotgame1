@@ -1417,3 +1417,69 @@ posición 0,00094 unidades, UV 0,000022, normales 0,00224. PNG/FBX comprobados
 por SHA-256. Revisión visual: 32 capturas de ocho estados, ambas manos y dos
 cámaras, mosaico de acciones y captura en el entorno real del juego.
 No incluye una medición de FPS ni una sesión manual en el equipo del usuario.
+## 16 de octubre de 2026 — Ataque secundario, sueño y rutinas del enemigo1
+
+Inicio observado **13:33:20 Europe/Madrid**; cierre de implementación
+y verificaciones **13:43:57 Europe/Madrid**. Duración medida:
+**10 min 37 s**. Sin estimación previa registrada.
+Cambios locales sin commit ni push para esta tarea.
+
+Se exige daño real registrado en el sorteo, selección y restauración del ataque
+secundario. Se mantienen probabilidad, tiempos, daño y animaciones existentes.
+Sueño de 23:00 a 06:00 con transiciones, respiración y despertar por percepción
+del jugador hasta veinte metros, con obstáculos; el daño también interrumpe el
+sueño. Alerta y memoria prevalecen. Revisión del sentado y alimentación: postura
+restaurada al cargar, árboles vivos/visibles, preferencia por arboledas, meta
+según huella física/radio del tronco y pausa entre comidas. Se guardan sueño,
+pausa de alimentación y daño recibido; compatibilidad con archivos anteriores.
+
+Godot 4.6.3: **6 suites superadas, 66681 comprobaciones**: nueva rutina **3691**,
+movimiento y piel del enemigo **35126**, boxeo **16675**, criatura **9993**,
+separación **1000** y guardado ampliado **196**. Incluye horario exacto,
+percepción 19,9/20,1 m y pared interpuesta, daño nulo y real, indicadores antiguos,
+sentado, restauración de sueño/pausa/daño, preferencia por grupos de árboles,
+aproximación física al tronco y anatomía continua. Comprobación adicional:
+**2600 muestras de clips anteriores exactamente idénticas** a HEAD.
+
+Revisión nativa Compatibility: **135 fotogramas**, acostarse/dormir/despertar,
+sentado y comida, nueve fases y tres vistas. Superficie completa de los tres
+clips nuevos en 65 fases: **101.177.895 muestras de vértice**, sin penetraciones
+bajo el margen; mínimo 0,0 unidades. Importación del editor y `git diff --check`
+sin errores. No se modifican activos de modelo, pesos, UV, texturas ni clips
+anteriores. Verificación sobre el modelo vigente en el checkout; el departamento
+de modelaje está preparando su sustitución por separado. Sin prueba en el equipo
+del usuario.
+
+
+## 16 de octubre de 2026 — Boca y músculos faciales del enemigo1 reducido
+
+Inicio observado **13:45:36 Europe/Madrid**; cierre de implementación
+y verificaciones **13:56:34 Europe/Madrid**. Intervalo medido hasta este
+hito: **10 min 58 s**; sin estimación previa. El usuario
+ha autorizado después commit, push y capturas publicadas.
+
+Se incorpora por avance rápido `e698584`, nuevo modelo reducido del departamento
+de modelaje. Los cambios de comportamiento anteriores se conservan mediante
+copia temporal y reaplicación; se resuelven únicamente anexos de documentación.
+Verificado que cerebro, lógica de enemigo, guardado y sus pruebas coinciden
+con la copia anterior. La nueva boca se adapta a esta fuente de 7340 triángulos,
+9212 vértices y quince huesos; no a la malla densa histórica.
+
+Forma de mezcla local de mandíbula y mejillas para ataque normal y crochet,
+con cierre suave al interrumpirse. Cavidad pequeña ahuecada del tono del hocico
+más oscuro, unida al marco de la cabeza y visible durante la apertura. La
+máscara excluye cuello, unión cabeza/cuerpo, ojos, extremo de nariz y resto del
+cuerpo. Conservados byte por byte posiciones, normales, tangentes, UV, índices
+y pesos de reposo; mismo material, PNG, metadatos y proporciones. Reutilización
+por caché, expresión independiente por criatura y sin nuevos huesos. Ningún
+archivo del modelo aportado se modifica.
+
+Godot 4.6.3: **8 suites superadas, 130713 comprobaciones** sobre el modelo nuevo:
+facial **55086**, movimiento/piel **35126**, fidelidad Meshy **3935**, boxeo
+**4465**, rutina **3691**, guardado **196**, criatura **9993** y caídas **18221**.
+La suite facial verifica buffers originales, cuello inmóvil, ausencia de
+triángulos invertidos, cambio de área limitado al 35 %, aristas al 28 %,
+apertura y cierre, ambos golpes/brazos y cavidad anclada a la cabeza.
+Revisión nativa previa: **81 fotogramas** de reposo y ambos ataques, nueve fases
+y tres cámaras de cara, con inspección ampliada. Importación del editor y
+`git diff --check` sin errores. No incluye prueba en el equipo del usuario.

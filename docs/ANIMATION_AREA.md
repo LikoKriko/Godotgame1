@@ -222,3 +222,31 @@ El plano de flexión transporta el codo bajo el antebrazo sin abrirlo hacia el
 lado ni invertirlo al entrar/salir. Se conservan alternancia, giro de torso y
 pelvis, paso del pie activo y duración/contacto del golpe. Prueba específica:
 `tests/prototype_3d_jab.gd`.
+
+
+## Rutina nocturna y aplicación de comportamientos del enemigo1
+
+La lógica de `creature_brain.gd` decide sueño de 23:00 a 06:00, interrumpido por
+alerta, memoria de un jugador o daño. `young_enemy.gd` amplía la percepción
+nocturna a veinte metros con comprobación de obstáculos. `young_sleep.gd`
+añade descanso recogido y respiración sobre los apoyos de sentado, más entrada
+y despertar; no cambia las curvas de ningún clip anterior. Las entradas desde
+una pose interrumpida se capturan en `young_model.gd`.
+
+El secundario requiere daño real registrado y se limpia si quedan indicadores
+incoherentes. Se preserva su probabilidad, duración y daño. Sentarse y comer
+conservan sus animaciones; la selección de árboles, distancia física de llegada,
+pausa entre comidas y restauración al cargar se aplican desde el comportamiento.
+La integración del nuevo modelo corresponde al departamento de modelaje:
+esta tarea no modifica mallas, pesos, UV ni texturas.
+
+
+## Expresión facial del enemigo1
+
+La versión reducida del nuevo modelo incorpora apertura de mandíbula y tensión
+suave de mejillas durante `attack` y `hook`, mediante forma de mezcla local en
+`young_face.gd`. El cuello y la unión cabeza/cuerpo quedan fuera de la máscara.
+La cara original, los buffers de reposo, la ligadura y las texturas se conservan.
+El interior de la boca es una cavidad pequeña del tono del hocico más oscuro,
+unida al marco de la cabeza y visible solo durante la apertura. La expresión
+es independiente por instancia y se cierra al interrumpir el ataque.

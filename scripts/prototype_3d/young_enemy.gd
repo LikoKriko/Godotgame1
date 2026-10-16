@@ -3,6 +3,7 @@ const Motion=preload("res://scripts/prototype_3d/young_pose.gd")
 const SPEED:=1.7
 const WANDER_SPEED:=0.85
 const ALERT_RADIUS:=7.5
+const WAKE_RADIUS:=20.0
 const REACH:=0.65
 const CREATURE_SPACING:=1.02
 var body_radius:=0.27
@@ -25,6 +26,7 @@ var rise_elapsed:=-1.0
 var lower_elapsed:=-1.0
 var standing:=false
 # The first damaging hit arms one persistent ten-second schedule.
+var damage_received:=0.0
 var boxing_unlocked:=false
 var boxing_check_remaining:=BOXING_RETRY_SECONDS
 var boxing_remaining:=0.0
@@ -48,6 +50,7 @@ func configure(owner_game) -> void:
  body.radius=body_radius;body.height=0.875;collision.shape=body;collision.position.y=body.height*0.5;add_child(collision)
  indicator=preload("res://scripts/prototype_3d/status_indicator.gd").new();add_child(indicator)
  profile.posture_seconds=0.28
+ brain.body_radius=body_radius
  brain.configure(4127+get_tree().get_nodes_in_group("prototype_enemies").size(),profile);model.animate(&"idle",0)
  hurt_area.collision_layer=16;hurt_area.collision_mask=0;hurt_area.monitoring=false;hurt_area.set_meta("creature",self);add_child(hurt_area)
  for radius in [0.22,0.105,0.14,0.14]:
@@ -59,31 +62,45 @@ func update_hurtboxes() -> void:
  hurt_shapes[1].position=to_local(model.to_global(model.posed[1]*preload("res://scripts/prototype_3d/young_pose.gd").SNOUT_OFFSET))
  hurt_shapes[2].position=to_local(model.to_global(model.posed[10].origin))
  hurt_shapes[3].position=to_local(model.to_global(model.posed[13].origin))
+func clock_hour() -> float:
+ var clock=game.get("day_cycle")
+ return clock.hour if clock!=null else 12.0
 func sees_player() -> bool:
- if global_position.distance_to(game.player.global_position)>ALERT_RADIUS or game.player_health<=0:return false
+ var radius:=WAKE_RADIUS if brain.night(clock_hour()) or brain.sleeping() else ALERT_RADIUS
+ if global_position.distance_to(game.player.global_position)>radius or game.player_health<=0:return false
  var from:=global_position+Vector3.UP*0.48;var to:Vector3=game.player.global_position+Vector3.UP*0.7
  var query:=PhysicsRayQueryParameters3D.create(from,to,1,[get_rid()])
  return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 func stun(seconds:float) -> void:
  effects.apply(&"stun",seconds);attack_elapsed=-1;rise_elapsed=-1;lower_elapsed=-1;standing=false
 func take_damage(amount:float) -> void:
- if health<=0:return
+ if health<=0 or not is_finite(amount) or amount<=0:return
+ var previous:=health
  health=maxf(0,health-amount)
+ if health>=previous:return
+ damage_received+=previous-health
+ brain.alert_to(game.player.global_position)
  if health>0 and amount>0 and not boxing_unlocked:
   boxing_unlocked=true
-  boxing_check_remaining=BOXING_RETRY_SECONDS
-  roll_boxing()
+  boxing_check_remaining=0.0 if brain.sleeping() else BOXING_RETRY_SECONDS
+  if not brain.sleeping():roll_boxing()
  if health==0:
   boxing_remaining=0
   death_elapsed=0;collision_layer=0;collision_mask=0;hurt_area.collision_layer=0;effects.active.clear()
   loot_slots[0]=game.bag.make_item(&"cuero_sin_refinar",1)
+func boxing_active() -> bool:return damage_received>0 and boxing_unlocked and health>0 and boxing_remaining>0
 func roll_boxing() -> void:
- if boxing_remaining>0:return
+ if damage_received<=0 or not boxing_unlocked or health<=0 or boxing_remaining>0 or brain.sleeping():return
  if brain.rng.randf()<BOXING_CHANCE:
   boxing_remaining=BOXING_SECONDS
   attack_elapsed=-1;lower_elapsed=-1;rise_elapsed=0;standing=false
 func advance_boxing(delta:float) -> void:
- if not boxing_unlocked:return
+ if damage_received<=0:boxing_unlocked=false
+ if not boxing_unlocked:
+  if attack_boxing:attack_elapsed=-1
+  boxing_remaining=0;attack_boxing=false;lower_from_boxing=false
+  return
+ if brain.sleeping():return
  var was_boxing:=boxing_remaining>0
  boxing_remaining=maxf(0,boxing_remaining-delta)
  if was_boxing and boxing_remaining<=0:
@@ -93,9 +110,9 @@ func advance_boxing(delta:float) -> void:
   boxing_check_remaining+=BOXING_RETRY_SECONDS
   roll_boxing()
 func start_attack() -> void:
- attack_elapsed=0;impact_done=false;attack_boxing=boxing_remaining>0
+ attack_elapsed=0;impact_done=false;attack_boxing=boxing_active()
 func attack_clip() -> StringName:
- return &"hook" if attack_boxing else &"attack"
+ return &"hook" if attack_boxing and boxing_active() else &"attack"
 func obstacle(direction:Vector3) -> bool:
  var query:=PhysicsRayQueryParameters3D.create(global_position+Vector3.UP*0.35,global_position+Vector3.UP*0.35+direction*(body_radius+0.35),41,[get_rid()])
  return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
@@ -126,10 +143,13 @@ func _physics_process(delta:float) -> void:
   indicator.show_status(remaining,1.5,Color("e6dfa6"),game.camera_rig.camera);return
  indicator.hide()
  var visible_player:=sees_player()
- var mode:StringName=brain.advance(delta,global_position,game.player.global_position,visible_player,get_tree().get_nodes_in_group("prototype_trees"))
+ var mode:StringName=brain.advance(delta,global_position,game.player.global_position,visible_player,get_tree().get_nodes_in_group("prototype_trees"),clock_hour())
  var distance:=global_position.distance_to(game.player.global_position)
  var clip:StringName=&"idle";var progress:=0.0;var direction:=Vector3.ZERO;var speed:=0.0
- if attack_elapsed>=0:
+ if brain.sleeping():
+  attack_elapsed=-1;rise_elapsed=-1;lower_elapsed=-1;standing=false;boxing_remaining=0;attack_boxing=false;lower_from_boxing=false
+  clip=mode;progress=behaviour_phase(mode)
+ elif attack_elapsed>=0:
   var duration:=Motion.seconds(attack_clip())
   var contact:=duration*.5
   attack_elapsed+=delta;clip=attack_clip();progress=minf(1,attack_elapsed/duration)
@@ -160,11 +180,11 @@ func _physics_process(delta:float) -> void:
   speed=WANDER_SPEED if mode==&"walk" else SPEED;clip=&"walk" if mode==&"walk" else &"run"
  else:
   clip=mode if mode in [&"sit_down",&"sit",&"sit_up",&"feed"] else &"idle"
-  progress=fposmod(brain.elapsed/Motion.seconds(clip),1) if clip in [&"idle",&"sit",&"feed"] else minf(1,brain.elapsed/Motion.seconds(clip))
+  progress=behaviour_phase(clip)
   if clip==&"feed" and is_instance_valid(brain.tree):
    var toward:Vector3=brain.tree.global_position-global_position
    if toward.length()>0.001:model.rotation.y=lerp_angle(model.rotation.y,atan2(toward.x,toward.z),1-exp(-delta*7))
- if boxing_remaining>0 and clip in [&"idle",&"sit_down",&"sit",&"sit_up",&"feed",&"walk",&"run"]:
+ if boxing_active() and clip in [&"idle",&"sit_down",&"sit",&"sit_up",&"feed",&"walk",&"run"]:
   if not standing:rise_elapsed=0;clip=&"boxing_rise";progress=0;direction=Vector3.ZERO;speed=0
   else:clip=&"boxing_walk" if speed>0 else &"boxing_guard"
  velocity.x=direction.x*speed;velocity.z=direction.z*speed
@@ -180,6 +200,8 @@ func _physics_process(delta:float) -> void:
  model.animate(clip,progress,punch_left,delta)
  update_hurtboxes()
 
+func behaviour_phase(clip:StringName) -> float:
+ return fposmod(brain.elapsed/Motion.seconds(clip),1) if clip in [&"idle",&"sit",&"feed",&"sleep"] else minf(1,brain.elapsed/Motion.seconds(clip))
 func ensure_corpse_area() -> void:
  if corpse_area!=null:return
  corpse_area=Area3D.new();corpse_area.collision_layer=16;corpse_area.collision_mask=0;corpse_area.monitoring=false;corpse_area.set_meta("creature",self);add_child(corpse_area)
@@ -188,6 +210,7 @@ func ensure_corpse_area() -> void:
  bounds=bounds.expand(to_local(model.to_global(model.posed[1]*Motion.SNOUT_OFFSET))).grow(.15)
  volume.size=bounds.size;shape.shape=volume;shape.position=bounds.get_center();corpse_area.add_child(shape)
 func restore_presentation() -> void:
+ advance_boxing(0)
  if health<=0:
   collision_layer=0;collision_mask=0;hurt_area.collision_layer=0
   model.animate(&"death" if death_elapsed<2 else &"corpse",minf(1,death_elapsed/2))
@@ -196,8 +219,12 @@ func restore_presentation() -> void:
   var remaining:float=effects.remaining(&"stun");var elapsed:=1.5-remaining
   var clip:StringName=&"stun_fall" if elapsed<0.24 else (&"stun_rise" if remaining<0.24 else &"stun_hold")
   model.animate(clip,clampf(elapsed/0.24 if clip==&"stun_fall" else (1-remaining/0.24 if clip==&"stun_rise" else 0),0,1))
+ elif brain.sleeping():model.animate(brain.mode,behaviour_phase(brain.mode),punch_left)
  elif attack_elapsed>=0:model.animate(attack_clip(),attack_elapsed/Motion.seconds(attack_clip()),punch_left)
  elif rise_elapsed>=0:model.animate(&"boxing_rise" if boxing_remaining>0 else &"rise",rise_elapsed/0.28,punch_left)
  elif lower_elapsed>=0:model.animate(&"boxing_lower" if lower_from_boxing else &"lower",lower_elapsed/0.28,punch_left)
- else:model.animate(&"boxing_guard" if boxing_remaining>0 else &"idle",phase,punch_left)
+ elif boxing_active():model.animate(&"boxing_guard",phase,punch_left)
+ else:
+  var clip:StringName=brain.mode if brain.mode in [&"sit_down",&"sit",&"sit_up",&"feed",&"walk"] else (&"run" if brain.mode in [&"chase",&"investigate"] else &"idle")
+  model.animate(clip,phase if clip in [&"walk",&"run"] else behaviour_phase(clip),punch_left)
  update_hurtboxes()

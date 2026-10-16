@@ -32,7 +32,7 @@ func run():
  var table_item:Dictionary=game.bag.make_item(&"basic_workbench",1);game.workbenches.add_table(Vector3(8,0,8),table_item.uid)
  var drop_item:Dictionary=game.bag.make_item(&"botella",1);drop_item.water_ml=250;game.corpse_loot.spawn_drop(drop_item,Vector3(2,0,2))
  var corpse=get_nodes_in_group("prototype_enemies")[0];corpse.take_damage(10);corpse.death_elapsed=43;corpse.ensure_corpse_area()
- var live=load("res://scripts/prototype_3d/young_enemy.gd").new();game.add_child(live);live.configure(game);live.position=Vector3(-4,0,3);live.health=7;live.boxing_unlocked=true;live.boxing_remaining=13.25;live.boxing_check_remaining=3.25;live.attack_boxing=true
+ var live=load("res://scripts/prototype_3d/young_enemy.gd").new();game.add_child(live);live.configure(game);live.position=Vector3(-4,0,3);live.take_damage(3);live.boxing_unlocked=true;live.boxing_remaining=13.25;live.boxing_check_remaining=3.25;live.attack_boxing=true
  live.brain.remembers_player=true;live.brain.mode=&"investigate";live.brain.last_seen=Vector3(-2,0,1);live.brain.goal=live.brain.last_seen;live.stun(1.5);live.effects.advance(0.4)
  game.level=4;game.skill_points=2;game.experience=17;game.progression.skills[&"speed"]=1;game.progression.perks[&"life"]=1;game.player_health=19
  game.progression.active[&"speed"]=3.0;game.progression.cooldowns[&"speed"]=12.0
@@ -76,10 +76,22 @@ func run():
  require(actors[1].boxing_unlocked and actors[1].boxing_remaining==13.25 and actors[1].boxing_check_remaining==3.25 and actors[1].attack_boxing,"Boxing activation, attack variant and both timers survive reload")
  var legacy:=saved.duplicate(true)
  for entry in legacy.enemies:
-  for key in ["boxing_unlocked","boxing_remaining","boxing_check_remaining","attack_boxing","lower_from_boxing"]:entry.erase(key)
+  for key in ["boxing_unlocked","boxing_remaining","boxing_check_remaining","attack_boxing","lower_from_boxing","damage_received"]:entry.erase(key)
+  entry.brain.erase("feeding_cooldown")
  require(Save.valid(legacy),"Saves made before boxing remain valid")
  var invalid_boxing:=saved.duplicate(true);invalid_boxing.enemies[1].boxing_remaining=21
  require(not Save.valid(invalid_boxing),"Save validator rejects an impossible boxing duration")
+ var sleeping:=saved.duplicate(true);sleeping.clock.hour=23.5
+ var rest_actor:Dictionary=sleeping.enemies[1]
+ rest_actor.effects={};rest_actor.boxing_remaining=0;rest_actor.attack_boxing=false;rest_actor.rise_elapsed=-1;rest_actor.lower_elapsed=-1
+ rest_actor.brain.mode="sleep";rest_actor.brain.remembers_player=false;rest_actor.brain.elapsed=2.0;rest_actor.brain.remaining=0.0;rest_actor.brain.feeding_cooldown=9.0
+ for table in game.workbenches.tables:table.free()
+ game.workbenches.tables.clear()
+ for drop in get_nodes_in_group("prototype_drops"):
+  if game.is_ancestor_of(drop):drop.free()
+ require(Save.valid(sleeping) and Save.restore(game,sleeping),"Sleeping behaviour restores through the real save path")
+ var sleeper=get_nodes_in_group("prototype_enemies").filter(func(node):return node.health>0)[0]
+ require(sleeper.model.last_pose.state==&"sleep" and sleeper.brain.feeding_cooldown==9 and sleeper.damage_received==3,"Sleep pose, feeding pause and actual received damage survive reload")
  var user_path:="user://test_day_zero_3d_"+str(OS.get_process_id())+".save"
  game.camera_rig.pitch=PI/2
  require(Save.write(game,user_path)==OK and Save.write(game,user_path)==OK and not Save.read_state(user_path).is_empty(),"user:// paths support replacement and backup outside the project")

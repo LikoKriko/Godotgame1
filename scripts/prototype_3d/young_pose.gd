@@ -2,6 +2,7 @@ extends RefCounted
 ## Authored motion for the reference creature: a heavy knuckle walker, with
 ## fixed anatomy and a bind stance independent from the animation catalogue.
 const Frames=preload("res://scripts/prototype_3d/human_kinematics.gd")
+const Sleep=preload("res://scripts/prototype_3d/young_sleep.gd")
 const Fall=preload("res://scripts/prototype_3d/fall_motion.gd")
 const Joints=preload("res://scripts/continuous_body_pose.gd")
 const ARM_A:=6.1
@@ -17,7 +18,7 @@ const SNOUT_OFFSET:=preload("res://assets/enemies/first/meshy/anchors.gd").SNOUT
 const HEAD_ROOT:=HEAD_ANCHOR
 const FOOT_Y:=1.5
 const FIST_Y:=5.0
-const STATES:Array[StringName]=[&"idle",&"walk",&"run",&"rise",&"attack",&"boxing_guard",&"boxing_walk",&"boxing_rise",&"boxing_lower",&"hook",&"lower",&"sit_down",&"sit",&"sit_up",&"feed",&"stun_fall",&"stun_hold",&"stun_rise",&"death",&"corpse"]
+const STATES:Array[StringName]=[&"idle",&"walk",&"run",&"rise",&"attack",&"boxing_guard",&"boxing_walk",&"boxing_rise",&"boxing_lower",&"hook",&"lower",&"sit_down",&"sit",&"sit_up",&"feed",&"sleep_down",&"sleep",&"wake_up",&"stun_fall",&"stun_hold",&"stun_rise",&"death",&"corpse"]
 
 static func bind_pose() -> Dictionary:
  # Fixed neutral joints used to bake the Meshy heat weights. Animation edits
@@ -31,7 +32,7 @@ static func bind_pose() -> Dictionary:
  return {"body":Transform3D.IDENTITY,"head":Basis.IDENTITY,"head_origin":HEAD_ROOT,"legs":legs,"arms":arms,"standing":1.0,"state":&"reference","phase":0.0}
 
 static func seconds(state:StringName) -> float:
- return {&"walk":.52,&"run":.36,&"rise":.28,&"lower":.28,&"attack":1.0,&"hook":1.2,&"boxing_rise":.28,&"boxing_lower":.28,&"boxing_walk":.65,&"boxing_guard":4.0,&"sit_down":.28,&"sit_up":.28,&"sit":4.0,&"idle":4.0,&"feed":1.5,&"stun_fall":.24,&"stun_hold":1.02,&"stun_rise":.24,&"death":2.0,&"corpse":2.0}.get(state,1.0)
+ return {&"sleep_down":.7,&"sleep":4.0,&"wake_up":.65,&"walk":.52,&"run":.36,&"rise":.28,&"lower":.28,&"attack":1.0,&"hook":1.2,&"boxing_rise":.28,&"boxing_lower":.28,&"boxing_walk":.65,&"boxing_guard":4.0,&"sit_down":.28,&"sit_up":.28,&"sit":4.0,&"idle":4.0,&"feed":1.5,&"stun_fall":.24,&"stun_hold":1.02,&"stun_rise":.24,&"death":2.0,&"corpse":2.0}.get(state,1.0)
 
 static func body_frame(pitch:float,down:float,z:float=0.0,yaw:float=0.0,roll:float=0.0,x:float=0.0) -> Transform3D:
  var pivot:=Vector3(0,8.5,-6)
@@ -172,6 +173,8 @@ static func sample(state:StringName,phase:float,left:bool=true) -> Dictionary:
   pose=setup(&"sit")
   pose.body.origin.y+=sin(cycle*TAU)*.05
   pose.head=Basis.from_euler(Vector3(.04+sin(cycle*TAU*2)*.012,sin(cycle*TAU)*.10,0))
+ elif state in [&"sleep_down",&"sleep",&"wake_up"]:
+  pose=Sleep.sample(setup(&"quad"),setup(&"sit"),state,t)
  elif state==&"feed":
   for side in 2:
    var feed_cycle:=fposmod(cycle+side*.5,1)

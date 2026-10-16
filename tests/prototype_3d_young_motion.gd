@@ -22,7 +22,7 @@ func run():
   var point:Array=seeds[bone].a
   require(actor.rest[bone].origin.distance_to(Vector3(point[0],point[1],point[2]))<.001,"Runtime bind matches the original Meshy heat rig: "+String(seeds[bone].name))
  var arrays:Array=mesh.surface_get_arrays(0)
- require(mesh==load("res://assets/enemies/first/meshy/mossclaw_skin.res"),"Animations share the authoritative imported Meshy asset")
+ require(mesh==preload("res://scripts/prototype_3d/young_face.gd").mesh(load("res://assets/enemies/first/meshy/mossclaw_skin.res")),"Animations share the cached facial variant of the authoritative imported Meshy asset")
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var bones:PackedInt32Array=arrays[Mesh.ARRAY_BONES];var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
  var probes:Array[int]=[]
  for i in range(0,vertices.size(),maxi(1,vertices.size()/2100)):probes.append(i)

@@ -1,12 +1,15 @@
 extends Node3D
 ## Meshy Mossclaw Boar supplied by the user. The source mesh/UVs/textures are
 ## preserved; a baked skin adapts the unrigged FBX to the creature's actions.
+const Face=preload("res://scripts/prototype_3d/young_face.gd")
 const Motion=preload("res://scripts/prototype_3d/young_pose.gd")
 const IMPORTED_SKIN=preload("res://assets/enemies/first/meshy/mossclaw_skin.res")
 var skeleton:=Skeleton3D.new()
 var rest:Array[Transform3D]=[]
 var posed:Array[Transform3D]=[]
 var parents:Array[int]=[]
+var facial_open:=0.0
+var mouth_interior:MeshInstance3D
 var mesh_node:MeshInstance3D
 var body_material:StandardMaterial3D
 var last_pose:Dictionary={}
@@ -17,9 +20,10 @@ const Frames=preload("res://scripts/prototype_3d/human_kinematics.gd")
 
 func _ready() -> void:
  mesh_node=MeshInstance3D.new();add_child(mesh_node)
- mesh_node.mesh=IMPORTED_SKIN
+ mesh_node.mesh=Face.mesh(IMPORTED_SKIN)
  body_material=IMPORTED_SKIN.surface_get_material(0)
  make_skeleton()
+ mouth_interior=Face.mouth();add_child(mouth_interior)
  mesh_node.custom_aabb=AABB(Vector3(-35,-20,-45),Vector3(70,80,100))
 func bone(label:String,parent:int,point:Vector3) -> void:
  var index:=skeleton.get_bone_count();skeleton.add_bone(label);parents.append(parent)
@@ -45,16 +49,16 @@ func make_skeleton() -> void:
 func animate(state:StringName,phase:float,left:bool = true,delta:float = 0.0) -> void:
  var target:=Motion.sample(state,phase,left)
  if state!=previous_state:
-  interruption_pose=last_pose.duplicate(true) if delta>0 and state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower",&"death",&"stun_fall"] else {}
+  interruption_pose=last_pose.duplicate(true) if delta>0 and state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower",&"death",&"stun_fall",&"sleep_down",&"wake_up"] else {}
   previous_state=state
- if not interruption_pose.is_empty() and state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower",&"death",&"stun_fall"]:
+ if not interruption_pose.is_empty() and state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower",&"death",&"stun_fall",&"sleep_down",&"wake_up"]:
   var end:=.16 if state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower"] else (.35 if state==&"death" else .55)
   var settle:=smoothstep(0,end,phase)
   target=Motion.mix(interruption_pose,target,settle)
   if settle>=1:interruption_pose.clear()
  last_pose=Motion.blend(last_pose,target,delta) if delta>0 and not last_pose.is_empty() and state not in [&"attack",&"hook",&"death",&"corpse"] else target
- apply_pose(last_pose)
-func apply_pose(pose:Dictionary) -> void:
+ apply_pose(last_pose,delta)
+func apply_pose(pose:Dictionary,delta:float=0.0) -> void:
  last_pose=pose
  var body:Transform3D=last_pose.body;posed[0]=body
  posed[1]=Transform3D(last_pose.head,last_pose.head_origin)
@@ -69,4 +73,8 @@ func apply_pose(pose:Dictionary) -> void:
     posed[start+segment]=Transform3D(rotation,limb.root if segment==0 else limb.joint)
    var end_basis:Basis=(last_pose.foot_bases[side] if not last_pose.get("foot_bases",[]).is_empty() else Basis(Vector3.RIGHT,limb.get("pitch",0.0))) if kind==0 else posed[start+1].basis
    posed[start+2]=Transform3D(end_basis,limb.end)
+ var opening:=Face.amount(last_pose.state,last_pose.phase)
+ facial_open=move_toward(facial_open,opening,delta*8) if delta>0 else opening
+ mesh_node.set_blend_shape_value(0,facial_open)
+ Face.apply(mouth_interior,facial_open,posed[1]*rest[1].affine_inverse())
  for i in posed.size():skeleton.set_bone_pose(i,posed[parents[i]].affine_inverse()*posed[i] if parents[i]>=0 else posed[i])
