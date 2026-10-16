@@ -1,5 +1,15 @@
 # Ejemplos de las nuevas animaciones del personaje
 
+## Actualización: jab recto y brazo de apoyo más bajo
+
+El brazo contrario se eleva un 60 % menos. El jab se extiende y se retira por la misma línea, manteniendo el apoyo de torso, cadera y pie. Las filas muestran ambos brazos y las fases de reposo, preparación, extensión, retirada y recuperación.
+
+![Jab izquierdo y derecho: vista de frente](jab_frente.png)
+
+![Jab izquierdo y derecho: vista lateral](jab_lateral.png)
+
+Las secuencias siguientes corresponden a la revisión anterior.
+
 Capturas reales renderizadas en Godot 4.6.3 con el modelo y las texturas del juego. Cada fila se lee de izquierda a derecha. Son secuencias de poses; el desplazamiento físico del personaje y el retardo de cámara se aprecian al jugar.
 
 Esta rama publica únicamente la galería. La implementación de las animaciones permanece local, pendiente de commit y push.
