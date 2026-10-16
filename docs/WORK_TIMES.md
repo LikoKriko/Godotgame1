@@ -1287,3 +1287,87 @@ la verificación posterior sin ese bloqueo terminó sin errores. El render
 final en X11/Compatibility también terminó sin errores de scripts o recursos.
 Esta revisión rápida no repite todas las suites ni certifica animaciones
 artísticamente, rendimiento del usuario, audio físico o funcionamiento en Windows.
+
+## 16 de octubre de 2026 — Giro diferido, retirada, salto, puños y sprint
+
+Inicio observado: **16/10/2026 11:27:28 Europe/Madrid**. Cierre de
+implementación y comprobaciones: **16/10/2026 11:41:14 Europe/Madrid**.
+Duración medida: **13 min 46 s**. Sin estimación previa.
+Cambios locales sin commit ni push para esta tarea.
+
+Orientación normal diferida un segundo mediante historial continuo; las acciones
+conservan el contacto seleccionado en la mira. Retirada deslizante con apoyo
+asimétrico, tobillos y cadera coordinados, torso curvado y recorrido al 60 %.
+Manos y objeto equipado ascienden suavemente durante el salto. Puñetazos
+alternos con giro de torso/pelvis y paso del pie del mismo lado. Sprint con
+arranque de 0,16 s, aceleración máxima de un segundo y frenada de 0,24 s hacia
+reposo, caminar o caminar agachado, interrumpible y reiniciable en cualquier fase.
+Persistencia de fase y retirada, compatibilidad de guardados anteriores y
+reinicio de respuesta al reaparecer/colocar. F6 permite revisar retirada y puño
+izquierdo. Sin cambios de geometría, proporciones, UV, materiales ni texturas.
+Referencias consultadas: Baseball Canada, Sliding Fundamentals, y Weapons of
+Choice, Back / sit fall; enlaces y adaptación en `docs/ANIMATION_AREA.md`.
+
+Godot 4.6.3: **11 suites superadas, 266738 comprobaciones**: nueva
+respuesta del jugador **25448**, deformación humana **155005**, piel Meshy
+**15194**, equipamiento **17892**, armas **27739**, deslizamiento **2028**,
+inercia de salto **131**, caídas **18221**, acciones/mira/E **4050**, combate
+agachado **836** y guardado **194**. La suite nueva incluye retardo a 30/60/120
+Hz, límites del historial, interrupciones en cinco momentos y tres destinos,
+reinicio de sprint, continuidad articular a 120 Hz, agarres, apoyos, ambos
+puños/contactos, controles reales y JSON/compatibilidad de guardado.
+
+Inspección completa de piel en ocho casos y 65 fases: **137.148.960 muestras
+de vértice**, sin penetraciones sobre el margen de 0,12 unidades de autoría
+(mínimo observado −0,0258). Revisión nativa Compatibility de **378 fotogramas**:
+retirada y salto libres/con cuatro armas, ambos puñetazos y secuencia de sprint,
+en tres vistas. Importación del editor y `git diff --check` sin errores.
+No incluye una sesión de juego en el equipo del usuario.
+
+
+## 16 de octubre de 2026 — Galería de capturas solicitada
+
+Primer hito horario observado: **11:46:00 Europe/Madrid**; cierre
+**11:47:23 Europe/Madrid**. Intervalo parcial medido: **1 min
+23 s**; preparación anterior al primer hito no medida. Sin estimación previa.
+Cuatro láminas a partir de capturas nativas ya revisadas: retirada, salto,
+puñetazos alternos y sprint; 50 fotogramas seleccionados, etiquetas en español
+y README con galería. Publicación aislada en la rama
+`previews/animaciones-personaje-2026-10-16`; diferencia final limitada a las
+cuatro imágenes y el README. La implementación del movimiento sigue local sin
+commit ni push. Verificada la conservación de los archivos base del repositorio.
+
+
+## 16 de octubre de 2026 — Brazo de apoyo más bajo y jab alterno
+
+Inicio observado: **11:59:13 Europe/Madrid**. Cierre:
+**12:02:11 Europe/Madrid**. Duración medida: **2 min 58 s**.
+Sin estimación previa. Cambios locales sin commit ni push; se conservan los
+cambios de movimiento anteriores pendientes de publicación.
+
+Elevación del brazo contrario al golpe al 40 % de la anterior, medida respecto
+al reposo en el marco del torso. Nuevo jab con preparación recogida, extensión
+casi completa con codo suave, contacto en la misma fase y retirada inmediata
+por la misma línea. Codo bajo, con transporte continuo de su plano. Se
+preservan ambas manos alternas, mira, agachado, torso, cadera y paso de apoyo.
+Sin cambios de geometría, UV, proporciones ni texturas.
+
+Godot 4.6.3: **5 suites superadas, 211589 comprobaciones**: nueva suite jab
+**26250**, respuesta del jugador **25448**, deformación humana **155005**,
+combate agachado **836** y acciones/mira/E **4050**. Incluye ambos brazos,
+reposo/marcha, de pie/agachado, contactos de varias alturas, reducción exacta
+de elevación, longitudes, continuidad y recorrido de ida/vuelta del jab.
+Revisión nativa Compatibility: **54 fotogramas**, ambos puños en nueve fases
+y tres vistas, con inspección ampliada del impacto lateral. Importación del
+editor y `git diff --check` sin errores. No incluye sesión en el equipo del usuario.
+
+
+## 16 de octubre de 2026 — Segunda reducción del brazo de apoyo
+
+Inicio observado **12:09:54 Europe/Madrid**; cierre **12:10:14**.
+Duración medida **0 min 20 s**; sin estimación previa.
+Elevación de la mano contraria al golpe al 50 % de la revisión actual:
+factor 0,4 → 0,2 respecto al reposo. Conserva el jab y el desplazamiento
+horizontal de apoyo. Suite específica jab **26250 comprobaciones superadas**
+para ambos brazos, de pie/agachado y en reposo/marcha; `git diff --check`
+sin errores. Cambios locales sin commit ni push.

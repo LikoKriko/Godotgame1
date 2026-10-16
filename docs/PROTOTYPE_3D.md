@@ -582,3 +582,22 @@ su máscara para participar en esta colisión, además de dimensionar su cuerpo.
 bloqueo por una criatura detenida, sondeo para rodearla, inicio de ataque y
 persecución real de tres jóvenes. Admite hasta 1 cm de tolerancia de contacto
 del motor, inferior al margen nominal combinado de estos modelos.
+
+
+## Respuesta de movimiento del superviviente (16 de octubre de 2026)
+
+La cámara gira de inmediato y el personaje la sigue con un segundo de retraso.
+Las acciones sobre la mira conservan su orientación hacia el contacto. Sprint
+entra con una transición de 0,16 s y acelera hasta su máximo durante el segundo
+siguiente. Al soltar Shift o el movimiento, frena durante 0,24 s hasta caminar,
+quedarse quieto o caminar agachado. Se puede interrumpir y reiniciar en cualquier
+fase. Los pasos y el balanceo acompañan la velocidad real.
+
+Al deslizarse hacia atrás, la cadera lidera la retirada y el personaje sigue
+mirando hacia delante, con las piernas en apoyos distintos y el torso recogido.
+Ese recorrido es un 40 % menor; los demás conservan su distancia. El salto
+levanta lentamente las manos y el arma o herramienta acompaña al agarre.
+Los puñetazos alternan las manos; torso, cadera y pie del lado activo acompañan
+cada golpe, también agachado. F6 incluye retirada y puñetazo izquierdo.
+Se guardan la fase de sprint y la variante de retirada, con compatibilidad
+para partidas anteriores. Detalles y referencias en `docs/ANIMATION_AREA.md`.

@@ -22,6 +22,9 @@ var death_from:Dictionary={}
 var family_override: StringName = &"default"
 var aim_contact := Vector3.INF
 var action_crouch:=0.0
+var punch_side:=1
+var sprint_weight:float=-1.0
+var sprint_crouch:=0.0
 var tool_frame := Basis.IDENTITY
 var grip_socket := Node3D.new()
 var support_socket := Node3D.new()
@@ -73,7 +76,13 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
  if state!=&"death":death_from.clear()
  if not equipping:equipment_from.clear()
  var death_phase:=lerpf(.72,1,phase) if state==&"death" and death_from.get("low_start",false) and delta>0 else phase
- var target := Clips.sample(item,state,death_phase,movement_phase,movement,aim_contact,slide_launch_pose,action_crouch)
+ var target := Clips.sample(item,state,death_phase,movement_phase,movement,aim_contact,slide_launch_pose,action_crouch,punch_side)
+ if state in [&"run",&"start_run",&"stop_run"] and sprint_weight>=0:
+  var walking:=Clips.sample(item,&"walk",movement_phase,movement_phase,movement)
+  if sprint_crouch>0:walking=Clips.mix_motion(walking,Clips.sample(item,&"crouch_walk",movement_phase,movement_phase,movement),sprint_crouch)
+  var sprinting:=Clips.sample(item,&"run",movement_phase,movement_phase,movement)
+  target=Clips.mix_motion(walking,sprinting,sprint_weight)
+  target.clip_state=state;target.state=state;target.phase=phase;target.run_weight=sprint_weight
  if equipping and delta>0 and not equipment_from.is_empty():
   var entry:=smoothstep(0,.65,phase)
   target.body=(equipment_from.body as Transform3D).interpolate_with(target.body,entry)
@@ -95,8 +104,8 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   target.equipment_weight=entry
   target.equipment_poles=death_from.poles;target.equipment_palms=death_from.palms
   target.equipment_forearms=death_from.forearms;target.equipment_axes=death_from.axes
- if state in [&"walk",&"run",&"crouch_walk"] and motion_amount<1:
-  var neutral:=Clips.sample(item,&"crouch" if state==&"crouch_walk" else &"idle",1.0 if state==&"crouch_walk" else 0.0)
+ if state in [&"walk",&"run",&"start_run",&"stop_run",&"crouch_walk"] and motion_amount<1:
+  var neutral:=Clips.sample(item,&"crouch" if state==&"crouch_walk" or sprint_crouch>.01 else &"idle",sprint_crouch if sprint_crouch>.01 else (1.0 if state==&"crouch_walk" else 0.0))
   target.body=neutral.body.interpolate_with(target.body,motion_amount)
   target.pelvis=neutral.pelvis.interpolate_with(target.pelvis,motion_amount)
   target.grip=neutral.grip.lerp(target.grip,motion_amount)
@@ -124,7 +133,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   displayed_pose.state = target.state; displayed_pose.phase = target.phase
   displayed_pose.family=target.family;displayed_pose.clip_state=target.clip_state;displayed_pose.gait_phase=target.gait_phase
  if state==&"death":displayed_pose=target.duplicate(true)
- for key in ["head_basis","arm_poles","foot_bases","equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
+ for key in ["run_weight","head_basis","arm_poles","foot_bases","equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
   if target.has(key):displayed_pose[key]=target[key]
   else:displayed_pose.erase(key)
  displayed_pose.tool_basis=target.get("tool_basis",Aim.frame(target.shaft))
@@ -186,7 +195,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
    prop.show_item(displayed_item,item_water_ml)
    var support_hand:Vector3=rig.posed[6 if last_pose.active==1 else 9].origin
    prop.update_pose(state,phase,grip_socket.transform.affine_inverse()*support_hand,nock_visible,grip_socket.transform.affine_inverse()*aim_contact if aim_contact.is_finite() else Vector3.INF)
- if state==&"slide":
+ if state in [&"slide",&"slide_back"]:
   # Capture after IK and grips, so take-off uses the pose actually rendered.
   slide_launch_pose=displayed_pose.duplicate(true)
   slide_launch_pose.hands=[rig.posed[6].origin,rig.posed[9].origin]
@@ -194,7 +203,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
    slide_launch_pose.grip=grip_socket.position;slide_launch_pose.tool_basis=grip_socket.basis;slide_launch_pose.shaft=grip_socket.basis.y
  elif state!=&"slide_jump":slide_launch_pose.clear()
 func can_reach_contact(point: Vector3,family:StringName=&"axe") -> bool:
- var contact_pose := Clips.sample(family,&"action",0.5,0,Vector3.ZERO,point,{},action_crouch)
+ var contact_pose := Clips.sample(family,&"action",0.5,0,Vector3.ZERO,point,{},action_crouch,punch_side)
  return contact_pose.get("contact_reachable",false)
 func wear(item:Dictionary) -> void:leaf_armor.visible=item.get("id")==&"burdock_armor"
 func confirm_parry() -> void:

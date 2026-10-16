@@ -36,6 +36,19 @@ var pickup_target:Dictionary={}
 var pickup_point:=Vector3.INF
 var pickup_completed:=false
 var visual_motion:=0.0
+var facing_history=preload("res://scripts/prototype_3d/facing_delay.gd").new()
+var delayed_aim:=Vector3.INF
+var movement_response=preload("res://scripts/prototype_3d/movement_response.gd").new()
+var slide_backward:=false
+var slide_facing:=0.0
+var punch_side:=1
+var next_punch_side:=1
+func reset_motion_state() -> void:
+ locomotion.reset();velocity=Vector3.ZERO;visual_motion=0
+ movement_response=preload("res://scripts/prototype_3d/movement_response.gd").new()
+ facing_history=preload("res://scripts/prototype_3d/facing_delay.gd").new()
+ facing_history.sample(model.basis.z*4,0)
+ slide_backward=false;slide_facing=model.rotation.y
 func configure(owner_game) -> void:
  game = owner_game
  var capsule := CapsuleShape3D.new(); capsule.radius = 0.20; capsule.height = Anatomy.HEIGHT_METRES
@@ -46,6 +59,7 @@ func configure(owner_game) -> void:
  var unit:=Anatomy.HEIGHT_METRES/bounds.size.y
  model.scale=Vector3.ONE*unit;model.position.y=-bounds.position.y*unit;model.rotation.y=PI
  model.animate(&"idle",0,equipped)
+ facing_history.sample(model.basis.z*4,0)
 func family() -> StringName:
  if not equipped:return &""
  var item:Dictionary=game.bag.held_item()
@@ -81,6 +95,9 @@ func strike() -> bool:
  if action_family==&"bow":
   if game.bag.count(&"flecha")<=0:game.status.text="Necesitas flechas para disparar el arco";return false
   game.bag.consume_use()
+ if action_family==&"":
+  punch_side=next_punch_side;next_punch_side=1-next_punch_side
+  model.punch_side=punch_side
  action_uid=item.get("uid",-1)
  action_elapsed=0;contact_done=false;bow_follow_elapsed=-1
  var aim:Dictionary=game.camera_rig.aim_sample() if action_family==&"bow" else game.camera_rig.action_sample()
@@ -96,11 +113,12 @@ func heading_to(point:Vector3) -> float:
   return atan2(forward.x,forward.z)
  return atan2(toward.x,toward.y)
 func update_facing(point:Vector3,delta:float) -> void:
- var contact:Vector3=pickup_point if preview_state==&"pickup" and pickup_point.is_finite() else point
+ delayed_aim=global_position+facing_history.sample(point-global_position,delta)
+ var contact:Vector3=pickup_point if preview_state==&"pickup" and pickup_point.is_finite() else delayed_aim
  var visual_heading:=heading_to(action_point if action_elapsed>=0 else contact)
  if action_elapsed>=0:action_heading=visual_heading
- elif locomotion.sliding():visual_heading=atan2(locomotion.slide_direction.x,locomotion.slide_direction.y)
- elif locomotion.airborne() and locomotion.from_slide:visual_heading=PI/2-locomotion.jump_heading
+ elif locomotion.sliding():visual_heading=slide_facing
+ elif locomotion.airborne() and locomotion.from_slide:visual_heading=(PI/2-locomotion.jump_heading)+(PI if slide_backward else 0)
  model.rotation.y=lerp_angle(model.rotation.y,visual_heading,1-exp(-maxf(0,delta)*15))
 func advance_action(delta:float) -> void:
  if action_elapsed<0:return
@@ -170,7 +188,10 @@ func _physics_process(delta: float) -> void:
  var running: bool = (Input.is_physical_key_pressed(KEY_SHIFT) or game.settings.values.auto_run) and action_elapsed < 0 and not input.is_zero_approx()
  if preview_state in [&"eat",&"eat_walk",&"drink",&"drink_walk"]:running=false
  if control and not control_was_pressed and running and is_on_floor():
-  locomotion.slide(Vector2(direction.x,direction.z))
+  var backward:=input.y>absf(input.x)
+  if locomotion.slide(Vector2(direction.x,direction.z),.6 if backward else 1.0):
+   slide_backward=backward
+   slide_facing=atan2(direction.x,direction.z)+(PI if backward else 0)
  control_was_pressed = control
  var jump_pressed := Input.is_physical_key_pressed(KEY_SPACE)
  if jump_pressed and not jump_was_pressed and is_on_floor():
@@ -182,8 +203,9 @@ func _physics_process(delta: float) -> void:
  running = running and locomotion.crouch < 0.01
  var movement_multiplier:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-0.05*equip_recovery)
  movement_multiplier*=0.4 if preview_state==&"pickup" else 1-0.6*pickup_recovery/0.5
- var speed:float = SPEED*(RUN_MULTIPLIER if running else 1.0)*movement_multiplier
- var planar: Vector2 = locomotion.velocity(Vector2(direction.x,direction.z)*speed,WORLD_SCALE)
+ var response:Vector2=movement_response.advance(Vector2(direction.x,direction.z),running,locomotion.crouch,delta)
+ var planar:Vector2=response*SPEED*movement_multiplier
+ if locomotion.sliding() or (locomotion.airborne() and locomotion.from_slide):planar=locomotion.velocity(planar,WORLD_SCALE)
  if locomotion.from_slide: planar *= WORLD_SCALE
  if locomotion.airborne() and not game.can_cross_jump(global_position,Vector3(planar.x,0,planar.y)*delta,get_rid()):planar=Vector2.ZERO
  velocity.x = planar.x; velocity.z = planar.y
@@ -199,9 +221,11 @@ func _physics_process(delta: float) -> void:
   if bow_follow_elapsed>=Clips.duration(&"bow_release") or family()!=&"bow" or not equipped:bow_follow_elapsed=-1
  var state: StringName = &"idle"; var progress := 0.0
  var actual_speed:=Vector2(velocity.x,velocity.z).length()
- if input.length_squared()>0 and actual_speed>0.03:
+ if actual_speed>0.03:
   phase = fposmod(phase+delta/Clips.duration(&"run" if running else &"walk")*actual_speed/(SPEED*(RUN_MULTIPLIER if running else 1.0)),1)
- visual_motion=move_toward(visual_motion,clampf(actual_speed/maxf(speed,0.01),0,1) if not input.is_zero_approx() else 0.0,delta/0.16)
+ visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
+ model.sprint_weight=movement_response.sprint_weight
+ model.sprint_crouch=locomotion.crouch
  if action_elapsed >= 0:
   state=&"draw" if action_family==&"bow" else &"action"
   var seconds:=0.5 if action_family==&"bow" else Clips.duration(state,action_family)
@@ -211,7 +235,7 @@ func _physics_process(delta: float) -> void:
   parry_elapsed+=delta;state=&"parry";progress=clampf(parry_elapsed/0.5,0,1)
   if parry_elapsed>=0.5:parry_elapsed=-1
  elif locomotion.sliding():
-  state = &"slide"; progress = locomotion.slide_elapsed/locomotion.SLIDE_SECONDS
+  state = &"slide_back" if slide_backward else &"slide"; progress = locomotion.slide_elapsed/locomotion.SLIDE_SECONDS
  elif not is_on_floor():
   state = &"slide_jump" if locomotion.from_slide else &"jump"
   progress = locomotion.jump_elapsed/locomotion.JUMP_SECONDS
@@ -221,6 +245,8 @@ func _physics_process(delta: float) -> void:
    state = &"equip_crouch_walk" if locomotion.crouch>0.01 else (&"equip_run" if running else &"equip_walk")
   if unequipping:state=&"unequip"
   if equip_elapsed >= Clips.duration(&"equip",family()): equip_elapsed = -1
+ elif movement_response.stage==&"start":state=&"start_run";progress=movement_response.phase()
+ elif movement_response.stage==&"brake" and actual_speed>.01:state=&"stop_run";progress=movement_response.phase()
  elif input.length_squared() > 0:
   state = &"crouch_walk" if locomotion.crouch>0.01 else (&"run" if running else &"walk")
   progress = phase
@@ -242,10 +268,10 @@ func _physics_process(delta: float) -> void:
   var preview:Dictionary=advance_preview(delta,input.length_squared()>0)
   state=preview.state;progress=preview.phase
  model.aim_contact=model.to_local(action_point) if state in [&"action",&"draw"] else Vector3.INF
- if family()==&"bow" and equipped:model.aim_contact=model.to_local(live_aim)
+ if family()==&"bow" and equipped:model.aim_contact=model.to_local(live_aim if state in [&"action",&"draw"] else delayed_aim)
  if state==&"parry" and guard_point.is_finite():model.aim_contact=model.to_local(guard_point)
  if state in [&"pickup",&"pickup_walk"] and pickup_point.is_finite():model.aim_contact=model.to_local(pickup_point)
- var local_travel: Vector3 = (model.global_basis.inverse()*direction).normalized()
+ var local_travel: Vector3 = (model.global_basis.inverse()*Vector3(movement_response.direction.x,0,movement_response.direction.y)).normalized()
  model.animate(state,progress,equipped or (unequipping and state==&"unequip"),delta,phase,local_travel,visual_motion)
  _finish_visual_frame(state,progress)
 

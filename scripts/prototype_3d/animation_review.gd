@@ -38,7 +38,7 @@ func _ready() -> void:
  var states:=OptionButton.new()
  var state_options:Array[StringName]=YOUNG_STATES.duplicate() if species==&"young" else Clips.STATES
  if species==&"young":state_options.push_front(&"reference");clip=&"reference"
- var labels={&"reference":"Postura de referencia",&"boxing_guard":"Guardia de boxeo",&"boxing_walk":"Avanzar en guardia",&"boxing_rise":"Entrar en boxeo",&"boxing_lower":"Salir de boxeo",&"hook":"Crochet alterno"}
+ var labels={&"reference":"Postura de referencia",&"boxing_guard":"Guardia de boxeo",&"boxing_walk":"Avanzar en guardia",&"boxing_rise":"Entrar en boxeo",&"boxing_lower":"Salir de boxeo",&"hook":"Crochet alterno",&"slide_back":"Deslizamiento hacia atrás"}
  for name in state_options:states.add_item(labels.get(name,String(name)))
  column.add_child(states);states.item_selected.connect(func(index):clip=state_options[index];elapsed=0)
  if species==&"young":
@@ -53,6 +53,7 @@ func _ready() -> void:
  if species!=&"young":
   var armor:=CheckButton.new();armor.text="Armadura de hojas";column.add_child(armor);armor.toggled.connect(func(value):actor.wear({"id":&"burdock_armor"} if value else {}))
   var crouched:=CheckButton.new();crouched.text="Atacar agachado";column.add_child(crouched);crouched.toggled.connect(func(value):actor.action_crouch=1.0 if value else 0.0)
+  var left_punch:=CheckButton.new();left_punch.text="Puñetazo izquierdo";column.add_child(left_punch);left_punch.toggled.connect(func(value):actor.punch_side=0 if value else 1)
   var height_label:=Label.new();height_label.text="Altura de contacto (m)";column.add_child(height_label)
   height_control=HSlider.new();height_control.min_value=.05;height_control.max_value=1.6;height_control.step=.01;height_control.value=contact_height;column.add_child(height_control);height_control.value_changed.connect(func(value):contact_height=value)
   var distance_label:=Label.new();distance_label.text="Distancia de contacto (m)";column.add_child(distance_label)

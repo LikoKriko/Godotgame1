@@ -164,3 +164,61 @@ necesarios para dejarla a un lado durante la caída. El cadáver conserva una
 zona de recogida con E ajustada a su nueva postura. Véase `docs/YOUNG_3D.md`.
 La suite `tests/prototype_3d_falls.gd` comprueba orden de apoyos, apertura,
 continuidad desde acciones y poses bajas, soporte de piel y cadáver estable.
+
+
+## Respuesta del superviviente: cámara, retirada, salto y sprint
+
+`facing_delay.gd` mantiene un historial temporal de la dirección de la mira:
+la orientación normal y la postura del arco siguen la cámara con un segundo
+de retraso, también si el ratón continúa girando. La cámara responde al instante.
+Golpes, tiro y recogida conservan el contacto de la mira y el giro hacia él;
+los deslizamientos fijan su orientación al iniciarse.
+
+`slide_back` mantiene la vista hacia delante mientras la cadera se retira.
+La pierna izquierda queda más extendida y la derecha carga flexionada, con
+planos de rodilla separados, tobillos suaves y torso curvado sobre la cadera.
+Se activa con dirección hacia atrás + sprint + Ctrl; las diagonales conservan
+el recorrido normal. Dura 0,46 s y recorre el 60 % de los otros deslizamientos.
+El salto encadenado conserva su pose real de salida y la inercia reducida.
+Se adapta el apoyo lateral de pierna de Baseball Canada y el descenso bajo de
+cadera del manual de combate escénico; no se reproduce una caída rígida ni se
+invierte simplemente el clip anterior.
+Referencias: https://www.baseball.ca/sliding-fundamentals y
+https://weaponsofchoice.com/the-textbook-of-stage-combat/foundations-of-staged-violence/unarmed-stage-combat/falls/.
+
+El salto eleva ambas manos gradualmente unas 3,8 unidades de autoría durante
+la subida y las devuelve al bajar. También afecta al agarre, apoyo y plano del
+objeto equipado; muñecas y antebrazos se resuelven con la misma anatomía.
+Los puñetazos alternan derecha/izquierda desde la entrada real de ataque.
+Cada brazo recibe preparación, extensión y recuperación; torso y pelvis giran
+y el pie del lado que golpea da un pequeño paso antes del contacto. Se mantiene
+el ataque agachado y la selección de contacto de la mira.
+
+`movement_response.gd` coordina velocidad y mezcla visual: arranque de 0,16 s,
+fase máxima que acelera durante 1 s hasta el multiplicador 1,6, y frenada de
+0,24 s hacia reposo, marcha o marcha agachada. Interrumpir o reiniciar captura
+la velocidad y la carga de sprint actuales; no exige terminar una fase.
+Los pasos, torso, manos ocupadas y balanceo de brazos usan esa carga común.
+Las nuevas partidas, reaparición y colocación reinician la respuesta; el
+guardado conserva la fase y el deslizamiento hacia atrás. Los archivos antiguos
+siguen siendo válidos. En F6 se añaden el clip de retirada y el selector de
+puñetazo izquierdo. Pruebas: `tests/prototype_3d_player_motion.gd`.
+
+
+### Jab y altura del brazo contrario
+
+El brazo de apoyo conserva su desplazamiento de guardia, pero su elevación
+vertical respecto al brazo relajado se multiplica por 0,2: la mitad de la
+elevación de la primera revisión del jab (0,4), y un 80 % menos que la versión
+inicial. La corrección se calcula en el marco del torso, por lo
+que sigue siendo la misma al agacharse o girar.
+
+Cada puño prepara cerca del pecho entre 0 y 0,28 del gesto, se extiende en
+línea recta hasta el contacto en 0,5, regresa por esa misma línea hasta 0,72
+y vuelve al reposo. El objetivo libre queda cerca de la altura del hombro,
+con alcance de 18,57 sobre 19 unidades de brazo y codo suave. Con contacto
+seleccionado, la misma trayectoria usa el punto de la mira dentro del alcance.
+El plano de flexión transporta el codo bajo el antebrazo sin abrirlo hacia el
+lado ni invertirlo al entrar/salir. Se conservan alternancia, giro de torso y
+pelvis, paso del pie activo y duración/contacto del golpe. Prueba específica:
+`tests/prototype_3d_jab.gd`.

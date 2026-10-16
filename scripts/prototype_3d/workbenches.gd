@@ -46,7 +46,7 @@ func begin_placement(point:Vector3) -> bool:
  if not game.player.equipped or game.bag.held_id()!=&"basic_workbench":return false
  if not can_place(point):game.status.text="Elige suelo libre y cercano para colocar la mesa.";return false
  game.cancel_work();pending_uid=game.bag.held_item().uid;pending_point=point;remaining=PLACE_SECONDS
- game.player.velocity=Vector3.ZERO;game.player.locomotion.reset();progress.value=0;progress.show();return true
+ game.player.velocity=Vector3.ZERO;game.player.reset_motion_state();progress.value=0;progress.show();return true
 func cancel_placement() -> void:
  pending_uid=-1;remaining=0;progress.hide()
 func advance_placement(delta:float) -> void:

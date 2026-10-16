@@ -13,6 +13,7 @@ var slide_elapsed := SLIDE_SECONDS
 var cooldown := 0.0
 var crouch := 0.0
 var slide_direction := Vector2.ZERO
+var slide_distance_scale:=1.0
 func reset() -> void:
 	jump_elapsed = JUMP_SECONDS
 	from_slide = false
@@ -21,10 +22,11 @@ func reset() -> void:
 	cooldown = 0
 	crouch = 0
 	slide_direction = Vector2.ZERO
+	slide_distance_scale=1.0
 func airborne() -> bool: return jump_elapsed < JUMP_SECONDS
 func sliding() -> bool: return slide_elapsed < SLIDE_SECONDS
 func slide_speed() -> float:
-	return lerpf(340*SLIDE_DISTANCE_FACTOR,0,smoothstep(0,SLIDE_SECONDS,slide_elapsed))
+	return lerpf(340*SLIDE_DISTANCE_FACTOR*slide_distance_scale,0,smoothstep(0,SLIDE_SECONDS,slide_elapsed))
 func jump(inertia_multiplier: float = 1.0) -> bool:
 	if airborne(): return false
 	from_slide = sliding()
@@ -41,9 +43,10 @@ func steer_air(direction: Vector2, delta: float) -> void:
 	var offset := clampf(wrapf(direction.angle()-launch_heading,-PI,PI),-MAX_AIR_TURN,MAX_AIR_TURN)
 	jump_heading = move_toward(jump_heading,launch_heading+offset,maxf(delta,0)*4.0)
 
-func slide(direction: Vector2) -> bool:
+func slide(direction: Vector2,distance_scale:float=1.0) -> bool:
 	if direction.is_zero_approx() or airborne() or sliding() or cooldown > 0: return false
 	slide_direction = direction.normalized()
+	slide_distance_scale=clampf(distance_scale,0,1)
 	slide_elapsed = 0
 	cooldown = 0.9
 	return true

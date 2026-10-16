@@ -128,7 +128,7 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   elif delta<=0:run_arm_blend[side]=1.0 if running else 0.0
   else:run_arm_blend[side]=move_toward(run_arm_blend[side],1.0 if running else 0.0,delta/(0.14 if running else 0.18))
   if run_arm_blend[side]>0:
-   var amount:float=run_arm_blend[side]
+   var amount:float=run_arm_blend[side]*pose.get("run_weight",1.0)
    var upper:Vector3=(arm.joint-arm.root).normalized().lerp((running_pose.joint-running_pose.root).normalized(),amount).normalized()
    var forearm:Vector3=(arm.end-arm.joint).normalized().lerp((running_pose.end-running_pose.joint).normalized(),amount).normalized()
    arm.joint=arm.root+upper*Pose.UPPER_ARM;arm.end=arm.joint+forearm*Pose.FOREARM
