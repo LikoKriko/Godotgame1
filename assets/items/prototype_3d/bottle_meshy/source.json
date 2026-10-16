@@ -1,0 +1,13 @@
+{
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_botella_3d/Meshy_AI_Wild_Wanderer_1015201943_texture_fbx.zip",
+  "zip_sha256": "195b63561de1f06c49eec428686e488d41096329b8570e42655e7de88f483127",
+  "fbx_sha256": "a0bd94048ff4ca28c091cda82ceecd7efc788ecd5d0e3b87c4193bcb795930d0",
+  "triangles": 883250,
+  "textures_sha256": {
+    "albedo": "a472c7f01af6a68f8a51e43dd7c6c2ac24d1b837c936df3250b8a1f31dab6002",
+    "normal": "7dcd90d96868edfc0a4b6c91f635cd1ece164f46a2bb78b31d478a840e66fb94",
+    "roughness": "4726d84c9a77949d083b09b318743d8f0061f1d13cb7b7694f93d1ec289afe40",
+    "metallic": "2da7a59b63f93dd494bddb166dda617f25bf81647b3122ea4e9b8dd8d80222a7"
+  },
+  "source_fbx": "entregables/objetos/botella/source/bottle.fbx"
+}

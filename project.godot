@@ -1,0 +1,23 @@
+config_version=5
+
+[application]
+config/name="Day Zero"
+run/main_scene="res://scenes/prototype_3d/day_zero.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+
+[autoload]
+; The isolated 3D prototype captures the mouse; the 2D scene restores its own cursor.
+
+[display]
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/window_width_override=1920
+window/size/window_height_override=1080
+window/stretch/mode="disabled"
+; Keep option lists in the same render/input space as the game window.
+window/subwindows/embed_subwindows=true
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.22, 0.26, 0.20, 1)

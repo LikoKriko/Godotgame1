@@ -1,0 +1,165 @@
+extends SceneTree
+## Uses mouse events, rather than calling inventory actions directly.
+const Settings = preload("res://scripts/game_settings.gd")
+var checks := 0
+var failures := 0
+func _initialize() -> void:
+	call_deferred("run_checks")
+func require(condition: bool, message: String) -> void:
+	checks += 1
+	if not condition:
+		failures += 1
+		push_error(message)
+func settle() -> void:
+	await process_frame
+	await process_frame
+func click(button: Control) -> void:
+	await settle()
+	var point := root.get_final_transform()*button.get_global_transform_with_canvas()*(button.size/2)
+	Input.warp_mouse(point)
+	for pressed in [true,false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.button_mask = MOUSE_BUTTON_MASK_LEFT if pressed else 0
+		event.position = point
+		event.global_position = point
+		event.pressed = pressed
+		Input.parse_input_event(event)
+		Input.flush_buffered_events()
+		await process_frame
+	await settle()
+func native_pointer(control: Control, local: Vector2, pressed: int = -1) -> void:
+	var point := root.get_final_transform()*control.get_global_transform_with_canvas()*local+Vector2(root.position)
+	var args := PackedStringArray([ProjectSettings.globalize_path("res://tests/native_pointer.py"),str(DisplayServer.window_get_native_handle(DisplayServer.WINDOW_HANDLE)),str(roundi(point.x)),str(roundi(point.y))])
+	if pressed >= 0: args.append(str(pressed))
+	require(OS.execute("python3",args) == 0,"Native inventory drag delivered")
+	await settle()
+func drag(source: Control,destination: Control) -> void:
+	await native_pointer(source,source.size/2,1)
+	await native_pointer(source,source.size/2+Vector2(20,0))
+	await native_pointer(destination,destination.size/2)
+	await native_pointer(destination,destination.size/2,0)
+func run_checks() -> void:
+	var had_config := FileAccess.file_exists(Settings.PATH)
+	var original: PackedByteArray = FileAccess.get_file_as_bytes(Settings.PATH) if had_config else PackedByteArray()
+	var app = load("res://scenes/day_zero.tscn").instantiate()
+	root.add_child(app)
+	await settle()
+	require(app.menu.visible and not is_instance_valid(app.game),"Startup shows Day Zero menu without launching a game")
+	require(is_equal_approx(app.menu.title_area.size.x,app.menu.size.x*0.6),"Title occupies the right 60 percent")
+	await click(app.menu.settings_button)
+	require(is_instance_valid(app.menu.settings_panel),"Mouse opens settings")
+	if is_instance_valid(app.menu.settings_panel):
+		var screen = app.menu.settings_panel
+		var tabs: Array[Node] = screen.find_children("*","TabContainer",true,false)
+		require(tabs.size() == 1 and tabs[0].get_tab_count() == 3 and tabs[0].get_tab_title(0) == "Juego" and tabs[0].get_tab_title(1) == "Gráficos" and tabs[0].get_tab_title(2) == "Audio","Settings contains exactly Juego, Gráficos and Audio")
+		var automatic := screen.find_child("AutomaticRun",true,false) as CheckButton
+		automatic.button_pressed = false
+		await click(automatic)
+		require(screen.pending["auto_run"],"Real click activates automatic running in Juego")
+		screen.hud_slider.value = 6
+		require(screen.pending["hud_size"] == 6,"Juego offers the HUD size slider")
+		screen.volume_sliders["music"].value = 25
+		screen.pending["fps"] = 120
+		screen.apply_changes()
+		var saved = Settings.new()
+		saved.load_settings()
+		require(saved.values["music"] == 0.25 and saved.values["fps"] == 120 and saved.values["auto_run"] and saved.values["hud_size"] == 6,"Sound and graphics preferences survive reload")
+		require(is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index("Music"))),0.25),"Music slider applies to the audio bus")
+		app.menu.close_settings()
+	await click(app.menu.play_button)
+	require(is_instance_valid(app.game) and not app.menu.visible,"Mouse Play enters the game")
+	if is_instance_valid(app.game):
+		var game = app.game
+		require(game.gameplay_settings == app.settings and game.gameplay_settings.values["auto_run"],"Game receives the saved automatic-run preference")
+		require(game.styled_hud.map_frame.scale.is_equal_approx(Vector2.ONE*Settings.hud_scale(6)),"Saved HUD scale applies when gameplay starts")
+		game.set_process(false)
+		game.bag.add(&"piedra",10)
+		game.bag.add(&"palo",10)
+		game.bag.add(&"cuerda",2)
+		var inventory = game.inventory_panel
+		inventory.refresh()
+		inventory.show()
+		await settle()
+		await click(inventory.backpack_buttons[0])
+		require(inventory.chosen == 0 and not inventory.equip_button.visible,"Mouse selects a weapon; its equipment action is drag-only")
+		var original_uid: int = game.bag.slots[0].uid
+		var destination = game.styled_hud.quick_buttons[0]
+		await drag(inventory.backpack_buttons[0],destination)
+		require(game.bag.quick_slots[0].get("uid") == original_uid and game.bag.slots[0].is_empty(),"Dragging moves the exact tool into physical quick storage")
+		await drag(destination,inventory.backpack_buttons[0])
+		inventory.refresh()
+		require(game.bag.slots[0].get("uid") == original_uid and game.bag.quick_slots[0].is_empty(),"Dragging returns the same tool to the backpack")
+		var sword_index := -1
+		var stone_index := -1
+		for i in game.bag.CAPACITY:
+			if game.bag.slots[i].get("id",&"") == &"sword":
+				sword_index = i
+			if game.bag.slots[i].get("id",&"") == &"piedra":
+				stone_index = i
+		require(stone_index >= 0 and sword_index >= 0,"Materials and unequipped weapon remain in inventory")
+		if stone_index >= 0:
+			var slot: Button = inventory.backpack_buttons[stone_index]
+			require(slot.get_node("ItemIcon").texture != null and slot.get_node("Amount").text == "10","Stone slot shows an image and a small quantity of 10")
+		if sword_index >= 0:
+			game.bag.slots[sword_index]["uses"] = 7
+			await click(inventory.backpack_buttons[sword_index])
+			await click(inventory.repair_button)
+			require(is_instance_valid(inventory.workshop_dialog),"Mouse Repair opens an object-and-materials window")
+			await click(inventory.workshop_confirm)
+			require(game.bag.slots[sword_index]["uses"] == 40 and game.bag.count(&"piedra") == 8,"Mouse repair restores the selected weapon and spends its materials")
+			inventory.close_workshop()
+		await click(inventory.craft_button)
+		require(inventory.navigation.current_tab == 1 and inventory.creation_page.visible,"Mouse opens crafting")
+		await click(inventory.creation_page.create_button)
+		require(game.bag.count(&"pickaxe") == 2 and game.bag.count(&"piedra") == 6 and game.bag.count(&"cuerda") == 1,"Mouse crafting creates a separate pickaxe with the exact recipe")
+		game.skill_points = 2
+		inventory.open_section(3)
+		var perks = inventory.sections[3]
+		await click(perks.entries[&"life"])
+		await click(perks.purchase_button)
+		require(game.skill_points == 0 and game.progression.max_health() == 22,"Real mouse purchase spends two points and unlocks phase one")
+		game.skill_points = 1
+		inventory.open_section(2)
+		var skills = inventory.sections[2]
+		await click(skills.entries[&"speed"])
+		await click(skills.purchase_button)
+		await click(skills.activate_button)
+		require(game.skill_points == 0 and game.progression.active[&"speed"] == 5,"Real mouse ability purchase and activation apply their effect")
+		inventory.open_section(0)
+		var ration_index := -1
+		var water_index := -1
+		game.bag.add(&"botella",1)
+		for i in game.bag.CAPACITY:
+			if game.bag.slots[i].get("id") == &"ration":
+				ration_index = i
+			if game.bag.slots[i].get("id") == &"botella":
+				game.bag.slots[i].water_ml = 500
+				water_index = i
+		if ration_index >= 0:
+			await click(inventory.backpack_buttons[ration_index])
+			require(inventory.equip_button.text == "Comer" and inventory.backpack_buttons[ration_index].get_node("ItemIcon").texture != null,"Food shows its icon and eating action")
+			await click(inventory.equip_button)
+			require(game.nutrition.calories_today == 400 and game.bag.count(&"ration") == 7,"Real mouse click eats one ration")
+		if water_index >= 0:
+			game.nutrition.hydration_ml = 1000
+			await click(inventory.backpack_buttons[water_index])
+			await click(inventory.equip_button)
+			require(game.nutrition.hydration_ml == 1250 and game.bag.count(&"botella") == 1 and game.bag.slots[water_index].water_ml == 250,"Real mouse click drinks one bottle")
+		inventory.hide()
+		app.show_pause()
+		require(game.is_paused() and app.menu.visible,"Pause menu suspends the game")
+		await click(app.menu.play_button)
+		require(not game.is_paused() and not app.menu.visible,"Continue resumes the existing game")
+		app.show_pause()
+		await click(app.menu.return_button)
+		require(not is_instance_valid(app.game) and app.menu.visible,"Main menu releases the current game")
+	# Restore the pre-test preferences instead of changing the player's settings.
+	if had_config:
+		var file := FileAccess.open(Settings.PATH,FileAccess.WRITE)
+		file.store_buffer(original)
+		file.close()
+	else:
+		DirAccess.remove_absolute(Settings.PATH)
+	print("%s: %d GUI checks, %d failures: menu, saved settings, actual mouse equip/unequip, quantities, repair and crafting" % ["PASS" if failures == 0 else "FAIL",checks,failures])
+	quit(0 if failures == 0 else 1)

@@ -1,0 +1,15 @@
+{
+  "release": "modelo_arco1_3d",
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_arco1_3d/arco1_3d.zip",
+  "zip_sha256": "39a78c995d1edd6ef09d690d5b5c250be13353384db00f0a479d6c58860783b3",
+  "source_fbx": "entregables/modelos/bow/source/Meshy_AI_Wooden_Bow_1015223630_texture.fbx",
+  "fbx_sha256": "a20010d1b4771142f59d09add8503050a0fdf7c4b17d6a46ec0208915e931c99",
+  "triangles": 5215,
+  "textures_sha256": {
+    "normal": "fc9cdddd82f5866b7731f8cca0b694eed70e5da323c7d16e16bd44b4fcd16f48",
+    "metallic": "610a6e8dfb12f60c6773579bf03d2899b122bccdf80600b9869140b0eeea8cc3",
+    "albedo": "489da37ffc227b4599987bcc02cbb5f16431cfd82d530683624ddb5ae43e24d3",
+    "roughness": "d6a710c2424a512c5fd75135102e918fe44429a5216488c0a1809d3f39dfbd5c",
+    "metallic_roughness": "89bb0e26ba736b352809bf24726a013003d627774c34aa0c22dd28752191889f"
+  }
+}

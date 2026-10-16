@@ -1,0 +1,15 @@
+{
+  "release": "modelo_hacha3d",
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_hacha3d/hacha1_3d.zip",
+  "zip_sha256": "6e21f8f6942dc70733f1851e52d6650686458d2a5c110e489d135903e3da066e",
+  "source_fbx": "entregables/modelos/axe/source/Meshy_AI_Wild_Wanderer_1015230955_texture.fbx",
+  "fbx_sha256": "d69c3e46d648c2fb0e1cceda46210112e626992ca592b090c1b212ee586d03b2",
+  "triangles": 3104,
+  "textures_sha256": {
+    "metallic": "ad476c93dbb123d4d1989378015c885fd363fcfb2e7843ee273d1e874107a572",
+    "albedo": "ecd3d15aaffef11c8fe353a52b19db4a0133af06b2cd59aeab30cfff31e06c40",
+    "roughness": "a4514b2e33edc83a6863093c84108bd656a282bf4a95a89f2ba467f11afe2c59",
+    "normal": "1ebce3b241b8066d8b75d256b908b01e64ba8bf51b4ee287cd7e4fe5a2b82299",
+    "metallic_roughness": "5de3dbe3d86e42855f1e80ba52dbf00153acf5cb3232df2787f26a70c7c1c0c1"
+  }
+}

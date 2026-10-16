@@ -1,0 +1,254 @@
+extends CharacterBody3D
+const SPEED := 2.0
+const RUN_MULTIPLIER := 1.6
+const GRAVITY := 18.0
+const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
+const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
+const WORLD_SCALE := Anatomy.HEIGHT_METRES/64.0
+var game
+var model: Node3D
+var phase := 0.0
+var equipped := true
+var action_elapsed := -1.0
+var bow_follow_elapsed:=-1.0
+var equip_elapsed := -1.0
+var unequipping:=false
+var equip_recovery:=0.0
+var contact_done := false
+var action_heading := 0.0
+var action_target: Dictionary = {}
+var locomotion = preload("res://scripts/locomotion.gd").new()
+var jump_was_pressed := false
+var control_was_pressed := false
+var parry_elapsed := -1.0
+var parry_cooldown := 0.0
+var preview_state: StringName = &""
+var preview_elapsed := 0.0
+var preview_family: StringName = &""
+var action_point := Vector3.ZERO
+var death_elapsed:=-1.0
+var guard_point:=Vector3.INF
+var action_family:StringName=&"axe"
+var action_uid:=-1
+var stowed_family:StringName=&"axe"
+var pickup_recovery:=0.0
+var pickup_target:Dictionary={}
+var pickup_point:=Vector3.INF
+var pickup_completed:=false
+var visual_motion:=0.0
+func configure(owner_game) -> void:
+ game = owner_game
+ var capsule := CapsuleShape3D.new(); capsule.radius = 0.20; capsule.height = Anatomy.HEIGHT_METRES
+ var collision := CollisionShape3D.new(); collision.shape = capsule; collision.position.y = 0.875; add_child(collision)
+ collision_layer = 2; collision_mask = 9
+ model = preload("res://scripts/prototype_3d/survivor_model.gd").new(); add_child(model)
+ var bounds: AABB=model.mesh_node.mesh.get_aabb()
+ var unit:=Anatomy.HEIGHT_METRES/bounds.size.y
+ model.scale=Vector3.ONE*unit;model.position.y=-bounds.position.y*unit;model.rotation.y=PI
+ model.animate(&"idle",0,equipped)
+func family() -> StringName:
+ if not equipped:return &""
+ var item:Dictionary=game.bag.held_item()
+ if item.is_empty():return &""
+ if game.bag.DEFINITIONS[item.id].has("kcal"):return &"food"
+ var category:StringName=game.bag.held_category()
+ return category if category in Clips.FAMILIES else &"carried"
+func toggle_tool() -> void:select_quick(0)
+func select_quick(index:int) -> bool:
+ if action_elapsed>=0 or preview_state==&"pickup" or not game.pending_consumption.is_empty() or game.player_health<=0:return false
+ var item:Dictionary=game.bag.at(&"quick",index)
+ if item.is_empty():game.status.text="Acceso rápido vacío";return false
+ var definition:Dictionary=game.bag.DEFINITIONS[item.id]
+ if definition.slot!=&"tool" and not definition.has("kcal"):game.status.text="Este material se guarda en la barra, pero no se usa en la mano.";return false
+ model.begin_equipment_transition()
+ stowed_family=family()
+ if game.bag.active_quick_uid==item.uid:game.bag.active_quick_uid=-1;equipped=false
+ else:game.bag.active_quick_uid=item.uid;equipped=true;equip_recovery=1.0
+ equip_elapsed=0;unequipping=not equipped
+ return true
+func strike() -> bool:
+ if action_elapsed>=0 or equip_elapsed>=0 or parry_elapsed>=0 or preview_state!=&"" or game.player_health<=0:return false
+ var item:Dictionary=game.bag.held_item() if equipped else {}
+ if item.get("id")==&"basic_workbench":
+  var target:Dictionary=game.camera_rig.target()
+  return not target.is_empty() and game.workbenches.begin_placement(target.position)
+ if not item.is_empty() and (item.id==&"botella" or game.bag.DEFINITIONS[item.id].has("kcal")):
+  var location:Dictionary=game.bag.location(item.uid)
+  return game.consume_item(location.index,location.kind==&"quick")
+ action_family=family()
+ if action_family not in [&"",&"axe",&"pickaxe",&"sword",&"bow"]:return false
+ if not item.is_empty() and item.uses<=0:game.status.text="El objeto está roto; repáralo.";return false
+ if action_family==&"bow":
+  if game.bag.count(&"flecha")<=0:game.status.text="Necesitas flechas para disparar el arco";return false
+  game.bag.consume_use()
+ action_uid=item.get("uid",-1)
+ action_elapsed=0;contact_done=false;bow_follow_elapsed=-1
+ var aim:Dictionary=game.camera_rig.aim_sample() if action_family==&"bow" else game.camera_rig.action_sample()
+ action_target=aim.hit;action_point=aim.point
+ action_heading=heading_to(action_point)
+ return true
+func heading_to(point:Vector3) -> float:
+ var toward:=Vector2(point.x-global_position.x,point.z-global_position.z)
+ # At the vertical poles the reticle can be directly over our own feet. Keep
+ # camera yaw there instead of making tiny surface offsets flip the whole body.
+ if toward.length_squared()<.04:
+  var forward:Vector3=game.camera_rig.facing()
+  return atan2(forward.x,forward.z)
+ return atan2(toward.x,toward.y)
+func update_facing(point:Vector3,delta:float) -> void:
+ var contact:Vector3=pickup_point if preview_state==&"pickup" and pickup_point.is_finite() else point
+ var visual_heading:=heading_to(action_point if action_elapsed>=0 else contact)
+ if action_elapsed>=0:action_heading=visual_heading
+ elif locomotion.sliding():visual_heading=atan2(locomotion.slide_direction.x,locomotion.slide_direction.y)
+ elif locomotion.airborne() and locomotion.from_slide:visual_heading=PI/2-locomotion.jump_heading
+ model.rotation.y=lerp_angle(model.rotation.y,visual_heading,1-exp(-maxf(0,delta)*15))
+func advance_action(delta:float) -> void:
+ if action_elapsed<0:return
+ var seconds:=0.5 if action_family==&"bow" else Clips.duration(&"action",action_family)
+ action_elapsed+=maxf(0,delta)
+ var impact_time:=seconds if action_family==&"bow" else seconds*0.5
+ if not contact_done and action_elapsed+0.000001>=impact_time:
+  contact_done=true
+  if action_family==&"bow":
+   action_point=game.camera_rig.aim_point()
+   model.family_override=&"bow";model.aim_contact=model.to_local(action_point);model.nock_visible=true
+   model.animate(&"draw",1,true)
+   game.release_arrow(action_point,action_uid)
+   bow_follow_elapsed=0
+  else:game.resolve_hit(action_target)
+ if action_elapsed+0.000001>=seconds:action_elapsed=-1
+func cancel_action() -> void:
+ action_elapsed=-1;contact_done=false;bow_follow_elapsed=-1
+func can_reach_contact(point: Vector3) -> bool:
+ # Gameplay reach is independent of the pose/weapon IK solver.
+ var offset:=point-global_position
+ return Vector2(offset.x,offset.z).length()<=1.0 and offset.y>=-0.35 and offset.y<=Anatomy.HEIGHT_METRES+0.35
+func begin_parry() -> bool:
+ if action_elapsed>=0:return false
+ parry_elapsed=0;parry_cooldown=4.0;return true
+func begin_pickup(result:Dictionary) -> bool:
+ var point:Vector3=result.position
+ var heading:=heading_to(point)
+ var local_point:Vector3=Basis(Vector3.UP,heading).inverse()*(point-model.global_position)/model.scale.x
+ var contact_pose:=Clips.sample(&"",&"pickup",0.5,0,Vector3.ZERO,local_point)
+ if not contact_pose.contact_reachable:
+  game.status.text="Acércate para recogerlo con la mano.";return false
+ play_preview(&"",&"pickup")
+ pickup_target=result.duplicate();pickup_point=point;pickup_completed=false
+ return true
+func advance_preview(delta:float,moving:bool=false) -> Dictionary:
+ var state:=preview_state
+ if state==&"":return {}
+ preview_elapsed+=maxf(0,delta)
+ if state in [&"eat",&"drink",&"pickup"] and moving:state=StringName(String(state)+"_walk")
+ var progress:=clampf(preview_elapsed/Clips.duration(state,preview_family),0,1)
+ if preview_state==&"pickup" and not pickup_completed and progress>=0.5:
+  pickup_completed=true
+  if not pickup_target.is_empty():game.complete_pickup(pickup_target,pickup_point)
+ if progress>=1:
+  if preview_state==&"pickup":pickup_recovery=0.5
+  preview_state=&"";pickup_target={}
+ return {"state":state,"phase":progress}
+func play_preview(family: StringName,state: StringName) -> void:
+ preview_family=family;preview_state=state;preview_elapsed=0
+ pickup_point=Vector3.INF;pickup_target={};pickup_completed=false
+func _physics_process(delta: float) -> void:
+ if game == null or game.paused: return
+ if game.player_health<=0:
+  death_elapsed=maxf(0,death_elapsed)+delta;model.family_override=&"";model.aim_contact=Vector3.INF
+  model.animate(&"death",minf(1,death_elapsed/3),false,delta);game.camera_rig.update(delta)
+  if death_elapsed>=3 and not game.paused:game.toggle_pause()
+  return
+ if game.workbenches!=null and game.workbenches.placing():
+  velocity=Vector3.ZERO;model.family_override=&"carried";model.animate(&"idle",0,false,delta);game.camera_rig.update(delta);return
+ parry_cooldown=maxf(0,parry_cooldown-delta)
+ equip_recovery=maxf(0,equip_recovery-delta)
+ pickup_recovery=maxf(0,pickup_recovery-delta)
+ var input := Vector2(float(Input.is_physical_key_pressed(KEY_D))-float(Input.is_physical_key_pressed(KEY_A)),float(Input.is_physical_key_pressed(KEY_S))-float(Input.is_physical_key_pressed(KEY_W)))
+ var direction: Vector3 = game.camera_rig.movement_direction(input)
+ var control := Input.is_physical_key_pressed(KEY_CTRL)
+ var running: bool = (Input.is_physical_key_pressed(KEY_SHIFT) or game.settings.values.auto_run) and action_elapsed < 0 and not input.is_zero_approx()
+ if preview_state in [&"eat",&"eat_walk",&"drink",&"drink_walk"]:running=false
+ if control and not control_was_pressed and running and is_on_floor():
+  locomotion.slide(Vector2(direction.x,direction.z))
+ control_was_pressed = control
+ var jump_pressed := Input.is_physical_key_pressed(KEY_SPACE)
+ if jump_pressed and not jump_was_pressed and is_on_floor():
+  locomotion.jump(); velocity.y = 5.5
+ jump_was_pressed = jump_pressed
+ locomotion.steer_air(Vector2(direction.x,direction.z),delta)
+ locomotion.advance(delta,control and not locomotion.sliding())
+ model.action_crouch=locomotion.crouch if is_on_floor() else 0.0
+ running = running and locomotion.crouch < 0.01
+ var movement_multiplier:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-0.05*equip_recovery)
+ movement_multiplier*=0.4 if preview_state==&"pickup" else 1-0.6*pickup_recovery/0.5
+ var speed:float = SPEED*(RUN_MULTIPLIER if running else 1.0)*movement_multiplier
+ var planar: Vector2 = locomotion.velocity(Vector2(direction.x,direction.z)*speed,WORLD_SCALE)
+ if locomotion.from_slide: planar *= WORLD_SCALE
+ if locomotion.airborne() and not game.can_cross_jump(global_position,Vector3(planar.x,0,planar.y)*delta,get_rid()):planar=Vector2.ZERO
+ velocity.x = planar.x; velocity.z = planar.y
+ if not is_on_floor(): velocity.y -= GRAVITY*delta
+ move_and_slide()
+ game.camera_rig.update(delta)
+ var live_aim:Vector3=game.camera_rig.aim_point()
+ if action_elapsed>=0 and action_family==&"bow":
+  action_point=live_aim
+ update_facing(live_aim,delta)
+ if bow_follow_elapsed>=0:
+  bow_follow_elapsed+=delta
+  if bow_follow_elapsed>=Clips.duration(&"bow_release") or family()!=&"bow" or not equipped:bow_follow_elapsed=-1
+ var state: StringName = &"idle"; var progress := 0.0
+ var actual_speed:=Vector2(velocity.x,velocity.z).length()
+ if input.length_squared()>0 and actual_speed>0.03:
+  phase = fposmod(phase+delta/Clips.duration(&"run" if running else &"walk")*actual_speed/(SPEED*(RUN_MULTIPLIER if running else 1.0)),1)
+ visual_motion=move_toward(visual_motion,clampf(actual_speed/maxf(speed,0.01),0,1) if not input.is_zero_approx() else 0.0,delta/0.16)
+ if action_elapsed >= 0:
+  state=&"draw" if action_family==&"bow" else &"action"
+  var seconds:=0.5 if action_family==&"bow" else Clips.duration(state,action_family)
+  progress=clampf((action_elapsed+delta)/seconds,0,1)
+  advance_action(delta)
+ elif parry_elapsed>=0:
+  parry_elapsed+=delta;state=&"parry";progress=clampf(parry_elapsed/0.5,0,1)
+  if parry_elapsed>=0.5:parry_elapsed=-1
+ elif locomotion.sliding():
+  state = &"slide"; progress = locomotion.slide_elapsed/locomotion.SLIDE_SECONDS
+ elif not is_on_floor():
+  state = &"slide_jump" if locomotion.from_slide else &"jump"
+  progress = locomotion.jump_elapsed/locomotion.JUMP_SECONDS
+ elif equip_elapsed >= 0:
+  equip_elapsed += delta; state = &"equip_crouch" if locomotion.crouch>0.01 else &"equip"; progress = clampf(equip_elapsed/Clips.duration(&"equip",family()),0,1)
+  if input.length_squared()>0:
+   state = &"equip_crouch_walk" if locomotion.crouch>0.01 else (&"equip_run" if running else &"equip_walk")
+  if unequipping:state=&"unequip"
+  if equip_elapsed >= Clips.duration(&"equip",family()): equip_elapsed = -1
+ elif input.length_squared() > 0:
+  state = &"crouch_walk" if locomotion.crouch>0.01 else (&"run" if running else &"walk")
+  progress = phase
+ elif locomotion.crouch>0:
+  state = &"crouch"; progress = locomotion.crouch
+ if state==&"idle":progress=fposmod(Time.get_ticks_msec()/4000.0,1)
+ model.family_override=stowed_family if state==&"unequip" else family()
+ var held:Dictionary=game.bag.held_item()
+ model.displayed_item=held.get("id",&"")
+ model.item_water_ml=held.get("water_ml",0)
+ model.nock_visible=state==&"draw" and not contact_done
+ if bow_follow_elapsed>=0 and state not in [&"idle",&"walk",&"crouch",&"crouch_walk",&"draw"]:bow_follow_elapsed=-1
+ if bow_follow_elapsed>=0 and action_elapsed<0 and state in [&"idle",&"walk",&"crouch",&"crouch_walk"]:
+  state=&"bow_release";progress=bow_follow_elapsed/Clips.duration(&"bow_release")
+ if preview_state!=&"":
+  model.family_override=preview_family;state=preview_state
+  model.displayed_item=game.pending_consumption.get("id",&"apple")
+  model.item_water_ml=game.bag.item_by_uid(game.pending_consumption.get("uid",-1)).get("water_ml",0)
+  var preview:Dictionary=advance_preview(delta,input.length_squared()>0)
+  state=preview.state;progress=preview.phase
+ model.aim_contact=model.to_local(action_point) if state in [&"action",&"draw"] else Vector3.INF
+ if family()==&"bow" and equipped:model.aim_contact=model.to_local(live_aim)
+ if state==&"parry" and guard_point.is_finite():model.aim_contact=model.to_local(guard_point)
+ if state in [&"pickup",&"pickup_walk"] and pickup_point.is_finite():model.aim_contact=model.to_local(pickup_point)
+ var local_travel: Vector3 = (model.global_basis.inverse()*direction).normalized()
+ model.animate(state,progress,equipped or (unequipping and state==&"unequip"),delta,phase,local_travel,visual_motion)
+ _finish_visual_frame(state,progress)
+
+func _finish_visual_frame(state:StringName,progress:float) -> void:
+ if game.combat_effects!=null:
+  game.combat_effects.track_tip(model.tip_socket.global_position,state==&"action" and action_family==&"sword" and progress>=0.25 and progress<=0.8)
