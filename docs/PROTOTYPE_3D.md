@@ -528,14 +528,16 @@ interpoladas y cuantizadas igual que el shader contra ambas imágenes originales
 ## Enemigo1: modelo Meshy aportado por el usuario
 
 Se retira la reconstrucción procedural y se sustituye por el FBX **Mossclaw
-Boar** de la Release `modelo-enemigo1`. Se conservan los **977782 triángulos**,
-las proporciones, UV y los cuatro PNG originales. El recurso nativo de Godot
+Boar** de la Release `modelo-enemigo1`. La versión vigente es el FBX reducido
+`1016001519`, del ZIP `enemigo1_3d.zip`: **7340 triángulos**, frente a los
+977782 anteriores. Se conservan las proporciones, UV y los PNG del archivo nuevo. El recurso nativo de Godot
 se comparte entre enemigos y carga directamente, sin generar el pelaje al
 iniciar la partida. Cada enemigo mantiene un esqueleto independiente de
-catorce huesos y una altura normalizada de **0,875 m**.
+quince huesos, incluida la cola, y una altura normalizada de **0,875 m**.
 
-El FBX no incluye rig ni animaciones; se añade una ligadura por difusión de
-calor y se adaptan los anclajes de las acciones provisionales. La escena F6
+El FBX no incluye rig ni animaciones; se transfiere por interpolación de
+triángulos la ligadura animada anterior, manteniendo los clips y anclajes
+articulares. La punta de impacto del hocico se mide sobre la geometría nueva. La escena F6
 `young_review.tscn` muestra la postura original en **Postura de referencia**,
 las cuatro vistas y las acciones. Ver [YOUNG_3D.md](YOUNG_3D.md) para procedencia,
 reproducción de la conversión y capturas del archivo importado.

@@ -1,5 +1,6 @@
 """Blender --background --python tools/enemy/convert_meshy.py -- input.fbx output.glb joints.json.
-Preserve source geometry and UVs; add bone-heat weights to the unrigged FBX.
+Legacy dense FBX only (977782 triangles): add the original bone-heat weights.
+The active reduced model uses transfer_meshy.py to retain its animated skin.
 Run export_meshy_bind.gd first, then bind_meshy.gd on the resulting glTF.
 """
 import json

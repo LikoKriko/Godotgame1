@@ -25,7 +25,7 @@ func run():
  require(mesh==load("res://assets/enemies/first/meshy/mossclaw_skin.res"),"Animations share the authoritative imported Meshy asset")
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var bones:PackedInt32Array=arrays[Mesh.ARRAY_BONES];var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
  var probes:Array[int]=[]
- for i in range(0,vertices.size(),251):probes.append(i)
+ for i in range(0,vertices.size(),maxi(1,vertices.size()/2100)):probes.append(i)
  for state in Motion.STATES:
   for left in [false,true]:
    var previous:Array=[]

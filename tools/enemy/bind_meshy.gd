@@ -7,6 +7,8 @@ func _initialize():call_deferred("run")
 func digest(bytes:PackedByteArray) -> String:
  var context:=HashingContext.new();context.start(HashingContext.HASH_SHA256);context.update(bytes);return context.finish().hex_encode()
 func run():
+ var manifest_path:="res://assets/enemies/first/meshy/source.json"
+ var manifest:Dictionary=JSON.parse_string(FileAccess.get_file_as_string(manifest_path))
  var args:=OS.get_cmdline_user_args()
  if args.is_empty():push_error("Pass -- /absolute/path/to/source.glb");quit(1);return
  var document:=GLTFDocument.new();var state:=GLTFState.new()
@@ -31,7 +33,7 @@ func run():
  assert(not imported_bones.is_empty(),"Convert with the supplied bone-heat rig first")
  var imported_node:MeshInstance3D=nodes[0]
  var imported_skeleton:Skeleton3D=imported_node.get_node(imported_node.skeleton)
- var names:=["body","head","thigh_0","shin_0","foot_0","thigh_1","shin_1","foot_1","upper_arm_0","forearm_0","fist_0","upper_arm_1","forearm_1","fist_1"]
+ var names:=["body","head","thigh_0","shin_0","foot_0","thigh_1","shin_1","foot_1","upper_arm_0","forearm_0","fist_0","upper_arm_1","forearm_1","fist_1","tail"]
  var remap:Dictionary={}
  for i in imported_node.skin.get_bind_count():
   var name:=String(imported_node.skin.get_bind_name(i))
@@ -62,9 +64,9 @@ func run():
  mesh.surface_set_material(0,material)
  var indices:PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
  var triangle_count:=indices.size()/3 if not indices.is_empty() else vertices.size()/3
- assert(triangle_count==977782,"Preserve all original triangles")
+ assert(triangle_count==int(manifest.source_triangles),"Preserve every triangle of the active supplied model")
  mesh.set_meta("tail_hinge",true)
- mesh.set_meta("source_zip_sha256","f0af7cc7091dfa1c6219a23b6c609e695a1a7dae90206889fab21802ed4c3655")
+ mesh.set_meta("source_zip_sha256",manifest.source_zip_sha256)
  mesh.set_meta("normalized_positions_sha256",normalized_hash)
  mesh.set_meta("source_triangles",triangle_count)
  mesh.set_meta("source_bounds",bounds)
@@ -73,5 +75,10 @@ func run():
  mesh.set_meta("nose_tip",nose)
  mesh.set_meta("source_uv_sha256",digest((arrays[Mesh.ARRAY_TEX_UV] as PackedVector2Array).to_byte_array()))
  assert(ResourceSaver.save(mesh,DEST,ResourceSaver.FLAG_COMPRESS)==OK)
+ var anchors:=FileAccess.open(path+"anchors.gd",FileAccess.WRITE)
+ var offset:=nose-Motion.HEAD_ANCHOR
+ anchors.store_string("extends RefCounted\n# Actual centre-line nose vertex; regenerate with bind_meshy.gd.\nconst SNOUT_OFFSET:=Vector3(%.9f,%.9f,%.9f)\n"%[offset.x,offset.y,offset.z]);anchors.close()
+ manifest["runtime_vertices"]=vertices.size();manifest["runtime_triangles"]=triangle_count
+ var output:=FileAccess.open(manifest_path,FileAccess.WRITE);output.store_string(JSON.stringify(manifest,"  ")+"\n");output.close()
  print("Baked Meshy: vertices=",vertices.size()," triangles=",triangle_count," bounds=",mesh.get_aabb()," nose_tip=",nose," nose_offset=",nose-Motion.HEAD_ANCHOR)
  scene.free();quit()

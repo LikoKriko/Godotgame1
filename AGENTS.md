@@ -104,3 +104,11 @@ FBX de las Releases `modelo_hacha3d`, `modelo_pico3d`, `modelo_arco1_3d`,
 mallas nativas originales, sus PNG/UV y sus anclajes medidos. La armadura
 vestida añade ajuste de cavidad y pesos al mismo tejido; el arco deforma su
 cuerda original mediante blend shapes. No superponer los modelos anteriores.
+
+La versión vigente del enemigo1 es el FBX reducido
+`Meshy_AI_Mossclaw_Boar_1016001519_texture.fbx` de `enemigo1_3d.zip`, en la misma
+Release `modelo-enemigo1`: 7340 triángulos. La malla nueva hereda la ligadura
+de quince huesos (incluida la cola) del donante `1d58ff4`; conservar las
+animaciones existentes. `assets/enemies/first/meshy/source.json` y
+`skin_transfer.json` identifican ambas fuentes. No reactivar la malla densa
+anterior; se conserva su FBX solo como histórico.

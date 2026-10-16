@@ -1,28 +1,32 @@
 # Enemigo1: Meshy Mossclaw Boar
 
 Por petición del usuario, se elimina la reconstrucción procedural y se utiliza
-el FBX adjunto **Meshy_AI_Mossclaw_Boar_1015190139_texture.fbx**. Se conserva una
+el FBX adjunto **Meshy_AI_Mossclaw_Boar_1016001519_texture.fbx**. Se conserva una
 copia original sin modificar en `entregables/enemigos/enemigo1/source/`.
 La ilustración `entregables/enemigos/enemigo1_joven_3d.png` se mantiene como
 referencia visual; ya no se proyecta sobre el personaje ni genera su volumen.
 
 ## Procedencia y fidelidad del archivo
 
-[ZIP original en la Release modelo-enemigo1](https://github.com/LikoKriko/Godotgame1/releases/download/modelo-enemigo1/Meshy_AI_Mossclaw_Boar_1015190139_texture_fbx.zip).
-Su SHA-256 coincide con el proporcionado por el usuario:
-`f0af7cc7091dfa1c6219a23b6c609e695a1a7dae90206889fab21802ed4c3655`.
+[ZIP reducido vigente en la Release modelo-enemigo1](https://github.com/LikoKriko/Godotgame1/releases/download/modelo-enemigo1/enemigo1_3d.zip).
+SHA-256 verificado al descargar:
+`64e21cf1b8822e63a0913015a4b2ef29a6c6ca62831bf83eef4e5eadc938e5bc`.
 `assets/enemies/first/meshy/source.json` registra URL, hashes del FBX/PNG,
 versiones de herramientas y estadísticas de entrada/salida.
 
-El FBX tiene **488891 vértices de autoría y 977782 triángulos**. La conversión
-mantiene todos los triángulos; el recurso de Godot tiene **518861 vértices**
-por las separaciones necesarias de normales y UV. No se decima, remalla,
-reconstruye el pelaje ni modifican las proporciones. Se aplica una sola escala
-uniforme y una traslación para centrarlo y colocar los pies sobre el suelo.
-La postura **Postura de referencia** reproduce la geometría suministrada.
+El FBX vigente tiene **3672 vértices de autoría y 7340 triángulos**. El recurso
+nativo tiene **9212 vértices** por las separaciones de normales y UV. Antes
+se cargaban 977782 triángulos y 518861 vértices de ejecución: la reducción de
+triángulos es del **99,25 %**. Se utiliza la simplificación entregada por el
+usuario; no se vuelve a decimar, remallar ni reconstruir el pelaje. La única
+adaptación geométrica es escala uniforme a 32 unidades y centrado sobre suelo;
+se mantiene la altura de **0,875 m**. El FBX denso anterior permanece como
+fuente histórica, sin cargarse ni exportarse como alternativa de ejecución.
+La postura **Postura de referencia** reproduce la geometría nueva.
 
-Se conservan byte por byte los cuatro PNG originales: color, normal, rugosidad
-y metalicidad. El material nativo de Godot usa esas UV y mapas, con nearest y
+Se conservan byte por byte los PNG del ZIP nuevo: color, normal, rugosidad,
+metalicidad y el mapa combinado metálico/rugoso. Los cuatro mapas separados
+se asignan al material; el combinado queda como fuente original. El material nativo de Godot usa esas UV y mapas, con nearest y
 mipmaps. Se retiran `young_reference_mesh.gd` y los shaders propios
 `young_skin.gdshader` / `young_outline.gdshader`. No hay geometría alternativa
 ni reproyección de la referencia. Las capturas viejas de antes/después también
@@ -31,8 +35,11 @@ se retiran para no confundirlas con la entrega actual.
 ## Integración en el juego
 
 El FBX no incluye esqueleto ni animaciones. Se añade un esqueleto con catorce huesos de base y una bisagra de cola
-(quince en ejecución). Los pesos de base proceden de difusión de calor de Blender; se conservan y normalizan las
-cuatro influencias principales de cada vértice. La animación del juego se adapta a esta ligadura; el archivo de Meshy no
+(quince en ejecución). La versión reducida recibe los pesos de la piel publicada en `1d58ff4`,
+mediante interpolación baricéntrica del triángulo donante más próximo. Así
+conserva la distribución animada de cabeza, patas, brazos, puños y cola; se
+normalizan las cuatro influencias principales de cada vértice. La piel donante
+procedía de difusión de calor y de la corrección de cola vigente. La animación del juego se adapta a esta ligadura; el archivo de Meshy no
 aporta clips originales.
 La primera asignación analítica de pesos se descartó tras detectar estiramientos
 de mejillas al golpear; la versión publicada usa la ligadura por difusión.
@@ -47,11 +54,12 @@ cuadrúpeda, golpes alternos, sentado, comida, aturdimiento y cadáver. Vida,
 memoria, botín y alcance siguen iguales. El daño y los tiempos del nuevo
 estado de boxeo se describen al final de este documento.
 
-El recurso comprimido ocupa unos 23 MiB, además de los cuatro PNG. Su detalle
-es elevado: **977782 triángulos por enemigo**, sin LOD añadido. No se ha medido
-el rendimiento en el ordenador del usuario ni se afirma una mejora de FPS.
-El FBX original queda excluido de la importación por `.gdignore`; el recurso
-nativo es el que usa el juego.
+El recurso comprimido de geometría/pesos ocupa **248542 bytes** (unos 243 KiB),
+frente a 24680554 bytes. Las texturas del ZIP nuevo ocupan más que las anteriores:
+estas cifras se refieren exclusivamente a la malla nativa, no al conjunto de
+archivos ni a su consumo total de memoria. No se ha medido el rendimiento en
+el ordenador del usuario ni se afirma una mejora concreta de FPS. El FBX
+original queda excluido de importación/exportación mediante `.gdignore`.
 
 ## Revisión
 
@@ -60,6 +68,12 @@ muestra el archivo en reposo de enlace; los cuatro botones permiten compararlo
 con la lámina. El selector conserva las acciones y la alternancia de puños.
 La revisión permite pausar y escoger una fase exacta para comprobar apoyos,
 ambos puños y transiciones sobre el modelo importado actual.
+
+![Modelo reducido en sus acciones](previews/young_reduced_review.png)
+
+![Modelo reducido dentro del juego](previews/young_reduced_in_game.png)
+
+Las siguientes comparativas son históricas, de la versión densa anterior:
 
 ![Referencia y modelo Meshy importado](previews/young_reference_comparison.png)
 
@@ -79,26 +93,44 @@ Herramientas usadas: Blender **4.3.2**, Godot **4.7.2**. Ejecutar desde el proye
 con las rutas absolutas adecuadas para los archivos intermedios:
 
 ```sh
-godot --headless --path . --script tools/enemy/export_meshy_bind.gd -- /tmp/rig_seeds.json
-blender --background --python tools/enemy/convert_meshy.py -- \
-  entregables/enemigos/enemigo1/source/Meshy_AI_Mossclaw_Boar_1015190139_texture.fbx \
-  /tmp/mossclaw.glb /tmp/rig_seeds.json
-godot --headless --path . --script tools/enemy/bind_meshy.gd -- /tmp/mossclaw.glb
+mkdir -p /tmp/mossclaw-transfer
+# Donante exacto previo a la reducción: conservar la ligadura vigente de 15 huesos.
+git show 1d58ff4:assets/enemies/first/meshy/mossclaw_skin.res > /tmp/mossclaw-transfer/donor.res
+godot --headless --path . --script tools/enemy/export_skin_transfer.gd -- /tmp/mossclaw-transfer/donor.res /tmp/mossclaw-transfer/skin
+blender -b --python tools/enemy/transfer_meshy.py -- entregables/enemigos/enemigo1/source/Meshy_AI_Mossclaw_Boar_1016001519_texture.fbx /tmp/mossclaw-transfer/reduced.glb assets/enemies/first/meshy/rig_seeds.json /tmp/mossclaw-transfer/skin
+godot --headless --editor --path . --import
+godot --headless --path . --script tools/enemy/bind_meshy.gd -- /tmp/mossclaw-transfer/reduced.glb
+cp /tmp/mossclaw-transfer/reduced.transfer.json assets/enemies/first/meshy/skin_transfer.json
+# Comparación independiente sin esqueleto, usando el FBX original nuevo.
+blender -b --python tools/meshy/convert_source.py -- entregables/enemigos/enemigo1/source/Meshy_AI_Mossclaw_Boar_1016001519_texture.fbx /tmp/mossclaw-transfer/source.glb
+godot --headless --path . --script tools/meshy/verify_source.gd -- /tmp/mossclaw-transfer/source.glb res://assets/enemies/first/meshy/mossclaw_skin.res
+godot --path . --script tools/enemy/review_reduced.gd -- /tmp/mossclaw-review
+python tools/enemy/compose_reduced_review.py /tmp/mossclaw-review docs/previews/young_reduced_review.png
 ```
 
-El conversor exporta la malla sin remallar, añade el rig y calcula los pesos.
-El enlazador remapea los nombres de huesos al orden del juego, normaliza la
-escala, conserva posición/UV/topología, genera tangentes para el mapa normal,
-instala los cuatro PNG y guarda el recurso comprimido. Los pesos y materiales
-se preparan una vez; los usuarios del juego no necesitan Blender.
+El exportador de piel guarda posiciones, triángulos, huesos y pesos donantes;
+`transfer_meshy.py` conserva las posiciones/UV/topología nuevas y añade los
+mismos quince nombres de huesos. `bind_meshy.gd` remapea los índices, normaliza
+la escala, conserva la máscara de cola y genera tangentes para el mapa normal.
+Lee procedencia y triángulos de `source.json`, sin fijar el número de caras
+antiguo, y genera `anchors.gd` con el vértice real del hocico. No cambian clips,
+anatomía, tiempos, daño ni comportamiento. Solo el anclaje del hocico sigue
+ahora su punta visible nueva. Los usuarios del juego no necesitan Blender.
+
+`skin_transfer.json` registra el donante SHA-256
+`093e0ba122875ee045ca5bea3a7305edfdf566b9002fcc078cc3632d629ba17f`,
+el máximo de distancia entre superficies (0,758 unidades de autoría) y su RMS
+(0,281). La comparación independiente confirma todos los índices de triángulos,
+posiciones, UV y normales dentro de la precisión de empaquetado de Godot.
+Error máximo: posición 0,00094 unidades, UV 0,000022 y normales 0,00224.
 
 ## Comprobaciones
 
 - `tests/prototype_3d_young_reference_mesh.gd`: original FBX y PNG por SHA-256,
-  identidad de posiciones/UV del recurso, 977782 triángulos, proporciones,
+  identidad de posiciones/UV del recurso, 7340 triángulos, proporciones,
   ligadura neutra, pesos, caché e independencia; deforma el modelo en todos
   los estados y ambas manos.
-- `tests/prototype_3d_creature.gd`: altura, catorce huesos, longitudes,
+- `tests/prototype_3d_creature.gd`: altura, quince huesos, longitudes,
   zona de impacto sobre un vértice real del hocico, rutinas, combate y parry.
 - `tests/prototype_3d_reference_models.gd`: piel ligada y acciones de ambos actores.
 - `tests/prototype_3d_loot.gd`, `prototype_3d_saves.gd` y `prototype_3d.gd`:
@@ -195,3 +227,13 @@ reproducible en `tools/enemy/bind_meshy.gd` incorpora esta corrección. El parch
 normales, tangentes, UV, índices y materiales; no cambia el FBX ni los PNG.
 La pose neutra reproduce el modelo original. Pruebas de soporte, apertura,
 interrupciones y continuidad: `tests/prototype_3d_falls.gd`.
+
+
+## Validación de la versión reducida (16 de octubre de 2026)
+
+Las pruebas de apoyo y caída adaptan el muestreo al número de vértices para
+mantener unas 1000–2300 sondas, en vez de probar solo unas pocas al reducir la
+malla. La regresión de boxeo comprueba ambos puños reales en todas las fases,
+con la misma separación mínima respecto al casco convexo de la cabeza. La
+transferencia conserva las animaciones publicadas, incluida la bisagra de cola
+y la caída interrumpida desde marcha, golpe, crochet y postura sentada.

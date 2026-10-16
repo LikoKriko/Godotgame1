@@ -12,7 +12,7 @@ func skin_minimum(actor,human:bool,arrays:Array) -> float:
  var posed:Array=actor.rig.posed if human else actor.posed
  var rest:Array=actor.rig.rest if human else actor.rest
  var minimum:=INF
- for i in range(0,vertices.size(),997):
+ for i in range(0,vertices.size(),997 if human else maxi(1,vertices.size()/2000)):
   var point:=Vector3.ZERO
   for slot in 4:
    var bone:int=ids[4*i+slot];point+=(posed[bone]*rest[bone].affine_inverse()*vertices[i])*weights[4*i+slot]

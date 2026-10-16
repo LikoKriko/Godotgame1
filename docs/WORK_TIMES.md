@@ -1371,3 +1371,49 @@ factor 0,4 → 0,2 respecto al reposo. Conserva el jab y el desplazamiento
 horizontal de apoyo. Suite específica jab **26250 comprobaciones superadas**
 para ambos brazos, de pie/agachado y en reposo/marcha; `git diff --check`
 sin errores. Cambios locales sin commit ni push.
+
+
+## 2026-10-16 — Aplicación del enemigo1 reducido de la Release
+
+Alcance: comprobar la actualización de modelo pendiente, descargar
+`enemigo1_3d.zip`, sustituir la malla densa del juego por el FBX reducido y
+conservar las animaciones vigentes, incluidas persecución, boxeo y caída.
+Estimación previa: no comunicada.
+
+| Hito | UTC | Europe/Madrid |
+| --- | --- | --- |
+| Primera observación registrada: comparación con GitHub | 2026-10-16 11:24:30 | 2026-10-16 13:24:30 |
+| Cierre de implementación, importación, pruebas y revisión visual | 2026-10-16 11:34:47 | 2026-10-16 13:34:47 |
+
+Duración medida hasta este cierre: **10 min 17 s**; commit/push posteriores
+no están incluidos. Se sincronizó primero `1d58ff4`, conservando todos los
+cambios recientes de los otros departamentos.
+
+La Release había cambiado el ZIP original por `enemigo1_3d.zip`, SHA-256
+`64e21cf1b8822e63a0913015a4b2ef29a6c6ca62831bf83eef4e5eadc938e5bc`.
+El juego aún cargaba 977782 triángulos y 518861 vértices nativos. La fuente
+nueva tiene 3672 vértices de autoría y 7340 triángulos; la malla nativa tiene
+9212 vértices y ocupa 248542 bytes, frente a 24680554 bytes. Reducción de
+triángulos: 99,25 %. Esta cifra de bytes corresponde solo a geometría/pesos;
+los PNG nuevos del usuario pesan más que los anteriores.
+
+El FBX nuevo no trae rig. Se interpolan los pesos de los triángulos más próximos
+de la piel publicada en `1d58ff4`, conservando quince huesos, bisagra de cola y
+cuatro influencias normalizadas. No se modifican clips, longitudes, altura,
+tiempos, daño ni comportamiento. Se mide de nuevo la punta del hocico y se
+actualiza su anclaje de impacto. Los originales, los hashes y la transferencia
+quedan documentados para reproducción.
+
+Validación pasada: **66596 comprobaciones en ocho suites**: integridad y piel
+3425; movimiento del joven 30578; boxeo 4465; caídas 18221; criatura/combate
+8697; separación 1000; botín 16; guardado 194. Las sondas se adaptan al número
+de vértices para mantener cobertura tras la simplificación. La prueba de
+boxeo revisa los dos puños en cada fase, conservando su margen de separación
+de la cabeza. Importación del editor y `git diff --check` sin errores.
+
+Comparación independiente con un GLB sin rig exportado desde el FBX nuevo:
+todos los índices de triángulos coinciden; errores máximos por empaquetado:
+posición 0,00094 unidades, UV 0,000022, normales 0,00224. PNG/FBX comprobados
+por SHA-256. Revisión visual: 32 capturas de ocho estados, ambas manos y dos
+cámaras, mosaico de acciones y captura en el entorno real del juego.
+No incluye una medición de FPS ni una sesión manual en el equipo del usuario.

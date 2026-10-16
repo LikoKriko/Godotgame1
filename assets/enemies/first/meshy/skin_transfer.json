@@ -1,0 +1,11 @@
+{
+  "vertices": 3672,
+  "triangles": 7340,
+  "max_transfer_distance": 0.757931113243103,
+  "rms_transfer_distance": 0.28081983350070755,
+  "donor": {
+    "sha256": "093e0ba122875ee045ca5bea3a7305edfdf566b9002fcc078cc3632d629ba17f",
+    "triangles": 977782,
+    "vertices": 518861
+  }
+}

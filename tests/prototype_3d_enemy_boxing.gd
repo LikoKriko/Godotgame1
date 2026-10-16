@@ -32,12 +32,15 @@ func check_stone_clearance(actor):
  var arrays=actor.mesh_node.mesh.surface_get_arrays(0)
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var bones:PackedInt32Array=arrays[Mesh.ARRAY_BONES];var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
  var skull:=PackedVector3Array();var fists:Array[int]=[]
+ var fist_counts:=[0,0]
+ var stride:=maxi(1,vertices.size()/70000)
  for i in vertices.size():
   for slot in 4:
    if weights[i*4+slot]>.95:
     var bone:int=bones[i*4+slot]
     if bone==1:skull.append(vertices[i])
-    if bone in [10,13] and i%7==0:fists.append(i)
+    if bone in [10,13] and i%stride==0:
+     fists.append(i);fist_counts[0 if bone==10 else 1]+=1
  var hull:=ConvexPolygonShape3D.new();hull.points=skull
  var faces:=hull.get_debug_mesh().get_faces();var center:=Vector3.ZERO
  for v in skull:center+=v
@@ -62,7 +65,7 @@ func check_stone_clearance(actor):
      for plane in planes:margin=maxf(margin,plane.distance_to(point))
      count+=1
      require(margin>.5,"Stone-fist skin remains outside the entire head convex hull")
- require(count>15000,"Collision regression samples both actual skinned stone fists")
+ require(fist_counts[0]>0 and fist_counts[1]>0 and count==fists.size()*5*2*33,"Collision regression covers both actual skinned fists at every phase, regardless of source vertex density")
 func run():
  var model=load("res://scripts/prototype_3d/young_model.gd").new();root.add_child(model)
  check_stone_clearance(model);model.free()

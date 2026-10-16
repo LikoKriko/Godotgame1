@@ -1,38 +1,49 @@
 {
-  "source_url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo-enemigo1/Meshy_AI_Mossclaw_Boar_1015190139_texture_fbx.zip",
-  "source_zip_sha256": "f0af7cc7091dfa1c6219a23b6c609e695a1a7dae90206889fab21802ed4c3655",
-  "source_fbx_sha256": "ef9836bf6d8a480a4df3578f16a77c985eecb9e2cb28ae565cb5e58ef786c72c",
-  "source_vertices": 488891,
-  "source_triangles": 977782,
+  "authoring_height": 32.0,
+  "donor_native_sha256": "093e0ba122875ee045ca5bea3a7305edfdf566b9002fcc078cc3632d629ba17f",
+  "game_height_m": 0.875,
+  "previous_source": {
+    "commit": "1d58ff4",
+    "runtime_vertices": 518861.0,
+    "source_triangles": 977782.0,
+    "source_zip_sha256": "f0af7cc7091dfa1c6219a23b6c609e695a1a7dae90206889fab21802ed4c3655"
+  },
+  "rig_method": "Nearest donor triangle barycentric interpolation of the existing 15-bone native skin; four largest normalized influences; tail hinge mask preserved",
+  "rig_seeds_sha256": "2088e5d651f077739cf27c2e23a904929ae3890468426d145a37f676267b2723",
+  "runtime_triangles": 7340,
+  "runtime_vertices": 9212,
+  "source_fbx_path": "res://entregables/enemigos/enemigo1/source/Meshy_AI_Mossclaw_Boar_1016001519_texture.fbx",
+  "source_fbx_sha256": "8cad3f11620bd75b3213c3e765581c99da196c34199486cffec3ad0f160f0f60",
+  "source_has_animations": false,
+  "source_has_skeleton": false,
+  "source_triangles": 7340.0,
+  "source_url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo-enemigo1/enemigo1_3d.zip",
+  "source_vertices": 3672.0,
+  "source_zip_sha256": "64e21cf1b8822e63a0913015a4b2ef29a6c6ca62831bf83eef4e5eadc938e5bc",
   "textures": {
     "albedo.png": {
-      "source_name": "Meshy_AI_Mossclaw_Boar_1015190139_texture.png",
-      "sha256": "f44b79debff74dbe03eaf2d60d2a7c6801a11442de757575160f8d5fb21a2406"
-    },
-    "normal.png": {
-      "source_name": "Meshy_AI_Mossclaw_Boar_1015190139_texture_normal.png",
-      "sha256": "eae2d137cc18d0ac81737fb0313e56d18a04cb93d3d8de77018af93d841e5457"
-    },
-    "roughness.png": {
-      "source_name": "Meshy_AI_Mossclaw_Boar_1015190139_texture_roughness.png",
-      "sha256": "c88d75ebc635bdaac6deaf11b8d70849c2247b578730965ccbea8b39b1ed207e"
+      "sha256": "3a7648ad76b0f0e3a00fb2b632189fbb21e0c0b36139496af9593fd5c9f60239",
+      "source_name": "Meshy_AI_Mossclaw_Boar_1016001519_texture.png"
     },
     "metallic.png": {
-      "source_name": "Meshy_AI_Mossclaw_Boar_1015190139_texture_metallic.png",
-      "sha256": "bef3101e1547ba5b61d9040997c3e985c50dfa1475a498d674af69642c437a08"
+      "sha256": "555bd18455e53a3b26493dc0579addd96f76d7dd0f94e2156374c5661480e109",
+      "source_name": "Meshy_AI_Mossclaw_Boar_1016001519_texture_metallic.png"
+    },
+    "metallic_roughness.png": {
+      "sha256": "d320c4335ff3617fd9cbada93479ab5423634198e90d4510a005896de41ae99f",
+      "source_name": "Meshy_AI_Mossclaw_Boar_1016001519_texture_metallic_roughness.png"
+    },
+    "normal.png": {
+      "sha256": "828e0273836a91f6115b183e9a36b9c5e92264114aff3e145ebacf38064fd435",
+      "source_name": "Meshy_AI_Mossclaw_Boar_1016001519_texture_normal.png"
+    },
+    "roughness.png": {
+      "sha256": "44083c12c81fe490304ca546dcb8b850af0ef01b35f268fe86755859d68ced88",
+      "source_name": "Meshy_AI_Mossclaw_Boar_1016001519_texture_roughness.png"
     }
   },
-  "authoring_height": 32.0,
-  "game_height_m": 0.875,
-  "source_has_skeleton": false,
-  "source_has_animations": false,
-  "runtime_vertices": 518861,
-  "runtime_triangles": 977782,
-  "rig_method": "Blender bone heat; four largest normalized influences per vertex",
   "tools": {
     "blender": "4.3.2",
     "godot": "4.7.2"
-  },
-  "rig_seeds_sha256": "2088e5d651f077739cf27c2e23a904929ae3890468426d145a37f676267b2723",
-  "source_fbx_path": "res://entregables/enemigos/enemigo1/source/Meshy_AI_Mossclaw_Boar_1015190139_texture.fbx"
+  }
 }

@@ -32,7 +32,7 @@ func run():
  require(actor.skeleton!=second.skeleton,"Each imported creature has an independent skeleton")
  require(FileAccess.get_sha256(manifest.source_fbx_path)==manifest.source_fbx_sha256,"The original FBX is retained byte-for-byte for the animation department")
  require(mesh.get_meta("source_zip_sha256")==manifest.source_zip_sha256,"Runtime asset identifies the verified user archive")
- require(indices.size()/3==977782,"Every original Meshy triangle is retained")
+ require(indices.size()/3==int(manifest.source_triangles),"Every original Meshy triangle is retained")
  require(digest(vertices.to_byte_array())==mesh.get_meta("normalized_positions_sha256"),"Baked skin keeps every imported position after the uniform normalization")
  require(digest(uv.to_byte_array())==mesh.get_meta("source_uv_sha256"),"Original texture coordinates survive skin binding")
  var original:AABB=mesh.get_meta("source_bounds")
@@ -40,10 +40,12 @@ func run():
  require(absf(mesh.get_aabb().size.y-32)<0.0001,"The source mesh uses a consistent authoring height")
  var material:StandardMaterial3D=actor.body_material
  var maps:={"albedo.png":material.albedo_texture,"normal.png":material.normal_texture,"roughness.png":material.roughness_texture,"metallic.png":material.metallic_texture}
- for filename in maps:
+ for filename in manifest.textures:
   var path:String="res://assets/enemies/first/meshy/"+String(filename)
   require(FileAccess.get_sha256(path)==manifest.textures[filename].sha256,"Original PNG remains byte-identical: "+filename)
+  if not maps.has(filename):continue
   require(maps[filename]!=null and maps[filename].resource_path==path,"The in-game material uses "+filename)
+ require(indices.size()/3<10000,"The active user-supplied reduced model replaces the dense runtime mesh")
  require(material.normal_enabled,"Original UV material replaces procedural projection shaders")
  require(not FileAccess.file_exists("res://scripts/prototype_3d/young_reference_mesh.gd"),"The rejected procedural geometry is removed")
  var valid:=bones.size()==vertices.size()*4 and weights.size()==bones.size()
@@ -55,7 +57,7 @@ func run():
    sum+=weights[i*4+j]
    valid=valid and bones[i*4+j]>=0 and bones[i*4+j]<15 and weights[i*4+j]>=0
   valid=valid and absf(sum-1)<0.0001
-  if i%503==0:probes.append(i)
+  if i%maxi(1,vertices.size()/1000)==0:probes.append(i)
  require(valid,"Every source vertex has finite coordinates, UVs and normalized four-bone bindings")
  actor.animate(&"reference",0,true)
  var error:=0.0
