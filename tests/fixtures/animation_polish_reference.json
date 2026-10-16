@@ -1,0 +1,239 @@
+{
+  "hip": [
+    {
+      "phase": 0.125,
+      "state": "run",
+      "x": -0.19718836247921
+    },
+    {
+      "phase": 0.25,
+      "state": "run",
+      "x": -0.285567194223404
+    },
+    {
+      "phase": 0.375,
+      "state": "run",
+      "x": -0.1874760389328
+    },
+    {
+      "phase": 0.625,
+      "state": "run",
+      "x": 0.200937479734421
+    },
+    {
+      "phase": 0.75,
+      "state": "run",
+      "x": 0.293064177036285
+    },
+    {
+      "phase": 0.875,
+      "state": "run",
+      "x": 0.191556006669998
+    },
+    {
+      "phase": 0.125,
+      "state": "start_run",
+      "x": -0.00965804047882557
+    },
+    {
+      "phase": 0.25,
+      "state": "start_run",
+      "x": -0.0488830395042896
+    },
+    {
+      "phase": 0.375,
+      "state": "start_run",
+      "x": -0.0683475881814957
+    },
+    {
+      "phase": 0.625,
+      "state": "start_run",
+      "x": 0.1383436024189
+    },
+    {
+      "phase": 0.75,
+      "state": "start_run",
+      "x": 0.231571435928345
+    },
+    {
+      "phase": 0.875,
+      "state": "start_run",
+      "x": 0.181244641542435
+    },
+    {
+      "phase": 0.125,
+      "state": "stop_run",
+      "x": -0.189927592873573
+    },
+    {
+      "phase": 0.25,
+      "state": "stop_run",
+      "x": -0.245556756854057
+    },
+    {
+      "phase": 0.375,
+      "state": "stop_run",
+      "x": -0.137629851698875
+    },
+    {
+      "phase": 0.625,
+      "state": "stop_run",
+      "x": 0.0690823867917061
+    },
+    {
+      "phase": 0.75,
+      "state": "stop_run",
+      "x": 0.0492948815226555
+    },
+    {
+      "phase": 0.875,
+      "state": "stop_run",
+      "x": 0.00966141931712627
+    },
+    {
+      "phase": 0.125,
+      "state": "equip_run",
+      "x": -0.197188347578049
+    },
+    {
+      "phase": 0.25,
+      "state": "equip_run",
+      "x": -0.285567164421082
+    },
+    {
+      "phase": 0.375,
+      "state": "equip_run",
+      "x": -0.1874760389328
+    },
+    {
+      "phase": 0.625,
+      "state": "equip_run",
+      "x": 0.200937509536743
+    },
+    {
+      "phase": 0.75,
+      "state": "equip_run",
+      "x": 0.293064117431641
+    },
+    {
+      "phase": 0.875,
+      "state": "equip_run",
+      "x": 0.191556036472321
+    }
+  ],
+  "pitch": [
+    {
+      "crouch": 0.0,
+      "family": "axe",
+      "height": 14.0,
+      "pitch": 0.502068102359772
+    },
+    {
+      "crouch": 0.0,
+      "family": "axe",
+      "height": 30.0,
+      "pitch": 0.0849199965596199
+    },
+    {
+      "crouch": 0.0,
+      "family": "axe",
+      "height": 42.0,
+      "pitch": 0.0350000001490116
+    },
+    {
+      "crouch": 1.0,
+      "family": "axe",
+      "height": 14.0,
+      "pitch": 0.582068145275116
+    },
+    {
+      "crouch": 1.0,
+      "family": "axe",
+      "height": 30.0,
+      "pitch": 0.164920002222061
+    },
+    {
+      "crouch": 1.0,
+      "family": "axe",
+      "height": 42.0,
+      "pitch": 0.115000002086163
+    },
+    {
+      "crouch": 0.0,
+      "family": "pickaxe",
+      "height": 14.0,
+      "pitch": 0.532068192958832
+    },
+    {
+      "crouch": 0.0,
+      "family": "pickaxe",
+      "height": 30.0,
+      "pitch": 0.114919997751713
+    },
+    {
+      "crouch": 0.0,
+      "family": "pickaxe",
+      "height": 42.0,
+      "pitch": 0.0649999976158142
+    },
+    {
+      "crouch": 1.0,
+      "family": "pickaxe",
+      "height": 14.0,
+      "pitch": 0.612068176269531
+    },
+    {
+      "crouch": 1.0,
+      "family": "pickaxe",
+      "height": 30.0,
+      "pitch": 0.194919988512993
+    },
+    {
+      "crouch": 1.0,
+      "family": "pickaxe",
+      "height": 42.0,
+      "pitch": 0.144999980926514
+    },
+    {
+      "crouch": 0.0,
+      "family": "sword",
+      "height": 14.0,
+      "pitch": 0.467068165540695
+    },
+    {
+      "crouch": 0.0,
+      "family": "sword",
+      "height": 30.0,
+      "pitch": 0.0499200001358986
+    },
+    {
+      "crouch": 0.0,
+      "family": "sword",
+      "height": 42.0,
+      "pitch": -0.00000000000000000857252763722393
+    },
+    {
+      "crouch": 1.0,
+      "family": "sword",
+      "height": 14.0,
+      "pitch": 0.547068178653717
+    },
+    {
+      "crouch": 1.0,
+      "family": "sword",
+      "height": 30.0,
+      "pitch": 0.129919990897179
+    },
+    {
+      "crouch": 1.0,
+      "family": "sword",
+      "height": 42.0,
+      "pitch": 0.0799999982118607
+    }
+  ],
+  "revision": "51d7bee",
+  "support": {
+    "excursion": 1.96502029895782,
+    "step": 1.7638828754425
+  }
+}

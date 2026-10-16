@@ -25,7 +25,7 @@ func run():
       var rest:=Clips.relaxed_arm(pose,free)
       var local_rest:Vector3=pose.body.affine_inverse()*rest.end
       var hand:Vector3=pose.body.affine_inverse()*actor.rig.posed[6+free*3].origin
-      var weight:=smoothstep(0,.22,t)*(1-smoothstep(.72,1,t))
+      var weight:=Clips.smootherstep(0,.42,t)*(1-Clips.smootherstep(.60,1,t))
       require(absf(hand.y-(local_rest.y+(38-local_rest.y)*.2*weight))<.02,"Support-hand elevation is half of the previous forty-percent lift")
       for arm in 2:
        var start:=4+arm*3

@@ -99,7 +99,7 @@ Ver `docs/YOUNG_3D.md` y `tests/prototype_3d_young_motion.gd`.
 La espalda y el trapecio siguen el tórax; la cara interior del brazo sigue al
 brazo. No inmovilizarla con una máscara rectangular de la espalda: produce
 ensanchamientos al levantar el húmero. El perfil vigente es
-`meshy_shoulders_v3`, descrito en `docs/MESHY_ASSETS.md`. La corrección reproducible está en
+`meshy_shoulders_v4_axilla`, descrito en `docs/MESHY_ASSETS.md`. La corrección reproducible está en
 `human_skin_weights.gd` y `tools/meshy/correct_survivor_weights.gd`, conservando
 la geometría importada. La postura de enlace usa `Anatomy.bind_pose()`.
 El deslizamiento nuevo curva el pecho respecto a la pelvis y mantiene la
@@ -177,8 +177,9 @@ los deslizamientos fijan su orientación al iniciarse.
 `slide_back` mantiene la vista hacia delante mientras la cadera se retira.
 La pierna izquierda queda más extendida y la derecha carga flexionada, con
 planos de rodilla separados, tobillos suaves y torso curvado sobre la cadera.
-Se activa con dirección hacia atrás + sprint + Ctrl; las diagonales conservan
-el recorrido normal. Dura 0,46 s y recorre el 60 % de los otros deslizamientos.
+Se activa con dirección hacia atrás + sprint + Ctrl. Las diagonales traseras
+usan ahora `slide_back_left` y `slide_back_right`, con ese mismo recorrido
+reducido. Dura 0,46 s y recorre el 60 % de los deslizamientos frontal/laterales.
 El salto encadenado conserva su pose real de salida y la inercia reducida.
 Se adapta el apoyo lateral de pierna de Baseball Canada y el descenso bajo de
 cadera del manual de combate escénico; no se reproduce una caída rígida ni se
@@ -280,3 +281,42 @@ las normales/tangentes del modelo para evitar cambios de iluminación al activar
 Pruebas: `tests/prototype_3d_enemy_face.gd` y
 `tests/prototype_3d_young_reference_mesh.gd`. Galería publicada de la revisión
 anterior a esta última corrección: [boca interior](previews/enemigo1-boca-interior-2026-10-16/README.md).
+
+
+## Afinado del superviviente: sobacos, dirección y retirada diagonal (16-10-2026)
+
+El jab conserva alternancia y contacto. El antebrazo contrario parte del plano
+real del brazo relajado y pasa a guardia mediante una curva quíntica: preparación
+hasta el 42 % del clip y recuperación desde el 60 %. Se reduce la reorientación
+del codo de apoyo al 30 %; las palmas vacías conservan su marco natural. Esto
+elimina el salto inicial de giro y mantiene una transición visible de ida/vuelta.
+La corrección local de piel `meshy_shoulders_v4_axilla` amplía la transición de
+pesos del pliegue axilar sin cambiar geometría, UV ni texturas originales.
+
+`gait_direction.gd` interpola todas las direcciones de marcha en 0,12 s,
+por el arco corto y conservando el módulo, incluso entre direcciones opuestas.
+Funciona al caminar, caminar agachado y con manos ocupadas, también en recogida,
+comida/bebida o equipamiento durante la marcha. Los cambios continuos pequeños
+de cámara actualizan el destino sin reiniciar toda la transición. Se aplica a
+la animación; la velocidad física y los controles siguen respondiendo al instante.
+
+Los ataques de hacha, pico, espada y arco reducen la inclinación del pecho
+un 50 %, conservando la postura base agachada. Se integra `cedeb33` del otro
+departamento con hacha/pico al 60 % y palmas separadas 4,95 unidades. Su bisagra
+adicional de contacto bajo se reduce también a la mitad, 0,18 rad. Los contactos
+bajos que lo necesitan usan transferencia continua hacia delante y descenso
+apoyado en las piernas, manteniendo pies, agarres y longitudes de huesos.
+El brazo libre de espada eleva la mano un 70 % menos respecto al reposo;
+el codo activo baja ligeramente sin mover el agarre. La pelvis reduce un 30 %
+su balanceo lateral, giro, cabeceo y oscilación vertical cíclicos en carrera,
+arranque, frenada y equipamiento corriendo, conservando la inclinación sostenida.
+
+Las dos retiradas diagonales usan S+A/S+D + sprint + Ctrl. Mantienen la vista
+hacia delante, desplazan la cadera y contrapesan el pecho/manos, con apoyo y
+pierna extendida intercambiados según el lado. Tobillos y planos de rodilla
+giran juntos hacia la diagonal. Ambas duran 0,46 s y recorren el 60 %;
+el salto enlazado hereda los pies y tobillos realmente mostrados y conserva
+su orientación relativa al deslizar. El guardado registra el lado y restaura
+la pose correcta; los archivos anteriores siguen aceptándose sin ese campo.
+F6 incluye ambos clips. Pruebas específicas: `prototype_3d_animation_polish.gd`
+y ampliación de `prototype_3d_player_motion.gd`, además de las suites compartidas.

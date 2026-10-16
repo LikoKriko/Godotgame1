@@ -16,6 +16,7 @@ var tool_cutting_axis:=Vector3.ZERO
 var axe: Node3D
 var rig = preload("res://scripts/prototype_3d/humanoid_rig.gd").new()
 var displayed_pose: Dictionary = {}
+var gait_direction=preload("res://scripts/prototype_3d/gait_direction.gd").new()
 var slide_launch_pose:Dictionary={}
 var equipment_from:Dictionary={}
 var death_from:Dictionary={}
@@ -61,6 +62,9 @@ func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: B
  tool_cutting_axis = x_axis
  return {"grip":grip,"support":grip+shaft*Profiles.profile(_item).support}
 func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0, movement_phase: float = 0.0, movement: Vector3 = Vector3.ZERO, motion_amount:float=1.0) -> void:
+ if state in [&"walk",&"crouch_walk",&"equip_walk",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk",&"unequip"]:
+  movement=gait_direction.sample(movement,delta)
+ else:gait_direction.reset()
  var item: StringName = (&"axe" if equipped else &"") if family_override==&"default" else family_override
  var equipping:=String(state).begins_with("equip") or state==&"unequip"
  if equipping and delta>0 and (equipment_from.is_empty() or displayed_pose.get("clip_state",&"")!=state or displayed_pose.get("family",&"")!=item or phase<float(displayed_pose.get("phase",0))):begin_equipment_transition()
@@ -195,7 +199,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
    prop.show_item(displayed_item,item_water_ml)
    var support_hand:Vector3=rig.posed[6 if last_pose.active==1 else 9].origin
    prop.update_pose(state,phase,grip_socket.transform.affine_inverse()*support_hand,nock_visible,grip_socket.transform.affine_inverse()*aim_contact if aim_contact.is_finite() else Vector3.INF)
- if state in [&"slide",&"slide_back"]:
+ if state in Clips.SLIDE_STATES:
   # Capture after IK and grips, so take-off uses the pose actually rendered.
   slide_launch_pose=displayed_pose.duplicate(true)
   slide_launch_pose.hands=[rig.posed[6].origin,rig.posed[9].origin]

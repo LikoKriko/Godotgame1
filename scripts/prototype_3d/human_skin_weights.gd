@@ -11,7 +11,13 @@ static func arm_share(point:Vector3) -> float:
  # Protect the scapular surface, while the outer deltoid and the entire
  # detached upper-arm ring remain free to follow the humerus.
  var scapula:=smoothstep(43,46,point.y)*(1-smoothstep(4.7,6.5,absf(point.x)))*(1-smoothstep(.2,1.8,point.z))
- return lateral*(1-smoothstep(46,51.5,point.y))*(1-.95*scapula)
+ var original:=lateral*(1-smoothstep(46,51.5,point.y))*(1-.95*scapula)
+ # The inner axillary strip has very short edges. A sub-unit X transition
+ # made adjacent vertices follow radically different transforms during a jab.
+ # Spread that change over the local fold, without changing the arm/elbow rings.
+ var fold:=smoothstep(41.5,43,point.y)*(1-smoothstep(45,47,point.y))*smoothstep(3.8,5.2,absf(point.x))
+ var broad:=smoothstep(3.6,7.2,absf(point.x))*(1-.95*scapula)
+ return lerpf(original,broad,fold)
 
 static func correct(arrays:Array) -> int:
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]

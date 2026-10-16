@@ -106,7 +106,7 @@ func run():
  var indices:PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
  var triangle_count:=indices.size()/3 if not indices.is_empty() else vertices.size()/3
  assert(triangle_count==int(manifest.triangles),"Preserve every triangle of the active source")
- mesh.set_meta("torso_weight_profile","meshy_shoulders_v3")
+ mesh.set_meta("torso_weight_profile","meshy_shoulders_v4_axilla")
  mesh.set_meta("source_zip_sha256",manifest.zip_sha256)
  mesh.set_meta("normalized_positions_sha256",normalized_hash)
  mesh.set_meta("source_triangles",triangle_count)

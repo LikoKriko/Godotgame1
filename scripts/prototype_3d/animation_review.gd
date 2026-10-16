@@ -38,7 +38,7 @@ func _ready() -> void:
  var states:=OptionButton.new()
  var state_options:Array[StringName]=YOUNG_STATES.duplicate() if species==&"young" else Clips.STATES
  if species==&"young":state_options.push_front(&"reference");clip=&"reference"
- var labels={&"reference":"Postura de referencia",&"boxing_guard":"Guardia de boxeo",&"boxing_walk":"Avanzar en guardia",&"boxing_rise":"Entrar en boxeo",&"boxing_lower":"Salir de boxeo",&"hook":"Crochet alterno",&"sleep_down":"Acostarse",&"sleep":"Dormir",&"wake_up":"Despertarse",&"slide_back":"Deslizamiento hacia atrás"}
+ var labels={&"reference":"Postura de referencia",&"boxing_guard":"Guardia de boxeo",&"boxing_walk":"Avanzar en guardia",&"boxing_rise":"Entrar en boxeo",&"boxing_lower":"Salir de boxeo",&"hook":"Crochet alterno",&"sleep_down":"Acostarse",&"sleep":"Dormir",&"wake_up":"Despertarse",&"slide_back":"Deslizamiento hacia atrás",&"slide_back_left":"Deslizamiento atrás izquierda",&"slide_back_right":"Deslizamiento atrás derecha"}
  for name in state_options:states.add_item(labels.get(name,String(name)))
  column.add_child(states);states.item_selected.connect(func(index):clip=state_options[index];elapsed=0)
  if species==&"young":

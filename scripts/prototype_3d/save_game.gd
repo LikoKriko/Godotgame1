@@ -58,7 +58,7 @@ static func capture(game) -> Dictionary:
  var tables:Array=[]
  for table in game.workbenches.tables:tables.append({"position":vector(table.position),"uid":table.uid})
  return {"version":VERSION,"layout_version":LAYOUT_VERSION,"seed":game.world_seed,"saved_at":Time.get_datetime_string_from_system(true),
-  "player":{"position":vector(game.player.position),"velocity":vector(game.player.velocity),"heading":game.player.model.rotation.y,"phase":game.player.phase,"motion":motion,"response":game.player.movement_response.snapshot(),"slide_backward":game.player.slide_backward,"slide_facing":game.player.slide_facing,"slide_distance_scale":game.player.locomotion.slide_distance_scale,"death_elapsed":game.player.death_elapsed,"equip_recovery":game.player.equip_recovery,"pickup_recovery":game.player.pickup_recovery,"camera":[game.camera_rig.yaw,game.camera_rig.pitch]},
+  "player":{"position":vector(game.player.position),"velocity":vector(game.player.velocity),"heading":game.player.model.rotation.y,"phase":game.player.phase,"motion":motion,"response":game.player.movement_response.snapshot(),"slide_backward":game.player.slide_backward,"slide_side":game.player.slide_side,"slide_facing":game.player.slide_facing,"slide_distance_scale":game.player.locomotion.slide_distance_scale,"death_elapsed":game.player.death_elapsed,"equip_recovery":game.player.equip_recovery,"pickup_recovery":game.player.pickup_recovery,"camera":[game.camera_rig.yaw,game.camera_rig.pitch]},
   "bag":{"slots":game.bag.slots.duplicate(true),"quick":game.bag.quick_slots.duplicate(true),"equipment":game.bag.equipment.duplicate(true),"active":game.bag.active_quick_uid,"next_uid":game.bag.next_uid,"recipes":game.bag.unlocked_recipes.duplicate()},
   "progress":{"level":game.level,"experience":game.experience,"points":game.skill_points,"health":game.player_health,"skills":game.progression.skills.duplicate(),"perks":game.progression.perks.duplicate(),"active":game.progression.active.duplicate(),"cooldowns":game.progression.cooldowns.duplicate(),"rng":str(game.progression.rng.state)},
   "nutrition":{"calories":game.nutrition.calories_today,"hydration":game.nutrition.hydration_ml,"water_today":game.nutrition.water_today_ml},
@@ -100,6 +100,7 @@ static func valid(data) -> bool:
  if not number(p.get("death_elapsed"),-1,3.1) or not p.get("camera") is Array or p.camera.size()!=2:return false
  if not number(p.camera[0],-100000,100000) or not number(p.camera[1],-preload("res://scripts/prototype_3d/shoulder_camera.gd").PITCH_LIMIT-0.000001,preload("res://scripts/prototype_3d/shoulder_camera.gd").PITCH_LIMIT+0.000001):return false
  if p.has("response") and not preload("res://scripts/prototype_3d/movement_response.gd").valid(p.response):return false
+ if p.get("slide_side",0) not in [-1,0,1]:return false
  if not p.get("slide_backward",false) is bool or not number(p.get("slide_facing",p.heading),-100000,100000) or not number(p.get("slide_distance_scale",1),0,1):return false
  var motion=p.get("motion")
  if not motion is Dictionary or not motion.get("from_slide") is bool:return false
@@ -252,7 +253,7 @@ static func restore(game,data:Dictionary) -> bool:
  for key in MOTION:game.player.locomotion.set(key,p.motion[key])
  game.player.locomotion.slide_direction=Vector2(p.motion.slide_direction[0],p.motion.slide_direction[1])
  game.player.locomotion.slide_distance_scale=p.get("slide_distance_scale",1.0)
- game.player.slide_backward=p.get("slide_backward",false);game.player.slide_facing=p.get("slide_facing",p.heading)
+ game.player.slide_backward=p.get("slide_backward",false);game.player.slide_side=int(p.get("slide_side",0));game.player.slide_facing=p.get("slide_facing",p.heading)
  if p.has("response"):game.player.movement_response.restore(p.response)
  else:game.player.movement_response.speed=Vector2(p.velocity[0],p.velocity[2]).length()/game.player.SPEED
  game.player.facing_history=preload("res://scripts/prototype_3d/facing_delay.gd").new()
@@ -278,10 +279,12 @@ static func restore(game,data:Dictionary) -> bool:
  var clip:StringName=&"idle";var phase:=0.0
  if game.player_health<=0:clip=&"death";phase=clampf(p.death_elapsed/3,0,1)
  elif game.player.locomotion.airborne():clip=&"slide_jump" if p.motion.from_slide else &"jump";phase=p.motion.jump_elapsed/0.66
- elif game.player.locomotion.sliding():clip=&"slide_back" if game.player.slide_backward else &"slide";phase=p.motion.slide_elapsed/0.46
+ elif game.player.locomotion.sliding():clip=game.player.slide_clip();phase=p.motion.slide_elapsed/0.46
  elif p.motion.crouch>0.1:clip=&"crouch"
  elif Vector2(p.velocity[0],p.velocity[2]).length()>0.1:clip=&"run" if Vector2(p.velocity[0],p.velocity[2]).length()>2.01 else &"walk";phase=p.phase
  game.player.model.sprint_weight=game.player.movement_response.sprint_weight;game.player.model.sprint_crouch=game.player.locomotion.crouch
+ if game.player.locomotion.airborne() and game.player.locomotion.from_slide:
+  game.player.model.slide_launch_pose=game.player.Clips.sample(game.player.family(),game.player.slide_clip(),.55,game.player.phase)
  game.player.model.animate(clip,phase,game.player.equipped)
  game.camera_rig.update(1);game.refresh_daylight()
  if game.distance_optimization!=null:game.distance_optimization.update_enemies()

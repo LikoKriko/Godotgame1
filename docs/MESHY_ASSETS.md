@@ -155,7 +155,7 @@ las sondas con las del `Skeleton3D` usado para dibujar.
 
 ## Afinado escapular v3 (16 de octubre de 2026)
 
-El perfil vigente **`meshy_shoulders_v3`** conserva la separación anatómica de
+El perfil **`meshy_shoulders_v3`** conserva la separación anatómica de
 v2 y reduce la influencia del brazo en la superficie posterior alta, en la
 transición entre trapecio y deltoides. El límite se aplica desde 43 unidades de
 altura y se desvanece hacia la cara externa del hombro: no inmoviliza el anillo
@@ -340,8 +340,9 @@ de palmas pasa de 8,25 a **4,95 unidades** (unos 13,5 cm).
 
 La preparación desplaza el mango hacia delante para dejar libre la cabeza.
 Los contactos bajos añaden una inclinación continua del torso alrededor de
-la cadera, hasta 0,36 radianes, y el menor traslado de apoyo necesario, con
-límite de ocho unidades. Los pies siguen plantados, las rodillas conservan
+la cadera, hasta 0,18 radianes tras el afinado de animación, y el menor traslado de apoyo
+resuelto. Para contactos muy bajos se permite bajar seis unidades y avanzar
+hasta diez, con los pies plantados. Los pies siguen plantados, las rodillas conservan
 su corrección anterior y los huesos mantienen su longitud. Se conservan las
 fases de preparación, golpe, extracción y recuperación y los enlaces de
 equipar/desequipar. El solucionador y sus pruebas toman los límites reales
@@ -354,3 +355,22 @@ durante equipamiento/locomoción y la malla completa frente a torso y cabeza.
 La comparación independiente con ambos FBX conserva todos los índices,
 posiciones transformadas, UV y normales dentro de precisión nativa.
 Captura actual: `previews/tools_reduced_grips.png`.
+
+
+## Pliegue axilar v4 (16 de octubre de 2026)
+
+El perfil vigente es `meshy_shoulders_v4_axilla`. Conserva las correcciones
+escapulares v3 y amplía solo el gradiente de pesos de la unión espalda/brazo
+entre y=41,5–47, evitando que aristas muy cortas del sobaco sigan transformaciones
+radicalmente distintas al extender el jab. Cambian pesos de 612 vértices de
+la malla transferida de 22132 vértices/20878 triángulos y 24 huesos. Se conservan
+los buffers originales de posiciones, normales/tangentes, UV, índices y colores,
+así como material `skin_seams_v1`, FBX y PNG. No volver al horneado automático.
+`human_skin_weights.gd` aplica la corrección reproducible en `bind_human.gd`;
+se conservan los anillos de codos/antebrazos y la corrección es idempotente.
+
+En el jab de ambos lados, 65 muestras por golpe, el peor cociente entre longitud
+de arista deformada y original baja de 8,25 a 3,52 en el sobaco. Sigue existiendo
+estiramiento propio de una piel de cuatro influencias, pero se elimina el salto
+local de pesos que creaba el pliegue excesivo. Las pruebas cubren también
+volumen, continuidad, apoyo de piel real y fidelidad a la fuente importada.

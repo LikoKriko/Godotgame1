@@ -40,6 +40,7 @@ var facing_history=preload("res://scripts/prototype_3d/facing_delay.gd").new()
 var delayed_aim:=Vector3.INF
 var movement_response=preload("res://scripts/prototype_3d/movement_response.gd").new()
 var slide_backward:=false
+var slide_side:=0
 var slide_facing:=0.0
 var punch_side:=1
 var next_punch_side:=1
@@ -48,7 +49,7 @@ func reset_motion_state() -> void:
  movement_response=preload("res://scripts/prototype_3d/movement_response.gd").new()
  facing_history=preload("res://scripts/prototype_3d/facing_delay.gd").new()
  facing_history.sample(model.basis.z*4,0)
- slide_backward=false;slide_facing=model.rotation.y
+ slide_backward=false;slide_side=0;slide_facing=model.rotation.y
 func configure(owner_game) -> void:
  game = owner_game
  var capsule := CapsuleShape3D.new(); capsule.radius = 0.20; capsule.height = Anatomy.HEIGHT_METRES
@@ -118,7 +119,7 @@ func update_facing(point:Vector3,delta:float) -> void:
  var visual_heading:=heading_to(action_point if action_elapsed>=0 else contact)
  if action_elapsed>=0:action_heading=visual_heading
  elif locomotion.sliding():visual_heading=slide_facing
- elif locomotion.airborne() and locomotion.from_slide:visual_heading=(PI/2-locomotion.jump_heading)+(PI if slide_backward else 0)
+ elif locomotion.airborne() and locomotion.from_slide:visual_heading=slide_facing-wrapf(locomotion.jump_heading-locomotion.launch_heading,-PI,PI)
  model.rotation.y=lerp_angle(model.rotation.y,visual_heading,1-exp(-maxf(0,delta)*15))
 func advance_action(delta:float) -> void:
  if action_elapsed<0:return
@@ -170,6 +171,9 @@ func advance_preview(delta:float,moving:bool=false) -> Dictionary:
 func play_preview(family: StringName,state: StringName) -> void:
  preview_family=family;preview_state=state;preview_elapsed=0
  pickup_point=Vector3.INF;pickup_target={};pickup_completed=false
+func slide_clip() -> StringName:
+ if not slide_backward:return &"slide"
+ return &"slide_back_left" if slide_side<0 else (&"slide_back_right" if slide_side>0 else &"slide_back")
 func _physics_process(delta: float) -> void:
  if game == null or game.paused: return
  if game.player_health<=0:
@@ -188,10 +192,12 @@ func _physics_process(delta: float) -> void:
  var running: bool = (Input.is_physical_key_pressed(KEY_SHIFT) or game.settings.values.auto_run) and action_elapsed < 0 and not input.is_zero_approx()
  if preview_state in [&"eat",&"eat_walk",&"drink",&"drink_walk"]:running=false
  if control and not control_was_pressed and running and is_on_floor():
-  var backward:=input.y>absf(input.x)
+  var backward:=input.y>0
   if locomotion.slide(Vector2(direction.x,direction.z),.6 if backward else 1.0):
    slide_backward=backward
-   slide_facing=atan2(direction.x,direction.z)+(PI if backward else 0)
+   slide_side=int(signf(input.x)) if backward else 0
+   var forward:Vector3=game.camera_rig.movement_direction(Vector2.UP) if backward else direction
+   slide_facing=atan2(forward.x,forward.z)
  control_was_pressed = control
  var jump_pressed := Input.is_physical_key_pressed(KEY_SPACE)
  if jump_pressed and not jump_was_pressed and is_on_floor():
@@ -235,7 +241,7 @@ func _physics_process(delta: float) -> void:
   parry_elapsed+=delta;state=&"parry";progress=clampf(parry_elapsed/0.5,0,1)
   if parry_elapsed>=0.5:parry_elapsed=-1
  elif locomotion.sliding():
-  state = &"slide_back" if slide_backward else &"slide"; progress = locomotion.slide_elapsed/locomotion.SLIDE_SECONDS
+  state = slide_clip(); progress = locomotion.slide_elapsed/locomotion.SLIDE_SECONDS
  elif not is_on_floor():
   state = &"slide_jump" if locomotion.from_slide else &"jump"
   progress = locomotion.jump_elapsed/locomotion.JUMP_SECONDS

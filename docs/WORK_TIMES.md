@@ -1757,3 +1757,58 @@ empaquetado. Importación y `git diff --check` sin errores.
 Captura de revisión real: `docs/previews/tools_reduced_grips.png`, ocho poses
 de reposo, marcha, equipamiento y golpe bajo entre ambas herramientas. No
 incluye medición de FPS ni sesión manual en el equipo del usuario.
+
+
+### Afinado de animaciones del superviviente e integración de agarres reducidos
+
+Inicio observado **18:34:42 Europe/Madrid**; cierre de comprobaciones
+**19:04:08 Europe/Madrid**, 16 de octubre de 2026:
+**29 min 26 s** medidos. Intervalo parcial desde el primer reloj
+registrado; incluye revisión, diagnóstico, cambios, integración y validación.
+Sin estimación previa comunicada. Cambios locales; no incluye commit ni push.
+
+Se reduce el estiramiento axilar del jab con pesos locales v4, manteniendo
+geometría/UV/materiales de la malla transferida actual. Se suaviza y reduce el
+giro del antebrazo contrario, con preparación/recuperación más largas. Marcha:
+transición visual de dirección de 0,12 s en todas las direcciones. Torso de
+ataques con arma/herramienta: 50 % menos inclinación. Espada: 70 % menos elevación
+del brazo contrario y codo activo algo más bajo. Carrera: 30 % menos oscilación
+de pelvis, incluidas transiciones. Dos retiradas diagonales con recorrido al
+60 %, tobillos/rodillas y salto encadenado, entradas reales y guardado compatible.
+
+Se integra por avance rápido hasta `cedeb33` (incluido `c1fd069`): hacha y pico
+reducidos al 60 % y agarres del departamento de modelaje conservados. El único
+conflicto afecta al alcance en `weapon_motion.gd`; se combinan sus anclajes y
+posturas con menor inclinación y apoyo de piernas para contactos bajos.
+
+Godot 4.6.3: **18 suites, 336277 comprobaciones superadas**. Afinado específico
+5733; respuesta del jugador 25700; jab 26250; espada 1572; golpes/herramientas
+28663; deformación humana 165005; piel Meshy 16202; fuentes Meshy 105;
+deslizamiento 2028; brazos de carrera 374; diagonales 32736; acciones naturales
+4050; correcciones del modelo 42; catálogo 9612; equipamiento 17892;
+puntería de arco 73; objetos Meshy 44; guardado 196. Se repiten las pruebas
+que detectan fallos al integrar herramientas pequeñas hasta verificar contacto
+y oclusión; entradas S+A/S+D y restauración pasan tras aislar correctamente
+los eventos de teclado de cada caso de prueba. La compresión final del recurso
+conserva los datos y vuelve a superar fidelidad Meshy (105 comprobaciones).
+
+El peor estiramiento de arista del sobaco en ambos jabs, 65 muestras, pasa de
+8,25 a 3,52. Excursión del antebrazo de apoyo: 1,965 a 0,466 rad; máximo giro
+entre muestras: 1,764 a 0,037 rad. Revisión nativa Compatibility/OpenGL:
+45 fotogramas cercanos de ambos jabs y espada, más 135 fotogramas de tres
+vistas con retiradas diagonales, carrera, espada y contactos bajos de ambas
+herramientas pequeñas. Capturas internas en el directorio de trabajo; no se
+publican. `git diff --check` sin errores. No incluye prueba en el equipo del
+usuario.
+
+
+### Publicación del afinado del superviviente
+
+Commit y push autorizados por el usuario. Inicio observado **19:10:20
+Europe/Madrid**; comprobaciones previas al commit completadas a las
+**19:10:56 Europe/Madrid** del 16 de octubre de 2026:
+**0 min 36 s** medidos, intervalo parcial desde el primer reloj.
+Sin estimación previa. Se comprueban rama, estado, diferencias y remoto:
+GitHub continúa en `cedeb33`, sin cambios nuevos que integrar.
+Se conservan las 18 suites y 336277 comprobaciones del hito anterior;
+`git diff --check` sin errores. El intervalo no incluye el push posterior.

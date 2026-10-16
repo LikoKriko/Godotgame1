@@ -9,14 +9,16 @@ const Fall=preload("res://scripts/prototype_3d/fall_motion.gd")
 const Slide=preload("res://scripts/prototype_3d/slide_pose.gd")
 const STRIDE_SCALE:=1.3
 const ARM_SWING_SCALE:=0.9
+const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",&"slide_back_right"]
+const RUN_HIP_SCALE:=.7
 const FAMILIES: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow",&"bottle",&"food",&"carried"]
-const STATES: Array[StringName] = [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"slide_back",&"jump",&"slide_jump",&"equip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk",&"unequip",&"action",&"draw",&"bow_release",&"pickup",&"pickup_walk",&"eat",&"eat_walk",&"drink",&"drink_walk",&"parry",&"hurt",&"death"]
+const STATES: Array[StringName] = [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"jump",&"slide_jump",&"equip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk",&"unequip",&"action",&"draw",&"bow_release",&"pickup",&"pickup_walk",&"eat",&"eat_walk",&"drink",&"drink_walk",&"parry",&"hurt",&"death"]
 
 static func duration(state: StringName,family: StringName = &"") -> float:
  if state==&"death": return 3.0
  if state in [&"eat",&"eat_walk",&"drink",&"drink_walk"]: return 1.2
  if state in [&"pickup",&"pickup_walk"]: return 0.72
- if state in [&"slide",&"slide_back"]: return 0.46
+ if state in SLIDE_STATES: return 0.46
  if state in [&"jump",&"slide_jump"]: return 0.66
  if state==&"crouch_walk":return 1.25*STRIDE_SCALE
  if state==&"bow_release":return .24
@@ -37,14 +39,14 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var dying:=sample(&"",&"idle",0)
   dying.family=family;dying.clip_state=&"death";dying.state=&"death";dying.phase=clampf(phase,0,1)
   return solve_legs(Fall.human(dying,phase))
- var source_state := &"run" if state in [&"slide",&"slide_back"] else state
+ var source_state := &"run" if state in SLIDE_STATES else state
  if family==&"" and state==&"action":source_state=&"idle"
  if state in [&"pickup",&"pickup_walk"]:source_state=&"walk" if state==&"pickup_walk" else &"idle"
  if state==&"draw" or (family==&"bow" and state==&"action"):source_state=&"idle"
  if state==&"bow_release":source_state=&"walk" if not movement.is_zero_approx() else &"idle"
  if state in [&"drink",&"drink_walk"]: source_state=&"eat_walk" if state==&"drink_walk" else &"eat"
  if state in [&"parry",&"hurt"]: source_state=&"idle"
- var pose := Pose.sample(&"food" if state in [&"drink",&"drink_walk"] else family,source_state,movement_phase if state in [&"slide",&"slide_back",&"bow_release"] else phase,1.0 if source_state==&"equip_crouch" else movement_phase,1.0,-1)
+ var pose := Pose.sample(&"food" if state in [&"drink",&"drink_walk"] else family,source_state,movement_phase if state in SLIDE_STATES or state==&"bow_release" else phase,1.0 if source_state==&"equip_crouch" else movement_phase,1.0,-1)
  pose.leg_poles=[Vector3.BACK,Vector3.BACK]
  pose.leg_frame=Basis.IDENTITY
  pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state==&"run" else movement_phase
@@ -97,7 +99,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  if family==&"carried":
   for side in 2: pose.hands[side]=body*Vector3(-5 if side==0 else 5,33,10)
   pose.grip=pose.hands[1];pose.shaft=body.basis*Vector3.LEFT
- if not movement.is_zero_approx() and state not in [&"slide",&"slide_back",&"jump",&"slide_jump",&"death"]:
+ if not movement.is_zero_approx() and state not in [&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"jump",&"slide_jump",&"death"]:
   var travel:=Vector3(movement.x,0,movement.z).normalized()
   # Rotate the stance lanes and knee/foot frames together. Keeping the old
   # frontal lanes clips the inward half of a diagonal step into a sideways fan.
@@ -123,14 +125,15 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     local.z=lerpf(3.5*Anatomy.BODY_DEPTH,local.z,ARM_SWING_SCALE)
     pose.hands[side]=body*local
  natural_motion(pose,state,phase,movement_phase,movement,contact,striding)
+ if state in [&"action",&"draw"] and family in [&"axe",&"pickaxe",&"sword",&"bow"]:reduce_weapon_pitch(pose,crouch_amount)
  if state==&"action" and family!=&"bow":reduce_attack_knees(pose,phase,movement_phase,movement,crouch_amount)
  body=pose.body
- if state in [&"slide",&"slide_back"]:
+ if state in SLIDE_STATES:
   lengthen_stride(pose)
   for side in 2:
    var arm:=running_arm(pose,side,movement_phase)
    if not arm.is_empty():pose.hands[side]=arm.end
-  Slide.apply(pose,phase,state==&"slide_back");body=pose.body
+  Slide.apply(pose,phase,state!=&"slide",-1.0 if state==&"slide_back_left" else (1.0 if state==&"slide_back_right" else 0.0));body=pose.body
  if family==&"" and state==&"action":
   punch(pose,phase)
  if family==&"axe":
@@ -149,7 +152,10 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var free_side:int=1-pose.active
   var opening:=smoothstep(0,0.28,phase)*(1-smoothstep(0.62,1,phase))
   var outward:Vector3=Vector3(-0.86 if free_side==0 else 0.86,-0.38,-0.34).normalized()
-  var counterweight:Vector3=pose.shoulders[free_side]+body.basis*outward*18.3
+  var rest_offset:Vector3=body.basis.inverse()*(relaxed_arm(pose,free_side).end-pose.shoulders[free_side])
+  var lower_y:=lerpf(rest_offset.y,outward.y*18.3,.3)
+  var horizontal:=Vector2(outward.x,outward.z).normalized()*sqrt(maxf(0,18.3*18.3-lower_y*lower_y))
+  var counterweight:Vector3=pose.shoulders[free_side]+body.basis*Vector3(horizontal.x,lower_y,horizontal.y)
   var relaxed:Dictionary=relaxed_arm(pose,free_side)
   pose.hands[free_side]=relaxed.end.lerp(counterweight,opening)
  if family==&"bow":Weapons.bow(pose,state,phase,contact)
@@ -261,8 +267,9 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
   var wave:=sin(cycle*TAU)*amount
   # Weight passes onto the support leg. Pelvis and rib cage counter-rotate;
   # occupied hands travel with the rib cage instead of an independent bob.
-  offset.x=-wave*0.32
-  pelvis_rotation=Vector3(0,wave*0.035+pose.leg_frame.get_euler().y*0.5,wave*0.012)
+  var hip_scale:=RUN_HIP_SCALE if state in [&"run",&"start_run",&"stop_run",&"equip_run"] else 1.0
+  offset.x=-wave*0.32*hip_scale
+  pelvis_rotation=Vector3(0,wave*0.035*hip_scale+pose.leg_frame.get_euler().y*0.5,wave*0.012*hip_scale)
   chest_rotation=Vector3(0,-wave*0.025,-wave*0.014)
  elif state==&"idle":
   var breath:=sin(phase*TAU)
@@ -336,9 +343,18 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
    var lift:=sin(clampf(phase/0.30,0,1)*PI) if phase<0.30 else sin(clampf((phase-0.74)/0.26,0,1)*PI)
    pose.legs[side].end.y+=lift*1.3*low
   pose.hands[0]=pose.hands[0].lerp(original*Vector3(-10,32,10),reach)
- if state not in [&"slide",&"slide_back",&"slide_jump",&"death"]:
+ if state not in [&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_jump",&"death"]:
   chest=Transform3D(Basis.from_euler(chest_rotation),pivot+offset-Basis.from_euler(chest_rotation)*pivot)*original
   pelvis=Transform3D(Basis.from_euler(pelvis_rotation),pivot+offset-Basis.from_euler(pelvis_rotation)*pivot)*original
+  if state in [&"run",&"start_run",&"stop_run",&"equip_run"]:
+   var cycle:float=phase if state==&"run" else gait
+   var amount:=smoothstep(0,1,phase) if state==&"start_run" else (1-smoothstep(0,1,phase) if state==&"stop_run" else 1.0)
+   var euler:=pelvis.basis.get_euler()
+   euler.x-=(1-RUN_HIP_SCALE)*.025*sin(cycle*TAU)*amount
+   var reduced:=Basis.from_euler(euler)
+   pelvis.origin+=pelvis.basis*pivot-reduced*pivot
+   pelvis.basis=reduced
+   pelvis.origin.y+=(1-RUN_HIP_SCALE)*.65*cos(cycle*TAU*2)*amount
   var change:=chest*original.affine_inverse()
   pose.body=chest
   pose.pelvis=pelvis
@@ -417,6 +433,24 @@ static func clear_soles(pose:Dictionary) -> void:
   pose.legs[side].end.y+=maxf(0,sin(pitch))*8.03+maxf(0,-sin(pitch))*1.25
 
 
+static func smootherstep(a:float,b:float,t:float) -> float:
+ var x:=clampf((t-a)/(b-a),0,1)
+ return x*x*x*(x*(x*6-15)+10)
+
+static func reduce_weapon_pitch(pose:Dictionary,crouch:float) -> void:
+ var before:Transform3D=pose.body
+ var angles:=before.basis.get_euler()
+ var stance:=.08*clampf(crouch,0,1)
+ angles.x=stance+(angles.x-stance)*.5
+ var basis:=Basis.from_euler(angles)
+ var pivot:=Vector3(0,Anatomy.HIP.y,0)
+ var after:=Transform3D(basis,before.origin+before.basis*pivot-basis*pivot)
+ var change:=after*before.affine_inverse()
+ pose.body=after;pose.grip=change*pose.grip;pose.shaft=change.basis*pose.shaft
+ for side in 2:
+  pose.shoulders[side]=change*pose.shoulders[side]
+  pose.hands[side]=change*pose.hands[side]
+
 static func punch(pose:Dictionary,t:float) -> void:
  var side:int=pose.active;var s:float=-1 if side==0 else 1
  var body:Transform3D=pose.body
@@ -446,9 +480,12 @@ static func punch(pose:Dictionary,t:float) -> void:
   else:
    var local:Vector3=body.affine_inverse()*rest.end
    var guard:=body*Vector3(-s*8,lerpf(local.y,38,.2),9)
-   hand=(rest.end as Vector3).lerp(guard,smoothstep(0,.22,t)*(1-smoothstep(.72,1,t)))
-   var support:=preload("res://scripts/prototype_3d/human_kinematics.gd").arm(pose.shoulders[arm],hand,body.basis,arm)
-   pose.arm_poles.append(support.joint-support.root)
+   var transition:=smootherstep(0,.42,t)*(1-smootherstep(.60,1,t))
+   hand=(rest.end as Vector3).lerp(guard,transition)
+   var shoulder:Vector3=pose.shoulders[arm]
+   var axis:=shoulder.direction_to(hand)
+   var desired:=body.basis*Vector3((-1 if arm==0 else 1)*.12,-.02,-1.0)
+   pose.arm_poles.append(preload("res://scripts/prototype_3d/human_kinematics.gd").transport_pole(shoulder.direction_to(rest.end),rest.joint-shoulder,axis,desired,transition*.3))
   pose.hands[arm]=hand
  # The striking-side foot precedes the impact and settles before the fist lands.
  pose.legs[side].end.z+=drive*2.5

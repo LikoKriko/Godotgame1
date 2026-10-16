@@ -40,7 +40,7 @@ static func melee(pose:Dictionary,t:float,contact:Vector3,impact_pose:Dictionary
  # same planted feet and fixed arm lengths. Apply continuously over the stroke.
  if family in [&"axe",&"pickaxe"] and profile.tip.length()<16 and contact.is_finite():
   var weight:=smoothstep(.26,.5,t)*(1-smoothstep(.62,1,t))
-  var pitch:float=.36*(1-smoothstep(22,36,contact.y))*weight
+  var pitch:float=.18*(1-smoothstep(22,36,contact.y))*weight
   var turn:=Basis(Vector3.RIGHT,pitch);var pivot:=Vector3(0,31,0)
   var next:Transform3D=pose.body*Transform3D(turn,pivot-turn*pivot)
   var delta:Transform3D=next*pose.body.affine_inverse();pose.body=next
@@ -57,8 +57,15 @@ static func melee(pose:Dictionary,t:float,contact:Vector3,impact_pose:Dictionary
   if solution.is_empty():
    # Retarget the measured source tip without changing limb lengths or the
    # reduced knee bend. Use the smallest forward weight shift that can reach.
-   for distance in ([1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,6.0,7.0,8.0] if profile.tip.length()<16 else [1.5,2.0,2.5,3.0,3.5,4.0,4.5]):
-    var transfer:=Vector3(contact.x,0,contact.z).normalized()*float(distance)
+   var transfers:Array[Vector2]=[]
+   for distance in ([1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,7.0,8.0] if profile.tip.length()<16 else [1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0]):transfers.append(Vector2(distance,0))
+   # A more upright chest can transfer weight through the legs for low hits.
+   transfers.append_array([Vector2(5,1),Vector2(5.5,1.5),Vector2(6,2),Vector2(6,2.5),Vector2(5,3),Vector2(4.5,3.5),Vector2(7,3),Vector2(8,4)])
+   if profile.tip.length()<16:
+    for drop in [4.0,5.0,6.0,7.0,8.0]:
+     for forward in [4.0,6.0,8.0,10.0]:transfers.append(Vector2(forward,drop))
+   for shift in transfers:
+    var transfer:=Vector3(contact.x,0,contact.z).normalized()*shift.x+Vector3.DOWN*shift.y
     var shoulders:Array=[pose.shoulders[0]+transfer,pose.shoulders[1]+transfer]
     if Aim.solve(contact,shoulders,profile.tip,pose.active,profile.two_hands,Transform3D(pose.body.basis,pose.body.origin+transfer),profile.support,profile.get("shaft_range",Vector2(-4,28))).is_empty():continue
     transfer*=smoothstep(.26,.5,t)*(1-smoothstep(.62,1,t))

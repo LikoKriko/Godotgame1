@@ -145,9 +145,33 @@ func run():
  require(saved.player.slide_backward and is_equal_approx(saved.player.slide_distance_scale,.6),"Save records backward posture and shortened travel")
  require(preload("res://scripts/prototype_3d/save_game.gd").valid(saved),"New locomotion fields satisfy save validation")
  var legacy:=saved.duplicate(true)
- for field in ["response","slide_backward","slide_facing","slide_distance_scale"]:legacy.player.erase(field)
+ for field in ["response","slide_backward","slide_side","slide_facing","slide_distance_scale"]:legacy.player.erase(field)
  require(preload("res://scripts/prototype_3d/save_game.gd").valid(legacy),"Older saves remain accepted without the new animation fields")
  for code in [KEY_CTRL,KEY_SHIFT,KEY_S]:key(code,false)
+ var Save=preload("res://scripts/prototype_3d/save_game.gd")
+ for side in [-1,1]:
+  await physics_frame;await process_frame
+  player.reset_motion_state();player.control_was_pressed=false;player.position=Vector3(12,.01,12)
+  for frame in 12:
+   player._physics_process(1.0/60);await physics_frame
+  key(KEY_S,true);key(KEY_SHIFT,true);key(KEY_A if side<0 else KEY_D,true)
+  for frame in 10:
+   player._physics_process(1.0/60);await physics_frame
+  key(KEY_CTRL,true);await physics_frame;await process_frame
+  player._physics_process(1.0/60);await physics_frame
+  var clip:StringName=&"slide_back_left" if side<0 else &"slide_back_right"
+  require(player.locomotion.sliding() and player.slide_backward and player.slide_side==side and player.model.last_pose.clip_state==clip,"Live S+A/S+D selects its own backward diagonal animation")
+  require(is_equal_approx(player.locomotion.slide_distance_scale,.6),"Both backward diagonals use the shorter travel")
+  var diagonal:Dictionary=Save.capture(game)
+  require(Save.valid(diagonal),"Backward diagonal save validates")
+  var invalid:=diagonal.duplicate(true);invalid.player.slide_side=2
+  require(not Save.valid(invalid),"Save rejects an unknown slide side")
+  player.slide_side=0
+  require(Save.restore(game,diagonal),"Backward diagonal state restores")
+  require(player.slide_side==side and player.model.last_pose.clip_state==clip,"Loading restores the correct diagonal pose")
+  for enemy in get_nodes_in_group("prototype_enemies"):enemy.set_physics_process(false)
+  for code in [KEY_CTRL,KEY_SHIFT,KEY_S,KEY_A,KEY_D]:key(code,false)
+ player.equipped=false;player.equip_elapsed=-1
  player.cancel_action();require(player.strike(),"First empty-hand attack begins")
  var first:int=player.punch_side;player.cancel_action();require(player.strike(),"Second empty-hand attack begins")
  require(player.punch_side==1-first and player.model.punch_side==player.punch_side,"Real attack input alternates both the fist and the model")

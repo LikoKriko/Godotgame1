@@ -21,7 +21,11 @@ func run():
     if frame in range(18,40):
      require(rad_to_deg((shoulder-elbow).angle_to(hand-elbow))>145,"Empty arm extends with a soft elbow during the effort")
      var local:Vector3=actor.last_pose.body.basis.inverse()*(hand-shoulder)
-     require(local.x< -14 and local.z< -4,"Empty hand opens outside and behind the torso as a counterweight")
+     var rest=preload("res://scripts/prototype_3d/survivor_animation.gd").relaxed_arm(actor.last_pose,0)
+     var rest_y:float=(actor.last_pose.body.basis.inverse()*(rest.end-shoulder)).y
+     var old_y:float=Vector3(-.86,-.38,-.34).normalized().y*18.3
+     require(absf(local.y-(rest_y+(old_y-rest_y)*.3))<.03,"Sword counterweight rises seventy percent less than the former pose")
+     require(local.x< -7 and local.z< -1.5,"Empty hand opens outside and behind the torso as a counterweight")
     if previous.is_finite():require(hand.distance_to(previous)<2.5,"Empty arm enters and recovers without position jumps")
     previous=hand
     require(actor.grip_error<.045,"Sword hand remains attached to its grip")
