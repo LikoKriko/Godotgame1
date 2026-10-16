@@ -1,63 +1,153 @@
 extends RefCounted
-## Local soft jaw/cheek deformation. Rest geometry, UVs, weights and neck stay fixed.
-const PIVOT:=Vector3(0,14.5,13.5)
-const MOUTH_CENTER:=Vector3(0,13.35,18.35)
+## A cut lip seam and a recessed, skinned lining; all source assets stay intact.
+const SECONDS:=2.0
+const CONTROL_SCALE:=5.0
+const LIP_Y:=14.1
+const PIVOT:=Vector3(0,14.0,11.0)
+const CONTROLS:Array[StringName]=[&"jaw_left",&"jaw_right",&"cheek_left",&"cheek_right",&"nose_lift"]
 static var cached:ArrayMesh
-static func amount(state:StringName,phase:float) -> float:
- if state not in [&"attack",&"hook"]:return 0.0
- return smoothstep(.10,.40,phase)*(1-smoothstep(.60,.95,phase))
-static func muscle(point:Vector3) -> Vector2:
- var front:=smoothstep(12.8,16.0,point.z)
- var jaw:=front*(1-smoothstep(17.5,20.0,point.z))*(1-smoothstep(13.2,15.5,point.y))*smoothstep(10.5,12.8,point.y)*(1-smoothstep(3.2,6.0,absf(point.x)))
- var cheek:=front*smoothstep(1.5,3.0,absf(point.x))*(1-smoothstep(4.5,6.5,absf(point.x)))*smoothstep(12.5,14.5,point.y)*(1-smoothstep(16.0,18.0,point.y))
- return Vector2(jaw,cheek)
-static func offset(point:Vector3) -> Vector3:
- var mask:=muscle(point)
- var rotated:=Basis(Vector3.RIGHT,.07)*(point-PIVOT)+PIVOT
- return (rotated-point+Vector3(0,-.30,-.05))*mask.x*.75+Vector3(signf(point.x)*.07,.035,0)*mask.y
+static var source_count:=0
+static var seam_segments:Array=[]
+static func amount(_state:StringName,phase:float) -> float:
+ return smoothstep(0,.34,phase)*(1-smoothstep(.55,1,phase))
+static func weights(seconds:float) -> PackedFloat32Array:
+ var t:=clampf(seconds/SECONDS,0,1)
+ var opening:=amount(&"attack",t)
+ var cheeks:=smoothstep(0,.27,t)*(1-smoothstep(.60,1,t))
+ var nose:=smoothstep(.08,.40,t)*(1-smoothstep(.58,1,t))
+ return PackedFloat32Array([opening/CONTROL_SCALE,opening/CONTROL_SCALE,cheeks/CONTROL_SCALE,cheeks/CONTROL_SCALE,nose/CONTROL_SCALE])
+static func side_weight(point:Vector3,left:bool) -> float:
+ var right:=smoothstep(-1,1,point.x)
+ return 1-right if left else right
+static func jaw(point:Vector3,role:int=0) -> float:
+ # The upper fangs stay above the mandibular hinge. The two upturned
+ # lower fangs and their surrounding tissue share one continuous mask.
+ var front:=smoothstep(12.0,15.2,point.z)
+ var lane:=1-smoothstep(2.9,4.3,absf(point.x))
+ var lower:=1.0 if point.y<LIP_Y or role<0 else 0.0
+ if role>0:lower=0.0
+ var center:=front*lane*lower*smoothstep(9.5,12.0,point.y)
+ var lateral:=smoothstep(1.0,3.2,absf(point.x))*(1-smoothstep(8.6,10.5,absf(point.x)))*smoothstep(13,14,point.y)*(1-smoothstep(18.3,20.2,point.y))*smoothstep(12,14,point.z)
+ return maxf(center,lateral)
+static func offset(point:Vector3,control:int,role:int=0) -> Vector3:
+ if control<2:
+  var turn:=Basis(Vector3.RIGHT,.035)*(point-PIVOT)+PIVOT-point
+  return turn*jaw(point,role)*side_weight(point,control==0)
+ if control<4:
+  var lane:=smoothstep(2.5,4.2,absf(point.x))*(1-smoothstep(6.5,8.0,absf(point.x)))
+  var mask:=lane*smoothstep(18.3,19.3,point.y)*(1-smoothstep(21,22,point.y))*smoothstep(12,15,point.z)
+  return Vector3(signf(point.x)*.04,.045,-.015)*mask*side_weight(point,control==2)
+ var nose:float=(1-smoothstep(1.6,2.6,absf(point.x)))*smoothstep(15,19,point.z)*smoothstep(13,15.8,point.y)*(1-smoothstep(19,21,point.y))
+ return Vector3(0,.10,-.02)*nose
+static func append_edge(arrays:Array,a:int,b:int,t:float,roles:PackedInt32Array,role:int) -> int:
+ var index:int=arrays[Mesh.ARRAY_VERTEX].size()
+ for channel in [Mesh.ARRAY_VERTEX,Mesh.ARRAY_NORMAL,Mesh.ARRAY_TEX_UV]:arrays[channel].append(arrays[channel][a].lerp(arrays[channel][b],t))
+ arrays[Mesh.ARRAY_NORMAL][index]=arrays[Mesh.ARRAY_NORMAL][index].normalized()
+ var tangent:=Vector3(arrays[Mesh.ARRAY_TANGENT][4*a],arrays[Mesh.ARRAY_TANGENT][4*a+1],arrays[Mesh.ARRAY_TANGENT][4*a+2]).lerp(Vector3(arrays[Mesh.ARRAY_TANGENT][4*b],arrays[Mesh.ARRAY_TANGENT][4*b+1],arrays[Mesh.ARRAY_TANGENT][4*b+2]),t).normalized()
+ for value in [tangent.x,tangent.y,tangent.z,arrays[Mesh.ARRAY_TANGENT][4*a+3]]:arrays[Mesh.ARRAY_TANGENT].append(value)
+ var influence:Dictionary={}
+ for pair in [[a,1-t],[b,t]]:
+  for slot in 4:
+   var id:int=arrays[Mesh.ARRAY_BONES][4*pair[0]+slot]
+   influence[id]=float(influence.get(id,0))+arrays[Mesh.ARRAY_WEIGHTS][4*pair[0]+slot]*pair[1]
+ var order:=influence.keys();order.sort_custom(func(x,y):return influence[x]>influence[y])
+ var sum:=0.0
+ for slot in mini(4,order.size()):sum+=influence[order[slot]]
+ for slot in 4:
+  arrays[Mesh.ARRAY_BONES].append(order[slot] if slot<order.size() else 0)
+  arrays[Mesh.ARRAY_WEIGHTS].append(influence[order[slot]]/sum if slot<order.size() else 0.0)
+ roles.append(role)
+ return index
+static func cut(arrays:Array,roles:PackedInt32Array) -> void:
+ var indices:PackedInt32Array=arrays[Mesh.ARRAY_INDEX];var result:=PackedInt32Array()
+ for start in range(0,indices.size(),3):
+  var triangle:Array[int]=[indices[start],indices[start+1],indices[start+2]];var crossing:Array=[]
+  for edge in 3:
+   var a:int=triangle[edge];var b:int=triangle[(edge+1)%3]
+   var pa:Vector3=arrays[Mesh.ARRAY_VERTEX][a];var pb:Vector3=arrays[Mesh.ARRAY_VERTEX][b]
+   if (pa.y<LIP_Y)!=(pb.y<LIP_Y):
+    var t:float=(LIP_Y-pa.y)/(pb.y-pa.y);crossing.append([a,b,t,pa.lerp(pb,t)])
+  var facial:=crossing.size()==2
+  if facial:
+   facial=(crossing[0][3].z>14.8 and crossing[1][3].z>14.8 and minf(absf(crossing[0][3].x),absf(crossing[1][3].x))<4.8)
+  if not facial:result.append_array(PackedInt32Array(triangle));continue
+  var rim:Array=[]
+  for role in [-1,1]:
+   var polygon:Array[int]=[];var seam:Array[int]=[]
+   for edge in 3:
+    var a:int=triangle[edge];var b:int=triangle[(edge+1)%3]
+    var pa:Vector3=arrays[Mesh.ARRAY_VERTEX][a];var pb:Vector3=arrays[Mesh.ARRAY_VERTEX][b]
+    if (pa.y-LIP_Y)*role>=0:polygon.append(a)
+    if (pa.y<LIP_Y)!=(pb.y<LIP_Y):
+     var id:=append_edge(arrays,a,b,(LIP_Y-pa.y)/(pb.y-pa.y),roles,role);polygon.append(id);seam.append(id)
+   for i in range(1,polygon.size()-1):result.append_array(PackedInt32Array([polygon[0],polygon[i],polygon[i+1]]))
+   rim.append(seam)
+  seam_segments.append(rim)
+ arrays[Mesh.ARRAY_INDEX]=result
+static func blend_shapes(arrays:Array,roles:PackedInt32Array) -> Array:
+ var shapes:Array=[]
+ for control in 5:
+  var shape:Array=[];shape.resize(Mesh.ARRAY_MAX)
+  var delta:=PackedVector3Array();delta.resize(arrays[Mesh.ARRAY_VERTEX].size())
+  for i in delta.size():delta[i]=arrays[Mesh.ARRAY_VERTEX][i]+offset(arrays[Mesh.ARRAY_VERTEX][i],control,roles[i])*CONTROL_SCALE
+  # Godot octahedrally encodes these directions, including relative shapes:
+  # a zero vector cannot survive that encoding as a zero normal/tangent.
+  # Absolute shapes with normalized blending preserve source shading, even
+  # with control weights scaled so their sum never exceeds one.
+  shape[Mesh.ARRAY_VERTEX]=delta;shape[Mesh.ARRAY_NORMAL]=arrays[Mesh.ARRAY_NORMAL].duplicate();shape[Mesh.ARRAY_TANGENT]=arrays[Mesh.ARRAY_TANGENT].duplicate();shapes.append(shape)
+ return shapes
+static func lining(arrays:Array,shapes:Array) -> Array:
+ var inner:Array=[];inner.resize(Mesh.ARRAY_MAX)
+ inner[Mesh.ARRAY_VERTEX]=PackedVector3Array();inner[Mesh.ARRAY_NORMAL]=PackedVector3Array();inner[Mesh.ARRAY_TANGENT]=PackedFloat32Array();inner[Mesh.ARRAY_TEX_UV]=PackedVector2Array();inner[Mesh.ARRAY_BONES]=PackedInt32Array();inner[Mesh.ARRAY_WEIGHTS]=PackedFloat32Array();inner[Mesh.ARRAY_INDEX]=PackedInt32Array()
+ var inner_shapes:Array=[]
+ for control in 5:
+  var shape:Array=[];shape.resize(Mesh.ARRAY_MAX);shape[Mesh.ARRAY_VERTEX]=PackedVector3Array();shape[Mesh.ARRAY_NORMAL]=PackedVector3Array();shape[Mesh.ARRAY_TANGENT]=PackedFloat32Array();inner_shapes.append(shape)
+ for segment in seam_segments:
+  var base:int=inner[Mesh.ARRAY_VERTEX].size()
+  for row in 5:
+   var v:=row/4.0
+   for end in 2:
+    var low:int=segment[0][end];var high:int=segment[1][end]
+    var point:Vector3=arrays[Mesh.ARRAY_VERTEX][low]
+    inner[Mesh.ARRAY_VERTEX].append(point+Vector3(0,0,-1.35*sin(v*PI)))
+    inner[Mesh.ARRAY_NORMAL].append(Vector3.BACK);inner[Mesh.ARRAY_TANGENT].append_array(PackedFloat32Array([1,0,0,1]));inner[Mesh.ARRAY_TEX_UV].append(Vector2((point.x+4.8)/9.6,v))
+    for slot in 4:inner[Mesh.ARRAY_BONES].append(arrays[Mesh.ARRAY_BONES][4*low+slot]);inner[Mesh.ARRAY_WEIGHTS].append(arrays[Mesh.ARRAY_WEIGHTS][4*low+slot])
+    for control in 5:
+     inner_shapes[control][Mesh.ARRAY_VERTEX].append((shapes[control][Mesh.ARRAY_VERTEX][high] as Vector3).lerp(shapes[control][Mesh.ARRAY_VERTEX][low],v)+Vector3(0,0,-1.35*sin(v*PI)))
+     inner_shapes[control][Mesh.ARRAY_NORMAL].append(Vector3.BACK);inner_shapes[control][Mesh.ARRAY_TANGENT].append_array(PackedFloat32Array([1,0,0,1]))
+  for row in 4:
+   var i:=base+row*2;inner[Mesh.ARRAY_INDEX].append_array(PackedInt32Array([i,i+1,i+2,i+1,i+3,i+2]))
+ return [inner,inner_shapes]
+static func lining_material() -> StandardMaterial3D:
+ var image:=Image.create(16,16,false,Image.FORMAT_RGB8)
+ var palette:Array[Color]=[Color("693e38"),Color("58332f"),Color("462a28"),Color("352121"),Color("281a1b")]
+ for y in 16:
+  for x in 16:
+   var depth:=mini(y,15-y)
+   var tone:=roundi(depth*4.0/7.0)
+   if x%8<2 and tone>0:tone-=1
+   image.set_pixel(x,y,palette[tone])
+ var material:=StandardMaterial3D.new();material.albedo_texture=ImageTexture.create_from_image(image);material.roughness=1;material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_NEAREST;material.cull_mode=BaseMaterial3D.CULL_DISABLED
+ return material
 static func mesh(source:Mesh) -> ArrayMesh:
  if cached!=null:return cached
- var arrays:=source.surface_get_arrays(0)
- var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
- var normals:PackedVector3Array=arrays[Mesh.ARRAY_NORMAL]
- var tangents:PackedFloat32Array=arrays[Mesh.ARRAY_TANGENT]
- var delta:Array=[];delta.resize(Mesh.ARRAY_MAX)
- var positions:=PackedVector3Array();positions.resize(vertices.size())
- var normal_delta:=PackedVector3Array();normal_delta.resize(normals.size())
- var tangent_delta:=PackedFloat32Array();tangent_delta.resize(tangents.size())
- for i in vertices.size():
-  positions[i]=offset(vertices[i])
-  var rotation:=Basis(Vector3.RIGHT,.0525*muscle(vertices[i]).x)
-  normal_delta[i]=rotation*normals[i]-normals[i]
-  var tangent:=Vector3(tangents[4*i],tangents[4*i+1],tangents[4*i+2])
-  var changed:=rotation*tangent-tangent
-  tangent_delta[4*i]=changed.x;tangent_delta[4*i+1]=changed.y;tangent_delta[4*i+2]=changed.z;tangent_delta[4*i+3]=0
- delta[Mesh.ARRAY_VERTEX]=positions;delta[Mesh.ARRAY_NORMAL]=normal_delta;delta[Mesh.ARRAY_TANGENT]=tangent_delta
- var encoded:=ArrayMesh.new();encoded.blend_shape_mode=Mesh.BLEND_SHAPE_MODE_RELATIVE;encoded.add_blend_shape("jaw_and_cheeks")
- encoded.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays,[delta],{},source.surface_get_format(0))
- var surfaces:Array=encoded.get("_surfaces")
- var original:Array=source.get("_surfaces")
- for buffer in ["vertex_data","attribute_data","skin_data","index_data"]:
-  if original[0].has(buffer):surfaces[0][buffer]=original[0][buffer]
- surfaces[0].aabb=original[0].aabb
- cached=ArrayMesh.new();cached.blend_shape_mode=Mesh.BLEND_SHAPE_MODE_RELATIVE;cached.add_blend_shape("jaw_and_cheeks");cached.set("_surfaces",surfaces)
- cached.custom_aabb=source.get_aabb()
- cached.surface_set_material(0,source.surface_get_material(0))
- for key in source.get_meta_list():cached.set_meta(key,source.get_meta(key))
+ var arrays:=source.surface_get_arrays(0).duplicate(true);source_count=arrays[Mesh.ARRAY_VERTEX].size()
+ var roles:=PackedInt32Array();roles.resize(source_count);cut(arrays,roles)
+ var shapes:=blend_shapes(arrays,roles);var interior:=lining(arrays,shapes)
+ cached=ArrayMesh.new();cached.blend_shape_mode=Mesh.BLEND_SHAPE_MODE_NORMALIZED
+ for label in CONTROLS:cached.add_blend_shape(label)
+ cached.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays,shapes,{},source.surface_get_format(0));cached.surface_set_material(0,source.surface_get_material(0))
+ cached.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,interior[0],interior[1]);cached.surface_set_material(1,lining_material())
+ var surfaces:Array=cached.get("_surfaces")
+ # Godot stores uncompressed positions followed by packed normal/tangent data.
+ # Keep the original packed prefix instead of quantizing those normals twice.
+ var original_bytes:PackedByteArray=source.get("_surfaces")[0].vertex_data
+ var packed:PackedByteArray=surfaces[0].vertex_data
+ var positions_end:int=arrays[Mesh.ARRAY_VERTEX].size()*12
+ surfaces[0].vertex_data=packed.slice(0,positions_end)+original_bytes.slice(source_count*12)+packed.slice(positions_end+source_count*8)
+ surfaces[0].aabb=source.get_aabb();surfaces[1].aabb=source.get_aabb()
+ var rebuilt:=ArrayMesh.new();rebuilt.blend_shape_mode=Mesh.BLEND_SHAPE_MODE_NORMALIZED
+ for label in CONTROLS:rebuilt.add_blend_shape(label)
+ rebuilt.set("_surfaces",surfaces);cached=rebuilt;cached.custom_aabb=source.get_aabb()
+ for label in source.get_meta_list():cached.set_meta(label,source.get_meta(label))
  return cached
-static func mouth() -> MeshInstance3D:
- var surface:=SurfaceTool.new();surface.begin(Mesh.PRIMITIVE_TRIANGLES)
- # A recessed cup, rather than a black plane or a second floating jaw.
- for segment in 24:
-  var a:=segment*TAU/24.0;var b:=(segment+1)*TAU/24.0
-  for point in [Vector3(0,0,-.45),Vector3(cos(a)*1.9,sin(a)*.50,0),Vector3(cos(b)*1.9,sin(b)*.50,0)]:
-   surface.set_color(Color(.70,.42,.39) if point.z==0 else Color(.45,.23,.22))
-   surface.add_vertex(point)
- surface.generate_normals()
- var node:=MeshInstance3D.new();node.name="MouthInterior";node.mesh=surface.commit();node.position=MOUTH_CENTER
- var material:=StandardMaterial3D.new();material.albedo_color=Color(.55,.34,.32);material.vertex_color_use_as_albedo=true;material.roughness=1;material.cull_mode=BaseMaterial3D.CULL_DISABLED
- node.material_override=material;node.visible=false
- return node
-static func apply(node:MeshInstance3D,opening:float,head:Transform3D) -> void:
- node.visible=opening>.001
- node.transform=head*Transform3D(Basis.from_scale(Vector3(1,maxf(.001,opening),1)),MOUTH_CENTER)

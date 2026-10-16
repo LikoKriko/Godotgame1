@@ -9,7 +9,11 @@ var rest:Array[Transform3D]=[]
 var posed:Array[Transform3D]=[]
 var parents:Array[int]=[]
 var facial_open:=0.0
-var mouth_interior:MeshInstance3D
+var facial_elapsed:=Face.SECONDS
+var facial_state:StringName=&"reference"
+var facial_phase:=0.0
+var facial_close_time:=0.0
+var facial_close_weights:=PackedFloat32Array()
 var mesh_node:MeshInstance3D
 var body_material:StandardMaterial3D
 var last_pose:Dictionary={}
@@ -23,7 +27,6 @@ func _ready() -> void:
  mesh_node.mesh=Face.mesh(IMPORTED_SKIN)
  body_material=IMPORTED_SKIN.surface_get_material(0)
  make_skeleton()
- mouth_interior=Face.mouth();add_child(mouth_interior)
  mesh_node.custom_aabb=AABB(Vector3(-35,-20,-45),Vector3(70,80,100))
 func bone(label:String,parent:int,point:Vector3) -> void:
  var index:=skeleton.get_bone_count();skeleton.add_bone(label);parents.append(parent)
@@ -73,8 +76,27 @@ func apply_pose(pose:Dictionary,delta:float=0.0) -> void:
     posed[start+segment]=Transform3D(rotation,limb.root if segment==0 else limb.joint)
    var end_basis:Basis=(last_pose.foot_bases[side] if not last_pose.get("foot_bases",[]).is_empty() else Basis(Vector3.RIGHT,limb.get("pitch",0.0))) if kind==0 else posed[start+1].basis
    posed[start+2]=Transform3D(end_basis,limb.end)
- var opening:=Face.amount(last_pose.state,last_pose.phase)
- facial_open=move_toward(facial_open,opening,delta*8) if delta>0 else opening
- mesh_node.set_blend_shape_value(0,facial_open)
- Face.apply(mouth_interior,facial_open,posed[1]*rest[1].affine_inverse())
+ var attacking:bool=last_pose.state in [&"attack",&"hook"]
+ if delta<=0:
+  facial_elapsed=last_pose.phase*Face.SECONDS if attacking else Face.SECONDS
+  facial_close_time=0
+ else:
+  var begins:bool=attacking and (facial_state!=last_pose.state or last_pose.phase<facial_phase)
+  if begins and facial_elapsed>=Face.SECONDS:facial_elapsed=0
+  facial_elapsed=minf(Face.SECONDS,facial_elapsed+delta)
+  if last_pose.state in [&"death",&"corpse",&"stun_fall",&"stun_hold"] and facial_elapsed<Face.SECONDS:
+   facial_close_weights=Face.weights(facial_elapsed);facial_close_time=.16
+   facial_elapsed=Face.SECONDS
+ facial_state=last_pose.state;facial_phase=last_pose.phase
+ set_facial_time(facial_elapsed)
+ if facial_close_time>0:
+  facial_close_time=maxf(0,facial_close_time-delta)
+  var closing:=smoothstep(0,.16,facial_close_time)
+  for control in 5:mesh_node.set_blend_shape_value(control,facial_close_weights[control]*closing)
+  facial_open=facial_close_weights[0]*Face.CONTROL_SCALE*closing
  for i in posed.size():skeleton.set_bone_pose(i,posed[parents[i]].affine_inverse()*posed[i] if parents[i]>=0 else posed[i])
+
+func set_facial_time(seconds:float) -> void:
+ facial_elapsed=clampf(seconds,0,Face.SECONDS)
+ var expression:=Face.weights(facial_elapsed);facial_open=expression[0]*Face.CONTROL_SCALE
+ for control in 5:mesh_node.set_blend_shape_value(control,expression[control])

@@ -1494,3 +1494,50 @@ y README en `docs/previews/enemigo1-boca-2026-10-16/`. Comprobados el interior
 oscuro, cierre en reposo y unión visible de cabeza, cuello y cuerpo. La copia
 temporal de comportamientos se elimina tras verificar su conservación y quedar
 la implementación guardada en el commit. Sin prueba en el equipo del usuario.
+
+
+## 16 de octubre de 2026 — Boca interior, cuatro colmillos y cinco controles faciales
+
+Inicio observado **14:36:21 Europe/Madrid**; cierre de implementación,
+verificación y preparación de capturas **15:02:09 Europe/Madrid**.
+Duración medida hasta este hito: **25 min 48 s**; sin estimación
+previa. Commit y push autorizados explícitamente por el usuario; la publicación
+posterior a este hito no forma parte de ese intervalo.
+
+Se sustituye la pieza oscura exterior por una abertura en el labio y un
+revestimiento interior de la misma malla con los mismos pesos de piel.
+Subdivisión de cuarenta triángulos sin perder la superficie original en
+reposo, UV interpoladas en el corte y prefijos originales de posiciones,
+normales/tangentes empaquetadas, UV y pesos conservados byte por byte. Los
+archivos FBX y PNG originales, material y quince huesos permanecen intactos.
+Cinco formas de mezcla: mandíbula bilateral, pómulos bilaterales y nariz.
+Colmillos superiores fijos al maxilar, inferiores con giro rígido mandibular
+y transición continua en el tejido circundante, sin máscaras discontinuas
+basadas en color. Formas absolutas con mezcla normalizada y normales/tangentes
+originales para conservar la iluminación al activar los cinco controles
+simultáneos, con suma de pesos limitada a uno; revisado en el render nativo. Interior de cinco tonos oscuros con píxeles definidos.
+
+El usuario ha aclarado que los **2 segundos son solo del gesto facial**.
+Reloj independiente que termina después del ataque si es necesario, sin
+reinicio por golpes superpuestos; cierre de 0,16 s desde la expresión actual
+al morir o quedar aturdido. Conservadas las duraciones corporales de 1 s y
+1,2 s y todas las curvas corporales existentes.
+
+Godot 4.6.3: **8 suites superadas, 209108 comprobaciones**: facial **133481**,
+fidelidad Meshy **3935**, movimiento/piel **35126**, boxeo **4465**, rutina
+**3691**, guardado **196**, criatura **9993** y caídas **18221**. En 65 muestras
+no hay inversión de triángulos; variación máxima de área +32,31 % y arista
++19,14 %, dentro de los límites anteriores. Coincidencia exacta de ambos
+bordes del revestimiento con labios, pesos compartidos, continuidad del cuello,
+cuatro colmillos, cinco controles y reloj real de dos segundos comprobados.
+La prueba de fidelidad distingue la fuente original intacta de su derivada
+con subdivisión del labio.
+
+Importación del editor y `git diff --check` sin errores. Primer intento de
+importación limitado por sockets locales del sandbox; repetido con red local
+habilitada, sin errores. Revisión nativa Compatibility/OpenGL: **108 fotogramas
+finales** (81 de cara en tres cámaras y 27 de cuerpo completo), con corrección
+previa de las máscaras de dientes tras detectar inversión de triángulos.
+Galería con cuatro láminas en
+`docs/previews/enemigo1-boca-interior-2026-10-16/`; la anterior se marca histórica.
+No incluye prueba en el equipo del usuario.

@@ -20,7 +20,8 @@ func deform(point:Vector3,index:int,ids:PackedInt32Array,weights:PackedFloat32Ar
 func run():
  var actor:=Model.new();root.add_child(actor)
  var second:=Model.new();root.add_child(second)
- var mesh:Mesh=actor.mesh_node.mesh
+ var runtime_mesh:Mesh=actor.mesh_node.mesh
+ var mesh:Mesh=Model.IMPORTED_SKIN
  var data:=mesh.surface_get_arrays(0)
  var vertices:PackedVector3Array=data[Mesh.ARRAY_VERTEX]
  var uv:PackedVector2Array=data[Mesh.ARRAY_TEX_UV]
@@ -28,7 +29,7 @@ func run():
  var bones:PackedInt32Array=data[Mesh.ARRAY_BONES]
  var weights:PackedFloat32Array=data[Mesh.ARRAY_WEIGHTS]
  var manifest:Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/enemies/first/meshy/source.json"))
- require(mesh==second.mesh_node.mesh,"All enemies share the imported mesh resource")
+ require(runtime_mesh==second.mesh_node.mesh,"All enemies share the imported mesh resource")
  require(actor.skeleton!=second.skeleton,"Each imported creature has an independent skeleton")
  require(FileAccess.get_sha256(manifest.source_fbx_path)==manifest.source_fbx_sha256,"The original FBX is retained byte-for-byte for the animation department")
  require(mesh.get_meta("source_zip_sha256")==manifest.source_zip_sha256,"Runtime asset identifies the verified user archive")
@@ -77,7 +78,7 @@ func run():
      var start:=8+side*3
      require(absf(actor.posed[start].origin.distance_to(actor.posed[start+1].origin)-Motion.ARM_A)<0.001,"Upper arm retains its bone length")
      require(absf(actor.posed[start+1].origin.distance_to(actor.posed[start+2].origin)-Motion.ARM_B)<0.001,"Forearm retains its bone length")
- require(actor.mesh_node.mesh==mesh,"Actions never rebuild or replace the Meshy surface")
+ require(actor.mesh_node.mesh==runtime_mesh,"Actions never rebuild or replace the Meshy surface")
  require(second.skeleton.get_bone_pose(0).is_equal_approx(independent),"Animating one enemy cannot move a second enemy")
  print("Meshy vertices=",vertices.size()," triangles=",indices.size()/3)
  actor.free();second.free()

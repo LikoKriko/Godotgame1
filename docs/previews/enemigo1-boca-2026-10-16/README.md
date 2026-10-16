@@ -1,5 +1,7 @@
 # Enemigo1: boca durante los ataques
 
+> Galería histórica, sustituida por la [corrección de boca interior y gesto de 2 segundos](../enemigo1-boca-interior-2026-10-16/README.md).
+
 Capturas reales de Godot tomadas después del commit y push de la implementación [c422e88](https://github.com/LikoKriko/Godotgame1/commit/c422e88), sobre el nuevo modelo reducido del departamento de modelaje.
 
 La mandíbula se abre levemente y las mejillas acompañan el esfuerzo. Dentro aparece una cavidad del tono del hocico, más oscura. La expresión se aplica al ataque normal y al secundario; en reposo permanece cerrada. El cuello, la unión entre cabeza y cuerpo y las texturas originales se conservan.

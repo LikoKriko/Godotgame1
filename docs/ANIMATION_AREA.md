@@ -243,10 +243,32 @@ esta tarea no modifica mallas, pesos, UV ni texturas.
 
 ## Expresión facial del enemigo1
 
-La versión reducida del nuevo modelo incorpora apertura de mandíbula y tensión
-suave de mejillas durante `attack` y `hook`, mediante forma de mezcla local en
-`young_face.gd`. El cuello y la unión cabeza/cuerpo quedan fuera de la máscara.
-La cara original, los buffers de reposo, la ligadura y las texturas se conservan.
-El interior de la boca es una cavidad pequeña del tono del hocico más oscuro,
-unida al marco de la cabeza y visible solo durante la apertura. La expresión
-es independiente por instancia y se cierra al interrumpir el ataque.
+`young_face.gd` genera cinco formas de mezcla locales: mandíbula izquierda y
+derecha, pómulo izquierdo y derecho y elevación leve de nariz. No añade huesos
+ni cambia la ligadura de quince huesos. El cuello y la unión cabeza/cuerpo
+quedan fuera de todas las máscaras. Los colmillos superiores permanecen en el
+maxilar; los inferiores giran con la mandíbula y su tejido circundante, sin
+estirarlos ni separar sus puntas por el color de la textura.
+
+La abertura utiliza un corte en la línea del labio: subdivide cuarenta triángulos
+de la superficie original e interpola UV y pesos en sus bordes. En reposo
+reproduce la superficie cerrada, conservando todos los vértices originales
+como prefijo, sus atributos originales y el material/PNG aportado. Una segunda
+superficie de la misma malla forma el revestimiento hundido hacia dentro; sus
+bordes comparten posiciones, deformaciones y pesos con ambos labios. Sustituye
+la pieza independiente anterior. Textura interior de cinco tonos oscuros del
+hocico, píxeles nítidos y muestreo nearest; no se modifican los archivos fuente.
+
+El gesto facial completo dura **2 segundos**, con reloj independiente del
+ataque normal (**1 s**) y crochet (**1,2 s**). Empieza con el ataque y termina
+aunque el cuerpo ya haya regresado a otro comportamiento. Otro golpe durante
+el gesto no reinicia su reloj. Al morir o quedar aturdido se cierra suavemente
+desde los valores actuales durante 0,16 s. Las expresiones son independientes
+por instancia; la geometría derivada se comparte mediante caché. Las formas
+absolutas usan mezcla normalizada, suma de pesos limitada a uno y conservan
+las normales/tangentes del
+modelo para evitar cambios de iluminación al activar los cinco controles.
+
+Pruebas: `tests/prototype_3d_enemy_face.gd` y
+`tests/prototype_3d_young_reference_mesh.gd`. Capturas actualizadas en
+[boca interior](previews/enemigo1-boca-interior-2026-10-16/README.md).
