@@ -603,3 +603,10 @@ Los puñetazos alternan las manos; torso, cadera y pie del lado activo acompaña
 cada golpe, también agachado. F6 incluye retirada y puñetazo izquierdo.
 Se guardan la fase de sprint y la variante de retirada, con compatibilidad
 para partidas anteriores. Detalles y referencias en `docs/ANIMATION_AREA.md`.
+
+## Optimización de distancia (16 de octubre de 2026)
+
+Texturas y mallas reducen su detalle por distancia y orientación de cámara,
+con recuperación gradual al volver a mirar. Los enemigos se suspenden desde
+150 m conservando su acción. Umbrales, implementación, comprobaciones y límites
+en [DISTANCE_OPTIMIZATION.md](DISTANCE_OPTIMIZATION.md).

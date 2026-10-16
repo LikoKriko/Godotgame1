@@ -1671,3 +1671,40 @@ repetida sobre el modelo nuevo: **25688 comprobaciones superadas**. Las ocho
 suites anteriores del enemigo y la revisión visual permanecen válidas; no se
 modifican sus archivos al integrar el modelo del superviviente. El tiempo de
 push posterior no está incluido en este hito.
+## 16 de octubre de 2026 — Primera optimización por distancia
+
+Inicio observado **16:35:16 Europe/Madrid**; hito de implementación y pruebas
+**17:29:21 Europe/Madrid**. Duración medida hasta este hito: **54 min 5 s**.
+Estimación inicial 45–75 min; alcance final limitado por el usuario a texturas,
+mallas y suspensión de enemigos a 150 m. Cadáveres inmóviles aplazados.
+
+Umbrales 30/40/50/65/75/90 m, límite trasero del 50 % desde 50 m y recuperación
+de diez puntos cada 0,1 s. Mipmaps y variantes nativas de geometría en caché,
+preparación asíncrona, agrupación de vegetación por instancia. Al suspender un
+enemigo se libera su representación y se conserva su acción y pose; guardado
+y reanudación verificados. Detalles en `docs/DISTANCE_OPTIMIZATION.md`.
+
+Godot 4.7.2: **43** comprobaciones nativas de distancia y streaming (41 en
+headless más dos omitidas por el renderizador dummy); **56613** de geometría,
+formas de mezcla y texturas. Regresión: guardado **196**, población **27**,
+hitboxes **73**, separación **1000**, rutina **3691**, cara **133481**, botín
+**16**, caídas **18221** e integración **739**. Render nativo Compatibility:
+calidad original, reducida y restaurada con la misma cámara; original y
+restaurada idénticas píxel a píxel. Sin medición de FPS en el PC del usuario.
+
+Al comprobar la rama antes de publicar se detectan dos nuevas entregas de
+otros departamentos (`ace01fe`, `51d7bee`), que se incorporan antes de la
+verificación final y del push. El cierre de integración/publicación se
+registrará tras completarlo.
+
+
+Cierre de integración y verificación previa al push: **17:32:18
+Europe/Madrid**, duración medida acumulada **57 min 2 s**. Se conservan ambas
+entregas y sus registros. Repetidas sobre la base integrada: distancia nativa
+**43**, recursos/LOD ampliados al superviviente nuevo **75768**, cara **248391**,
+guardado **196**, respuesta del jugador **25688** e integración **739**.
+Actualizada la prueba de integración para leer el albedo del nuevo ShaderMaterial
+del superviviente y comprobar su ruta original; su lógica anterior esperaba un
+StandardMaterial3D. Importación final y render nativo sin errores; restauración
+del fotograma otra vez idéntica. `git diff --check` limpio. El push posterior
+no está incluido en este intervalo.

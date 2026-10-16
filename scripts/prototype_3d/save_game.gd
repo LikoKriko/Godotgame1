@@ -155,7 +155,9 @@ static func valid_enemy(actor,uids:Dictionary) -> bool:
  if not actor is Dictionary:return false
  for key in ["position","velocity","avoid_direction"]:
   if not valid_vector(actor.get(key)):return false
- if not in_world(actor.position) or not number(actor.get("heading"),-100000,100000):return false
+ # Streaming can retain enemies beyond the current finite player map.
+ # Keep finite, bounded coordinates without discarding a suspended actor.
+ if not valid_vector(actor.position) or not number(actor.get("heading"),-100000,100000):return false
  if not item_array(actor.get("loot"),8,uids) or not number(actor.get("health"),0,10):return false
  for key in ["impact_done","punch_left","standing"]:
   if not actor.get(key) is bool:return false
@@ -282,4 +284,5 @@ static func restore(game,data:Dictionary) -> bool:
  game.player.model.sprint_weight=game.player.movement_response.sprint_weight;game.player.model.sprint_crouch=game.player.locomotion.crouch
  game.player.model.animate(clip,phase,game.player.equipped)
  game.camera_rig.update(1);game.refresh_daylight()
+ if game.distance_optimization!=null:game.distance_optimization.update_enemies()
  return true

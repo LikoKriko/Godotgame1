@@ -1,0 +1,123 @@
+extends Node
+## One world controller; UI and portrait viewports are deliberately excluded.
+const Policy=preload("res://scripts/prototype_3d/distance_quality.gd")
+var game
+var materials=preload("res://scripts/prototype_3d/quality_materials.gd").new()
+var meshes=preload("res://scripts/prototype_3d/quality_meshes.gd").new()
+var entries:Dictionary={}
+var elapsed:=0.0
+var revision:=0
+func configure(owner_game) -> void:
+ game=owner_game
+ get_tree().node_added.connect(added)
+ discover(game)
+func discover(node:Node) -> void:
+ if node!=game and (node is Viewport or node is CanvasLayer):return
+ added(node)
+ for child in node.get_children():discover(child)
+func added(node:Node) -> void:
+ if node is MeshInstance3D or node is MultiMeshInstance3D:register.call_deferred(weakref(node))
+func register(reference:WeakRef) -> void:
+ var node:Node=reference.get_ref()
+ if not is_instance_valid(node) or not game.is_ancestor_of(node) or node.has_meta("quality_bucket"):return
+ var parent:Node=node.get_parent()
+ while parent!=game:
+  if parent==null or parent is Viewport or parent is CanvasLayer:return
+  parent=parent.get_parent()
+ var id:int=node.get_instance_id()
+ if entries.has(id):return
+ var entry:={"node":weakref(node),"state":{},"material":node.material_override,"quality":-1,"revision":-1}
+ if node is MeshInstance3D:
+  if node.mesh==null:return
+  entry.mesh=node.mesh;entry.overrides=[]
+  for surface in node.mesh.get_surface_count():entry.overrides.append(node.get_surface_override_material(surface))
+ else:
+  if node.multimesh==null or node.multimesh.mesh==null:return
+  entry.mesh=node.multimesh.mesh;entry.source=node.multimesh;entry.instances=[];entry.buckets={};entry.members={}
+  var count:int=node.multimesh.instance_count if node.multimesh.visible_instance_count<0 else mini(node.multimesh.visible_instance_count,node.multimesh.instance_count)
+  for i in count:entry.instances.append({"transform":node.multimesh.get_instance_transform(i),"state":{},"color":node.multimesh.get_instance_color(i) if node.multimesh.use_colors else Color.WHITE,"custom":node.multimesh.get_instance_custom_data(i) if node.multimesh.use_custom_data else Color()})
+ entries[id]=entry
+ node.tree_exiting.connect(func():entries.erase(id),CONNECT_ONE_SHOT)
+func _process(delta:float) -> void:
+ if game==null or game.paused or not is_instance_valid(game.player):return
+ var before:int=meshes.cache.size();meshes.collect()
+ if before!=meshes.cache.size():revision+=1
+ elapsed+=delta
+ if elapsed+0.000001<Policy.TICK:return
+ var step:=elapsed;elapsed=0
+ update_quality(step)
+ update_enemies()
+func update_quality(delta:float,observer:Vector3=Vector3.INF,forward:Vector3=Vector3.INF) -> void:
+ if not observer.is_finite():observer=game.player.global_position
+ if not forward.is_finite():forward=-game.camera_rig.camera.global_basis.z
+ for entry in entries.values():
+  var node=entry.node.get_ref()
+  if not is_instance_valid(node) or not node.is_inside_tree():continue
+  if node.material_override!=entry.material and (node.material_override==null or not node.material_override.has_meta("distance_quality_variant")):
+   entry.material=node.material_override;entry.quality=-1
+  if node is MultiMeshInstance3D:update_batch(node,entry,observer,forward,delta);continue
+  var point:Vector3=node.to_global(entry.mesh.get_aabb().get_center())
+  var percent:=Policy.advance(entry.state,observer.distance_to(point),Policy.behind(point,observer,forward),delta)
+  if entry.quality==percent and entry.revision==revision:continue
+  var replacement:Mesh=meshes.mesh(entry.mesh,percent)
+  if node.mesh!=replacement:
+   var morphs:PackedFloat32Array=[]
+   if node.mesh is ArrayMesh:
+    for i in node.mesh.get_blend_shape_count():morphs.append(node.get_blend_shape_value(i))
+   node.mesh=replacement
+   for i in morphs.size():node.set_blend_shape_value(i,morphs[i])
+  node.material_override=materials.material(entry.material,percent,node.material_override)
+  for surface in entry.mesh.get_surface_count():
+   var original:Material=entry.overrides[surface]
+   if original==null:original=entry.mesh.surface_get_material(surface)
+   node.set_surface_override_material(surface,materials.material(original,percent,node.get_surface_override_material(surface)))
+  entry.quality=percent;entry.revision=revision
+func update_batch(node:MultiMeshInstance3D,entry:Dictionary,observer:Vector3,forward:Vector3,delta:float) -> void:
+ # Batch by budget rather than treating thousands of scattered tufts as one
+ # object at the origin. Rebuild buffers only when membership actually changes.
+ var groups:Dictionary={}
+ for i in entry.instances.size():
+  var instance:Dictionary=entry.instances[i]
+  var point:Vector3=node.to_global(instance.transform.origin)
+  var percent:=Policy.advance(instance.state,observer.distance_to(point),Policy.behind(point,observer,forward),delta)
+  if not groups.has(percent):groups[percent]=[]
+  groups[percent].append(i)
+ for percent in entry.buckets:
+  if not groups.has(percent):entry.buckets[percent].hide()
+ for percent in groups:
+  var target:MultiMeshInstance3D
+  if not entry.buckets.has(percent):
+   target=MultiMeshInstance3D.new();target.set_meta("quality_bucket",true)
+   target.cast_shadow=node.cast_shadow;target.layers=node.layers
+   node.add_child(target);entry.buckets[percent]=target
+  target=entry.buckets[percent];target.show()
+  if entry.members.get(percent,[])!=groups[percent]:
+   var batch:=MultiMesh.new();batch.transform_format=MultiMesh.TRANSFORM_3D
+   batch.use_colors=entry.source.use_colors;batch.use_custom_data=entry.source.use_custom_data
+   batch.mesh=meshes.mesh(entry.mesh,percent);batch.instance_count=groups[percent].size()
+   for destination in groups[percent].size():
+    var original:Dictionary=entry.instances[groups[percent][destination]]
+    batch.set_instance_transform(destination,original.transform)
+    if batch.use_colors:batch.set_instance_color(destination,original.color)
+    if batch.use_custom_data:batch.set_instance_custom_data(destination,original.custom)
+   target.multimesh=batch;entry.members[percent]=groups[percent].duplicate()
+  target.multimesh.mesh=meshes.mesh(entry.mesh,percent)
+  var original:Material=entry.material if entry.material!=null else entry.mesh.surface_get_material(0)
+  target.material_override=materials.material(original,percent,target.material_override)
+ # Keep the original instance buffer immutable for other scenes/users.
+ if node.multimesh==entry.source:
+  var empty:=MultiMesh.new();empty.transform_format=MultiMesh.TRANSFORM_3D
+  empty.use_colors=entry.source.use_colors;empty.use_custom_data=entry.source.use_custom_data
+  empty.mesh=entry.mesh;empty.instance_count=entry.source.instance_count
+  var buffer:PackedFloat32Array=entry.source.buffer
+  if not buffer.is_empty():empty.buffer=buffer
+  empty.visible_instance_count=0
+  node.multimesh=empty
+func update_enemies() -> void:
+ for enemy in get_tree().get_nodes_in_group("prototype_enemies"):
+  if enemy.game!=game or enemy.is_queued_for_deletion():continue
+  var far:bool=enemy.global_position.distance_squared_to(game.player.global_position)>=Policy.ENEMY_DISTANCE*Policy.ENEMY_DISTANCE
+  if far and not enemy.distance_suspended:enemy.suspend_distance()
+  elif not far and enemy.distance_suspended:enemy.resume_distance()
+func _exit_tree() -> void:
+ meshes.finish()

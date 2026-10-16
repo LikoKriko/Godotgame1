@@ -50,6 +50,7 @@ var environment_content:Node3D
 var loading_state:=false
 var loading_screen:Control
 var loading_progress:ProgressBar
+var distance_optimization:Node
 func _ready() -> void:
  # The 2D cursor autoload would override captured mouse mode each frame.
  if not initial_state.is_empty():world_seed=initial_state.seed
@@ -71,6 +72,7 @@ func _ready() -> void:
  camera_rig = preload("res://scripts/prototype_3d/shoulder_camera.gd").new(); add_child(camera_rig); camera_rig.configure(self,player); camera_rig.update(1.0)
  build_ui()
  var enemy:=preload("res://scripts/prototype_3d/young_enemy.gd").new();add_child(enemy);enemy.position=Vector3(7,0.2,-4);enemy.configure(self)
+ distance_optimization=preload("res://scripts/prototype_3d/distance_optimization.gd").new();add_child(distance_optimization);distance_optimization.configure(self)
  if not use_test_layout:call_deferred("generate_content")
 func build_environment() -> void:
  var environment := WorldEnvironment.new(); var environment_settings := Environment.new()

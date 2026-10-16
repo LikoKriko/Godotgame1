@@ -21,7 +21,9 @@ func run():
  for i in range(0,weights.size(),4):
   normalized_weights = normalized_weights and absf(weights[i]+weights[i+1]+weights[i+2]+weights[i+3]-1)<0.001
  require(normalized_weights,"Every skin vertex has normalized weights")
- require(world.player.model.body_material.albedo_texture is Texture2D,"Original Meshy albedo is imported and assigned")
+ var body_material:Material=world.player.model.body_material
+ var albedo:Texture2D=body_material.get_shader_parameter("albedo_map") if body_material is ShaderMaterial else body_material.albedo_texture
+ require(albedo is Texture2D and albedo.resource_path=="res://assets/characters/prototype_3d/meshy/albedo.png","Original Meshy albedo is imported and assigned")
  var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
  var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
  var outward_torso := false

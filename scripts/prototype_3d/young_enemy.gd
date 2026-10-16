@@ -38,6 +38,33 @@ var avoid_direction:=Vector3.ZERO
 var profile=preload("res://scripts/creature_profile.gd").new()
 var hurt_area:=Area3D.new()
 var hurt_shapes:Array[CollisionShape3D]=[]
+var distance_suspended:=false
+var suspended_visual:Dictionary={}
+const VISUAL_STATE:=["last_pose","previous_state","interruption_pose","facial_open","facial_elapsed","facial_state","facial_phase","facial_close_time","facial_close_weights"]
+func suspend_distance() -> void:
+ if distance_suspended:return
+ suspended_visual={"transform":model.transform,"visible":visible,"physics":is_physics_processing(),"layer":collision_layer,"mask":collision_mask,"hurt_layer":hurt_area.collision_layer,"corpse_layer":corpse_area.collision_layer if corpse_area!=null else 0,"state":{},"blend":[]}
+ for key in VISUAL_STATE:
+  var value=model.get(key)
+  suspended_visual.state[key]=value.duplicate(true) if value is Dictionary or value is Array else value
+ for i in model.mesh_node.mesh.get_blend_shape_count():suspended_visual.blend.append(model.mesh_node.get_blend_shape_value(i))
+ var placeholder:=Node3D.new();placeholder.transform=model.transform
+ model.free();model=placeholder;add_child(model)
+ distance_suspended=true;collision_layer=0;collision_mask=0;hurt_area.collision_layer=0
+ if corpse_area!=null:corpse_area.collision_layer=0
+ hide();set_physics_process(false)
+func resume_distance() -> void:
+ if not distance_suspended:return
+ var actor=preload("res://scripts/prototype_3d/young_model.gd").new();add_child(actor);actor.transform=suspended_visual.transform
+ var state:Dictionary=suspended_visual.state
+ if not state.last_pose.is_empty():actor.apply_pose(state.last_pose.duplicate(true))
+ for key in VISUAL_STATE:actor.set(key,state[key])
+ for i in suspended_visual.blend.size():actor.mesh_node.set_blend_shape_value(i,suspended_visual.blend[i])
+ model.free();model=actor
+ collision_layer=suspended_visual.layer;collision_mask=suspended_visual.mask;hurt_area.collision_layer=suspended_visual.hurt_layer
+ if corpse_area!=null:corpse_area.collision_layer=suspended_visual.corpse_layer
+ visible=suspended_visual.visible;set_physics_process(suspended_visual.physics)
+ distance_suspended=false;suspended_visual.clear()
 func configure(owner_game) -> void:
  game=owner_game;collision_layer=8;collision_mask=43;add_to_group("prototype_enemies");add_to_group("creatures")
  model=preload("res://scripts/prototype_3d/young_model.gd").new();add_child(model)
@@ -124,7 +151,7 @@ func steer(direction:Vector3,delta:float) -> Vector3:
  avoid_direction=a if not obstacle(a) else (b if not obstacle(b) else direction.rotated(Vector3.UP,PI*0.75))
  avoid_remaining=0.7;return avoid_direction
 func _physics_process(delta:float) -> void:
- if game==null or game.paused:return
+ if game==null or game.paused or distance_suspended:return
  if health<=0:
   death_elapsed+=delta;model.animate(&"death" if death_elapsed<2 else &"corpse",minf(1,death_elapsed/2),punch_left,delta);indicator.hide()
   if death_elapsed>=2:ensure_corpse_area()
