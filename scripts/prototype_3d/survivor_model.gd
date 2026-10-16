@@ -8,7 +8,7 @@ const Aim=preload("res://scripts/prototype_3d/tool_aim.gd")
 const Profiles=preload("res://scripts/prototype_3d/held_profiles.gd")
 const GRIP_HEIGHT:=4.0
 var mesh_node:MeshInstance3D
-var body_material:StandardMaterial3D
+var body_material:Material
 var last_pose:Dictionary={}
 var grip_error:=0.0
 var tool_tip:=Vector3.ZERO

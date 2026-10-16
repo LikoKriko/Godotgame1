@@ -1,5 +1,6 @@
 """Blender --background --python tools/meshy/convert_human.py -- input.fbx output.glb joints.json.
-Preserve source geometry and UVs; add bone-heat weights to the unrigged FBX.
+Legacy dense source only: add the original bone-heat skin.
+The optimized survivor uses transfer_survivor.py to retain the 24-bone skin.
 Run export_human_bind.gd first, then bind_human.gd on the resulting glTF.
 """
 import json

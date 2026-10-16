@@ -8,7 +8,7 @@ func require(value:bool,message:String) -> void:
 func _initialize():call_deferred("run")
 func run():
  var definitions=[
-  ["res://assets/characters/prototype_3d/meshy/","survivor_skin.res",491218,64.0],
+  ["res://assets/characters/prototype_3d/meshy/","survivor_skin.res",20878,64.0],
   ["res://assets/items/prototype_3d/bottle_meshy/","bottle.res",883250,10.4],
   ["res://assets/models/meshy/axe/","model.res",3104,32.0],
   ["res://assets/models/meshy/pickaxe/","model.res",255100,36.0],
@@ -26,7 +26,20 @@ func run():
   require((arrays[Mesh.ARRAY_INDEX] as PackedInt32Array).size()/3==definition[2],"Every original triangle is retained")
   require(absf(mesh.get_aabb().size.y-definition[3])<0.001,"Uniform authoring scale preserves proportions")
   require(mesh.get_meta("source_zip_sha256")==provenance.zip_sha256,"Runtime mesh identifies its exact release archive")
-  var material:Material=mesh.surface_get_material(0)
+  if mesh.has_meta("skin_surface_profile"):
+   var rendered:ShaderMaterial=mesh.surface_get_material(0)
+   require(rendered.shader.resource_path=="res://shaders/prototype_3d/survivor_skin.gdshader","Skin polish uses original UV shading in one surface")
+   var original:StandardMaterial3D=mesh.get_meta("source_material")
+   require(rendered.get_shader_parameter("albedo_map")==original.albedo_texture and rendered.get_shader_parameter("normal_map")==original.normal_texture and rendered.get_shader_parameter("roughness_map")==original.roughness_texture and rendered.get_shader_parameter("metallic_map")==original.metallic_texture,"Rendered skin uses every supplied source map")
+   require(is_equal_approx(rendered.get_shader_parameter("skin_normal_strength"),.15),"Skin-only normal detail is attenuated without changing source pixels")
+   var mask:PackedColorArray=arrays[Mesh.ARRAY_COLOR];var skin:=0;var unchanged:=0;var protected:=true
+   var positions:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
+   for i in mask.size():
+    if mask[i].a>.5:skin+=1
+    else:unchanged+=1
+    if positions[i].y>52.01:protected=protected and mask[i].a<.01
+   require(mask.size()==positions.size() and skin>0 and unchanged>0 and protected,"Surface correction targets skin and preserves hair/face detail")
+  var material:Material=mesh.get_meta("source_material",mesh.surface_get_material(0))
   require(material is StandardMaterial3D and material.next_pass==null,"Source UV material replaces procedural projection and outline passes")
   require(material.texture_filter==BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS,"Pixel sampling survives perspective and distance")
   require(material.albedo_texture!=null and material.normal_texture!=null and material.roughness_texture!=null and material.metallic_texture!=null,"All four supplied texture maps are assigned")

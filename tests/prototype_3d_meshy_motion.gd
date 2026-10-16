@@ -1,6 +1,6 @@
 extends SceneTree
 ## Regression coverage for the actual imported feet, fingers and falling skin.
-const GEOMETRY_HASH="00142f59b7ca696b2906b5c581e141e03d153618c3e245d7de2364045a19cbca"
+
 const Clips=preload("res://scripts/prototype_3d/survivor_animation.gd")
 var checks:=0
 var failures:=0
@@ -19,7 +19,7 @@ func run():
  for i in arrays.size():
   if i in [Mesh.ARRAY_BONES,Mesh.ARRAY_WEIGHTS]:continue
   var hash:=HashingContext.new();hash.start(HashingContext.HASH_SHA256);hash.update(var_to_bytes(arrays[i]));hashes.append(hash.finish().hex_encode())
- require("|".join(hashes).sha256_text()==GEOMETRY_HASH,"All published source geometry, normals, tangents, UVs and topology remain byte-identical")
+ require("|".join(hashes).sha256_text()==JSON.parse_string(FileAccess.get_file_as_string("res://assets/characters/prototype_3d/meshy/source.json")).runtime_geometry_sha256,"All published source geometry, normals, tangents, UVs and topology remain byte-identical")
  require(preload("res://scripts/prototype_3d/human_skin_weights.gd").correct(arrays.duplicate(true))==0,"The baked torso correction is stable when applied again")
  var seeds:Array=JSON.parse_string(FileAccess.get_file_as_string("res://assets/characters/prototype_3d/meshy/rig_seeds.json"))
  for i in 16:

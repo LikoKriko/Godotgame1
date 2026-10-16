@@ -2,14 +2,14 @@
 
 El superviviente y la botella del prototipo 3D utilizan los FBX de las Releases `modelo_personaje3d` y `modelo_botella_3d`. Sus URL, SHA-256 de ZIP/FBX/PNG y rutas del original están en los respectivos `source.json`:
 
-- `assets/characters/prototype_3d/meshy/`: superviviente, 491.218 triángulos originales, 263.748 vértices en Godot tras las separaciones de UV; altura uniforme de 64 unidades, convertida a 1,75 m por el jugador y el retrato.
+- `assets/characters/prototype_3d/meshy/`: superviviente optimizado, 20.878 triángulos originales, 22.132 vértices en Godot tras las separaciones de UV; altura uniforme de 64 unidades, convertida a 1,75 m por el jugador y el retrato.
 - `assets/items/prototype_3d/bottle_meshy/`: botella de madera y cuerda, 883.250 triángulos originales y 472.027 vértices en Godot. El origen está en el cuello que sujeta la palma; la boca está en `(0, 2.8, 0)`. Se comparte el mismo recurso entre mano y suelo, con la misma escala física en mano y suelo (unos 28,4 cm de alto).
 
-Las mallas visibles no se remallan ni diezman. Se conservan las cuatro texturas originales, con albedo, normales, metal y rugosidad, y muestreo nearest con mipmaps. Los FBX originales quedan en `entregables/.../source/`, con `.gdignore` para evitar su importación y exportación duplicadas. El juego carga recursos nativos comprimidos; no necesita Blender ni los ZIP al ejecutarse. No se ha añadido LOD: estos recursos conservan toda la densidad de los archivos recibidos.
+Las mallas visibles no se remallan ni diezman: se utilizan las versiones reducidas entregadas por el usuario. El pulido de piel del superviviente modifica solo normales/tangentes de sombreado y añade una máscara por vértice; conserva posiciones, UV e índices. Se conservan las cuatro texturas originales, con albedo, normales, metal y rugosidad, y muestreo nearest con mipmaps. Los FBX originales quedan en `entregables/.../source/`, con `.gdignore` para evitar su importación y exportación duplicadas. El juego carga recursos nativos comprimidos; no necesita Blender ni los ZIP al ejecutarse. No se ha añadido LOD: estos recursos conservan toda la densidad de los archivos recibidos.
 
 ## Ligadura y poses
 
-El FBX del superviviente no contiene esqueleto ni clips. Los 16 huesos principales usan los nombres y cadenas del rig compartido. La ligadura automática se calcula sobre una copia auxiliar voxelizada de 0,012 unidades Blender: evita las singularidades de los detalles desconectados del FBX. Solo se transfieren los pesos a la malla original mediante interpolación de la superficie más cercana; la copia auxiliar se elimina antes de exportar.
+El FBX del superviviente no contiene esqueleto ni clips. La versión reducida hereda la piel animada de 24 huesos de `4b5a50d`, mediante interpolación baricéntrica del triángulo donante más próximo. La ligadura histórica original se calculó por difusión de calor sobre una copia auxiliar; no se repite ese cálculo al sustituir la malla optimizada.
 
 Se mantienen cuatro controles de tela y cuatro collares de volumen de codos y rodillas, con un máximo de cuatro influencias normalizadas por vértice. Los collares conservan volumen al flexionar; los controles de tela afectan únicamente al pantalón oscuro importado. El recurso es compartido e inmutable, mientras que cada actor y el retrato tienen su propio esqueleto y Skin.
 
@@ -25,9 +25,13 @@ Usar Godot **4.7.2**. Los comandos se ejecutan desde la raíz del repositorio, c
 
 ```bash
 godot --headless --editor --path . --import
-godot --headless --path . --script tools/meshy/export_human_bind.gd -- /tmp/human_joints.json
-blender -b -t 2 --python tools/meshy/convert_human.py -- entregables/personajes/personaje1/source/survivor.fbx /tmp/human_skinned.glb /tmp/human_joints.json
-godot --headless --path . --script tools/meshy/bind_human.gd -- /tmp/human_skinned.glb
+mkdir -p /tmp/survivor-transfer
+git show 4b5a50d:assets/characters/prototype_3d/meshy/survivor_skin.res > /tmp/survivor-transfer/donor.res
+godot --headless --path . --script tools/enemy/export_skin_transfer.gd -- /tmp/survivor-transfer/donor.res /tmp/survivor-transfer/skin
+godot --headless --path . --script tools/meshy/export_survivor_transfer.gd -- /tmp/survivor-transfer/joints.json
+blender -b -t 2 --python tools/meshy/transfer_survivor.py -- entregables/personajes/personaje1/source/Meshy_AI_Wild_Wanderer_1016142901_texture.fbx /tmp/survivor-transfer/rigged.glb /tmp/survivor-transfer/joints.json /tmp/survivor-transfer/skin
+godot --headless --path . --script tools/meshy/bind_human.gd -- /tmp/survivor-transfer/rigged.glb transferred
+cp /tmp/survivor-transfer/rigged.transfer.json assets/characters/prototype_3d/meshy/skin_transfer.json
 # La armadura vigente se prepara con prepare_wearables.gd; ver la sección de equipo.
 blender -b -t 2 --python tools/meshy/convert_source.py -- entregables/objetos/botella/source/bottle.fbx /tmp/bottle.glb
 godot --headless --path . --script tools/meshy/bake_bottle.gd -- /tmp/bottle.glb
@@ -38,7 +42,7 @@ godot --headless --path . --script tools/meshy/bake_bottle.gd -- /tmp/bottle.glb
 Para la comparación independiente, exportar también el FBX humano sin rig:
 
 ```bash
-blender -b -t 2 --python tools/meshy/convert_source.py -- entregables/personajes/personaje1/source/survivor.fbx /tmp/human_original.glb
+blender -b -t 2 --python tools/meshy/convert_source.py -- entregables/personajes/personaje1/source/Meshy_AI_Wild_Wanderer_1016142901_texture.fbx /tmp/human_original.glb
 godot --headless --path . --script tools/meshy/verify_source.gd -- /tmp/human_original.glb res://assets/characters/prototype_3d/meshy/survivor_skin.res
 godot --headless --path . --script tools/meshy/verify_source.gd -- /tmp/bottle.glb res://assets/items/prototype_3d/bottle_meshy/bottle.res
 ```
@@ -253,3 +257,66 @@ la roca incorpora un Area3D de selección/impacto 15 cm mayor por lado que la
 caja física. La caja física sigue la malla; la tolerancia no bloquea el paso.
 Las siete suites de colisiones, separación, recursos, equipo, retícula,
 geometría real y recogida pasan después de esta integración.
+
+
+## Superviviente optimizado y pulido de piel — 16 de octubre de 2026
+
+Se aplica el ZIP nuevo `personaje1_3d.zip` de la Release `modelo_personaje3d`,
+SHA-256 `41d337bca5ab900bac67da6e9ede430d48d0bbc12964cd5fbcaaa1d6e4f4efb3`.
+El FBX `1016142901` original y los cinco PNG están conservados byte a byte;
+`source.json` registra procedencia, hashes y la huella de geometría final.
+El FBX denso `survivor.fbx` queda solo como fuente histórica.
+
+La malla pasa de 491218 a **20878 triángulos** (95,75 % menos) y de 263748 a
+**22132 vértices de ejecución**. El recurso de geometría/pesos ocupa alrededor
+de 0,63 MB, frente a 11,91 MB. Los PNG nuevos pesan más que los anteriores:
+esto no mide memoria total ni FPS en el equipo del usuario. Se mantiene la
+altura de 1,75 m, la anatomía, todos los clips, armas y la armadura existente.
+
+La transferencia conserva los 24 huesos, cuatro controles de tela y cuatro
+collares de volumen de codos/rodillas. `skin_transfer.json` identifica el
+donante exacto SHA-256
+`7c48018fd35027d7176679237ca96ad46100c8bd00b749adcd8b6f4e7e0ad56c`.
+Distancia máxima a la superficie donante: 0,01933 unidades de autoría;
+RMS: 0,00603. Se conservan las correcciones escapulares v3.
+
+El pulido pedido en brazos, pectoral y espalda usa `skin_surface.gd` y
+`survivor_skin.gdshader`. Suaviza normales de esquinas coincidentes de piel
+sin soldar ni mover geometría, regenera tangentes y reduce a 0,15 la intensidad
+del mapa normal sobre piel. Una máscara en el alfa del color de vértice
+transiciona gradualmente en cintura y cuello; pelo, cara y ropa conservan
+sus mapas completos. El material sigue usando las cuatro texturas originales,
+las UV recibidas y muestreo nearest, en una sola superficie y pasada opaca.
+El material original permanece como metadato para comparación y reproducción.
+
+La comparación independiente con el FBX confirma posiciones, UV e índices
+completos, con errores máximos de empaquetado de 0,00104 unidades y 0,000022
+en UV. Las normales fuera de la zona pulida difieren como máximo 0,00129;
+las de la piel se modifican deliberadamente. No se trata de identidad de
+normales en esas zonas. La comprobación de geometría durante animaciones
+usa la huella final declarada en el manifiesto y conserva los mismos límites
+de apoyos, volumen y continuidad.
+
+Capturas actuales: `previews/survivor_optimized_comparison.png`,
+`previews/survivor_optimized_actions.png`, `previews/survivor_optimized_skin.png`
+y `previews/survivor_meshy_in_game.png`. Las capturas anteriores sin el nombre
+optimized son históricas cuando muestran la malla densa.
+
+
+Para regenerar las capturas optimizadas:
+
+```sh
+mkdir -p /tmp/survivor-review
+godot --path . --script tools/meshy/review_survivor.gd -- /tmp/human_original.glb /tmp/survivor-review
+cp /tmp/survivor-review/survivor_meshy_comparison.png docs/previews/survivor_optimized_comparison.png
+cp /tmp/survivor-review/survivor_meshy_actions.png docs/previews/survivor_optimized_actions.png
+godot --path . --script tools/meshy/review_skin.gd -- /tmp/human_original.glb res://docs/previews/survivor_optimized_skin.png
+godot --path . --script tools/meshy/review_game.gd
+```
+
+Validación de esta entrega: **336475 comprobaciones en 20 suites**, incluyendo
+los 31 estados de animación y ocho familias de equipo, piel/volumen, soportes,
+continuidad, giro retardado, puñetazos alternos, saltos/deslizamiento, combate
+agachado, armas, arco, recogida, armadura, guardado y 17 comprobaciones de
+interfaz nativa X11 con el retrato. No sustituye una prueba en el equipo del
+usuario ni una medición de FPS.

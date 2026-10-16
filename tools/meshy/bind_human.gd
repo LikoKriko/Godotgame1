@@ -6,7 +6,10 @@ func _initialize():call_deferred("run")
 func digest(bytes:PackedByteArray) -> String:
  var context:=HashingContext.new();context.start(HashingContext.HASH_SHA256);context.update(bytes);return context.finish().hex_encode()
 func run():
+ var manifest_path:="res://assets/characters/prototype_3d/meshy/source.json"
+ var manifest:Dictionary=JSON.parse_string(FileAccess.get_file_as_string(manifest_path))
  var args:=OS.get_cmdline_user_args()
+ var transferred:=args.size()>1 and args[1]=="transferred"
  if args.is_empty():push_error("Pass -- /absolute/path/to/source.glb");quit(1);return
  var document:=GLTFDocument.new();var state:=GLTFState.new()
  if document.append_from_file(args[0],state)!=OK:quit(1);return
@@ -30,7 +33,7 @@ func run():
  assert(not imported_bones.is_empty(),"Convert with the supplied bone-heat rig first")
  var imported_node:MeshInstance3D=nodes[0]
  var imported_skeleton:Skeleton3D=imported_node.get_node(imported_node.skeleton)
- var names:=["pelvis","chest","neck","head","upper_arm_0","forearm_0","hand_0","upper_arm_1","forearm_1","hand_1","thigh_0","shin_0","foot_0","thigh_1","shin_1","foot_1"]
+ var names:=["pelvis","chest","neck","head","upper_arm_0","forearm_0","hand_0","upper_arm_1","forearm_1","hand_1","thigh_0","shin_0","foot_0","thigh_1","shin_1","foot_1","cloth_hem_0_0","cloth_hem_0_1","cloth_hem_1_0","cloth_hem_1_1","elbow_volume_0","elbow_volume_1","knee_volume_0","knee_volume_1"]
  var remap:Dictionary={}
  for i in imported_node.skin.get_bind_count():
   var name:=String(imported_node.skin.get_bind_name(i))
@@ -55,7 +58,7 @@ func run():
  var final_bones:=PackedInt32Array();var final_weights:=PackedFloat32Array()
  var albedo:Image=(load("res://assets/characters/prototype_3d/meshy/albedo.png") as Texture2D).get_image()
  var uvs:PackedVector2Array=arrays[Mesh.ARRAY_TEX_UV]
- for i in vertices.size():
+ for i in (0 if transferred else vertices.size()):
   var influences:Dictionary={}
   for j in 4:
    var id:=bones[i*4+j];influences[id]=float(influences.get(id,0.0))+weights[i*4+j]
@@ -87,7 +90,7 @@ func run():
   for j in 4:
    final_bones.append(order[j] if j<order.size() else 0)
    final_weights.append(influences[order[j]]/total if j<order.size() else 0.0)
- arrays[Mesh.ARRAY_BONES]=final_bones;arrays[Mesh.ARRAY_WEIGHTS]=final_weights
+ arrays[Mesh.ARRAY_BONES]=bones if transferred else final_bones;arrays[Mesh.ARRAY_WEIGHTS]=weights if transferred else final_weights
  preload("res://scripts/prototype_3d/human_skin_weights.gd").correct(arrays)
  holder.free()
  var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
@@ -102,9 +105,9 @@ func run():
  mesh.surface_set_material(0,material)
  var indices:PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
  var triangle_count:=indices.size()/3 if not indices.is_empty() else vertices.size()/3
- assert(triangle_count==491218,"Preserve all original triangles")
+ assert(triangle_count==int(manifest.triangles),"Preserve every triangle of the active source")
  mesh.set_meta("torso_weight_profile","meshy_shoulders_v3")
- mesh.set_meta("source_zip_sha256","554eb761d7799caf1239e0a33f74e23846f61cd13eb1d71d5b55c03b6ae7767e")
+ mesh.set_meta("source_zip_sha256",manifest.zip_sha256)
  mesh.set_meta("normalized_positions_sha256",normalized_hash)
  mesh.set_meta("source_triangles",triangle_count)
  mesh.set_meta("source_bounds",bounds)
@@ -112,6 +115,15 @@ func run():
  mesh.set_meta("translation",translation)
  mesh.set_meta("nose_tip",nose)
  mesh.set_meta("source_uv_sha256",digest((arrays[Mesh.ARRAY_TEX_UV] as PackedVector2Array).to_byte_array()))
+ if transferred:mesh=preload("res://tools/meshy/skin_surface.gd").polish(mesh)
  assert(ResourceSaver.save(mesh,DEST,ResourceSaver.FLAG_COMPRESS)==OK)
+ var saved:Mesh=ResourceLoader.load(DEST,"",ResourceLoader.CACHE_MODE_REPLACE)
+ var stored:=saved.surface_get_arrays(0);var hashes:=PackedStringArray()
+ for i in stored.size():
+  if i in [Mesh.ARRAY_BONES,Mesh.ARRAY_WEIGHTS]:continue
+  hashes.append(digest(var_to_bytes(stored[i])))
+ manifest["runtime_geometry_sha256"]="|".join(hashes).sha256_text()
+ manifest["runtime_vertices"]=vertices.size();manifest["runtime_triangles"]=triangle_count
+ var file:=FileAccess.open(manifest_path,FileAccess.WRITE);file.store_string(JSON.stringify(manifest,"  ")+"\n");file.close()
  print("Baked Meshy: vertices=",vertices.size()," triangles=",triangle_count," bounds=",mesh.get_aabb()," nose_tip=",nose," source geometry preserved")
  scene.free();quit()

@@ -112,3 +112,12 @@ de quince huesos (incluida la cola) del donante `1d58ff4`; conservar las
 animaciones existentes. `assets/enemies/first/meshy/source.json` y
 `skin_transfer.json` identifican ambas fuentes. No reactivar la malla densa
 anterior; se conserva su FBX solo como histórico.
+
+El superviviente vigente usa `personaje1_3d.zip`, FBX
+`Meshy_AI_Wild_Wanderer_1016142901_texture.fbx`: 20878 triángulos. Hereda por
+transferencia la piel de 24 huesos de `4b5a50d`, con tela, codos y rodillas.
+El perfil `skin_seams_v1` suaviza normales coincidentes de piel y atenúa su
+mapa normal con una máscara por vértice; no altera posiciones, UV, índices
+ni PNG originales. El pelo y la ropa conservan su detalle. Regenerar con
+`transfer_survivor.py` y `bind_human.gd ... transferred`, no con el horneado
+automático antiguo. Ver `docs/MESHY_ASSETS.md`.

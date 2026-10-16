@@ -34,7 +34,7 @@ func run():
     var document:=GLTFDocument.new();var state:=GLTFState.new();assert(document.append_from_file(args[0],state)==OK)
     var original:=document.generate_scene(state);view.world.add_child(original)
     original.scale=Vector3.ONE*float(mesh.get_meta("uniform_scale"));original.position=mesh.get_meta("translation")
-    for part:MeshInstance3D in original.find_children("*","MeshInstance3D",true,false):part.material_override=mesh.surface_get_material(0)
+    for part:MeshInstance3D in original.find_children("*","MeshInstance3D",true,false):part.material_override=mesh.get_meta("source_material",mesh.surface_get_material(0))
    else:
     var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();view.world.add_child(actor);actor.family_override=&"";actor.animate(&"idle",0,false)
    point_camera(view.camera,[0.0,-PI/2,PI,PI/2][column])

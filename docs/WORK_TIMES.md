@@ -1541,3 +1541,58 @@ previa de las máscaras de dientes tras detectar inversión de triángulos.
 Galería con cuatro láminas en
 `docs/previews/enemigo1-boca-interior-2026-10-16/`; la anterior se marca histórica.
 No incluye prueba en el equipo del usuario.
+
+
+## 2026-10-16 — Superviviente optimizado y líneas de piel
+
+Alcance: aplicar la nueva Release del personaje principal, conservar toda su
+ligadura y animaciones, pulir líneas en brazos, pectoral y espalda, comprobar
+armas/armadura/retrato y publicar commit/push. Estimación comunicada:
+**20–35 minutos desde disponer del ZIP optimizado**, con commit y push.
+
+| Hito | UTC | Europe/Madrid |
+| --- | --- | --- |
+| Primera comprobación y preparación de ligadura | 2026-10-16 14:23:46 | 2026-10-16 16:23:46 |
+| Se observa publicado `personaje1_3d.zip` | 2026-10-16 14:34:04 | 2026-10-16 16:34:04 |
+| Cierre de implementación, pruebas y capturas | 2026-10-16 14:48:31 | 2026-10-16 16:48:31 |
+
+Tiempo observado completo: **24 min 45 s**, incluyendo espera del archivo y
+preparación. Desde observar el ZIP nuevo: **14 min 27 s**. Commit/push
+posteriores a esta marca no están incluidos. Al principio las descargas
+seguían devolviendo exactamente el ZIP anterior; se verificó por SHA-256
+y se pidió el enlace correcto. No se sustituyó por un archivo supuesto.
+
+Fuente vigente: FBX `Meshy_AI_Wild_Wanderer_1016142901_texture.fbx`, ZIP
+`personaje1_3d.zip`, SHA-256
+`41d337bca5ab900bac67da6e9ede430d48d0bbc12964cd5fbcaaa1d6e4f4efb3`.
+Se pasa de 491218 a 20878 triángulos (95,75 % menos), de 263748 a 22132
+vértices de ejecución y de 11912420 a 633391 bytes de malla nativa. Los
+PNG nuevos pesan más; estas cifras no son memoria total ni FPS. Se mantiene
+la altura de 1,75 m, las posiciones/UV/índices y los PNG originales.
+
+Se transfieren los pesos desde el recurso de `4b5a50d`, conservando 24 huesos,
+controles de tela y collares de codos/rodillas. La comparación independiente
+con el FBX verifica posiciones y UV (errores de empaquetado máximos 0,00104
+unidades y 0,000022), todos los índices y las normales fuera de la zona
+pulida (error 0,00129). Se conservan las correcciones escapulares v3.
+
+El diagnóstico visual comparó el mapa normal activado, desactivado y atenuado.
+El pulido suaviza 5012 esquinas de normales coincidentes sobre piel, regenera
+tangentes y atenúa localmente el normal map a 0,15 con transiciones en cintura
+y cuello. La silueta no se mueve. La cara, pelo, ropa y los PNG originales se
+conservan. El material sigue en una sola superficie/pasada. Se guarda el
+material original para comparación; no se restaura la malla densa al jugar.
+
+Validación: **336475 comprobaciones en 20 suites**: procedencia/materiales 105;
+piel, volumen y continuidad 155005; movimiento Meshy 15194; catálogo 9100;
+transiciones de equipo 17892; golpes/herramientas 27739; respuesta del jugador
+25448; caídas 18221; arco 73; armadura/contactos 42; geometría de equipo 38;
+deslizamiento/salto 2028; combate agachado 836; recogida/acciones 4050;
+puñetazos 26250; marcha diagonal 32736; contrapeso de espada 1440; equipo 65;
+guardado 196; interfaz nativa X11 y retrato 17. Se recorren los 31 estados
+y ocho familias de equipo con el rig existente. Importación del editor y
+`git diff --check` sin errores; capturas de cuatro vistas, ocho acciones,
+comparación cercana de piel y escena del juego.
+
+No incluye medición de FPS ni sesión manual en el ordenador del usuario.
+Se incorporan los últimos cambios de los otros departamentos antes de publicar.
