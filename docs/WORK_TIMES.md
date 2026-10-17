@@ -1946,3 +1946,28 @@ y máscaras superada, integración con las nuevas entregas remotas de enemigo3,
 conservadas sin cambios. Se publican comparativas y scripts para reproducirlas.
 Intervalo parcial de cierre: 14:17:27–14:18:49 Europe/Madrid, 1 min 22 s;
 excluye el commit y push posteriores.
+
+## 2026-10-17 — Enemigo3: texturas del FBX riggeado y primera caminata
+
+Alcance: revisar el FBX Sunny Sprout y sus PNG en `entregables/enemigos/enemigo3`,
+corregir las rutas locales rotas de material, conservar su malla/UV y rig de
+35 huesos, preparar una caminata reutilizable y una escena de revisión con
+cuatro vistas. Commit y push autorizados en esta conversación. Sin estimación
+previa para esta tarea.
+
+Primer reloj observado: **14:15:53 Europe/Madrid**. Verificación del modelo,
+texturas, clip guardado y capturas terminada antes de las **14:26:42**;
+integración por avance rápido de los cambios remotos de otro departamento
+comprobada a las **14:27:31**. Intervalo parcial medido: **11 min 38 s**,
+excluye preparación anterior al primer reloj, documentación/cierre y publicación.
+
+Comparación independiente Blender/Godot de posiciones y UV: error cero y los
+mismos 13582 triángulos. Cinco PNG idénticos byte a byte a sus originales.
+Conversión a un máximo de ocho influencias: dos vértices pierden únicamente
+su noveno peso (máximo 0,018375 antes de normalización); no se recalcula el rig.
+Suite específica: **487975 comprobaciones**, cero fallos. Incluye 241 fases de
+cinemática, piel completa en 25 fases y clip de AnimationPlayer en 121 fases;
+longitudes constantes, apoyos, continuidad, cierre del ciclo y RESET original.
+Revisión real de Godot Compatibility/OpenGL con cuatro vistas y 48 fotogramas
+publicados en GIF; clip de 1,25 s en bucle. No se añade IA ni aparición del
+enemigo en el mundo. Ver `docs/ENEMY3_3D.md`.

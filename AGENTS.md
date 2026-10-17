@@ -92,7 +92,7 @@ la geometría, proporciones, UV y PNG originales de esos archivos, sin
 reconstruirlos con formas procedurales ni reproyectar las láminas antiguas.
 Las pinturas de personajes y `entregables/enemigos/enemigo1_joven_3d.png` se
 conservan como referencias históricas. Adaptar los rigs a los archivos
-importados, manteniendo las alturas de 1,75 m/0,875 m. Los FBX no traen esqueleto
+importados, manteniendo las alturas de 1,75 m/0,875 m. Los FBX de esos tres modelos no traen esqueleto
 ni animaciones; las ligaduras añadidas integran las acciones del juego.
 Ver `docs/MESHY_ASSETS.md` para regenerar el personaje y la botella.
 
@@ -129,3 +129,12 @@ del agarre `grip_bottom: -4`. Usar los anclajes generados en
 unidades y las puntas/límites corresponden a las mallas pequeñas. No aplicar
 una segunda escala al sostenerlos o soltarlos. Conservar longitudes de huesos
 y los agarres al cambiar animaciones.
+
+El enemigo3 conserva el FBX Sunny Sprout de
+`entregables/enemigos/enemigo3/modelo_enemigo3.fbx`, **con su rig original**:
+35 huesos, 13582 triángulos y PNG/UV originales. No sustituir su ligadura por
+la del joven o el humano. `scenes/prototype_3d/enemy3.tscn` expone `walk` y
+`RESET` mediante AnimationPlayer; `enemy3_review.tscn` permite revisar cuatro
+vistas. Es una primera caminata de presentación, todavía sin apariciones ni
+IA de enemigo3. Procedencia y conversión a ocho influencias máximas:
+`assets/enemies/third/sprout/source.json`; ver `docs/ENEMY3_3D.md`.

@@ -1,0 +1,46 @@
+{
+  "source": "User FBX and PNG files in entregables/enemigos/enemigo3",
+  "source_fbx": "entregables/enemigos/enemigo3/modelo_enemigo3.fbx",
+  "source_sha256": "08b07fed9c2e3b3fb8f6d0725cd3e896cac27b31c7c9e356395dc69ce1f2e3f6",
+  "native_scene": "model.scn",
+  "source_vertices": 6791,
+  "runtime_vertices": 13328,
+  "triangles": 13582,
+  "bones": 35,
+  "deforming_groups": 29,
+  "original_animations": 0,
+  "axis": "Godot +Y up, +Z forward; source metres unchanged",
+  "height_m": 1.9013426,
+  "texture_sha256": {
+    "Meshy_AI_Sunny_Sprout_Dragon_1016224501_texture_metallic.png": "9dda9359e9787d43ff29e770c225356f66a1da0b01b61e2395f1bfe28987eb94",
+    "Meshy_AI_Sunny_Sprout_Dragon_1016224501_texture_roughness.png": "08d42fce932eb49d242aef5be551c557156709d15c61a9a5d76241507839dae1",
+    "Meshy_AI_Sunny_Sprout_Dragon_1016224501_texture.png": "8b8b6644051a81f95215eee0eec980bb3b223762f3ceaf13f70782cb6fa7c36b",
+    "Meshy_AI_Sunny_Sprout_Dragon_1016224501_texture_normal.png": "c8d527e9d1e61102cec6330dd83ecf6d94cf5af17b5280f40a31e1995e86b85b",
+    "Meshy_AI_Sunny_Sprout_Dragon_1016224501_texture_metallic_roughness.png": "730203e8872f151ac400f5f206464a21acc85d43b506f0e140aba32f7e47096e"
+  },
+  "active_maps": [
+    "albedo",
+    "normal",
+    "roughness",
+    "metallic"
+  ],
+  "retained_unused_map": "metallic_roughness",
+  "geometry_verification": {
+    "native_vertices": 13328,
+    "source_triangles": 13582,
+    "max_position_uv_error": 0.0,
+    "triangles_match": true
+  },
+  "skin_conversion": {
+    "discarded_weight_max": 0.018374864012002945,
+    "vertices_over_eight_weights": 2
+  },
+  "walk": {
+    "length_seconds": 1.25,
+    "samples": 61,
+    "loop": true,
+    "tracks": 70,
+    "root_motion": false,
+    "matched_translation_speed_m_s": 0.2533333333
+  }
+}
