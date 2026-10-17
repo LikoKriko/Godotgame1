@@ -3,6 +3,7 @@ extends RefCounted
 const UNIT:=1.75/64.0
 const CHUNK_SIZE:=32.0
 const BOUNDS:=Rect2(-3200,-3200,6400,6400)
+const Random=preload("res://scripts/world/world_random.gd")
 const Hash=preload("res://scripts/terrain_sampler.gd")
 const Nature=preload("res://scripts/nature_variants.gd")
 var base=preload("res://scripts/prototype_3d/world_layout.gd").new()
@@ -48,7 +49,7 @@ func chunk(key:Vector2i,include_grass:bool=true,include_reserved:bool=false) -> 
   for record in base_grass.get(key,[]):
    if include_reserved or reservations.allows_grass(record):grass.append(record)
  var rng:=RandomNumberGenerator.new()
- rng.seed=(seed_value ^ (key.x*73856093) ^ (key.y*19349663))&0xffffffff
+ rng.seed=Random.chunk_seed(seed_value,key)
  # The original clearing is preserved exactly; extend its existing species,
  # dimensions and resource rules outside that authored starting area.
  for slot in 16:
@@ -56,8 +57,8 @@ func chunk(key:Vector2i,include_grass:bool=true,include_reserved:bool=false) -> 
   var roll:=rng.randf();var variant:=rng.randi_range(0,29);var design:=rng.randi_range(0,8)
   if base.bounds.grow(3).has_point(point) or not BOUNDS.grow(-3).has_point(point):continue
   var density:float=sampler.vegetation_density(point/UNIT)
-  if sampler.path_mask(point/UNIT)>.2:continue
-  var kind:=2 if roll<density*.65 else (1 if roll>.94 else (4 if roll>.91 else (5 if roll>.88 else 0)))
+  if sampler.path_mask(point/UNIT)>sampler.profile.biome.path_clearance:continue
+  var kind:int=sampler.profile.biome.resource_kind(roll,density)
   if kind==0:continue
   var record:Dictionary={"id":"w2:%d:%d:%d"%[key.x,key.y,slot],"position":Vector3(point.x,0,point.y),"kind":kind,"variant":variant,"hits":3,"yield":4}
   if kind==2:record.design=design;record.height=Nature.profile(2,variant).size*UNIT

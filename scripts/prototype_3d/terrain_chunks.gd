@@ -5,6 +5,7 @@ const Profile = preload("res://scripts/terrain_profile.gd")
 const Sampler = preload("res://scripts/terrain_sampler.gd")
 const Relief=preload("res://scripts/prototype_3d/initial_relief.gd")
 var relief_enabled:=false
+var path_definition:Resource=Relief.RECIPE.path
 var relief_supports:Dictionary={}
 var relief_meshes:Dictionary={}
 var use_mask_cache:=true
@@ -119,6 +120,7 @@ func material_for(rect: Rect2) -> ShaderMaterial:
    result.set_shader_parameter("biome_mask",grid.texture);result.set_shader_parameter("mask_origin",grid.origin);result.set_shader_parameter("mask_size",grid.size);result.set_shader_parameter("mask_step",mask_cache.STEP)
 
  result.set_shader_parameter("initial_relief",relief_enabled)
+ path_definition.apply_material(result)
  result.set_shader_parameter("existing_paths",sampler.existing_paths)
  var bounds := PackedVector4Array(); var types := PackedVector2Array()
  for influence in sampler.influences:

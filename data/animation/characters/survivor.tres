@@ -1,0 +1,42 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/animation/characters/humanoid_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rig_id = &"survivor"
+reference_height = 64.0
+reference_width = 12.39999961853028
+reference_depth = 8.0
+bones = {
+"cloth_hem_l_0": "cloth_hem_0_0",
+"cloth_hem_l_1": "cloth_hem_0_1",
+"cloth_hem_r_0": "cloth_hem_1_0",
+"cloth_hem_r_1": "cloth_hem_1_1",
+"elbow_volume_l": "elbow_volume_0",
+"elbow_volume_r": "elbow_volume_1",
+"knee_volume_l": "knee_volume_0",
+"knee_volume_r": "knee_volume_1",
+"root": "pelvis",
+"spine": "chest",
+"neck": "neck",
+"head": "head",
+"arm_root_l": "upper_arm_0",
+"arm_mid_l": "forearm_0",
+"arm_end_l": "hand_0",
+"leg_root_l": "thigh_0",
+"leg_mid_l": "shin_0",
+"leg_end_l": "foot_0",
+"arm_root_r": "upper_arm_1",
+"arm_mid_r": "forearm_1",
+"arm_end_r": "hand_1",
+"leg_root_r": "thigh_1",
+"leg_mid_r": "shin_1",
+"leg_end_r": "foot_1"
+}
+chains = {
+"arm_l": PackedStringArray("arm_root_l", "arm_mid_l", "arm_end_l"),
+"leg_l": PackedStringArray("leg_root_l", "leg_mid_l", "leg_end_l"),
+"arm_r": PackedStringArray("arm_root_r", "arm_mid_r", "arm_end_r"),
+"leg_r": PackedStringArray("leg_root_r", "leg_mid_r", "leg_end_r")
+}

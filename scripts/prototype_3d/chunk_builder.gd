@@ -13,10 +13,7 @@ func configure(source) -> void:
  layout.base=source.base;layout.base_chunks=source.base_chunks;layout.base_grass=source.base_grass
  layout.relief_enabled=source.relief_enabled;layout.relief_supports=source.relief_supports
  layout.reservations=source.reservations
- var sampler=preload("res://scripts/terrain_sampler.gd").new()
- sampler.seed_value=source.sampler.seed_value;sampler.profile=source.sampler.profile.duplicate()
- sampler.thresholds=source.sampler.thresholds;sampler.existing_paths=source.sampler.existing_paths
- sampler.influences=source.sampler.influences.duplicate(true);layout.sampler=sampler
+ layout.sampler=source.sampler.copy_for_worker()
  for variant in 15:shapes.append(Cover.mesh_for(variant).surface_get_arrays(0))
 func request(key:Vector2i) -> void:
  if worker!=null:return

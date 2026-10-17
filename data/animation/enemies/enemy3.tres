@@ -1,0 +1,30 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/animation/enemies/enemy_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rig_id = &"enemy3"
+locomotion_family = &"biped_digitigrade"
+reference_height = 1.9013426
+bones = {
+"spine": "Hueso.001",
+"head": "Hueso.004",
+"tail_base": "pierna1_R.002",
+"tail_tip": "pierna1_R.004",
+"hind_root_l": "pierna2_L",
+"hind_mid_l": "pierna3_L",
+"hind_end_l": "pierna4_L",
+"hind_tip_l": "pierna5_L",
+"hind_root_r": "pierna2_R",
+"hind_mid_r": "pierna3_R",
+"hind_end_r": "pierna4_R",
+"hind_tip_r": "pierna5_R",
+"fore_root_l": "brazo2_L",
+"fore_root_r": "brazo2_R"
+}
+chains = {
+"hind_l": PackedStringArray("hind_root_l", "hind_mid_l", "hind_end_l", "hind_tip_l"),
+"hind_r": PackedStringArray("hind_root_r", "hind_mid_r", "hind_end_r", "hind_tip_r")
+}
+phase_offsets = {"hind_l": 0.0, "hind_r": 0.5}

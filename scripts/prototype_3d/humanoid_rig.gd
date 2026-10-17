@@ -1,5 +1,7 @@
 extends RefCounted
 ## Stable skinned mesh. Poses move bones; topology and surface detail never change.
+const ANIMATION_PROFILE=preload("res://data/animation/characters/survivor.tres")
+var anatomy=preload("res://scripts/animation/shared/rig_binding.gd").new()
 const Pose = preload("res://scripts/continuous_body_pose.gd")
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Kinematics=preload("res://scripts/prototype_3d/human_kinematics.gd")
@@ -58,6 +60,7 @@ func setup(actor:Node3D,mesh_instance:MeshInstance3D) -> void:
  var skin := Skin.new()
  for i in rest.size(): skin.add_bind(i,rest[i].affine_inverse())
  mesh_instance.skin = skin
+ if not anatomy.configure(skeleton,ANIMATION_PROFILE):push_error(str(anatomy.errors))
  pose_writer.configure(parents);limb_frames.resize(rest.size());collar_frames.resize(rest.size())
  for side in 2:
   cache_limb(4+side*3,20+side,arm_rest[side])

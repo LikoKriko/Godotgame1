@@ -14,10 +14,10 @@ func request(key:Vector2i,rect:Rect2,sampler,profile) -> void:
  if data.has(key) or pending.has(key):return
  var influences:Array[Dictionary]=[]
  for influence in sampler.influences:
-  if influence.rect.grow(maxf(influence.rect.size.x,influence.rect.size.y)*.15).intersects(rect):influences.append(influence.duplicate(true))
+  if influence.rect.grow(maxf(influence.rect.size.x,influence.rect.size.y)*.15).intersects(rect):influences.append(influence.duplicate_deep(Resource.DEEP_DUPLICATE_ALL))
   if influences.size()==32:break
  serial+=1;pending[key]=serial
- jobs.append({"key":key,"rect":rect,"serial":serial,"seed":sampler.seed_value,"profile":profile.duplicate(),"thresholds":sampler.thresholds,"paths":sampler.existing_paths,"influences":influences})
+ jobs.append({"key":key,"rect":rect,"serial":serial,"seed":sampler.seed_value,"profile":profile.duplicate_deep(Resource.DEEP_DUPLICATE_ALL),"thresholds":sampler.thresholds,"paths":sampler.existing_paths,"influences":influences})
  start_next()
 func start_next() -> void:
  if worker!=null or jobs.is_empty():return

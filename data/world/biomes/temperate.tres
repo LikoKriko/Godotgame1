@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/biome_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+biome_id = &"temperate"
+density_normal = 0.3
+density_dark = 0.12
+density_vegetation = 0.85
+density_noise_scale = 95.0
+tree_fraction = 0.65
+rock_threshold = 0.94
+sapling_threshold = 0.91
+plant_threshold = 0.88
+path_clearance = 0.2

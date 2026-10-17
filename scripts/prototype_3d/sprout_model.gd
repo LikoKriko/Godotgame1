@@ -1,6 +1,8 @@
 extends Node3D
 ## Enemy3: the user's mesh, UVs, skin weights and 35-bone rig, in source metres.
 ## Pure presentation; the first walk does not add AI, spawns or combat rules.
+const Rig=preload("res://scripts/animation/shared/rig_binding.gd")
+const RIG_PROFILE=preload("res://data/animation/enemies/enemy3.tres")
 const SOURCE=preload("res://assets/enemies/third/sprout/model.scn")
 const Body=preload("res://scripts/continuous_body_pose.gd")
 const CYCLE_SECONDS:=1.25
@@ -35,17 +37,18 @@ func _ready() -> void:
  skeleton=model.find_children("*","Skeleton3D",true,false)[0]
  mesh_node=model.find_children("*","MeshInstance3D",true,false)[0]
  mesh_node.custom_aabb=VISUAL_BOUNDS
- for i in skeleton.get_bone_count():
-  bind.append(skeleton.get_bone_global_pose(i));local_bind.append(skeleton.get_bone_pose(i));parents.append(skeleton.get_bone_parent(i))
+ var anatomy:=Rig.new()
+ if not anatomy.configure(skeleton,RIG_PROFILE):push_error(str(anatomy.errors));return
+ bind.assign(anatomy.globals);local_bind.assign(anatomy.locals);parents.assign(anatomy.parents)
  posed.assign(bind)
  pose_writer.configure(parents);motion_sides.resize(bind.size());motion_sides.fill(-1)
  for side in 2:
-  var suffix:="_L" if side==0 else "_R"
-  var hip:=bone("pierna2"+suffix);var knee:=bone("pierna3"+suffix);var hock:=bone("pierna4"+suffix);var foot:=bone("pierna5"+suffix)
-  leg_chains.append({"hip":hip,"knee":knee,"hock":hock,"foot":foot,"arm":bone("brazo2"+suffix),"upper":bind[hip].origin.distance_to(bind[knee].origin),"lower":bind[knee].origin.distance_to(bind[hock].origin),"offset":bind[foot].origin-bind[hock].origin})
+  var chain:Dictionary=anatomy.chains[&"hind_l" if side==0 else &"hind_r"]
+  var hip:int=chain.ids[0];var knee:int=chain.ids[1];var hock:int=chain.ids[2];var foot:int=chain.ids[3]
+  leg_chains.append({"hip":hip,"knee":knee,"hock":hock,"foot":foot,"arm":anatomy.bone(&"fore_root_l" if side==0 else &"fore_root_r"),"upper":chain.a,"lower":chain.b,"offset":chain.offset})
   for index in [hip,knee,hock,foot,leg_chains[side].arm]:motion_sides[index]=side
   for pair in [Vector2i(hip,knee),Vector2i(knee,hock),Vector2i(hock,foot)]:aim_axes[pair.y]=(bind[pair.y].origin-bind[pair.x].origin).normalized()
- lumbar_bone=bone("Hueso.001");head_bone=bone("Hueso.004");tail_base=bone("pierna1_R.002");tail_tip=bone("pierna1_R.004")
+ lumbar_bone=anatomy.bone(&"spine");head_bone=anatomy.bone(&"head");tail_base=anatomy.bone(&"tail_base");tail_tip=anatomy.bone(&"tail_tip")
 
 func bone(label:String) -> int:return skeleton.find_bone(label)
 func inherit(i:int) -> void:
@@ -70,24 +73,24 @@ func animate(phase:float,amount:float=1.0) -> void:
    var chain:Dictionary=leg_chains[side]
    var hip:int=chain.hip;var knee:int=chain.knee;var hock:int=chain.hock;var foot:int=chain.foot
    if i==hip:
-    var step:=Body.stance_swing(phase+side*.5,STRIDE*amount,.045*amount,SUPPORT,amount)
+    var step:=Body.stance_swing(phase+RIG_PROFILE.phase_offset(&"hind_l" if side==0 else &"hind_r"),STRIDE*amount,.045*amount,SUPPORT,amount)
     var ankle:=bind[foot].origin+Vector3(0,step.lift,step.z)
     # Keep the digitigrade lower segment and sole level during ground support.
     # The shared solver uses authoring units; scale metres to centimetres so its
     # fixed numerical margin is 0.4 mm instead of four centimetres.
     var target_hock:Vector3=ankle-chain.offset
-    var solved:=Body.joint(posed[hip].origin*100,target_hock*100,chain.upper*100,chain.lower*100,Vector3(0,0,1))
-    var joint:Vector3=solved.joint/100;var end:Vector3=solved.end/100
+    var solved:=Rig.solve_metres(posed[hip].origin,target_hock,chain.upper,chain.lower,Vector3(0,0,1))
+    var joint:Vector3=solved.joint;var end:Vector3=solved.end
     aim(hip,knee,posed[hip].origin,joint)
     # Children are solved when visited; temporary targets survive inheritance.
-    contacts.append({"side":side,"stance":fposmod(phase+side*.5,1)<SUPPORT,"target":ankle,"knee":joint,"hock":end,"foot":foot})
+    contacts.append({"side":side,"stance":fposmod(phase+RIG_PROFILE.phase_offset(&"hind_l" if side==0 else &"hind_r"),1)<SUPPORT,"target":ankle,"knee":joint,"hock":end,"foot":foot})
    if i==knee:
     var c:Dictionary=contacts[side];aim(knee,hock,c.knee,c.hock)
    if i==hock:
     var c:Dictionary=contacts[side];aim(hock,foot,c.hock,c.target)
    if i==foot:posed[i]=Transform3D(bind[i].basis,contacts[side].target)
    # Small arms counterbalance the alternating hind legs, preserving the fingers.
-   if i==chain.arm:turn_about(i,Vector3.RIGHT,.13*sin((phase+side*.5)*TAU)*amount)
+   if i==chain.arm:turn_about(i,Vector3.RIGHT,.13*sin((phase+RIG_PROFILE.phase_offset(&"hind_l" if side==0 else &"hind_r"))*TAU)*amount)
   if i==lumbar_bone:turn_about(i,Vector3.UP,.025*sin(phase*TAU)*amount)
   if i==head_bone:turn_about(i,Vector3.UP,-.02*sin(phase*TAU)*amount)
   if i==tail_base:turn_about(i,Vector3.UP,.045*sin(phase*TAU-.45)*amount)
@@ -114,20 +117,20 @@ func animate_run(phase:float,amount:float=1.0) -> void:
    var chain:Dictionary=leg_chains[side]
    var hip:int=chain.hip;var knee:int=chain.knee;var hock:int=chain.hock;var foot:int=chain.foot
    if i==hip:
-    var step:=Body.stance_swing(phase+side*.5,RUN_STRIDE*amount,.13*amount,RUN_SUPPORT,amount)
+    var step:=Body.stance_swing(phase+RIG_PROFILE.phase_offset(&"hind_l" if side==0 else &"hind_r"),RUN_STRIDE*amount,.13*amount,RUN_SUPPORT,amount)
     var ankle:=bind[foot].origin+Vector3(0,step.lift,step.z)
     var target_hock:Vector3=ankle-chain.offset
-    var solved:=Body.joint(posed[hip].origin*100,target_hock*100,chain.upper*100,chain.lower*100,Vector3(0,0,1))
-    var joint:Vector3=solved.joint/100;var end:Vector3=solved.end/100
+    var solved:=Rig.solve_metres(posed[hip].origin,target_hock,chain.upper,chain.lower,Vector3(0,0,1))
+    var joint:Vector3=solved.joint;var end:Vector3=solved.end
     aim(hip,knee,posed[hip].origin,joint)
-    contacts.append({"side":side,"stance":fposmod(phase+side*.5,1)<RUN_SUPPORT,"target":ankle,"knee":joint,"hock":end,"foot":foot})
+    contacts.append({"side":side,"stance":fposmod(phase+RIG_PROFILE.phase_offset(&"hind_l" if side==0 else &"hind_r"),1)<RUN_SUPPORT,"target":ankle,"knee":joint,"hock":end,"foot":foot})
    if i==knee:
     var c:Dictionary=contacts[side];aim(knee,hock,c.knee,c.hock)
    if i==hock:
     var c:Dictionary=contacts[side];aim(hock,foot,c.hock,c.target)
    if i==foot:posed[i]=Transform3D(bind[i].basis,contacts[side].target)
    # Shoulder swing stays local to the tilted chest, preserving elbows/digits.
-   if i==chain.arm:turn_about(i,Vector3.RIGHT,.32*sin((phase+side*.5)*TAU)*amount)
+   if i==chain.arm:turn_about(i,Vector3.RIGHT,.32*sin((phase+RIG_PROFILE.phase_offset(&"hind_l" if side==0 else &"hind_r"))*TAU)*amount)
   if i==tail_base:turn_about(i,Vector3.RIGHT,-.12*amount)
   if i==tail_tip:turn_about(i,Vector3.UP,.065*sin(phase*TAU-.6)*amount)
  if amount==0:posed.assign(bind)

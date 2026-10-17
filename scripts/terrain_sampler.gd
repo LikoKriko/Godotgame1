@@ -54,7 +54,8 @@ func type_at(point: Vector2) -> StringName:
  return TYPES[best]
 func vegetation_density(point: Vector2) -> float:
  var weights := weights_at(point)
- return clampf((weights.x*0.30+weights.z*0.85+weights.y*0.12)*(0.5+noise_at(point/95.0)),0,1)
+ var biome=profile.biome
+ return clampf((weights.x*biome.density_normal+weights.z*biome.density_vegetation+weights.y*biome.density_dark)*(0.5+noise_at(point/biome.density_noise_scale)),0,1)
 func add_influence(id: StringName,type: StringName,rect: Rect2,strength: float = 1) -> bool:
  if not TYPES.has(type) or not rect.has_area() or strength <= 0: return false
  for i in range(influences.size()-1,-1,-1):
@@ -70,3 +71,10 @@ func path_mask(point: Vector2) -> float:
  var vertical := 24*sin(point.y/245)-10*sin(point.y/110)
  var distance := minf(absf(point.y-horizontal),absf(point.x-vertical))
  return 1-smoothstep(44.0,72.0,distance+(noise_at(point/38)-0.5)*12)
+
+func copy_for_worker():
+ var result=get_script().new()
+ result.seed_value=seed_value;result.profile=profile.duplicate_deep(Resource.DEEP_DUPLICATE_ALL)
+ result.thresholds=thresholds;result.existing_paths=existing_paths
+ result.influences=influences.duplicate(true)
+ return result

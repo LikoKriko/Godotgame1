@@ -5,6 +5,7 @@ signal world_ready
 signal load_failed(message:String)
 signal loading_changed(value:float)
 const Save=preload("res://scripts/prototype_3d/save_game.gd")
+@export var terrain_configuration:Resource
 var world_seed:=73129
 var initial_state:Dictionary={}
 var save_path:=Save.PATH
@@ -91,7 +92,8 @@ func build_environment() -> void:
     var boundary:=StaticBody3D.new();add_child(boundary);var limit:=CollisionShape3D.new();var wall_shape:=BoxShape3D.new();wall_shape.size=Vector3(0.3,20,world_bounds.size.y) if axis==0 else Vector3(world_bounds.size.x,20,0.3);limit.shape=wall_shape;limit.position=Vector3(sign_side*world_bounds.size.x*0.5,10,0) if axis==0 else Vector3(0,10,sign_side*world_bounds.size.y*0.5);boundary.add_child(limit);boundary.set_meta("physical_height",20.0)
  terrain=preload("res://scripts/prototype_3d/terrain_chunks.gd").new();add_child(terrain)
  var units:float=preload("res://scripts/prototype_3d/terrain_chunks.gd").METRES_PER_UNIT
- var profile=preload("res://scripts/terrain_profile.gd").new()
+ const Profile=preload("res://scripts/terrain_profile.gd")
+ var profile=terrain_configuration.duplicate_deep(Resource.DEEP_DUPLICATE_ALL) if terrain_configuration is Profile and terrain_configuration.valid() else Profile.new()
  if not use_test_layout:profile.chunk_size=1024;profile.chunks_per_frame=8;profile.preload_chunks=0;profile.retain_chunks=1;profile.cache_limit=16
  terrain.relief_enabled=not use_test_layout
  terrain.progressive_window=not use_test_layout

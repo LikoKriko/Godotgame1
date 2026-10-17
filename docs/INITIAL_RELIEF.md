@@ -12,7 +12,9 @@ con pendiente base de 5°, que alcanza unos 1,75 m. Una montaña de unos 8 m,
 con base de 46 m de diámetro, está centrada en X 23, Z −66 m. Sus formas se
 unen gradualmente con el suelo exterior; la aparición permanece plana.
 
-`initial_relief.gd` define la altura en metros y el trazado del camino. El suelo
+`data/world/recipes/initial_relief.tres` define el trazado y las primitivas
+reutilizables del relieve; `initial_relief.gd` mantiene la entrada compatible.
+Ver [WORLD_AUTHORING.md](WORLD_AUTHORING.md). El suelo
 visible usa una retícula de 0,5 m únicamente en los chunks que intersectan la
 prueba. La colisión usa los mismos vértices y triángulos, sin el antiguo plano
 físico por debajo de los baches. Se conserva esta pequeña colisión local al

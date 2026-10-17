@@ -132,3 +132,12 @@ originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
   5163 triángulos y altura única de 1 m, sin variantes de escala.
   Los afloramientos se minan con pico. Conservar IDs, posiciones, resistencia
   y rendimientos para cargar partidas existentes.
+
+## Bases reutilizables
+
+Consultar `docs/REUSABLE_SYSTEMS.md`. Definir nuevos terrenos mediante recetas
+y perfiles de `data/world/`; reutilizar los generadores y comprobar las reservas
+completas de historia. Mantener separados los perfiles de animación de Personajes
+y Enemigos en `data/animation/characters/` y `data/animation/enemies/`, usando
+las herramientas de `scripts/animation/shared/`. Conservar las fuentes originales
+y revisar las adaptaciones de clips antes de incorporarlas al runtime.

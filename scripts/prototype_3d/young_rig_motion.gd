@@ -1,5 +1,7 @@
 extends RefCounted
 ## Native SmartRig authoring. Coordinates are source metres, not the old rig.
+const Rig=preload("res://scripts/animation/shared/rig_binding.gd")
+const RIG_PROFILE=preload("res://data/animation/enemies/enemy1.tres")
 const Frames=preload("res://scripts/prototype_3d/human_kinematics.gd")
 const Joint=preload("res://scripts/continuous_body_pose.gd")
 const STATES:Array[StringName]=[&"idle",&"walk",&"run",&"rise",&"attack",&"boxing_guard",&"boxing_walk",&"boxing_rise",&"boxing_lower",&"hook",&"lower",&"sit_down",&"sit",&"sit_up",&"feed",&"sleep_down",&"sleep",&"wake_up",&"stun_fall",&"stun_hold",&"stun_rise",&"death",&"corpse"]
@@ -26,19 +28,14 @@ static func seconds(state:StringName) -> float:
 static func clip_name(state:StringName,left:bool=true) -> StringName:
  return StringName(String(state)+("_left" if left else "_right")) if state in [&"attack",&"hook"] else state
 func configure(rig:Skeleton3D) -> void:
- for i in rig.get_bone_count():
-  names[rig.get_bone_name(i)]=i;parents.append(rig.get_bone_parent(i));rest.append(rig.get_bone_global_pose(i));local_rest.append(rig.get_bone_pose(i))
+ rest.clear();local_rest.clear();parents.clear();names.clear();limbs.clear();anchors.clear()
+ var anatomy:=Rig.new()
+ if not anatomy.configure(rig,RIG_PROFILE):push_error(str(anatomy.errors));return
+ names=anatomy.names;parents.assign(anatomy.parents);rest.assign(anatomy.globals);local_rest.assign(anatomy.locals)
  posed.assign(rest)
- for side in 2:
-  var labels:Array=["Bone_010","Bone_009","Bone_008","Bone_007"] if side==0 else ["Bone_014","Bone_013","Bone_012","Bone_011"]
-  var ids:Array[int]=[]
-  for name in labels:ids.append(names[name])
-  limbs.append({"ids":ids,"a":rest[ids[0]].origin.distance_to(rest[ids[1]].origin),"b":rest[ids[1]].origin.distance_to(rest[ids[2]].origin)})
- for side in 2:
-  var labels:Array=["Bone_019","Bone_018","Bone_017"] if side==0 else ["Bone_023","Bone_022","Bone_021"]
-  var ids:Array[int]=[]
-  for name in labels:ids.append(names[name])
-  limbs.append({"ids":ids,"a":rest[ids[0]].origin.distance_to(rest[ids[1]].origin),"b":rest[ids[1]].origin.distance_to(rest[ids[2]].origin)})
+ for label in [&"hind_l",&"hind_r",&"fore_l",&"fore_r"]:
+  var chain:Dictionary=anatomy.chains[label]
+  limbs.append({"ids":chain.ids,"a":chain.a,"b":chain.b})
  prepare_anchors(rig)
 func prepare_anchors(rig:Skeleton3D) -> void:
  var node:MeshInstance3D=rig.find_children("*","MeshInstance3D",true,false)[0]
@@ -79,8 +76,7 @@ func solve_limb(k:int,target:Vector3,value:Dictionary,body:Transform3D) -> void:
  var terminal:=Basis(Vector3.RIGHT,value.foot_pitch[side])*(rest[ids[3]].origin-rest[ids[2]].origin) if k<2 else Vector3.ZERO
  var pole:Vector3=body.basis*((rest[ids[1]].origin-rest[ids[0]].origin) if k<2 else value.poles[side])
  pole=stable_pole(k,target-terminal,pole)
- var solved:=Joint.joint(posed[ids[0]].origin*100,(target-terminal)*100,limb.a*100,limb.b*100,pole)
- solved.root/=100;solved.joint/=100;solved.end/=100
+ var solved:=Rig.solve_metres(posed[ids[0]].origin,target-terminal,limb.a,limb.b,pole)
  aim(ids[0],ids[1],solved.root,solved.joint);aim(ids[1],ids[2],solved.joint,solved.end)
  posed[ids[2]]=Transform3D((Basis(Vector3.RIGHT,value.foot_pitch[side]) if k<2 else body.basis)*rest[ids[2]].basis,solved.end)
  if k<2:posed[ids[3]]=Transform3D(posed[ids[2]].basis*rest[ids[2]].basis.inverse()*rest[ids[3]].basis,solved.end+terminal)
@@ -175,12 +171,13 @@ func sample(state:StringName,phase:float,left:bool=true) -> Array[Transform3D]:
   value.down+=(1-cos(cycle*TAU*2))*(.008 if run else .004)
   value.yaw=sin(cycle*TAU)*.008;value.roll=sin(cycle*TAU)*.008
   for side in 2:
-   var step:=Joint.stance_swing(cycle+side*.5,stride,.12 if run else .065,support)
+   var offset:float=RIG_PROFILE.phase_offset(&"hind_l" if side==0 else &"hind_r",run)
+   var step:=Joint.stance_swing(cycle+offset,stride,.12 if run else .065,support)
    value.feet[side]+=Vector3(0,step.lift,step.z)
    value.foot_pitch[side]=step.pitch*.45 if not step.lift==0 else 0.0
-   supports.append({"limb":side,"stance":fposmod(cycle+side*.5,1)<support})
+   supports.append({"limb":side,"stance":fposmod(cycle+offset,1)<support})
    if not upright:
-    var front_phase:float=cycle+side*.5+(0.0 if run else .25)
+    var front_phase:float=cycle+offset+(RIG_PROFILE.phase_offset(&"fore_l" if side==0 else &"fore_r",run)-offset)
     var front:=Joint.stance_swing(front_phase,stride,.11 if run else .07,support)
     value.hands[side]+=Vector3(0,front.lift,front.z)
     supports.append({"limb":side+2,"stance":fposmod(front_phase,1)<support})
@@ -249,8 +246,8 @@ func sample(state:StringName,phase:float,left:bool=true) -> Array[Transform3D]:
     elif k>=2 and state in [&"boxing_guard",&"boxing_walk",&"hook"]:amount=1.0
     elif k>=2 and state in [&"boxing_rise",&"boxing_lower"]:amount=smoothstep(0,1,t if state==&"boxing_rise" else 1-t)
     pole=stable_pole(k,end,pole,amount)
-    solved[k]=Joint.joint(posed[i].origin*100,end*100,limb.a*100,limb.b*100,pole)
-    solved[k].root/=100;solved[k].joint/=100;solved[k].end/=100;solved[k].terminal=terminal
+    solved[k]=Rig.solve_metres(posed[i].origin,end,limb.a,limb.b,pole)
+    solved[k].terminal=terminal
     aim(i,ids[1],solved[k].root,solved[k].joint)
    elif i==ids[1]:aim(i,ids[2],solved[k].joint,solved[k].end)
    elif i==ids[2]:
@@ -261,9 +258,10 @@ func sample(state:StringName,phase:float,left:bool=true) -> Array[Transform3D]:
   var support:=.60 if state==&"boxing_walk" else (.55 if state==&"run" else .64)
   var stride:float=(RUN_SPEED if state!=&"walk" else WALK_SPEED)/GAME_SCALE*seconds(state)*support*.5
   for side in 2:
-   var step:=Joint.stance_swing(cycle+side*.5,stride,0,support)
+   var offset:float=RIG_PROFILE.phase_offset(&"hind_l" if side==0 else &"hind_r",state==&"run")
+   var step:=Joint.stance_swing(cycle+offset,stride,0,support)
    plant_surface(side,-.18+step.z,value,body)
    if state!=&"boxing_walk":
-    var front:=Joint.stance_swing(cycle+side*.5+(0.0 if state==&"run" else .25),stride,0,support)
+    var front:=Joint.stance_swing(cycle+offset+(RIG_PROFILE.phase_offset(&"fore_l" if side==0 else &"fore_r",state==&"run")-offset),stride,0,support)
     plant_surface(side+2,(.50 if state==&"run" else .55)+front.z,value,body)
  return posed

@@ -1,0 +1,44 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/animation/enemies/enemy_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rig_id = &"enemy1"
+locomotion_family = &"quadruped"
+reference_height = 1.7000001668930054
+bones = {
+"spine_lower": "Bone_003",
+"jaw": "Bone_015",
+"shoulder_l": "Bone_020",
+"shoulder_r": "Bone_024",
+"tail_root": "Bone_006",
+"tail_middle": "Bone_005",
+"tail_tip": "Bone_004",
+"root": "Bone_000",
+"pelvis": "Bone_001",
+"spine": "Bone_002",
+"head": "Bone_016",
+"hind_root_l": "Bone_010",
+"hind_mid_l": "Bone_009",
+"hind_end_l": "Bone_008",
+"hind_tip_l": "Bone_007",
+"hind_root_r": "Bone_014",
+"hind_mid_r": "Bone_013",
+"hind_end_r": "Bone_012",
+"hind_tip_r": "Bone_011",
+"fore_root_l": "Bone_019",
+"fore_mid_l": "Bone_018",
+"fore_end_l": "Bone_017",
+"fore_root_r": "Bone_023",
+"fore_mid_r": "Bone_022",
+"fore_end_r": "Bone_021"
+}
+chains = {
+"hind_l": PackedStringArray("hind_root_l", "hind_mid_l", "hind_end_l", "hind_tip_l"),
+"hind_r": PackedStringArray("hind_root_r", "hind_mid_r", "hind_end_r", "hind_tip_r"),
+"fore_l": PackedStringArray("fore_root_l", "fore_mid_l", "fore_end_l"),
+"fore_r": PackedStringArray("fore_root_r", "fore_mid_r", "fore_end_r")
+}
+phase_offsets = {"hind_l": 0.0, "hind_r": 0.5, "fore_l": 0.25, "fore_r": 0.75}
+run_phase_offsets = {"hind_l": 0.0, "hind_r": 0.5, "fore_l": 0.0, "fore_r": 0.5}
