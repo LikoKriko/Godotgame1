@@ -5,6 +5,17 @@ El runtime 2D ha sido retirado; conservar los sprites y sistemas compartidos
 que se detallan en `docs/SHARED_RESOURCES.md`. Actualizar las ramas de departamento
 antes de trabajar para evitar restaurar archivos obsoletos.
 
+## Autorización de publicación de animación
+
+El usuario autoriza al departamento de animación a crear commits y hacer push
+a `main` de sus futuras entregas dentro del alcance solicitado, sin pedir otra
+confirmación de publicación. Actualizar primero la rama remota, conservar el
+trabajo de los demás departamentos, resolver los conflictos de integración y
+realizar las comprobaciones pertinentes antes de publicar. Actualizar también
+la documentación de parámetros cuando corresponda, sin añadir informes ni
+registros de cambios. Esta autorización del usuario no sustituye las
+credenciales ni los permisos técnicos exigidos por GitHub o por el entorno.
+
 ## Acabado permanente de todas las texturas
 
 Todas las texturas nuevas o adaptadas deben tener acabado pixel art de muy alta
