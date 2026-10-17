@@ -11,6 +11,7 @@ const SPAWN_BUDGET_USEC:=1500
 const UNIT:=1.75/64.0
 const Layout=preload("res://scripts/prototype_3d/stream_layout.gd")
 var game
+var story_zones:Node3D
 var stream_layout=Layout.new()
 var layout
 var resource_nodes:Dictionary={}
@@ -31,6 +32,7 @@ func configure(owner_game,seed_value:int) -> void:
  game.terrain.sampler.existing_paths=true
  for influence in layout.source.terrain_influences:game.terrain.sampler.add_influence(influence.id,&"dirt",influence.rect,0.65)
  game.terrain.refresh_influences()
+ story_zones=preload("res://scripts/prototype_3d/story_zone_stream.gd").new();add_child(story_zones);story_zones.configure(stream_layout.reservations)
  grass_material=Cover.create_material();chunk_builder.configure(stream_layout)
  radius=int(game.settings.values.world_generation)
  update_observer(game.player.global_position,true)
@@ -42,6 +44,7 @@ func update_observer(point:Vector3,force:bool=false) -> void:
  # even just before the player crosses the next cell boundary.
  var center:Vector2=Layout.rect(cell).get_center()
  var area:=Rect2(center-Vector2.ONE*(radius+Layout.CHUNK_SIZE*.5),Vector2.ONE*(radius*2+Layout.CHUNK_SIZE))
+ story_zones.update_window(area)
  var first:=Layout.coordinate(area.position);var last:=Layout.coordinate(area.end-Vector2.ONE*.001)
  for y in range(first.y,last.y+1):
   for x in range(first.x,last.x+1):
@@ -71,6 +74,7 @@ func _process(_delta:float) -> void:
  var deadline:=Time.get_ticks_usec()+SPAWN_BUDGET_USEC
  while Time.get_ticks_usec()<deadline:
   if not retiring.is_empty():unload_chunk(retiring.pop_front());continue
+  if story_zones.busy():story_zones.advance();continue
   if job.is_empty():
    if pending.is_empty():break
    if not prepared_chunks.has(pending[0]):break
@@ -81,7 +85,7 @@ func _process(_delta:float) -> void:
   else:finish_chunk();job.clear();built+=1
  if initial_loading:
   progress_changed.emit(.1+.85*float(built)/maxi(1,total))
-  if pending.is_empty() and job.is_empty() and game.terrain.pending.is_empty():
+  if pending.is_empty() and job.is_empty() and game.terrain.pending.is_empty() and not story_zones.busy():
    initial_loading=false;progress_changed.emit(1);completed.emit()
 func prefetch_chunk() -> void:
  if chunk_builder.worker==null and not pending.is_empty() and not prepared_chunks.has(pending[0]):chunk_builder.request(pending[0])
@@ -109,14 +113,18 @@ func finish_chunk() -> void:
  if not grass.is_empty():
   var cover:=preload("res://scripts/prototype_3d/ground_cover.gd").new();holder.add_child(cover);cover.configure(grass,grass_material,job.grass_mesh)
  for record in layout.source.camp_buildings:
-  if in_chunk(record.base*UNIT,job.key):
+  if in_chunk(record.base*UNIT,job.key) and allows_building(record):
    var building:=preload("res://scripts/prototype_3d/camp_building.gd").new();holder.add_child(building);building.configure(game,record)
  for record in layout.source.puddles:
-  if in_chunk(record.position*UNIT,job.key):
+  if in_chunk(record.position*UNIT,job.key) and stream_layout.reservations.allows(record.position*UNIT,record.width*UNIT*.5):
    var water:=preload("res://scripts/prototype_3d/water_source.gd").new();water.radius=record.width*UNIT*.5;holder.add_child(water);water.position=Vector3(record.position.x*UNIT,0,record.position.y*UNIT)
  for record in layout.source.platforms:
-  if in_chunk(record.rect.get_center()*UNIT,job.key):
+  if in_chunk(record.rect.get_center()*UNIT,job.key) and not stream_layout.reservations.intersects(Rect2(record.rect.position*UNIT,record.rect.size*UNIT).grow(.5)):
    var platform:=preload("res://scripts/prototype_3d/raised_ground.gd").new();holder.add_child(platform);platform.configure(record)
+func allows_building(record:Dictionary) -> bool:
+ var width:float=preload("res://scripts/camp_art.gd").DEFINITIONS[record.id].size.x*UNIT
+ var depth:=width*.68;var front:Vector2=record.base*UNIT
+ return not stream_layout.reservations.intersects(Rect2(front-Vector2(width*.5+.5,depth+.5),Vector2(width+1,depth+2.2)))
 func remember(node:Node3D) -> void:
  var id:String=node.get_meta("resource_id")
  if node.health!=node.get_meta("initial_health"):resource_changes[id]=node.health

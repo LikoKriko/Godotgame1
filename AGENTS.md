@@ -87,6 +87,14 @@ pata de muebles y apoyos de edificios en coordenadas del dibujo, y usar sus
 apoyos físicos 3D; la hitbox no define el origen visual. Conservar la sombra
 del personaje. Ver `docs/YOUNG_3D.md` y `docs/PROTOTYPE_3D.md` para el runtime vigente.
 
+## Zonas fijas de historia
+
+`data/world/story_zones.json` define las coordenadas, recintos y márgenes de
+las zonas de historia. Los generadores nuevos de recursos, poblados y caminos
+deben consultar `story_zone_catalog.gd` antes de colocar su huella completa;
+no basta con comprobar el centro. Conservar los IDs de zonas y elementos al
+sustituir las cajas por contenido definitivo. Ver `docs/FIXED_STORY_ZONES.md`.
+
 ## Documentación del proyecto
 
 Mantener solo información vigente: dimensiones, velocidades, comportamiento,

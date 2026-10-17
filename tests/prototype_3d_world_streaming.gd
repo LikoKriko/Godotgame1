@@ -30,6 +30,8 @@ func run():
  game.set_physics_process(false);game.player.set_physics_process(false);game.distance_optimization.set_process(false)
  for enemy in get_nodes_in_group("prototype_enemies"):enemy.set_physics_process(false)
  var content=game.environment_content;content.set_process(false)
+ var story_id:String=content.stream_layout.reservations.records[0].id
+ require(content.story_zones.active.has(story_id),"The initial local window contains its nearby authored zone")
  require(game.world_bounds==Layout.BOUNDS and game.world_bounds.get_area()>=40000000,"Playable world covers at least forty square kilometres")
  require(content.radius==200 and game.settings.values.world_generation==200,"Two hundred metres is the default generation radius")
  require(content.active.size()<400,"Initial generation remains local and bounded")
@@ -51,6 +53,7 @@ func run():
  print("Initial window: %d chunks, %d resources"%[content.active.size(),content.resource_nodes.size()])
  var central_count:int=content.active.size()
  await travel(game,Vector3(1800,.2,-1600))
+ require(content.story_zones.active.is_empty(),"Normal world streaming frees distant authored zones and their collisions")
  require(not content.resource_nodes.has(partial_id) and not content.active.has(Vector2i.ZERO),"Distant starting chunks and their nodes are actually unloaded")
  require(content.active.size()<=central_count+32,"Traversing kilometres does not retain every visited chunk")
  require(content.resource_changes[partial_id]==1 and content.resource_changes[depleted_id]==0,"Unloading preserves partial damage and depletion")
@@ -85,6 +88,7 @@ func run():
   require(content.radius==radius,"Generation radius updates live to "+str(radius))
  require(counts[100]<counts[200] and counts[200]<counts[400],"The setting changes the generated window rather than only changing a label")
  await travel(game,Vector3(0,.2,2))
+ require(content.story_zones.active.size()==1 and content.story_zones.active[story_id].complete,"Returning regenerates one complete authored zone without duplicating its root")
  require(content.resource_nodes[partial_id].health==1,"Partial damage survives unload and regeneration")
  require(content.resource_nodes[depleted_id].health==0 and not content.resource_nodes[depleted_id].visible,"Harvested resources do not respawn when revisiting")
  var original_changes:Dictionary=content.snapshot_resources()
@@ -98,6 +102,7 @@ func run():
  while resumed.loading_state and Time.get_ticks_msec()<deadline:await process_frame
  require(not resumed.loading_state and resumed.player.position==Save.point(saved.player.position),"Continue generates the saved remote surroundings before releasing the player")
  require(resumed.environment_content.resource_changes==saved.resources,"Remote reload preserves changes to unloaded starting chunks")
+ require(resumed.environment_content.story_zones.active.is_empty(),"Remote continuation does not load an unrelated distant story zone")
  require(not resumed.environment_content.active.has(Vector2i.ZERO),"Remote reload does not instantiate the starting settlement across the world")
  require(resumed.environment_content.generation_count<count_before,"Continue generates only the saved window, not every explored zone")
  resumed.free()

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "zones": [
+    {
+      "id": "story_demo_01",
+      "position": [192, 0, -128],
+      "size": [32, 24],
+      "buffer": 8,
+      "floor_color": "747b75",
+      "boxes": [
+        {"id": "main_building", "offset": [-7, 0, -1], "size": [10, 4, 8], "color": "919b9e"},
+        {"id": "annex", "offset": [8, 0, -5], "size": [5, 2.5, 5], "color": "848c87"},
+        {"id": "tower", "offset": [9, 0, 6], "size": [3, 6, 3], "color": "a2aaa8"},
+        {"id": "entrance_left", "offset": [-3, 0, 10], "size": [1, 2.5, 1], "color": "a5a18e"},
+        {"id": "entrance_right", "offset": [3, 0, 10], "size": [1, 2.5, 1], "color": "a5a18e"}
+      ]
+    }
+  ]
+}

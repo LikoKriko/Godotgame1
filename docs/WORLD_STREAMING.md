@@ -5,6 +5,10 @@ coordenadas X/Z entre −3200 y +3200. El suelo físico y las cuatro paredes del
 límite son unas pocas formas compartidas; no se instancian recursos ni
 superficies visibles para todo ese espacio al empezar.
 
+Los lugares fijos de historia y sus reservas se definen en
+[FIXED_STORY_ZONES.md](FIXED_STORY_ZONES.md). Su contenido se carga cerca del
+jugador y la generación respeta su espacio, independientemente de la semilla.
+
 ## Ajuste gráfico
 
 En **Configuración → Gráficos → Generación de mundo**:
