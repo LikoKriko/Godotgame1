@@ -37,8 +37,9 @@ func run():
  require(content.active.size()<400,"Initial generation remains local and bounded")
  for direction:Vector2 in [Vector2.UP,Vector2.DOWN,Vector2.LEFT,Vector2.RIGHT,Vector2(1,1).normalized()]:
   require(content.active.has(Layout.coordinate(Vector2(game.player.position.x,game.player.position.z)+direction*200)),"All directions are generated through the selected distance")
- for record in content.layout.records:
-  require(content.resource_nodes.has(record.id),"Original starting resources remain available")
+ for key in content.active:
+  for record in content.active[key].resources:
+   require(content.resource_nodes.has(record.id),"Every resource allowed by terrain and story reservations is available")
  var origin_chunk:Dictionary=content.stream_layout.chunk(Vector2i(24,-17))
  content.stream_layout.chunk(Vector2i(-90,81))
  require(var_to_str(origin_chunk)==var_to_str(content.stream_layout.chunk(Vector2i(24,-17))),"Exploration order does not change generated resources or grass")

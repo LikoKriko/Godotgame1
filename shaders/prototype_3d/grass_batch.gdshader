@@ -16,7 +16,7 @@ float distance_budget(float d) {
  return 1.0;
 }
 void vertex() {
- vec3 center=(MODEL_MATRIX*vec4(UV2.x,0.01,UV2.y,1.0)).xyz;
+ vec3 center=(MODEL_MATRIX*vec4(UV2.x,CUSTOM0.x+0.01,UV2.y,1.0)).xyz;
  float quality=1.0;bool old_rear=false;bool recovering=false;float elapsed=0.0;
  for(int i=0;i<8;i++) {
   if(i>=history_count)break;

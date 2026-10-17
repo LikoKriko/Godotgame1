@@ -9,6 +9,9 @@ var base=preload("res://scripts/prototype_3d/world_layout.gd").new()
 var base_records:Dictionary={}
 var base_chunks:Dictionary={}
 var base_grass:Dictionary={}
+const Relief=preload("res://scripts/prototype_3d/initial_relief.gd")
+var relief_enabled:=false
+var relief_supports:Dictionary={}
 var seed_value:=0
 var sampler
 var reservations=preload("res://scripts/prototype_3d/story_zone_catalog.gd").new()
@@ -26,6 +29,16 @@ func configure(seed_number:int,ground_sampler) -> void:
   var key:=coordinate(record.position*UNIT)
   if not base_grass.has(key):base_grass[key]=[]
   base_grass[key].append(record)
+ if relief_enabled:
+  sampler.existing_paths=true
+  for influence in base.source.terrain_influences:sampler.add_influence(influence.id,&"dirt",influence.rect,.65)
+  relief_supports={}
+  var support_records:Array=[]
+  var area:=Relief.AREA.grow(8.0)
+  var first:=coordinate(area.position);var last:=coordinate(area.end)
+  for z in range(first.y,last.y+1):
+   for x in range(first.x,last.x+1):support_records.append_array(chunk(Vector2i(x,z),false).resources)
+  relief_supports=Relief.prepare_supports(support_records)
 func chunk(key:Vector2i,include_grass:bool=true,include_reserved:bool=false) -> Dictionary:
  var resources:Array=[];var grass:Array=[]
  if not rect(key).intersects(BOUNDS):return {"resources":resources,"grass":grass}
@@ -54,7 +67,7 @@ func chunk(key:Vector2i,include_grass:bool=true,include_reserved:bool=false) -> 
   elif kind==4:record.hits=2;record.yield=3
   else:record.variant=1+variant%2;record.hits=1;record.yield=5 if record.variant==1 else 3
   if include_reserved or reservations.allows_resource(record):resources.append(record)
- if not include_grass:return {"resources":resources,"grass":grass}
+ if not include_grass:return apply_relief(resources,grass,include_reserved)
  for slot in 64:
   var point:=Vector2(key)*CHUNK_SIZE+Vector2(slot%8,slot/8)*4+Vector2(rng.randf_range(.5,3.5),rng.randf_range(.5,3.5))
   var variant:=posmod(key.x*31+key.y*17,5)*3+rng.randi_range(0,2);var width:=rng.randf_range(10,18)
@@ -62,7 +75,19 @@ func chunk(key:Vector2i,include_grass:bool=true,include_reserved:bool=false) -> 
   if Hash.hash_at(key.x*8+slot%8,key.y*8+slot/8,seed_value)>sampler.vegetation_density(point/UNIT):continue
   var tuft:Dictionary={"position":point/UNIT,"variant":variant,"width":width}
   if include_reserved or reservations.allows_grass(tuft):grass.append(tuft)
- return {"resources":resources,"grass":grass}
+ return apply_relief(resources,grass,include_reserved)
+func apply_relief(resources:Array,grass:Array,raw:bool) -> Dictionary:
+ if not relief_enabled or raw:return {"resources":resources,"grass":grass}
+ var placed:Array=[];var tufts:Array=[]
+ for record in resources:
+  var point:=Vector2(record.position.x,record.position.z)
+  if not Relief.clear_of_path(point,reservations.resource_radius(record)):continue
+  var copy:Dictionary=record.duplicate();copy.position.y=Relief.height(point,relief_supports);placed.append(copy)
+ for record in grass:
+  var point:Vector2=record.position*UNIT
+  if not Relief.clear_of_path(point,record.width*UNIT):continue
+  var copy:Dictionary=record.duplicate();copy.ground_y=Relief.height(point,relief_supports);tufts.append(copy)
+ return {"resources":placed,"grass":tufts}
 func record_for(id:String) -> Dictionary:return lookup_record(id,{})
 func lookup_record(id:String,chunks:Dictionary) -> Dictionary:
  if base_records.has(id):return base_records[id]

@@ -16,7 +16,8 @@ func run():
  require(game.world_bounds.get_area()>=40000000 and game.world_bounds.encloses(layout.bounds),"Large world contains the preserved starting layout")
  require(content.resource_nodes.size()>=layout.records.size(),"Starting resources are retained alongside the streamed extension")
  require(get_nodes_in_group("prototype_burdock").size()>=24,"All 24 original individual plants remain in the initial window")
- require(get_nodes_in_group("prototype_platforms").size()==4,"All four elevations migrate")
+ require(get_nodes_in_group("prototype_buildings").is_empty(),"Legacy spawn houses are removed")
+ require(get_nodes_in_group("prototype_platforms").is_empty(),"Old flat elevations do not overlap the new relief")
  var variants:Dictionary={}
  for platform in get_nodes_in_group("prototype_platforms"):
   require(absf(platform.height-1.75*0.15)<0.001,"Elevations remain 15 percent of character height")

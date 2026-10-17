@@ -48,8 +48,10 @@ para que otros generadores consulten la misma reserva. Todos los rectángulos y
 radios de esta API se expresan en metros; incluyen el margen del catálogo.
 
 Los árboles, rocas, plantas y césped se filtran por su huella completa, con una
-cota conservadora de la copa o del tamaño del elemento. Los edificios del
-campamento, charcos y plataformas también comprueban su huella antes de crearse.
+cota conservadora de la copa o del tamaño del elemento. Los charcos y
+plataformas también comprueban su huella antes de crearse. La huella completa
+del relieve inicial se valida contra las reservas; las casas antiguas no se
+instancian.
 El cálculo en segundo plano recibe el mismo catálogo que el hilo principal.
 Las exclusiones no consumen ni reordenan sorteos: fuera de las reservas se
 mantienen los IDs, posiciones, variantes y rendimientos de la misma semilla.

@@ -1,4 +1,5 @@
 shader_type spatial;
+#include "res://shaders/prototype_3d/initial_path.gdshaderinc"
 render_mode cull_back;
 uniform sampler2D normal_ground : filter_nearest, repeat_disable;
 uniform sampler2D dark_ground : filter_nearest, repeat_disable;
@@ -63,6 +64,7 @@ void fragment() {
  vec2 p=floor(world_position/pixel_step)*pixel_step;
  vec2 uv=((p-mask_origin)/mask_step+0.5)/mask_size;
  vec4 weights=textureLod(biome_mask,uv,0.0);
- ALBEDO=quilt(p,weights)*ambient_tint;
+ weights=mix(weights,vec4(0.0,0.0,0.0,1.0),initial_path(p));
+ ALBEDO=initial_soil(quilt(p,weights),initial_path(p))*ambient_tint;
  ROUGHNESS=1.0;
 }

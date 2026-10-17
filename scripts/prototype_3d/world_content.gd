@@ -28,7 +28,11 @@ var total:=0
 var built:=0
 var generation_count:=0
 func configure(owner_game,seed_value:int) -> void:
- game=owner_game;stream_layout.configure(seed_value,game.terrain.sampler);layout=stream_layout.base
+ game=owner_game
+ if game.initial_layout!=null:stream_layout=game.initial_layout
+ else:
+  stream_layout.relief_enabled=true;stream_layout.configure(seed_value,game.terrain.sampler)
+ layout=stream_layout.base
  game.terrain.sampler.existing_paths=true
  for influence in layout.source.terrain_influences:game.terrain.sampler.add_influence(influence.id,&"dirt",influence.rect,0.65)
  game.terrain.refresh_influences()
@@ -112,14 +116,11 @@ func finish_chunk() -> void:
  var grass:Array=job.grass
  if not grass.is_empty():
   var cover:=preload("res://scripts/prototype_3d/ground_cover.gd").new();holder.add_child(cover);cover.configure(grass,grass_material,job.grass_mesh)
- for record in layout.source.camp_buildings:
-  if in_chunk(record.base*UNIT,job.key) and allows_building(record):
-   var building:=preload("res://scripts/prototype_3d/camp_building.gd").new();holder.add_child(building);building.configure(game,record)
  for record in layout.source.puddles:
-  if in_chunk(record.position*UNIT,job.key) and stream_layout.reservations.allows(record.position*UNIT,record.width*UNIT*.5):
+  if not preload("res://scripts/prototype_3d/initial_relief.gd").AREA.grow(record.width*UNIT).has_point(record.position*UNIT) and in_chunk(record.position*UNIT,job.key) and stream_layout.reservations.allows(record.position*UNIT,record.width*UNIT*.5):
    var water:=preload("res://scripts/prototype_3d/water_source.gd").new();water.radius=record.width*UNIT*.5;holder.add_child(water);water.position=Vector3(record.position.x*UNIT,0,record.position.y*UNIT)
  for record in layout.source.platforms:
-  if in_chunk(record.rect.get_center()*UNIT,job.key) and not stream_layout.reservations.intersects(Rect2(record.rect.position*UNIT,record.rect.size*UNIT).grow(.5)):
+  if not preload("res://scripts/prototype_3d/initial_relief.gd").AREA.intersects(Rect2(record.rect.position*UNIT,record.rect.size*UNIT)) and in_chunk(record.rect.get_center()*UNIT,job.key) and not stream_layout.reservations.intersects(Rect2(record.rect.position*UNIT,record.rect.size*UNIT).grow(.5)):
    var platform:=preload("res://scripts/prototype_3d/raised_ground.gd").new();holder.add_child(platform);platform.configure(record)
 func allows_building(record:Dictionary) -> bool:
  var width:float=preload("res://scripts/camp_art.gd").DEFINITIONS[record.id].size.x*UNIT
@@ -168,6 +169,8 @@ func spawn_resource(record:Dictionary,parent:Node3D=null) -> void:
  node.set_meta("physical_height",record.get("height",0.0));resource_nodes[record.id]=node
  if resource_changes.has(record.id):apply_health(node,int(resource_changes[record.id]))
 func surface_height(point:Vector3) -> float:
- var height:=0.0
- for platform in get_tree().get_nodes_in_group("prototype_platforms"):height=maxf(height,platform.surface_at(point))
+ var height:=preload("res://scripts/prototype_3d/initial_relief.gd").height(Vector2(point.x,point.z),stream_layout.relief_supports)
+ for platform in get_tree().get_nodes_in_group("prototype_platforms"):
+  var top:float=platform.surface_at(point)
+  if top>0:height=maxf(height,top)
  return height

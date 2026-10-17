@@ -1,4 +1,5 @@
 shader_type spatial;
+#include "res://shaders/prototype_3d/initial_path.gdshaderinc"
 render_mode cull_back;
 uniform sampler2D normal_ground : filter_nearest, repeat_disable;
 uniform sampler2D dark_ground : filter_nearest, repeat_disable;
@@ -75,6 +76,7 @@ void fragment() {
   vec4 target = vec4(0.0); target[int(influence_types[i].x)] = 1.0;
   weights = mix(weights,target,amount);
  }
- ALBEDO = quilt(p,weights)*ambient_tint;
+ weights=mix(weights,vec4(0.0,0.0,0.0,1.0),initial_path(p));
+ ALBEDO = initial_soil(quilt(p,weights),initial_path(p))*ambient_tint;
  ROUGHNESS = 1.0;
 }

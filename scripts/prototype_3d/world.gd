@@ -47,6 +47,7 @@ var combat_effects:Node3D
 var use_test_layout:=false
 var world_bounds:=Rect2(-24,-24,48,48)
 var environment_content:Node3D
+var initial_layout
 var loading_state:=false
 var loading_screen:Control
 var loading_progress:ProgressBar
@@ -82,7 +83,8 @@ func build_environment() -> void:
  environment.environment = environment_settings;world_ambient=environment_settings; add_child(environment)
  var sun := DirectionalLight3D.new(); sun.rotation_degrees = Vector3(-52,-35,0); sun.light_color = Color("fff1d6"); sun.light_energy = 1.2; sun.shadow_enabled = true; add_child(sun);main_sun=sun
  var ground := StaticBody3D.new(); add_child(ground)
- var shape := CollisionShape3D.new(); var box := BoxShape3D.new(); box.size = Vector3(world_bounds.size.x,0.4,world_bounds.size.y); shape.shape = box; shape.position.y = -0.2; ground.add_child(shape)
+ if use_test_layout:
+  var shape := CollisionShape3D.new(); var box := BoxShape3D.new(); box.size = Vector3(world_bounds.size.x,0.4,world_bounds.size.y); shape.shape = box; shape.position.y = -0.2; ground.add_child(shape)
  if not use_test_layout:
   for axis in 2:
    for sign_side in [-1,1]:
@@ -91,8 +93,13 @@ func build_environment() -> void:
  var units:float=preload("res://scripts/prototype_3d/terrain_chunks.gd").METRES_PER_UNIT
  var profile=preload("res://scripts/terrain_profile.gd").new()
  if not use_test_layout:profile.chunk_size=1024;profile.chunks_per_frame=8;profile.preload_chunks=0;profile.retain_chunks=1;profile.cache_limit=16
+ terrain.relief_enabled=not use_test_layout
  terrain.progressive_window=not use_test_layout
  terrain.configure(world_seed,profile,Rect2(world_bounds.position/units,world_bounds.size/units))
+ if not use_test_layout:
+  initial_layout=preload("res://scripts/prototype_3d/stream_layout.gd").new();initial_layout.relief_enabled=true;initial_layout.configure(world_seed,terrain.sampler)
+  terrain.relief_supports=initial_layout.relief_supports
+  preload("res://scripts/prototype_3d/initial_relief.gd").install_collision(ground,world_bounds,terrain.relief_supports)
  terrain.update_observer(Vector3.ZERO)
  if use_test_layout:
   var fixture=load("res://tests/fixtures/prototype_layout.gd").new();add_child(fixture);fixture.populate(self)
@@ -432,6 +439,7 @@ func finish_world_loading() -> void:
   if not Save.restore(self,initial_state):
    load_failed.emit("No se pudo restaurar esta partida: sus datos no coinciden con el mundo.");return
  else:refresh_daylight()
+ ensure_terrain_clearance()
  set_loading_progress(0.9)
  # If saved indoors, the actual interior must be ready before releasing physics.
  var required:Array=[]
@@ -456,6 +464,14 @@ func finish_world_loading() -> void:
  await get_tree().process_frame
  camera_rig.update(1)
  initial_state.clear();loading_state=false;show();loading_screen.hide();resume_world();world_ready.emit()
+func ensure_terrain_clearance() -> void:
+ # Existing flat-world saves must not resume below the new ground.
+ var floor_y:=surface_height(player.position)
+ if player.position.y<floor_y:player.position.y=floor_y+.05
+ for actor in get_tree().get_nodes_in_group("prototype_enemies")+get_tree().get_nodes_in_group("prototype_sprouts")+get_tree().get_nodes_in_group("prototype_drops")+workbenches.tables:
+  if not is_ancestor_of(actor):continue
+  var ground_y:=surface_height(actor.position)
+  if actor.position.y<ground_y:actor.position.y=ground_y+.05
 func save_current_game() -> Error:
  var message:Label=pause_panel.find_child("SaveMessage",true,false)
  var reason:=Save.save_block_reason(self)

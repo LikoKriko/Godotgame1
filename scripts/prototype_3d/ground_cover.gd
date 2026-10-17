@@ -15,7 +15,7 @@ func configure(records:Array,paint:Material=null,prepared:Dictionary={}) -> void
   for variant in 15:shapes.append(mesh_for(variant).surface_get_arrays(0))
   data=build_arrays(records,Vector2.ZERO,shapes)
  if data.arrays[Mesh.ARRAY_VERTEX].is_empty():return
- var geometry:=ArrayMesh.new();geometry.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,data.arrays)
+ var geometry:=ArrayMesh.new();geometry.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,data.arrays,[],{},Mesh.ARRAY_CUSTOM_R_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT)
  var node:=MeshInstance3D.new();node.mesh=geometry;node.position=data.origin
  node.set_meta("quality_bucket",true);node.material_override=paint
  node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;add_child(node)
@@ -25,22 +25,23 @@ static func create_material() -> ShaderMaterial:
  paint.set_shader_parameter("tint",Color("647646"));return paint
 static func build_arrays(records:Array,origin:Vector2,shapes:Array) -> Dictionary:
  var vertices:=PackedVector3Array();var normals:=PackedVector3Array()
- var uvs:=PackedVector2Array();var centers:=PackedVector2Array();var colors:=PackedColorArray()
+ var uvs:=PackedVector2Array();var centers:=PackedVector2Array();var colors:=PackedColorArray();var elevations:=PackedFloat32Array()
  var counts:Dictionary={}
  for record in records:
   var variant:int=posmod(int(record.variant),15);var i:int=counts.get(variant,0);counts[variant]=i+1
   var p:Vector2=record.position*UNIT-origin;var size:float=record.width*UNIT/0.4
   var rotation:=Basis(Vector3.UP,float(i%13)*0.57)
-  var transform:=Transform3D(rotation.scaled(Vector3.ONE*size),Vector3(p.x,.01,p.y))
+  var transform:=Transform3D(rotation.scaled(Vector3.ONE*size),Vector3(p.x,record.get("ground_y",0.0)+.01,p.y))
   var color:=Color(0.88+0.01*(i%9),0.92+0.008*(i%9),0.86+0.01*(i%9))
   var source:Array=shapes[variant]
   for v in source[Mesh.ARRAY_VERTEX].size():
    vertices.append(transform*source[Mesh.ARRAY_VERTEX][v])
    normals.append(rotation*source[Mesh.ARRAY_NORMAL][v]);uvs.append(source[Mesh.ARRAY_TEX_UV][v])
    centers.append(p);colors.append(color)
+   elevations.append(record.get("ground_y",0.0))
  var arrays:Array=[];arrays.resize(Mesh.ARRAY_MAX)
  arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_NORMAL]=normals
- arrays[Mesh.ARRAY_TEX_UV]=uvs;arrays[Mesh.ARRAY_TEX_UV2]=centers;arrays[Mesh.ARRAY_COLOR]=colors
+ arrays[Mesh.ARRAY_TEX_UV]=uvs;arrays[Mesh.ARRAY_TEX_UV2]=centers;arrays[Mesh.ARRAY_COLOR]=colors;arrays[Mesh.ARRAY_CUSTOM0]=elevations
  return {"arrays":arrays,"origin":Vector3(origin.x,0,origin.y)}
 static func mesh_for(variant:int) -> ArrayMesh:
  if meshes.has(variant):return meshes[variant]

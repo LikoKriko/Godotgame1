@@ -1,8 +1,9 @@
 # Mundo procedural de 40,96 km²
 
 El prototipo 3D usa un mundo de **6400 × 6400 metros** (40,96 km²), con
-coordenadas X/Z entre −3200 y +3200. El suelo físico y las cuatro paredes del
-límite son unas pocas formas compartidas; no se instancian recursos ni
+coordenadas X/Z entre −3200 y +3200. El suelo físico plano se divide alrededor de una malla de colisión local para
+el [relieve inicial](INITIAL_RELIEF.md); las cuatro paredes delimitan el mundo.
+Fuera de esa prueba el suelo sigue plano; no se instancian recursos ni
 superficies visibles para todo ese espacio al empezar.
 
 Los lugares fijos de historia y sus reservas se definen en
@@ -32,8 +33,10 @@ por eso puede permanecer algo más de terreno que la distancia nominal.
 ## Generación y descarga
 
 - `stream_layout.gd`: semilla independiente por coordenada de chunk. La zona
-  inicial conserva las posiciones, especies, edificios, charcos y elevaciones
-  del generador existente. Fuera de ella se extienden sus árboles, rocas,
+  inicial conserva los IDs y especies del generador existente. Los árboles,
+  rocas y plantas apoyan en el relieve; sus huellas y las del césped dejan libre
+  el camino de prueba. No aparecen las casas antiguas ni charcos o plataformas
+  planas sobre la prueba. Fuera de ella se extienden sus árboles, rocas,
   plantas, césped, caminos y texturas a partir de la misma semilla y sampler.
   El orden en que se explora no modifica los resultados.
 - `world_content.gd`: chunks de contenido de 32 metros, con prioridad a los más
@@ -53,8 +56,8 @@ por eso puede permanecer algo más de terreno que la distancia nominal.
 La pantalla de carga espera únicamente la ventana inicial. Si se continúa una
 partida lejana, se prepara directamente su ubicación guardada, sin instanciar
 primero el campamento. Durante esa pantalla el mundo 3D está oculto y sus
-niveles de detalle ya se preparan; la interfaz de carga sigue visible. Los
-interiores cercanos conservan su streaming anterior.
+niveles de detalle ya se preparan; la interfaz de carga sigue visible. Los sistemas de interiores se conservan como recursos reutilizables, sin
+instanciar las casas antiguas.
 
 ## Persistencia
 

@@ -74,9 +74,10 @@ El daño enemigo se resuelve con 0,35 s de retraso.
 ## Mundo y supervivencia
 
 El mundo mide 6,4 × 6,4 km: **40,96 km²**. Se genera por proximidad con semilla
-persistente. Incluye árboles, rocas, bardanas, césped, agua, elevaciones y seis
-edificios de campamento. Los interiores se cargan al aproximarse a sus puertas.
-Las puertas permiten al jugador entrar y mantienen a las criaturas fuera.
+persistente. Incluye árboles, rocas, bardanas y césped. El inicio tiene una
+prueba localizada de relieve con camino de tierra irregular, baches, una subida
+de unos 5° y una montaña de unos 8 m. No aparecen las casas del campamento
+antiguo. Ver [INITIAL_RELIEF.md](INITIAL_RELIEF.md).
 
 La partida comienza a las 08:00 del día 1. Un día dura 16 minutos reales;
 el amanecer es a las 06:00 y el anochecer a las 20:00. El personaje consume

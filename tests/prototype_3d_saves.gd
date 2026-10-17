@@ -40,7 +40,7 @@ func run():
  game.progression.active[&"speed"]=3.0;game.progression.cooldowns[&"speed"]=12.0
  game.nutrition.hydration_ml=725;game.nutrition.calories_today=1750;game.nutrition.water_today_ml=500;game.day_cycle.day=3;game.day_cycle.hour=18.5
  game.camera_rig.yaw=0.8;game.camera_rig.pitch=-0.4
- var building=get_nodes_in_group("prototype_buildings")[0];game.player.position=building.position+Vector3(0,0.15,0)
+ game.player.position=Vector3(0,game.surface_height(Vector3(0,0,-30))+.15,-30)
  var sprout=load("res://scripts/prototype_3d/sprout_enemy.gd").new();game.add_child(sprout);sprout.position=Vector3(-7,.025,-7);sprout.configure(game)
  sprout.patrol.begin_turn();sprout.patrol.turn(.21);sprout.phase=.37
  sprout.run_cycle.restore({"stage":"run","kind":2,"elapsed":18.7});sprout.run_phase=.41
@@ -63,9 +63,8 @@ func run():
  await app.continue_game()
  if not await wait_loaded(app):app.free();quit(1);return
  game=app.game;game.paused=true
- require(game.player.position.distance_to(Save.point(saved.player.position))<0.001,"Continue restores player position inside the building")
- var occupied=get_nodes_in_group("prototype_buildings").filter(func(node):return node.stream.interior_bounds.has_point(node.to_local(game.player.position)))
- require(not occupied.is_empty() and occupied[0].stream.interior_ready,"Saved interior is fully loaded before play resumes")
+ require(game.player.position.distance_to(Save.point(saved.player.position))<0.001,"Continue restores player position on the relief")
+ require(get_nodes_in_group("prototype_buildings").is_empty(),"Continuing does not restore removed spawn houses")
  require(game.bag.slots==saved.bag.slots and game.bag.quick_slots==saved.bag.quick and game.bag.equipment==saved.bag.equipment,"Physical backpack, quick bar and armor restore exactly")
  require(game.bag.active_quick_uid==saved.bag.active and game.bag.next_uid==saved.bag.next_uid,"Selection and UID allocator survive reload")
  require(game.level==4 and game.experience==17 and game.skill_points==2 and game.player_health==19,"Level, health and shared improvement points restore")

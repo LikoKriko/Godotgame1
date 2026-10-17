@@ -3,6 +3,10 @@ extends Node3D
 const METRES_PER_UNIT:=1.75/64.0
 const Profile = preload("res://scripts/terrain_profile.gd")
 const Sampler = preload("res://scripts/terrain_sampler.gd")
+const Relief=preload("res://scripts/prototype_3d/initial_relief.gd")
+var relief_enabled:=false
+var relief_supports:Dictionary={}
+var relief_meshes:Dictionary={}
 var use_mask_cache:=true
 var mask_cache=preload("res://scripts/prototype_3d/terrain_mask_cache.gd").new()
 var progressive_window:=false
@@ -31,6 +35,7 @@ func configure(seed_number: int,configuration = null,bounds: Rect2 = Rect2()) ->
  for path in profile.texture_paths:
   if not ResourceLoader.exists(path): return false
  clear_chunks()
+ relief_meshes.clear()
  observer_cell=Vector2i(999999,999999);observer_view=Vector2.ZERO
  textures.clear()
  for path in profile.texture_paths: textures.append(load(path))
@@ -95,6 +100,10 @@ func activate(key: Vector2i) -> void:
  if bounded: rect = rect.intersection(clip_bounds)
  if rect.size != Vector2.ONE*profile.chunk_size:
   var partial := PlaneMesh.new(); partial.size = rect.size*METRES_PER_UNIT; node.mesh = partial
+ var metres:=Rect2(rect.position*METRES_PER_UNIT,rect.size*METRES_PER_UNIT)
+ if relief_enabled and metres.intersects(Relief.AREA):
+  if not relief_meshes.has(key):relief_meshes[key]=Relief.geometry(metres,relief_supports)
+  node.mesh=relief_meshes[key]
  var center:=rect.get_center()*METRES_PER_UNIT
  node.position = Vector3(center.x,0,center.y); node.material_override = material_for(rect)
  add_child(node); active[key] = node; generations += 1
@@ -109,6 +118,7 @@ func material_for(rect: Rect2) -> ShaderMaterial:
    for uniform in shared_material.shader.get_shader_uniform_list():result.set_shader_parameter(uniform.name,shared_material.get_shader_parameter(uniform.name))
    result.set_shader_parameter("biome_mask",grid.texture);result.set_shader_parameter("mask_origin",grid.origin);result.set_shader_parameter("mask_size",grid.size);result.set_shader_parameter("mask_step",mask_cache.STEP)
 
+ result.set_shader_parameter("initial_relief",relief_enabled)
  result.set_shader_parameter("existing_paths",sampler.existing_paths)
  var bounds := PackedVector4Array(); var types := PackedVector2Array()
  for influence in sampler.influences:
