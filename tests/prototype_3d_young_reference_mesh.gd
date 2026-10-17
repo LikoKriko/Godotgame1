@@ -1,86 +1,49 @@
 extends SceneTree
-## Verify that the in-game asset is the user's Meshy mesh, with original UVs and
-## PNGs, rather than the removed procedural reconstruction.
+## Compare the runtime against the supplied GLB, including its native skin.
 const Model=preload("res://scripts/prototype_3d/young_model.gd")
-const Motion=preload("res://scripts/prototype_3d/young_pose.gd")
 var checks:=0
 var failures:=0
 func require(value:bool,message:String) -> void:
  checks+=1
  if not value:failures+=1;push_error(message)
-func digest(bytes:PackedByteArray) -> String:
- var hash:=HashingContext.new();hash.start(HashingContext.HASH_SHA256);hash.update(bytes);return hash.finish().hex_encode()
 func _initialize():call_deferred("run")
-func deform(point:Vector3,index:int,ids:PackedInt32Array,weights:PackedFloat32Array,actor:Node3D) -> Vector3:
- var result:=Vector3.ZERO
- for slot in 4:
-  var bone:=ids[index*4+slot]
-  result+=(actor.posed[bone]*(actor.rest[bone].affine_inverse()*point))*weights[index*4+slot]
- return result
 func run():
+ var manifest:Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/enemies/first/rig/source.json"))
+ require(FileAccess.get_sha256(manifest.source_path)==manifest.source_sha256,"Original supplied GLB remains byte-identical")
+ var document:=GLTFDocument.new();var state:=GLTFState.new()
+ require(document.append_from_file(manifest.source_path,state)==OK,"Supplied rig imports")
+ var source:=document.generate_scene(state);root.add_child(source)
+ var rig:Skeleton3D=source.find_children("*","Skeleton3D",true,false)[0]
+ var node:MeshInstance3D=source.find_children("*","MeshInstance3D",true,false)[0]
+ var baked:=Model.SOURCE.instantiate();root.add_child(baked)
+ var baked_node:MeshInstance3D=baked.find_children("*","MeshInstance3D",true,false)[0]
  var actor:=Model.new();root.add_child(actor)
  var second:=Model.new();root.add_child(second)
- var runtime_mesh:Mesh=actor.mesh_node.mesh
- var mesh:Mesh=Model.IMPORTED_SKIN
- var data:=mesh.surface_get_arrays(0)
- var vertices:PackedVector3Array=data[Mesh.ARRAY_VERTEX]
- var uv:PackedVector2Array=data[Mesh.ARRAY_TEX_UV]
- var indices:PackedInt32Array=data[Mesh.ARRAY_INDEX]
- var bones:PackedInt32Array=data[Mesh.ARRAY_BONES]
- var weights:PackedFloat32Array=data[Mesh.ARRAY_WEIGHTS]
- var manifest:Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/enemies/first/meshy/source.json"))
- require(runtime_mesh==second.mesh_node.mesh,"All enemies share the imported mesh resource")
- require(actor.skeleton!=second.skeleton,"Each imported creature has an independent skeleton")
- require(FileAccess.get_sha256(manifest.source_fbx_path)==manifest.source_fbx_sha256,"The original FBX is retained byte-for-byte for the animation department")
- require(mesh.get_meta("source_zip_sha256")==manifest.source_zip_sha256,"Runtime asset identifies the verified user archive")
- require(indices.size()/3==int(manifest.source_triangles),"Every original Meshy triangle is retained")
- require(digest(vertices.to_byte_array())==mesh.get_meta("normalized_positions_sha256"),"Baked skin keeps every imported position after the uniform normalization")
- require(digest(uv.to_byte_array())==mesh.get_meta("source_uv_sha256"),"Original texture coordinates survive skin binding")
- var original:AABB=mesh.get_meta("source_bounds")
- require((mesh.get_aabb().size-original.size*float(mesh.get_meta("uniform_scale"))).length()<0.0001,"Normalization preserves all three source proportions")
- require(absf(mesh.get_aabb().size.y-32)<0.0001,"The source mesh uses a consistent authoring height")
- var material:StandardMaterial3D=actor.body_material
- var maps:={"albedo.png":material.albedo_texture,"normal.png":material.normal_texture,"roughness.png":material.roughness_texture,"metallic.png":material.metallic_texture}
+ var original:Array=node.mesh.surface_get_arrays(0)
+ var current:Array=baked_node.mesh.surface_get_arrays(0)
+ var facial:Array=actor.mesh_node.mesh.surface_get_arrays(0)
+ for channel in [Mesh.ARRAY_VERTEX,Mesh.ARRAY_TEX_UV,Mesh.ARRAY_INDEX,Mesh.ARRAY_BONES,Mesh.ARRAY_WEIGHTS]:
+  require(original[channel].to_byte_array()==current[channel].to_byte_array(),"Original geometry, UV and skin channel survives native conversion: "+str(channel))
+ for channel in [Mesh.ARRAY_VERTEX,Mesh.ARRAY_NORMAL,Mesh.ARRAY_TANGENT,Mesh.ARRAY_TEX_UV,Mesh.ARRAY_BONES,Mesh.ARRAY_WEIGHTS]:
+  var expected:PackedByteArray=current[channel].to_byte_array()
+  require(facial[channel].to_byte_array().slice(0,expected.size())==expected,"Facial derivation preserves the original vertex prefix: "+str(channel))
+ require(original[Mesh.ARRAY_VERTEX].size()==manifest.source_vertices,"Original vertex count")
+ require(original[Mesh.ARRAY_INDEX].size()/3==manifest.source_triangles,"Original triangle count")
+ require(actor.skeleton.get_bone_count()==rig.get_bone_count() and rig.get_bone_count()==25,"Original 25-bone hierarchy")
+ for bone in rig.get_bone_count():
+  require(actor.skeleton.get_bone_name(bone)==rig.get_bone_name(bone),"Original bone names")
+  require(actor.parents[bone]==rig.get_bone_parent(bone),"Original hierarchy")
+  require(actor.skeleton.get_bone_rest(bone).is_equal_approx(rig.get_bone_rest(bone)),"Original bind axes")
+ for bind in node.skin.get_bind_count():
+  require(actor.mesh_node.skin.get_bind_bone(bind)==node.skin.get_bind_bone(bind),"Original skin bind indices")
+  require(actor.mesh_node.skin.get_bind_pose(bind).is_equal_approx(node.skin.get_bind_pose(bind)),"Original inverse bind matrices")
  for filename in manifest.textures:
-  var path:String="res://assets/enemies/first/meshy/"+String(filename)
-  require(FileAccess.get_sha256(path)==manifest.textures[filename].sha256,"Original PNG remains byte-identical: "+filename)
-  if not maps.has(filename):continue
-  require(maps[filename]!=null and maps[filename].resource_path==path,"The in-game material uses "+filename)
- require(indices.size()/3<10000,"The active user-supplied reduced model replaces the dense runtime mesh")
- require(material.normal_enabled,"Original UV material replaces procedural projection shaders")
- require(not FileAccess.file_exists("res://scripts/prototype_3d/young_reference_mesh.gd"),"The rejected procedural geometry is removed")
- var valid:=bones.size()==vertices.size()*4 and weights.size()==bones.size()
- var probes:Array[int]=[]
- for i in vertices.size():
-  var sum:=0.0
-  valid=valid and vertices[i].is_finite() and uv[i].is_finite()
-  for j in 4:
-   sum+=weights[i*4+j]
-   valid=valid and bones[i*4+j]>=0 and bones[i*4+j]<15 and weights[i*4+j]>=0
-  valid=valid and absf(sum-1)<0.0001
-  if i%maxi(1,vertices.size()/1000)==0:probes.append(i)
- require(valid,"Every source vertex has finite coordinates, UVs and normalized four-bone bindings")
- actor.animate(&"reference",0,true)
- var error:=0.0
- for i in probes:error=maxf(error,vertices[i].distance_to(deform(vertices[i],i,bones,weights,actor)))
- require(error<0.001,"Reference stance reproduces the supplied geometry without deformation")
- var independent:Transform3D=second.skeleton.get_bone_pose(0)
- for state in preload("res://scripts/prototype_3d/animation_review.gd").YOUNG_STATES:
-  for left in [false,true]:
-   for frame in 17:
-    actor.animate(state,frame/16.0,left)
-    var finite:=true
-    for i in probes:
-     var p:=deform(vertices[i],i,bones,weights,actor)
-     finite=finite and p.is_finite() and p.length()<100
-    require(finite,"Imported skin remains finite in %s / %s / %d"%[state,left,frame])
-    for side in 2:
-     var start:=8+side*3
-     require(absf(actor.posed[start].origin.distance_to(actor.posed[start+1].origin)-Motion.ARM_A)<0.001,"Upper arm retains its bone length")
-     require(absf(actor.posed[start+1].origin.distance_to(actor.posed[start+2].origin)-Motion.ARM_B)<0.001,"Forearm retains its bone length")
- require(actor.mesh_node.mesh==runtime_mesh,"Actions never rebuild or replace the Meshy surface")
- require(second.skeleton.get_bone_pose(0).is_equal_approx(independent),"Animating one enemy cannot move a second enemy")
- print("Meshy vertices=",vertices.size()," triangles=",indices.size()/3)
- actor.free();second.free()
- print("%s: %d imported Meshy, source integrity, material and skin checks"%["PASS" if failures==0 else "FAIL",checks])
- quit(1 if failures else 0)
+  require(FileAccess.get_sha256(manifest.texture_directory+filename)==manifest.textures[filename],"Original PNG: "+filename)
+ require(actor.mesh_node.mesh==second.mesh_node.mesh,"Enemies share the baked facial mesh")
+ require(actor.skeleton!=second.skeleton,"Enemies retain independent skeletons")
+ actor.animate(&"reference",0)
+ for bone in rig.get_bone_count():require(actor.posed[bone].is_equal_approx(rig.get_bone_global_pose(bone)),"Reference reproduces supplied pose")
+ actor.animate(&"attack",.5)
+ for bone in rig.get_bone_count():require(second.posed[bone].is_equal_approx(rig.get_bone_global_pose(bone)),"Animating one enemy cannot affect another")
+ actor.free();second.free();baked.free();source.free()
+ print("%s: %d supplied rig, mesh, UV, skin and source integrity checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

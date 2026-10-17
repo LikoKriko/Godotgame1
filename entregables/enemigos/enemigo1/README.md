@@ -1,14 +1,16 @@
 # Enemigo1 — Meshy Mossclaw Boar
 
-Modelo vigente aportado por el usuario en la Release `modelo-enemigo1`:
-`enemigo1_3d.zip`, SHA-256
-`64e21cf1b8822e63a0913015a4b2ef29a6c6ca62831bf83eef4e5eadc938e5bc`.
+Modelo vigente aportado por el usuario en la Release
+[modelo1_rig](https://github.com/LikoKriko/Godotgame1/releases/tag/modelo1_rig):
+`Meshy_AI_Character_output.glb`, SHA-256
+`fa3f0215fa063e59335122d1d90dfd82256f1991366dbf0991c6bf7b31dbd44f`.
 
-- FBX reducido original: `source/Meshy_AI_Mossclaw_Boar_1016001519_texture.fbx`.
-- 3672 vértices de autoría, 7340 triángulos; sin esqueleto ni clips.
-- PNG originales, hashes y recurso de ejecución: `assets/enemies/first/meshy/`.
+- Fuente: `source/Meshy_AI_Character_output.glb`.
+- 9236 vértices importados, 7340 triángulos y 25 huesos originales.
+- Conserva jerarquía SmartRigArmature, pesos originales, geometría, UV y PNG.
+- Recursos de ejecución y manifiesto: `assets/enemies/first/rig/`.
+- Texturas originales compartidas: `assets/enemies/first/meshy/`.
 
-La versión reducida hereda la ligadura animada de quince huesos mediante
-transferencia de pesos, conservando geometría, UV y PNG nuevos. `source/` lleva
-`.gdignore` para evitar importar/exportar los FBX por duplicado. El juego carga
-únicamente `mossclaw_skin.res`. Ver `docs/YOUNG_3D.md` para reproducir la conversión.
+`source/` lleva `.gdignore` para evitar importar/exportar fuentes por duplicado.
+El juego carga la escena nativa, la malla facial derivada y la biblioteca de
+animaciones. Ver `docs/YOUNG_3D.md` para sus parámetros y regeneración.

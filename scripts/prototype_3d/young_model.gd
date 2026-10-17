@@ -1,14 +1,21 @@
 extends Node3D
-## Meshy Mossclaw Boar supplied by the user. The source mesh/UVs/textures are
-## preserved; a baked skin adapts the unrigged FBX to the creature's actions.
+## User-supplied 25-bone SmartRig. Original hierarchy, skin and bind axes.
 const Face=preload("res://scripts/prototype_3d/young_face.gd")
-const Motion=preload("res://scripts/prototype_3d/young_pose.gd")
-const IMPORTED_SKIN=preload("res://assets/enemies/first/meshy/mossclaw_skin.res")
-var skeleton:=Skeleton3D.new()
+const Motion=preload("res://scripts/prototype_3d/young_rig_motion.gd")
+const SOURCE=preload("res://assets/enemies/first/rig/model.scn")
+const IMPORTED_SKIN=preload("res://assets/enemies/first/rig/face.res")
+const LIBRARY=preload("res://assets/enemies/first/rig/motions.res")
+var skeleton:Skeleton3D
+var mesh_node:MeshInstance3D
+var animation:AnimationPlayer
 var rest:Array[Transform3D]=[]
 var posed:Array[Transform3D]=[]
 var parents:Array[int]=[]
 var pose_writer=preload("res://scripts/prototype_3d/skeleton_pose.gd").new()
+var body_material:StandardMaterial3D
+var last_pose:Dictionary={}
+var previous_state:StringName=&"reference"
+var interruption_pose:Dictionary={}
 var facial_open:=0.0
 var expression_time:=NAN
 var expression_weights:=PackedFloat32Array()
@@ -17,98 +24,77 @@ var facial_state:StringName=&"reference"
 var facial_phase:=0.0
 var facial_close_time:=0.0
 var facial_close_weights:=PackedFloat32Array()
-var mesh_node:MeshInstance3D
-var body_material:StandardMaterial3D
-var last_pose:Dictionary={}
-var bind_pose:Dictionary={}
-var inverse_bind_frames:Array[Basis]=[]
-var use_bind_frame_cache:=true
-var previous_state:StringName=&"reference"
-var interruption_pose:Dictionary={}
-const Frames=preload("res://scripts/prototype_3d/human_kinematics.gd")
-
+var head_bone:=0
+var fist_bones:Array[int]=[]
+var nose_local:=Vector3.ZERO
 func _ready() -> void:
- mesh_node=MeshInstance3D.new();add_child(mesh_node)
- mesh_node.mesh=Face.mesh(IMPORTED_SKIN)
+ var model:=SOURCE.instantiate();add_child(model)
+ skeleton=model.find_children("*","Skeleton3D",true,false)[0]
+ mesh_node=model.find_children("*","MeshInstance3D",true,false)[0]
+ mesh_node.mesh=IMPORTED_SKIN
+ mesh_node.custom_aabb=AABB(Vector3(-1.8,-.2,-1.8),Vector3(3.6,2.8,4.0))
  body_material=IMPORTED_SKIN.surface_get_material(0)
- make_skeleton()
- mesh_node.custom_aabb=AABB(Vector3(-35,-20,-45),Vector3(70,80,100))
-func bone(label:String,parent:int,point:Vector3) -> void:
- var index:=skeleton.get_bone_count();skeleton.add_bone(label);parents.append(parent)
- var transform:=Transform3D(Basis.IDENTITY,point);rest.append(transform);posed.append(transform)
- if parent>=0:skeleton.set_bone_parent(index,parent)
- var local:=rest[parent].affine_inverse()*transform if parent>=0 else transform
- skeleton.set_bone_rest(index,local);skeleton.set_bone_pose(index,local)
-func make_skeleton() -> void:
- var neutral:=Motion.bind_pose()
- bind_pose=neutral
- for side in 2:
-  for kind in 2:
-   var chain:Dictionary=neutral.legs[side] if kind==0 else neutral.arms[side]
-   for segment in 2:inverse_bind_frames.append(Frames.segment_frame(chain,segment).inverse())
- bone("body",-1,Vector3.ZERO);bone("head",0,Motion.HEAD_ANCHOR)
- for side in 2:
-  var start:=rest.size();var leg:Dictionary=neutral.legs[side]
-  bone("thigh_%d"%side,0,leg.root);bone("shin_%d"%side,start,leg.joint);bone("foot_%d"%side,start+1,leg.end)
- for side in 2:
-  var start:=rest.size();var arm:Dictionary=neutral.arms[side]
-  bone("upper_arm_%d"%side,0,arm.root);bone("forearm_%d"%side,start,arm.joint);bone("fist_%d"%side,start+1,arm.end)
- bone("tail",0,preload("res://scripts/prototype_3d/young_skin_weights.gd").TAIL_ANCHOR)
- add_child(skeleton);mesh_node.reparent(skeleton);mesh_node.skeleton=NodePath("..")
- var skin:=Skin.new()
- for i in rest.size():skin.add_bind(i,rest[i].affine_inverse())
- mesh_node.skin=skin;pose_writer.configure(parents)
-func animate(state:StringName,phase:float,left:bool = true,delta:float = 0.0) -> void:
- var target:=Motion.sample(state,phase,left)
- if state!=previous_state:
-  interruption_pose=last_pose.duplicate(true) if delta>0 and state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower",&"death",&"stun_fall",&"sleep_down",&"wake_up"] else {}
-  previous_state=state
- if not interruption_pose.is_empty() and state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower",&"death",&"stun_fall",&"sleep_down",&"wake_up"]:
-  var end:=.16 if state in [&"attack",&"hook",&"boxing_rise",&"boxing_lower"] else (.35 if state==&"death" else .55)
-  var settle:=smoothstep(0,end,phase)
-  target=Motion.mix(interruption_pose,target,settle)
-  if settle>=1:interruption_pose.clear()
- last_pose=Motion.blend(last_pose,target,delta) if delta>0 and not last_pose.is_empty() and state not in [&"attack",&"hook",&"death",&"corpse"] else target
- apply_pose(last_pose,delta)
+ for i in skeleton.get_bone_count():rest.append(skeleton.get_bone_global_pose(i));posed.append(rest[i]);parents.append(skeleton.get_bone_parent(i))
+ head_bone=skeleton.find_bone("Bone_016")
+ fist_bones=[skeleton.find_bone("Bone_017"),skeleton.find_bone("Bone_021")]
+ nose_local=rest[head_bone].affine_inverse()*Motion.NOSE
+ pose_writer.configure(parents)
+ animation=AnimationPlayer.new();add_child(animation);animation.root_node=animation.get_path_to(model);animation.add_animation_library(&"",LIBRARY)
+func socket(label:StringName) -> Vector3:
+ if label==&"snout":return posed[head_bone]*nose_local
+ if label==&"head":return posed[head_bone].origin
+ if label==&"left_fist":return posed[fist_bones[0]].origin
+ if label==&"right_fist":return posed[fist_bones[1]].origin
+ return posed[0].origin
+func sample_fist(state:StringName,phase:float,left:bool) -> Vector3:
+ # Predict a parry contact from the shared native clip without moving the actor.
+ var clip:Animation=LIBRARY.get_animation(Motion.clip_name(state,left))
+ var time:=clampf(phase,0,1)*clip.length
+ var frames:Array[Transform3D]=[]
+ for i in parents.size():
+  var local:=Transform3D(Basis(clip.rotation_track_interpolate(i*2+1,time)),clip.position_track_interpolate(i*2,time))
+  frames.append(frames[parents[i]]*local if parents[i]>=0 else local)
+ return frames[fist_bones[0 if left else 1]].origin
+func animate(state:StringName,phase:float,left:bool=true,delta:float=0.0) -> void:
+ var name:=Motion.clip_name(state,left)
+ var changed:bool=last_pose.get("state",&"reference")!=state or last_pose.get("left",true)!=left
+ if changed and delta>0:
+  var locals:Array[Transform3D]=[]
+  for i in parents.size():locals.append(skeleton.get_bone_pose(i))
+  interruption_pose={"locals":locals,"elapsed":0.0,"seconds":.14 if state in [&"attack",&"hook"] else .22}
+ elif delta<=0:interruption_pose.clear()
+ if animation.current_animation!=name:animation.play(name);animation.pause()
+ animation.seek(clampf(phase,0,1)*Motion.seconds(state),true)
+ if not interruption_pose.is_empty():
+  interruption_pose.elapsed=minf(interruption_pose.seconds,interruption_pose.elapsed+delta)
+  var blend:=smoothstep(0,interruption_pose.seconds,interruption_pose.elapsed)
+  for i in parents.size():skeleton.set_bone_pose(i,interruption_pose.locals[i].interpolate_with(skeleton.get_bone_pose(i),blend))
+  if blend>=1:interruption_pose.clear()
+ for i in parents.size():posed[i]=posed[parents[i]]*skeleton.get_bone_pose(i) if parents[i]>=0 else skeleton.get_bone_pose(i)
+ last_pose={"state":state,"phase":phase,"left":left,"bones":posed};previous_state=state
+ advance_face(state,phase,delta)
 func apply_pose(pose:Dictionary,delta:float=0.0) -> void:
- last_pose=pose
- var body:Transform3D=last_pose.body;posed[0]=body
- posed[1]=Transform3D(last_pose.head,last_pose.head_origin)
- posed[14]=Transform3D(body.basis*Basis(Vector3.UP,last_pose.get("tail_turn",0.0)),body*rest[14].origin)
- for side in 2:
-  for kind in 2:
-   var start:=2+side*3 if kind==0 else 8+side*3
-   var limb:Dictionary=last_pose.legs[side] if kind==0 else last_pose.arms[side]
-   var original:Dictionary=bind_pose.legs[side] if kind==0 else bind_pose.arms[side]
-   for segment in 2:
-    var reference:Basis=inverse_bind_frames[(side*2+kind)*2+segment] if use_bind_frame_cache else Frames.segment_frame(original,segment).inverse()
-    var rotation:=Frames.segment_frame(limb,segment)*reference
-    posed[start+segment]=Transform3D(rotation,limb.root if segment==0 else limb.joint)
-   var end_basis:Basis=(last_pose.foot_bases[side] if not last_pose.get("foot_bases",[]).is_empty() else Basis(Vector3.RIGHT,limb.get("pitch",0.0))) if kind==0 else posed[start+1].basis
-   posed[start+2]=Transform3D(end_basis,limb.end)
- var attacking:bool=last_pose.state in [&"attack",&"hook"]
+ if pose.has("bones"):
+  posed.assign(pose.bones);pose_writer.apply(skeleton,posed);last_pose=pose
+  advance_face(pose.state,pose.phase,delta)
+ else:animate(pose.state,pose.phase,pose.get("left",true),delta)
+func advance_face(state:StringName,phase:float,delta:float) -> void:
+ var attacking:bool=state in [&"attack",&"hook"]
  if delta<=0:
-  facial_elapsed=last_pose.phase*Face.SECONDS if attacking else Face.SECONDS
-  facial_close_time=0
+  facial_elapsed=phase*Face.SECONDS if attacking else Face.SECONDS;facial_close_time=0
  else:
-  var begins:bool=attacking and (facial_state!=last_pose.state or last_pose.phase<facial_phase)
+  var begins:bool=attacking and (facial_state!=state or phase<facial_phase)
   if begins and facial_elapsed>=Face.SECONDS:facial_elapsed=0
   facial_elapsed=minf(Face.SECONDS,facial_elapsed+delta)
-  if last_pose.state in [&"death",&"corpse",&"stun_fall",&"stun_hold"] and facial_elapsed<Face.SECONDS:
-   facial_close_weights=Face.weights(facial_elapsed);facial_close_time=.16
-   facial_elapsed=Face.SECONDS
- facial_state=last_pose.state;facial_phase=last_pose.phase
- set_facial_time(facial_elapsed)
+  if state in [&"death",&"corpse",&"stun_fall",&"stun_hold"] and facial_elapsed<Face.SECONDS:
+   facial_close_weights=Face.weights(facial_elapsed);facial_close_time=.16;facial_elapsed=Face.SECONDS
+ facial_state=state;facial_phase=phase;set_facial_time(facial_elapsed)
  if facial_close_time>0:
-  facial_close_time=maxf(0,facial_close_time-delta)
-  var closing:=smoothstep(0,.16,facial_close_time)
+  facial_close_time=maxf(0,facial_close_time-delta);var closing:=smoothstep(0,.16,facial_close_time)
   for control in 5:mesh_node.set_blend_shape_value(control,facial_close_weights[control]*closing)
   facial_open=facial_close_weights[0]*Face.CONTROL_SCALE*closing
- pose_writer.apply(skeleton,posed)
-
 func set_facial_time(seconds:float) -> void:
  facial_elapsed=clampf(seconds,0,Face.SECONDS)
- if expression_time!=facial_elapsed:
-  expression_weights=Face.weights(facial_elapsed);expression_time=facial_elapsed
+ if expression_time!=facial_elapsed:expression_weights=Face.weights(facial_elapsed);expression_time=facial_elapsed
  facial_open=expression_weights[0]*Face.CONTROL_SCALE
  for control in 5:mesh_node.set_blend_shape_value(control,expression_weights[control])

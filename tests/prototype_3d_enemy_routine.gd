@@ -1,6 +1,6 @@
 extends SceneTree
 const Brain=preload("res://scripts/prototype_3d/creature_brain.gd")
-const Motion=preload("res://scripts/prototype_3d/young_pose.gd")
+const Motion=preload("res://scripts/prototype_3d/young_rig_motion.gd")
 class Game:
  extends Node3D
  var paused:=false
@@ -97,10 +97,10 @@ func run():
   var previous:Array=[]
   for frame in 65:
    actor.animate(state,frame/64.0,true)
-   for side in 2:
-    var leg:Dictionary=actor.last_pose.legs[side];var arm:Dictionary=actor.last_pose.arms[side]
-    require(absf(leg.root.distance_to(leg.joint)-Motion.LEG_A)<.001 and absf(leg.joint.distance_to(leg.end)-Motion.LEG_B)<.001,"Sleeping preserves leg anatomy")
-    require(absf(arm.root.distance_to(arm.joint)-Motion.ARM_A)<.001 and absf(arm.joint.distance_to(arm.end)-Motion.ARM_B)<.001,"Sleeping preserves arm anatomy")
+   for bone in actor.parents.size():
+    if actor.parents[bone]<0:continue
+    var parent:int=actor.parents[bone]
+    require(absf(actor.posed[parent].origin.distance_to(actor.posed[bone].origin)-actor.rest[parent].origin.distance_to(actor.rest[bone].origin))<.00003,"Native sleep preserves original bone lengths")
    if not previous.is_empty():
     for bone in actor.posed.size():require(actor.posed[bone].basis.get_rotation_quaternion().angle_to(previous[bone].basis.get_rotation_quaternion())<.65,"Sleep and wake are continuous")
    previous=actor.posed.duplicate()

@@ -11,10 +11,16 @@
 | Detección diurna | 7,5 m |
 | Detección nocturna y al despertar | 20 m |
 | Alcance nominal | 0,65 m; el contacto considera también el radio corporal |
-| Esqueleto corporal | 15 huesos, incluida la cola |
+| Esqueleto corporal | 25 huesos originales SmartRigArmature |
 | Malla fuente | 7340 triángulos |
 
-El movimiento habitual es cuadrúpedo. Usa una huella física que incluye el
+El movimiento habitual es cuadrúpedo. La marcha dura 0,64 s por ciclo, la
+persecución 0,48 s y la marcha de boxeo 0,36 s. La cadencia se ajusta a la
+velocidad física realmente recorrida; al bloquearse el desplazamiento, se
+frena también el ciclo. Los apoyos se calibran sobre las superficies de piel
+de patas y puños, con transferencia de peso, elevación durante el avance y
+zancada correspondiente a 0,85 o 1,7 m/s. La marcha usa cuatro apoyos sucesivos;
+la carrera alterna los dos lados. Usa una huella física que incluye el
 hocico y separación entre criaturas; sus zonas de daño siguen cabeza, hocico
 y puños. La percepción comprueba obstáculos.
 
@@ -53,8 +59,9 @@ Pausar congela los relojes de juego.
 
 ## Cara, muerte y botín
 
-Mandíbula, mejillas y cavidad oral acompañan los ataques sin desplazar cuello,
-ojos ni nariz. La cara se cierra gradualmente al interrumpirse la acción.
+Mandíbula, mejillas y cavidad oral acompañan los ataques sin desplazar cuello
+ni ojos. El hocico recibe una elevación leve. La cara se cierra gradualmente
+al interrumpirse la acción.
 
 La muerte dura 2 s: apoyo de rodillas, pérdida de equilibrio y caída. Después
 queda un cadáver con inventario interactivo. El nodo desaparece al alcanzar
@@ -66,11 +73,30 @@ estado para reanudarlo al acercarse. Véase [DISTANCE_OPTIMIZATION.md](DISTANCE_
 
 ## Recursos y código
 
-El modelo original es `Meshy_AI_Mossclaw_Boar_1016001519_texture.fbx`, de la
-Release `modelo-enemigo1/enemigo1_3d.zip`. El runtime carga
-`assets/enemies/first/meshy/mossclaw_skin.res` y sus PNG originales.
-Los datos de procedencia están en `assets/enemies/first/meshy/source.json`.
+El modelo vigente es `Meshy_AI_Character_output.glb` de la Release
+[modelo1_rig](https://github.com/LikoKriko/Godotgame1/releases/tag/modelo1_rig).
+Su fuente se conserva en `entregables/enemigos/enemigo1/source/` con `.gdignore`.
+El runtime carga `assets/enemies/first/rig/model.scn`, `face.res` y `motions.res`.
+Los PNG originales se comparten desde `assets/enemies/first/meshy/`; la
+procedencia y hashes están en `assets/enemies/first/rig/source.json`.
+
+Se conserva el rig original de 25 huesos, sus pesos, geometría y UV. La malla
+facial derivada añade la abertura y el interior de boca, con cinco controles
+y un gesto de 2 s. Todas las acciones corporales se hornean sobre ese mismo
+esqueleto: referencia, reposo, marcha, carrera, incorporaciones, ataques
+alternos, guardia y marcha de boxeo, crochets, sentado, alimentación, sueño,
+despertar, aturdimiento, muerte y cadáver. Las transiciones mezclan poses
+locales para mantener las longitudes óseas. La resolución de apoyos y el
+ajuste al suelo se hacen al preparar los recursos, sin IK por enemigo en runtime.
+
+Para regenerar desde la raíz del proyecto con Godot 4.6:
+
+```sh
+godot --headless --path . --script tools/enemy1/import_rig.gd -- entregables/enemigos/enemigo1/source/Meshy_AI_Character_output.glb
+godot --headless --path . --script tools/enemy1/bake_motion.gd
+```
 
 `young_enemy.gd` controla combate y movimiento; `creature_brain.gd`, las
-rutinas y memoria; `young_pose.gd` y `young_model.gd`, las poses y el esqueleto;
-`young_face.gd`, la expresión facial. Todos están en `scripts/prototype_3d/`.
+rutinas y memoria; `young_rig_motion.gd`, la autoría de poses y apoyos;
+`young_model.gd`, la reproducción nativa y sus transiciones; `young_face.gd`,
+la expresión facial. Todos están en `scripts/prototype_3d/`.

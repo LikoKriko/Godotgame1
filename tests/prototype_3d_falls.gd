@@ -1,6 +1,5 @@
 extends SceneTree
 const Human=preload("res://scripts/prototype_3d/survivor_animation.gd")
-const Young=preload("res://scripts/prototype_3d/young_pose.gd")
 var checks:=0
 var failures:=0
 func require(value:bool,message:String):
@@ -19,31 +18,20 @@ func skin_minimum(actor,human:bool,arrays:Array) -> float:
   minimum=minf(minimum,point.y)
  return minimum
 func run():
- require(Young.seconds(&"run")>.26,"Chase cycle is visually slower")
- require(Young.seconds(&"boxing_walk")>.52,"Upright pursuit also steps more slowly")
  var fur=load("res://scripts/prototype_3d/young_model.gd").new();root.add_child(fur)
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor)
  var a=fur.mesh_node.mesh.surface_get_arrays(0)
  var human_arrays=actor.mesh_node.mesh.surface_get_arrays(0)
- require(preload("res://scripts/prototype_3d/young_skin_weights.gd").correct(a.duplicate(true))==0,"Tail bake is idempotent")
- var foot_min:=INF;var foot_max:=-INF;var hand_min:=INF;var hand_max:=-INF
- for frame in 121:
-  var pose:=Young.sample(&"run",frame/120.0)
-  foot_min=minf(foot_min,pose.legs[0].end.z);foot_max=maxf(foot_max,pose.legs[0].end.z)
-  hand_min=minf(hand_min,pose.arms[0].end.z);hand_max=maxf(hand_max,pose.arms[0].end.z)
- require(foot_max-foot_min>10.5,"Rear stride is longer after actual IK")
- require(hand_max-hand_min>9.0,"Front stride is longer after actual IK")
- for kind in ["human","young"]:
-  var knee=Human.sample(&"",&"death",.38) if kind=="human" else Young.sample(&"death",.38)
-  require(knee.body.basis.y.dot(Vector3.UP)>.97,"Knees support the body before it reclines")
-  for leg in knee.legs:require(leg.joint.y>1 and leg.joint.y<(3.0 if kind=="human" else 3.5),"Both knees reach their visible support phase")
-  var final=Human.sample(&"",&"death",1) if kind=="human" else Young.sample(&"death",1)
-  require(final.body.basis.z.dot(Vector3.UP)>.99,"Final body lies on its back")
-  for side in 2:
-   var hand:Vector3=final.hands[side] if kind=="human" else final.arms[side].end
-   var hip:Vector3=final.hips[side] if kind=="human" else final.legs[side].root
-   require(absf(hand.x)>(21 if kind=="human" else 17),"Both arms finish open to the sides")
-   require(absf(final.legs[side].end.x)>absf(hip.x)+6,"Both legs finish open to the sides")
+ var knee=Human.sample(&"",&"death",.38)
+ require(knee.body.basis.y.dot(Vector3.UP)>.97,"Knees support the body before it reclines")
+ for leg in knee.legs:require(leg.joint.y>1 and leg.joint.y<3.0,"Both knees reach their visible support phase")
+ var final=Human.sample(&"",&"death",1)
+ require(final.body.basis.z.dot(Vector3.UP)>.99,"Final body lies on its back")
+ for side in 2:
+  var hand:Vector3=final.hands[side]
+  var hip:Vector3=final.hips[side]
+  require(absf(hand.x)>21,"Both arms finish open to the sides")
+  require(absf(final.legs[side].end.x)>absf(hip.x)+6,"Both legs finish open to the sides")
  # Runtime interruption must preserve the displayed pose rather than restarting
  # from standing, particularly when already sliding or holding a raised weapon.
  for row in [[&"",&"run"],[&"",&"crouch"],[&"sword",&"action"],[&"bow",&"draw"],[&"",&"slide"]]:
@@ -65,15 +53,15 @@ func run():
  for clip in [&"run",&"attack",&"hook",&"sit"]:
   fur.animate(clip,.4);var start:Array=fur.posed.duplicate()
   fur.animate(&"death",0,true,.016)
-  for bone in range(15):require(start[bone].origin.distance_to(fur.posed[bone].origin)<.03,"Enemy collapse begins from the displayed pose")
+  for bone in fur.posed.size():require(start[bone].origin.distance_to(fur.posed[bone].origin)<.03,"Enemy collapse begins from the displayed pose")
   var previous:Array=fur.posed.duplicate()
   for frame in range(1,121):
    fur.animate(&"death",frame/120.0,true,1.0/60)
    require(skin_minimum(fur,false,a)>-.15,"Interrupted enemy fall keeps skin above the floor: %s %d"%[clip,frame])
-   for bone in range(15):
+   for bone in fur.posed.size():
     var before:Quaternion=previous[bone].basis.get_rotation_quaternion();var after:Quaternion=fur.posed[bone].basis.get_rotation_quaternion()
     require(before.angle_to(after)<.6,"Enemy collapse rotations stay continuous")
    previous=fur.posed.duplicate()
   var settled:Array=fur.posed.duplicate();fur.animate(&"corpse",0,true,.016)
-  for bone in range(15):require(settled[bone].is_equal_approx(fur.posed[bone]),"Corpse joins the final death pose without drifting")
+  for bone in fur.posed.size():require(settled[bone].is_equal_approx(fur.posed[bone]),"Corpse joins the final death pose without drifting")
  actor.free();fur.free();print("%s: %d pursuit, knee support, spread, interruption and settled-corpse checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

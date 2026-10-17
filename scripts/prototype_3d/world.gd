@@ -174,8 +174,7 @@ func activate_parry() -> bool:
   var distance:float=enemy.global_position.distance_to(player.global_position)
   if enemy.health>0 and distance<nearest:
    nearest=distance
-   var pose:Dictionary=preload("res://scripts/prototype_3d/young_pose.gd").sample(&"attack",0.5,enemy.punch_left)
-   player.guard_point=enemy.model.to_global(pose.arms[1 if enemy.punch_left else 0].end)
+   player.guard_point=enemy.model.to_global(enemy.model.sample_fist(enemy.attack_clip(),0.5,enemy.punch_left))
  player.begin_parry()
  if parry.used:player.model.confirm_parry()
  return true
@@ -421,13 +420,10 @@ func build_loading_screen(root:Control) -> void:
  if not use_test_layout:loading_state=true;paused=true
 func generate_content() -> void:
  await get_tree().process_frame
- # Shared keyframes are prepared behind the loading screen, never on the
- # first walking/running frame. The authored functions remain the reference.
- var motion=preload("res://scripts/prototype_3d/young_pose.gd")
- if motion.use_keyframes:
-  for state in motion.CACHED_STATES:
-   if not motion.clip_keys.has(state):motion.prepare_clip(state)
-   await get_tree().process_frame
+ # Native enemy clips are shared Animation resources, already baked on their
+ # original skeleton. No per-instance IK or old-rig key generation is needed.
+ preload("res://assets/enemies/first/rig/motions.res")
+ await get_tree().process_frame
  environment_content=preload("res://scripts/prototype_3d/world_content.gd").new();add_child(environment_content)
  environment_content.progress_changed.connect(func(value):set_loading_progress(value*0.8))
  environment_content.completed.connect(finish_world_loading)

@@ -1,7 +1,7 @@
 extends SceneTree
 const Model=preload("res://scripts/prototype_3d/young_model.gd")
 const Face=preload("res://scripts/prototype_3d/young_face.gd")
-const Motion=preload("res://scripts/prototype_3d/young_pose.gd")
+const Motion=preload("res://scripts/prototype_3d/young_rig_motion.gd")
 var checks:=0
 var failures:=0
 func require(value:bool,message:String):
@@ -14,24 +14,34 @@ func area(arrays:Array) -> float:
  return sum
 func run():
  var actor:=Model.new();var second:=Model.new();root.add_child(actor);root.add_child(second)
- var original:Mesh=Model.IMPORTED_SKIN;var mesh:ArrayMesh=actor.mesh_node.mesh
- var source:=original.surface_get_arrays(0);var arrays:=mesh.surface_get_arrays(0)
+ var source_actor:=Model.SOURCE.instantiate();root.add_child(source_actor)
+ var original:Mesh=source_actor.find_children("*","MeshInstance3D",true,false)[0].mesh
+ var mesh:ArrayMesh=actor.mesh_node.mesh
+ var authoring:Mesh=load("res://assets/enemies/first/meshy/mossclaw_skin.res")
+ var scale_value:float=authoring.get_aabb().size.y/original.get_aabb().size.y
+ var source_frame:=Transform3D(Basis.IDENTITY.scaled(Vector3.ONE*scale_value),authoring.get_aabb().position-original.get_aabb().position*scale_value)
+ Face.mesh(original,[4,5],source_frame) # Reconstruct seam topology for the assertions below.
+ var source:=original.surface_get_arrays(0).duplicate(true);var arrays:=mesh.surface_get_arrays(0).duplicate(true)
  var count:int=source[Mesh.ARRAY_VERTEX].size()
  for channel in [Mesh.ARRAY_VERTEX,Mesh.ARRAY_NORMAL,Mesh.ARRAY_TANGENT,Mesh.ARRAY_TEX_UV,Mesh.ARRAY_BONES,Mesh.ARRAY_WEIGHTS]:
   var expected:PackedByteArray=source[channel].to_byte_array();var actual:PackedByteArray=arrays[channel].to_byte_array()
   require(actual.slice(0,expected.size())==expected,"Source vertex, UV and binding prefix remains unchanged: "+str(channel))
  require(mesh==second.mesh_node.mesh and mesh!=original,"Derived face is cached without editing the source asset")
- require(mesh.surface_get_material(0)==original.surface_get_material(0),"Original material and maps remain intact")
+ require(mesh.surface_get_material(0).albedo_texture==original.surface_get_material(0).albedo_texture,"Original material and maps remain intact")
  require(mesh.get_surface_count()==2,"Cavity is a surface of the same skinned mesh")
- require(actor.get_child_count()==1 and actor.skeleton.get_child_count()==1,"No separate floating mouth object exists")
+ require(actor.get_child_count()==2 and actor.skeleton.get_child_count()==1,"No separate floating mouth object exists")
  require(mesh.get_aabb().is_equal_approx(original.get_aabb()),"Facial animation preserves model normalization and proportions")
  require(Face.seam_segments.size()>0,"Lip opening subdivides the original continuous skin")
+ for data in [source,arrays]:
+  for vertex in data[Mesh.ARRAY_VERTEX].size():data[Mesh.ARRAY_VERTEX][vertex]=source_frame*data[Mesh.ARRAY_VERTEX][vertex]
  require(absf(area(arrays)-area(source))<.01,"Closed lip triangulation preserves the complete original surface")
  require(mesh.get_blend_shape_count()==5,"Exactly five facial muscle controls")
  require(mesh.blend_shape_mode==Mesh.BLEND_SHAPE_MODE_NORMALIZED,"Absolute facial shapes use a matching base weight and preserve shading")
  for i in 5:require(mesh.get_blend_shape_name(i)==Face.CONTROLS[i],"Bilateral jaw, bilateral cheekbones and nose lift")
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var ids:PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
- var shapes:=mesh.surface_get_blend_shape_arrays(0)
+ var shapes:=mesh.surface_get_blend_shape_arrays(0).duplicate(true)
+ for shape in shapes:
+  for vertex in shape[Mesh.ARRAY_VERTEX].size():shape[Mesh.ARRAY_VERTEX][vertex]=source_frame*shape[Mesh.ARRAY_VERTEX][vertex]
  for shape in shapes:
   var normal_safe:=true;var tangent_safe:=true
   for i in vertices.size():normal_safe=normal_safe and shape[Mesh.ARRAY_NORMAL][i].distance_to(arrays[Mesh.ARRAY_NORMAL][i])<.0002
@@ -49,7 +59,7 @@ func run():
  for i in count:
   var head_weight:=0.0
   for slot in 4:
-   if source[Mesh.ARRAY_BONES][i*4+slot]==1:head_weight+=source[Mesh.ARRAY_WEIGHTS][i*4+slot]
+   if source[Mesh.ARRAY_BONES][i*4+slot] in [4,5]:head_weight+=source[Mesh.ARRAY_WEIGHTS][i*4+slot]
   if head_weight<.5:
    for muscle in 5:body_safe=body_safe and (shapes[muscle][Mesh.ARRAY_VERTEX][i] as Vector3).distance_to(vertices[i])<.000001
  require(body_safe,"Facial motion cannot reach the stone fists, arms, torso or legs")
@@ -65,7 +75,9 @@ func run():
   require(total.distance_to(expected)<.00001,"Upper tusks stay fixed; lower tusks rotate rigidly with jaw")
   tusk_counts[side+(0 if upper else 2)]+=1
  for number in tusk_counts:require(number>3,"All four tusks are covered by the anatomical checks")
- var interior:=mesh.surface_get_arrays(1);var inner_shapes:=mesh.surface_get_blend_shape_arrays(1)
+ var interior:=mesh.surface_get_arrays(1).duplicate(true);var inner_shapes:=mesh.surface_get_blend_shape_arrays(1).duplicate(true)
+ for data in [interior]+inner_shapes:
+  for vertex in data[Mesh.ARRAY_VERTEX].size():data[Mesh.ARRAY_VERTEX][vertex]=source_frame*data[Mesh.ARRAY_VERTEX][vertex]
  require(area(interior)<.000001,"The closed mouth has no nondegenerate dark interior surface")
  var material:StandardMaterial3D=mesh.surface_get_material(1)
  require(material.cull_mode==BaseMaterial3D.CULL_BACK,"Exterior views cannot show the back of the mouth lining as a detached flap")
@@ -163,4 +175,4 @@ func run():
  require(previous_gap>0 and maximum_gap>=previous_gap*3,"Visible front lip separation is at least three times the former opening")
  print("Peak lip opening ",maximum_gap,"; former-angle comparison ",previous_gap,"; ratio ",maximum_gap/previous_gap)
  print("Maximum texture area ratio ",worst_area,"; maximum edge ratio ",worst_edge)
- actor.free();second.free();print("%s: %d face, lip seam, cavity, tusks, texture and independent timing checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)
+ actor.free();second.free();source_actor.free();print("%s: %d face, lip seam, cavity, tusks, texture and independent timing checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

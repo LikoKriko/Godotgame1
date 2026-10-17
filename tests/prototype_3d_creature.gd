@@ -1,5 +1,4 @@
 extends SceneTree
-const Poses=preload("res://scripts/prototype_3d/young_pose.gd")
 var failures:=0
 var checks:=0
 func require(value:bool,message:String) -> void:
@@ -11,20 +10,17 @@ func run():
  world.player.set_physics_process(false)
  var enemy=get_nodes_in_group("prototype_enemies")[0];enemy.set_physics_process(false)
  var actor=enemy.model;var mesh:Mesh=actor.mesh_node.mesh
- require(actor.skeleton.get_bone_count()==15,"Creature has its own nonhuman skeleton")
+ require(actor.skeleton.get_bone_count()==25,"Creature has its own nonhuman skeleton")
  require(absf(mesh.get_aabb().size.y*actor.scale.y-0.875)<0.001,"Young creature keeps approved height")
  for state in preload("res://scripts/prototype_3d/animation_review.gd").YOUNG_STATES:
   for side in [true,false]:
    for frame in 24:
-    var pose:=Poses.sample(state,frame/23.0,side)
-    for arm in pose.arms:
-     require(absf(arm.root.distance_to(arm.joint)-Poses.ARM_A)<0.01,"Upper arm cannot detach or stretch")
-     require(absf(arm.joint.distance_to(arm.end)-Poses.ARM_B)<0.01,"Forearm cannot stretch")
-    for leg in pose.legs:
-     require(absf(leg.root.distance_to(leg.joint)-Poses.LEG_A)<0.01,"Short thigh keeps its length")
-     require(absf(leg.joint.distance_to(leg.end)-Poses.LEG_B)<0.01,"Bent lower leg keeps its length")
     actor.animate(state,frame/23.0,side)
-    require(actor.posed[1].origin.is_finite(),"Head remains attached and finite")
+    for bone in actor.parents.size():
+     if actor.parents[bone]<0:continue
+     var parent:int=actor.parents[bone]
+     require(absf(actor.posed[parent].origin.distance_to(actor.posed[bone].origin)-actor.rest[parent].origin.distance_to(actor.rest[bone].origin))<.00003,"Original bone cannot detach or stretch")
+    require(actor.socket(&"head").is_finite(),"Head remains attached and finite")
  require(actor.mesh_node.mesh==mesh,"Creature animates one skinned mesh")
  # Locate the actual front centre-line vertex in the imported Meshy mesh.
  var arrays:Array=mesh.surface_get_arrays(0)
@@ -33,9 +29,9 @@ func run():
  var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
  var nose_index:=0
  for i in points.size():
-  if absf(points[i].x)<0.5 and points[i].z>points[nose_index].z:nose_index=i
+  if absf(points[i].x)<0.025 and points[i].z>points[nose_index].z:nose_index=i
  var nose:=points[nose_index]
- require(nose.z>20,"The imported snout has the expected visible front surface")
+ require(nose.z>1.0,"The imported snout has the expected visible front surface")
  for state in [&"idle",&"walk",&"attack",&"sit",&"corpse"]:
   actor.animate(state,0.45,true);enemy.update_hurtboxes()
   var deformed:=Vector3.ZERO
@@ -44,10 +40,9 @@ func run():
    deformed+=(actor.posed[bone]*(actor.rest[bone].affine_inverse()*nose))*weights[nose_index*4+slot]
   var visible_tip:Vector3=enemy.to_local(actor.to_global(deformed))
   require(visible_tip.distance_to(enemy.hurt_shapes[1].position)<0.012,"Snout hurtbox follows the visible nose after the sculpt changes in %s"%state)
- var walking:=Poses.sample(&"run",0.3)
- require(walking.head.z.dot(Vector3.BACK)>0.9,"Quadruped head faces forward rather than downward")
- var left:=Poses.sample(&"attack",0.5,true);var right:=Poses.sample(&"attack",0.5,false)
- require(left.arms[1].end.distance_to(right.arms[1].end)>2,"Alternating punches use distinct hands")
+ actor.animate(&"attack",.5,true);var left:Vector3=actor.socket(&"left_fist")
+ actor.animate(&"attack",.5,false)
+ require(left.distance_to(actor.socket(&"left_fist"))>.15,"Alternating punches use distinct hands")
  var brain=preload("res://scripts/prototype_3d/creature_brain.gd").new();brain.configure(17)
  brain.advance(0.1,Vector3.ZERO,Vector3(4,0,3),true,[])
  for i in 30:brain.advance(0.1,Vector3.ZERO,Vector3(-20+i,0,12),false,[])

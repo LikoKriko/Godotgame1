@@ -2,7 +2,7 @@ extends Node3D
 ## Standalone F6 review scene: no new objects or mechanics are granted in-game.
 const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
 @export var species:StringName=&"survivor"
-const YoungMotion=preload("res://scripts/prototype_3d/young_pose.gd")
+const YoungMotion=preload("res://scripts/prototype_3d/young_rig_motion.gd")
 const YOUNG_STATES:Array[StringName]=YoungMotion.STATES
 var actor: Node3D
 var camera:=Camera3D.new()

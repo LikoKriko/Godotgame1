@@ -1,0 +1,32 @@
+{
+  "source_url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo1_rig/Meshy_AI_Character_output.glb",
+  "source_path": "res://entregables/enemigos/enemigo1/source/Meshy_AI_Character_output.glb",
+  "source_sha256": "fa3f0215fa063e59335122d1d90dfd82256f1991366dbf0991c6bf7b31dbd44f",
+  "source_vertices": 9236,
+  "source_triangles": 7340,
+  "source_height_m": 1.7000001668930054,
+  "game_height_m": 0.875,
+  "source_has_skeleton": true,
+  "source_has_animations": false,
+  "original_bones": 25,
+  "rig_name": "SmartRigArmature",
+  "rig_method": "Original user-provided joint hierarchy, bind transforms and four skin influences; no replacement skeleton or reweighting",
+  "native_scene": "model.scn",
+  "facial_mesh": "face.res",
+  "animations": "motions.res",
+  "facial_controls": [
+    "jaw_left",
+    "jaw_right",
+    "cheek_left",
+    "cheek_right",
+    "nose_lift"
+  ],
+  "facial_seconds": 2.0,
+  "textures": {
+    "normal.png": "828e0273836a91f6115b183e9a36b9c5e92264114aff3e145ebacf38064fd435",
+    "albedo.png": "3a7648ad76b0f0e3a00fb2b632189fbb21e0c0b36139496af9593fd5c9f60239",
+    "metallic_roughness.png": "d320c4335ff3617fd9cbada93479ab5423634198e90d4510a005896de41ae99f"
+  },
+  "texture_directory": "res://assets/enemies/first/meshy/",
+  "source_geometry_preserved": true
+}

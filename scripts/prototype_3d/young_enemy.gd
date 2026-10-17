@@ -1,5 +1,5 @@
 extends CharacterBody3D
-const Motion=preload("res://scripts/prototype_3d/young_pose.gd")
+const Motion=preload("res://scripts/prototype_3d/young_rig_motion.gd")
 const SPEED:=1.7
 const WANDER_SPEED:=0.85
 const ALERT_RADIUS:=7.5
@@ -85,10 +85,10 @@ func configure(owner_game) -> void:
  update_hurtboxes()
 func update_hurtboxes() -> void:
  if hurt_shapes.is_empty():return
- hurt_shapes[0].position=to_local(model.to_global(model.posed[1].origin))
- hurt_shapes[1].position=to_local(model.to_global(model.posed[1]*preload("res://scripts/prototype_3d/young_pose.gd").SNOUT_OFFSET))
- hurt_shapes[2].position=to_local(model.to_global(model.posed[10].origin))
- hurt_shapes[3].position=to_local(model.to_global(model.posed[13].origin))
+ hurt_shapes[0].position=to_local(model.to_global(model.socket(&"head")))
+ hurt_shapes[1].position=to_local(model.to_global(model.socket(&"snout")))
+ hurt_shapes[2].position=to_local(model.to_global(model.socket(&"left_fist")))
+ hurt_shapes[3].position=to_local(model.to_global(model.socket(&"right_fist")))
 func clock_hour() -> float:
  var clock=game.get("day_cycle")
  return clock.hour if clock!=null else 12.0
@@ -166,7 +166,7 @@ func _physics_process(delta:float) -> void:
   var progress:float=elapsed/0.24 if clip==&"stun_fall" else (1-remaining/0.24 if clip==&"stun_rise" else 0)
   model.animate(clip,clampf(progress,0,1),true,delta)
   update_hurtboxes()
-  indicator.position.y=model.position.y+(model.posed[1].origin.y+10)*model.scale.y+0.185
+  indicator.position.y=model.position.y+(model.socket(&"head").y+.5)*model.scale.y+0.185
   indicator.show_status(remaining,1.5,Color("e6dfa6"),game.camera_rig.camera);return
  indicator.hide()
  var visible_player:=sees_player()
@@ -216,10 +216,12 @@ func _physics_process(delta:float) -> void:
   else:clip=&"boxing_walk" if speed>0 else &"boxing_guard"
  velocity.x=direction.x*speed;velocity.z=direction.z*speed
  if not is_on_floor():velocity.y-=18*delta
+ var before_move:=global_position
  move_and_slide()
  if clip in [&"walk",&"run",&"boxing_walk"]:
-  var actual_speed:=Vector2(velocity.x,velocity.z).length()
-  phase=fposmod(phase+delta/Motion.seconds(clip)*clampf(actual_speed/maxf(speed,.01),0,1),1);progress=phase
+  var travelled:=Vector2(global_position.x-before_move.x,global_position.z-before_move.z).length()
+  var cycle_distance:float=Motion.seconds(clip)*(Motion.WALK_SPEED if clip==&"walk" else Motion.RUN_SPEED)
+  phase=fposmod(phase+travelled/cycle_distance,1);progress=phase
  if direction.length_squared()>0.01:model.rotation.y=lerp_angle(model.rotation.y,atan2(direction.x,direction.z),1-exp(-delta*7))
  elif clip in [&"attack",&"rise",&"hook",&"boxing_rise",&"boxing_guard"]:
   var toward:Vector3=game.player.global_position-global_position
@@ -232,9 +234,9 @@ func behaviour_phase(clip:StringName) -> float:
 func ensure_corpse_area() -> void:
  if corpse_area!=null:return
  corpse_area=Area3D.new();corpse_area.collision_layer=16;corpse_area.collision_mask=0;corpse_area.monitoring=false;corpse_area.set_meta("creature",self);add_child(corpse_area)
- var shape:=CollisionShape3D.new();var volume:=BoxShape3D.new();var bounds:=AABB(to_local(model.to_global(model.posed[0]*Vector3(0,15,0))),Vector3.ZERO)
+ var shape:=CollisionShape3D.new();var volume:=BoxShape3D.new();var bounds:=AABB(to_local(model.to_global(model.posed[0].origin)),Vector3.ZERO)
  for transform in model.posed:bounds=bounds.expand(to_local(model.to_global(transform.origin)))
- bounds=bounds.expand(to_local(model.to_global(model.posed[1]*Motion.SNOUT_OFFSET))).grow(.15)
+ bounds=bounds.expand(to_local(model.to_global(model.socket(&"snout")))).grow(.15)
  volume.size=bounds.size;shape.shape=volume;shape.position=bounds.get_center();corpse_area.add_child(shape)
 func restore_presentation() -> void:
  advance_boxing(0)

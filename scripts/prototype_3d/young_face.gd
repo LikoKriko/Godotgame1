@@ -157,18 +157,28 @@ static func lining_material() -> StandardMaterial3D:
    image.set_pixel(x,y,palette[tone])
  var material:=StandardMaterial3D.new();material.albedo_texture=ImageTexture.create_from_image(image);material.roughness=1;material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_NEAREST;material.cull_mode=BaseMaterial3D.CULL_BACK
  return material
-static func mesh(source:Mesh) -> ArrayMesh:
+static func mesh(source:Mesh,head_bones:Array[int]=[1],source_frame:Transform3D=Transform3D.IDENTITY) -> ArrayMesh:
  if cached!=null:return cached
  var arrays:=source.surface_get_arrays(0).duplicate(true);source_count=arrays[Mesh.ARRAY_VERTEX].size()
+ var original_positions:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX].duplicate()
+ for i in source_count:arrays[Mesh.ARRAY_VERTEX][i]=source_frame*arrays[Mesh.ARRAY_VERTEX][i]
  var roles:=PackedInt32Array();roles.resize(source_count)
  # Source skin membership prevents facial masks from reaching the stone fists.
  for i in source_count:
   var head:=0.0
   for slot in 4:
-   if arrays[Mesh.ARRAY_BONES][4*i+slot]==1:head+=arrays[Mesh.ARRAY_WEIGHTS][4*i+slot]
+   if arrays[Mesh.ARRAY_BONES][4*i+slot] in head_bones:head+=arrays[Mesh.ARRAY_WEIGHTS][4*i+slot]
   if head<.5:roles[i]=2
  cut(arrays,roles)
  var shapes:=blend_shapes(arrays,roles);var interior:=lining(arrays,shapes)
+ var inverse:=source_frame.affine_inverse()
+ for data in [arrays]+shapes:
+  for i in data[Mesh.ARRAY_VERTEX].size():
+   var point:Vector3=data[Mesh.ARRAY_VERTEX][i]
+   data[Mesh.ARRAY_VERTEX][i]=original_positions[i] if i<source_count and point==source_frame*original_positions[i] else inverse*point
+ for data in [interior[0]]+interior[1]:
+  for i in data[Mesh.ARRAY_VERTEX].size():data[Mesh.ARRAY_VERTEX][i]=inverse*data[Mesh.ARRAY_VERTEX][i]
+ for i in source_count:arrays[Mesh.ARRAY_VERTEX][i]=original_positions[i]
  cached=ArrayMesh.new();cached.blend_shape_mode=Mesh.BLEND_SHAPE_MODE_NORMALIZED
  for label in CONTROLS:cached.add_blend_shape(label)
  cached.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays,shapes,{},source.surface_get_format(0));cached.surface_set_material(0,source.surface_get_material(0))

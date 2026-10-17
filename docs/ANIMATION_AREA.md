@@ -2,7 +2,7 @@
 
 ## Anatomía y continuidad
 
-El superviviente utiliza un esqueleto de 24 huesos; enemigo1, uno de 15;
+El superviviente utiliza un esqueleto de 24 huesos; enemigo1, sus 25 huesos originales;
 enemigo3 conserva sus 35 huesos originales. Las animaciones mantienen longitudes
 óseas, agarres y unión de piel y vestimenta. Los cambios de estado parten de la
 pose visible y mezclan de forma continua con la siguiente acción.
@@ -51,8 +51,9 @@ se reproduce aproximadamente en 0,418 s al alcanzar el máximo sin modificadores
   al correr y velocidad diez veces mayor; patrulla de veinte metros por tramo
   con ciclo temporal de carreras de 10/20/40 s y descansos.
 
-Los ciclos repetitivos de enemigo1 comparten keyframes y vuelven a resolver IK
-al interpolar. Ataques y transiciones conservan sus curvas procedurales.
+Enemigo1 comparte una biblioteca nativa de animaciones horneadas sobre el rig
+aportado. Los apoyos siguen la piel original y la distancia física recorrida.
+La IK se resuelve al hornear; el runtime reproduce y mezcla las poses locales.
 La expresión facial tiene su propio reloj y acompaña los contactos.
 
 ## Trabajo entre departamentos
