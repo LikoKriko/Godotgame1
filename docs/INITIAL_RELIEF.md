@@ -32,9 +32,9 @@ hitbox del objeto. Los apoyos se calculan por semilla una vez y se consultan
 mediante una cuadrícula espacial compartida entre suelo, colisiones y recursos.
 Las huellas completas de recursos y césped dejan libre el camino. El buffer de césped se
 prepara en el hilo de chunks y su atributo CUSTOM0 conserva la altura del centro
-para aplicar correctamente la calidad por distancia. El camino reutiliza la
-trama pixelada existente, adaptada a una paleta de tierra marrón solo en el
-camino de prueba, con la misma máscara en ambos shaders del suelo.
+para aplicar correctamente la calidad por distancia. El camino usa
+`terreno1_claro_1_Path.png` con sus colores originales y la misma máscara en
+ambos shaders del suelo. Las tres imágenes generales de suelo cubren el resto.
 
 Las casas antiguas del inicio no se instancian. Los charcos y plataformas
 planos que intersectaban la prueba tampoco se colocan sobre el nuevo relieve.

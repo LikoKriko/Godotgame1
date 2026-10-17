@@ -1,10 +1,10 @@
 shader_type spatial;
 #include "res://shaders/prototype_3d/initial_path.gdshaderinc"
 render_mode cull_back;
-uniform sampler2D normal_ground : filter_nearest, repeat_disable;
-uniform sampler2D dark_ground : filter_nearest, repeat_disable;
-uniform sampler2D vegetation_ground : filter_nearest, repeat_disable;
-uniform sampler2D dirt_ground : filter_nearest, repeat_disable;
+uniform sampler2D normal_ground : source_color, filter_nearest, repeat_disable;
+uniform sampler2D dark_ground : source_color, filter_nearest, repeat_disable;
+uniform sampler2D vegetation_ground : source_color, filter_nearest, repeat_disable;
+uniform sampler2D dirt_ground : source_color, filter_nearest, repeat_disable;
 uniform uint seed_value = 73129u;
 uniform vec3 ambient_tint = vec3(1.0);
 uniform vec3 thresholds = vec3(0.57,0.64,0.70);
@@ -28,6 +28,8 @@ float noise_at(vec2 p) {
  return mix(mix(hash_at(cell),hash_at(cell+vec2(1.0,0.0)),f.x),mix(hash_at(cell+vec2(0.0,1.0)),hash_at(cell+vec2(1.0)),f.x),f.y);
 }
 float field(vec2 p) { p /= region_scale; return noise_at(p)*0.70+noise_at(p*2.17+vec2(37.0,19.0))*0.22+noise_at(p*5.31+vec2(-11.0,73.0))*0.08; }
+// Path selection is independent of the fourth logical biome weight.
+#include "res://shaders/prototype_3d/ground_path.gdshaderinc"
 // Shared overlapping sample anchors never reach the rectangular source edges.
 // Sampling is nearest and pixel-aligned; blending changes colors, not pixel geometry.
 vec3 quilt(vec2 point,vec4 weights) {
@@ -76,7 +78,9 @@ void fragment() {
   vec4 target = vec4(0.0); target[int(influence_types[i].x)] = 1.0;
   weights = mix(weights,target,amount);
  }
- weights=mix(weights,vec4(0.0,0.0,0.0,1.0),initial_path(p));
- ALBEDO = initial_soil(quilt(p,weights),initial_path(p))*ambient_tint;
+ // Natural bare ground uses the general light texture, never the road image.
+ weights.x+=weights.w;weights.w=0.0;
+ weights=mix(weights,vec4(0.0,0.0,0.0,1.0),ground_path(p));
+ ALBEDO = quilt(p,weights)*ambient_tint;
  ROUGHNESS = 1.0;
 }

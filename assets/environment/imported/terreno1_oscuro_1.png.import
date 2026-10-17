@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://esqmnyms83j3"
-path="res://.godot/imported/terreno_1_3.png-17e382c3a36635bb391cc771e986a274.ctex"
+uid="uid://jhvaknndqijc"
+path="res://.godot/imported/terreno1_oscuro_1.png-6ebaeff9a65896a2db8e1eee073844fe.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/environment/imported/terreno_1_3.png"
-dest_files=["res://.godot/imported/terreno_1_3.png-17e382c3a36635bb391cc771e986a274.ctex"]
+source_file="res://assets/environment/imported/terreno1_oscuro_1.png"
+dest_files=["res://.godot/imported/terreno1_oscuro_1.png-6ebaeff9a65896a2db8e1eee073844fe.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

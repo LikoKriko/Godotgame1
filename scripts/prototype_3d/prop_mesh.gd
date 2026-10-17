@@ -16,7 +16,7 @@ static func detail_texture(kind:StringName) -> Texture2D:
  var atlas:Texture2D=load("res://assets/enemies/prototype_3d/pixel_materials.png" if key in [&"stone",&"leaf"] else "res://assets/characters/prototype_3d/pixel_materials.png")
  var size:=Vector2(atlas.get_size());var offset:=Vector2(0.03 if key==&"leaf" else 0.53,0.53 if key in [&"rope",&"leaf"] else 0.03)
  var image:=atlas.get_image().get_region(Rect2i(Vector2i(offset*size),Vector2i(size*0.44)))
- if key==&"soil":image=load("res://assets/environment/imported/terreno_1_4.png").get_image()
+ if key==&"soil":image=load("res://assets/environment/imported/terreno1_claro_1.png").get_image()
  image.resize(256,256,Image.INTERPOLATE_NEAREST);image.convert(Image.FORMAT_RGB8)
  for y in image.get_height():
   for x in image.get_width():
