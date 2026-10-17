@@ -26,7 +26,11 @@ func run():
  for i in points.size():
   max_position_error=maxf(max_position_error,points[i].distance_to(actual_points[i]))
   max_uv_error=maxf(max_uv_error,uv[i].distance_to(actual_uv[i]))
-  if not polished or colors[i].a<.5:max_normal_error=maxf(max_normal_error,(rotation*normals[i]).distance_to(actual_normals[i]))
+  # Runtime masks are stored in RGBA8; account for one step of quantization
+  # around the author's 0.5 smoothing threshold.
+  var threshold:float=.5-1.0/255.0
+  var smoothed:bool=polished and (colors[i].a>threshold or (mesh.has_meta("face_surface_profile") and colors[i].g>threshold))
+  if not smoothed:max_normal_error=maxf(max_normal_error,(rotation*normals[i]).distance_to(actual_normals[i]))
  print("Source comparison: vertices=",points.size()," max position error=",max_position_error," max UV error=",max_uv_error," max normal error=",max_normal_error)
  assert(max_position_error<0.002,"Every source position must be preserved within Godot mesh packing precision")
  assert(max_uv_error<0.00003,"Every source UV must be preserved")

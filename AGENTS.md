@@ -129,8 +129,9 @@ Consultar `docs/MESHY_ASSETS.md` y los manifiestos source.json de assets para
 la fuente actual de cada modelo. Conservar los FBX, PNG, UV, geometría y rigs
 originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
 
-- Superviviente: Wild Wanderer 1016142901, 20878 triángulos, 1,75 m,
-  24 huesos con tela y volumen de articulaciones. Mantener skin_seams_v1;
+- Superviviente: Rugged Castaway 1017215425, 31182 triángulos, 1,75 m,
+  24 huesos con tela y volumen de articulaciones. Mantener skin_seams_v1 y
+  face_materials_v1 (máscaras de pelo/barba y relieve facial sutil);
   regenerar mediante transferencia de piel, no con ligadura automática.
 - Enemigo1: Mossclaw Boar 1016001519, 4036 triángulos de superficie, 0,875 m,
   25 huesos originales SmartRigArmature de modelo1_rig. Mantener jerarquía,

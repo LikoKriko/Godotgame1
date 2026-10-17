@@ -1,27 +1,42 @@
 {
   "author_height": 64.0,
   "author_z_offset": 2.6,
-  "fbx_sha256": "e598a91b3f1d177557d2655b1e8bf62732df4f11afa3818444441ce374abcaab",
+  "face_material": {
+    "detail_normal": "face_detail_normal.png",
+    "detail_sha256": "0fdd7d5e1e7177141893e4cd0c74d5d80aa02c63f41ecf9e568ee3063479cc81",
+    "detail_size": [
+      1254,
+      1254
+    ],
+    "detail_strength": 0.055,
+    "face_normal_strength": 0.4,
+    "filter": "linear_mipmap_anisotropic",
+    "hair_correction": "Topology mask; skin-colored projection flecks only",
+    "profile": "face_materials_v1",
+    "source_maps_preserved": true
+  },
+  "fbx_sha256": "99026a77ee03b8e679427f879ed778f196e80c0aca63e8f55346f2c6f37cc40b",
   "height_m": 1.75,
   "previous_source": {
-    "commit": "4b5a50d",
-    "native_sha256": "7c48018fd35027d7176679237ca96ad46100c8bd00b749adcd8b6f4e7e0ad56c",
-    "triangles": 491218.0
+    "native_sha256": "0310f945e183434ef0a0a96e139118fe422e8fce8a3db3b5977655987ccfc506",
+    "source_fbx": "entregables/personajes/personaje1/source/Meshy_AI_Wild_Wanderer_1016142901_texture.fbx",
+    "triangles": 20878.0,
+    "zip_sha256": "41d337bca5ab900bac67da6e9ede430d48d0bbc12964cd5fbcaaa1d6e4f4efb3"
   },
   "rig_method": "Barycentric nearest-triangle transfer of the current 24-bone native skin, including cloth and elbow/knee volume controls",
-  "runtime_geometry_sha256": "64cec801d2f4d04228a6e30a4d5fdfd5af18ccbf9314e14af9e87e959d77fc4b",
-  "runtime_triangles": 20878,
-  "runtime_vertices": 22132,
-  "source_fbx": "entregables/personajes/personaje1/source/Meshy_AI_Wild_Wanderer_1016142901_texture.fbx",
-  "source_vertices": 10440.0,
+  "runtime_geometry_sha256": "4c27df699e071fe0fe09a2dcf305849cee47b87e7670bb61b709ddf9108c30d2",
+  "runtime_triangles": 31182,
+  "runtime_vertices": 31641,
+  "source_fbx": "entregables/personajes/personaje1/source/Meshy_AI_Rugged_Castaway_1017215425_texture.fbx",
+  "source_vertices": 15598.0,
   "textures_sha256": {
-    "albedo": "bd20d34a58d58e123a498685fd5cec6dbb8d84fe05bec0026c8ea607467bdedd",
-    "metallic": "89f861f352ea028ab0cdc97ce7674fe373ceee10092422b751ff558c7f23e414",
-    "metallic_roughness": "72ae9960e154bdebfdc7c94545e84426ab63bfa40599c1071e3d512320f3a414",
-    "normal": "b7ee91308ace1eeda0af68843ec8bbcb86cadebf78f430a0e543da9c3e161c0d",
-    "roughness": "553c87e51c2ac5dd902a17038c3377da8ec203115b3230ed8b8561f66f877e1c"
+    "albedo": "ed760a9db218f2cec3bef6064a448482d45d33a80434fadc08ee4ece89e31f84",
+    "metallic": "31717b0013ee10d231f7f1a1f4facccdacdbd3abf96ad4f3923f06d6846d23a0",
+    "metallic_roughness": "b76fd242509bb5d269b0ba9427ec5f3fb84c8777d5cc15b065eac4fed393bf47",
+    "normal": "552621b5fdc33dde0ff0d8aa375486617a3f40be46a860b6104b7e7e70dbc804",
+    "roughness": "9a50bbbd7928dc5bab572c3600462b808ca8c542f30064f778e1ea7cc469b892"
   },
-  "triangles": 20878.0,
-  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_personaje3d/personaje1_3d.zip",
-  "zip_sha256": "41d337bca5ab900bac67da6e9ede430d48d0bbc12964cd5fbcaaa1d6e4f4efb3"
+  "triangles": 31182.0,
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_personaje3d/personaje1.zip",
+  "zip_sha256": "a20c087e51a17f1ad58fb10a38a95fa2e06393b24ad335af5777b1670a1ab5f5"
 }

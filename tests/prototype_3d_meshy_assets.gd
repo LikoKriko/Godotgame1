@@ -8,7 +8,7 @@ func require(value:bool,message:String) -> void:
 func _initialize():call_deferred("run")
 func run():
  var definitions=[
-  ["res://assets/characters/prototype_3d/meshy/","survivor_skin.res",20878,64.0],
+  ["res://assets/characters/prototype_3d/meshy/","survivor_skin.res",31182,64.0],
   ["res://assets/items/prototype_3d/bottle_meshy/","bottle.res",883250,10.4],
   ["res://assets/models/meshy/axe/","model.res",3104,19.2],
   ["res://assets/models/meshy/pickaxe/","model.res",255100,21.6],
@@ -39,9 +39,18 @@ func run():
     else:unchanged+=1
     if positions[i].y>52.01:protected=protected and mask[i].a<.01
    require(mask.size()==positions.size() and skin>0 and unchanged>0 and protected,"Surface correction targets skin and preserves hair/face detail")
+   var hair_count:=0;var face_count:=0;var masks_valid:=true
+   for i in mask.size():
+    if mask[i].r>.5:hair_count+=1;masks_valid=masks_valid and positions[i].y>52.9
+    if mask[i].g>.5:face_count+=1;masks_valid=masks_valid and positions[i].y>52.8 and positions[i].y<61.0
+   require(hair_count>100 and face_count>100 and masks_valid,"Facial masks isolate hair and facial skin from body and clothes")
+   require(mesh.get_meta("face_surface_profile")=="face_materials_v1" and rendered.get_shader_parameter("face_detail_map")!=null,"Face uses the authored subtle relief material")
+   require(FileAccess.get_sha256(folder+provenance.face_material.detail_normal)==provenance.face_material.detail_sha256,"Facial relief matches the authored texture")
+   require(original.cull_mode==BaseMaterial3D.CULL_DISABLED,"Open hair planes remain visible from both sides")
   var material:Material=mesh.get_meta("source_material",mesh.surface_get_material(0))
   require(material is StandardMaterial3D and material.next_pass==null,"Source UV material replaces procedural projection and outline passes")
-  require(material.texture_filter==BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS,"Pixel sampling survives perspective and distance")
+  var filter:int=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC if mesh.has_meta("face_surface_profile") else BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+  require(material.texture_filter==filter,"Sampling and mipmaps follow the current material finish")
   require(material.albedo_texture!=null and material.normal_texture!=null and material.roughness_texture!=null and material.metallic_texture!=null,"All four supplied texture maps are assigned")
   var points:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var uv:PackedVector2Array=arrays[Mesh.ARRAY_TEX_UV]
   var normals:PackedVector3Array=arrays[Mesh.ARRAY_NORMAL]

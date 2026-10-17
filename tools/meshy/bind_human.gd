@@ -44,7 +44,7 @@ func run():
  for id in imported_bones:bones.append(remap[id])
  var nose:=Vector3(0,0,-INF)
  for point in vertices:
-  if absf(point.x)<0.5 and point.z>nose.z:nose=point
+  if point.y>54 and absf(point.x)<0.5 and point.z>nose.z:nose=point
  for i in vertices.size():
   var total:=0.0
   for j in 4:total+=weights[i*4+j]
@@ -101,7 +101,8 @@ func run():
  material.roughness_texture=load(path+"roughness.png");material.roughness_texture_channel=BaseMaterial3D.TEXTURE_CHANNEL_RED
  material.metallic_texture=load(path+"metallic.png");material.metallic_texture_channel=BaseMaterial3D.TEXTURE_CHANNEL_RED
  material.metallic=1;material.roughness=1
- material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+ material.cull_mode=BaseMaterial3D.CULL_DISABLED
+ material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
  mesh.surface_set_material(0,material)
  var indices:PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
  var triangle_count:=indices.size()/3 if not indices.is_empty() else vertices.size()/3
@@ -124,6 +125,8 @@ func run():
   hashes.append(digest(var_to_bytes(stored[i])))
  manifest["runtime_geometry_sha256"]="|".join(hashes).sha256_text()
  manifest["runtime_vertices"]=vertices.size();manifest["runtime_triangles"]=triangle_count
+ var detail:Texture2D=load("res://assets/characters/prototype_3d/meshy/face_detail_normal.png")
+ manifest["face_material"]={"profile":"face_materials_v1","hair_correction":"Topology mask; skin-colored projection flecks only","face_normal_strength":.4,"detail_strength":.055,"detail_normal":"face_detail_normal.png","detail_size":[detail.get_width(),detail.get_height()],"detail_sha256":FileAccess.get_sha256("res://assets/characters/prototype_3d/meshy/face_detail_normal.png"),"filter":"linear_mipmap_anisotropic","source_maps_preserved":true}
  var file:=FileAccess.open(manifest_path,FileAccess.WRITE);file.store_string(JSON.stringify(manifest,"  ")+"\n");file.close()
  print("Baked Meshy: vertices=",vertices.size()," triangles=",triangle_count," bounds=",mesh.get_aabb()," nose_tip=",nose," source geometry preserved")
  scene.free();quit()
