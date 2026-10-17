@@ -6,11 +6,12 @@ var actors:Array[Node3D]=[]
 var phase:=0.0
 var paused:=false
 var walking:=true
+var running:=false
 var capturing:=false
 var status:Label
 func _ready() -> void:
  get_window().size=Vector2i(1200,880)
- var title:=Label.new();title.text="Enemigo3 · Sunny Sprout · texturas originales y primera caminata";title.position=Vector2(18,8);title.add_theme_font_size_override("font_size",22);add_child(title)
+ var title:=Label.new();title.text="Enemigo3 · Sunny Sprout · texturas originales · caminata y carrera";title.position=Vector2(18,8);title.add_theme_font_size_override("font_size",22);add_child(title)
  status=Label.new();status.position=Vector2(18,42);add_child(status)
  var positions:=[Vector3(0,1.05,4),Vector3(4,1.05,0),Vector3(0,1.05,-4),Vector3(2.8,1.7,3.3)]
  for i in 4:
@@ -28,18 +29,19 @@ func _ready() -> void:
   capturing=true;capture.call_deferred()
 func _process(delta:float) -> void:
  if capturing:return
- if not paused:phase=fposmod(phase+delta/Actor.CYCLE_SECONDS,1)
+ if not paused:phase=fposmod(phase+delta/(Actor.RUN_CYCLE_SECONDS if running else Actor.CYCLE_SECONDS),1)
  pose()
 func pose() -> void:
  for actor in actors:
   var player:AnimationPlayer=actor.get_node("AnimationPlayer")
-  player.play(&"walk" if walking else &"RESET");player.seek(phase*Actor.CYCLE_SECONDS if walking else 0.0,true);player.pause()
- status.text=("Caminata · %.2f s/ciclo · fase %.2f"%[Actor.CYCLE_SECONDS,phase] if walking else "Pose original · texturas enlazadas")+"    Espacio: pausa   R: original   W: caminar"
+  player.play((&"run" if running else &"walk") if walking else &"RESET");player.seek(phase*(Actor.RUN_CYCLE_SECONDS if running else Actor.CYCLE_SECONDS) if walking else 0.0,true);player.pause()
+ status.text=("%s · %.2f s/ciclo · fase %.2f"%["Carrera" if running else "Caminata",Actor.RUN_CYCLE_SECONDS if running else Actor.CYCLE_SECONDS,phase] if walking else "Pose original · texturas enlazadas")+"    Espacio: pausa   R: original   W: caminar   C: correr"
 func _unhandled_key_input(event:InputEvent) -> void:
  if event.is_action_pressed("ui_accept"):paused=not paused
  if event is InputEventKey and event.pressed:
   if event.keycode==KEY_R:walking=false
-  if event.keycode==KEY_W:walking=true
+  if event.keycode==KEY_W:walking=true;running=false
+  if event.keycode==KEY_C:walking=true;running=true
 func capture() -> void:
  var folder:=OS.get_cmdline_user_args()[-1];DirAccess.make_dir_recursive_absolute(folder)
  walking=false;pose();await frames()

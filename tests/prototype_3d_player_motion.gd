@@ -22,6 +22,7 @@ func sample_floor(actor,arrays:Array) -> float:
   minimum=minf(minimum,point.y)
  return minimum
 func run():
+ require(is_equal_approx(Response.SPRINT_MULTIPLIER,1.6*1.4),"Requested sprint maximum is exactly forty percent faster")
  for fps in [30,60,120]:
   var delayed:=Delay.new();delayed.sample(Vector3.BACK,0)
   for target in [Vector3.RIGHT,Vector3.FORWARD]:
@@ -36,13 +37,13 @@ func run():
   var response:=Response.new();response.advance(Vector2.UP,true,0,.16)
   require(response.stage==&"maximum" and absf(response.speed-1)<.0001,"Sprint starts with a separate idle-to-walk transition")
   response.advance(Vector2.UP,true,0,.5)
-  require(response.speed>1 and response.speed<1.6,"Maximum phase accelerates progressively")
+  require(response.speed>1 and response.speed<Response.SPRINT_MULTIPLIER,"Maximum phase accelerates progressively")
   var restored:=Response.new();var encoded:Dictionary=JSON.parse_string(JSON.stringify(response.snapshot()))
   require(Response.valid(encoded),"Saved sprint envelopes accept their JSON round trip")
   restored.restore(encoded);restored.advance(Vector2.UP,true,0,.5)
   response.advance(Vector2.UP,true,0,.5)
   require(absf(restored.speed-response.speed)<.00001 and restored.stage==response.stage,"Loading mid-acceleration resumes the same physical curve")
-  require(is_equal_approx(response.speed,1.6),"Maximum sprint speed arrives after one full second")
+  require(is_equal_approx(response.speed,Response.SPRINT_MULTIPLIER),"Maximum sprint speed arrives after one full second")
  for interrupt in [.04,.16,.4,1.16,2.0]:
   for target in [0.0,.48,1.0]:
    var response:=Response.new()
@@ -54,7 +55,7 @@ func run():
    var previous:float=response.speed
    for frame in 30:
     response.advance(travel,false,1.0 if target==.48 else 0.0,.01)
-    require(absf(response.speed-previous)<.13,"Braking never snaps speed")
+    require(absf(response.speed-previous)<Response.SPRINT_MULTIPLIER*.07,"Braking never snaps speed")
     previous=response.speed
    require(absf(response.speed-target)<.00001,"Braking reaches idle, walk or crouch-walk")
    response.advance(Vector2.UP,true,0,0)
@@ -104,7 +105,7 @@ func run():
   for frame in 240:
    var sprint:bool=frame/120.0<stop_time
    envelope.advance(Vector2.UP if sprint else Vector2.ZERO,sprint,0,1.0/120)
-   gait=fposmod(gait+envelope.speed/1.6/.585/120,1)
+   gait=fposmod(gait+envelope.speed/Response.GAIT_MULTIPLIER/.585/120,1)
    actor.sprint_weight=envelope.sprint_weight
    var state:StringName=&"start_run" if envelope.stage==&"start" else (&"run" if envelope.stage==&"maximum" else (&"stop_run" if envelope.speed>.001 else &"idle"))
    actor.animate(state,envelope.phase() if state!=&"run" else gait,false,1.0/120,gait,Vector3.BACK,clampf(envelope.speed,0,1))
@@ -123,7 +124,7 @@ func run():
  await process_frame
  for frame in 72:
   player._physics_process(1.0/60);await physics_frame
- require(player.movement_response.stage==&"maximum" and is_equal_approx(player.movement_response.speed,1.6),"Live input reaches maximum sprint after startup plus one second")
+ require(player.movement_response.stage==&"maximum" and is_equal_approx(player.movement_response.speed,Response.SPRINT_MULTIPLIER),"Live input reaches maximum sprint after startup plus one second")
  key(KEY_SHIFT,false)
  for frame in 16:
   player._physics_process(1.0/60);await physics_frame

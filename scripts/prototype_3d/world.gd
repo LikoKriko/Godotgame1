@@ -387,13 +387,14 @@ func spawn_sprout_near_player() -> bool:
  for index in 32:
   var direction:=Vector3(cos(index*TAU/32),0,sin(index*TAU/32))
   var point:Vector3=player.global_position+direction*3;point.y=.025
-  var end:=point+direction*10
+  var distance:float=preload("res://scripts/prototype_3d/sprout_patrol.gd").DISTANCE
+  var end:=point+direction*distance
   var bounds:=world_bounds.grow(-.5)
   if not bounds.has_point(Vector2(point.x,point.z)) or not bounds.has_point(Vector2(end.x,end.z)):continue
   # Check the whole route so the first walk cannot immediately run into a tree,
   # wall or another actor. Feet and the floor are below this clearance volume.
-  var query:=PhysicsShapeQueryParameters3D.new();var box:=BoxShape3D.new();box.size=Vector3(.7,.94,10.8)
-  query.shape=box;query.transform=Transform3D(Basis(Vector3.UP,atan2(direction.x,direction.z)),point+direction*5+Vector3.UP*.5);query.collision_mask=43
+  var query:=PhysicsShapeQueryParameters3D.new();var box:=BoxShape3D.new();box.size=Vector3(.7,.94,distance+.8)
+  query.shape=box;query.transform=Transform3D(Basis(Vector3.UP,atan2(direction.x,direction.z)),point+direction*(distance*.5)+Vector3.UP*.5);query.collision_mask=43
   if not get_world_3d().direct_space_state.intersect_shape(query).is_empty():continue
   var enemy:=preload("res://scripts/prototype_3d/sprout_enemy.gd").new();add_child(enemy);enemy.global_position=point;enemy.configure(self,direction);return true
  return false

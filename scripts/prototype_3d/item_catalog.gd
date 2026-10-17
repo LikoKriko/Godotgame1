@@ -11,4 +11,4 @@ func spawn_enemy() -> void:
  status.text="Enemigo joven añadido." if game.spawn_enemy_near_player() else "No hay una posición libre cerca."
 
 func spawn_sprout() -> void:
- status.text="Enemigo3 añadido: recorrido de 10 metros." if game.spawn_sprout_near_player() else "No hay un recorrido libre de 10 metros cerca."
+ status.text="Enemigo3 añadido: recorrido de 20 metros." if game.spawn_sprout_near_player() else "No hay un recorrido libre de 20 metros cerca."

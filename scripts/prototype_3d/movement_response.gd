@@ -1,5 +1,7 @@
 extends RefCounted
 ## Physical speed and animation envelopes share the same interruptible clock.
+const SPRINT_MULTIPLIER:=1.6*1.4
+const GAIT_MULTIPLIER:=1.6
 const START_SECONDS:=.16
 const MAXIMUM_SECONDS:=1.0
 const BRAKE_SECONDS:=.24
@@ -23,7 +25,7 @@ static func valid(data) -> bool:
  if not data is Dictionary or data.get("stage") not in ["idle","start","maximum","brake"] or not data.get("requested") is bool:return false
  for key in VALUES:
   var value=data.get(key)
-  if not (value is float or value is int) or not is_finite(value) or value<0 or value>1.600001:return false
+  if not (value is float or value is int) or not is_finite(value) or value<0 or value>SPRINT_MULTIPLIER+.000001:return false
  if not data.get("direction") is Array or data.direction.size()!=2:return false
  for value in data.direction:
   if not (value is float or value is int) or not is_finite(value) or absf(value)>1:return false
@@ -50,7 +52,7 @@ func advance(travel:Vector2,sprint:bool,crouch:float,delta:float) -> Vector2:
  if stage==&"maximum":
   elapsed=minf(MAXIMUM_SECONDS,elapsed+remaining)
   var t:=smoothstep(0,MAXIMUM_SECONDS,elapsed)
-  sprint_weight=lerpf(maximum_weight,1,t);speed=lerpf(maximum_from,1.6,t)
+  sprint_weight=lerpf(maximum_weight,1,t);speed=lerpf(maximum_from,SPRINT_MULTIPLIER,t)
  elif stage==&"brake":
   elapsed=minf(BRAKE_SECONDS,elapsed+remaining)
   var t:=smoothstep(0,BRAKE_SECONDS,elapsed)

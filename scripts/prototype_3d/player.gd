@@ -1,6 +1,7 @@
 extends CharacterBody3D
 const SPEED := 2.0
-const RUN_MULTIPLIER := 1.6
+const RUN_MULTIPLIER := preload("res://scripts/prototype_3d/movement_response.gd").SPRINT_MULTIPLIER
+const RUN_GAIT_MULTIPLIER := preload("res://scripts/prototype_3d/movement_response.gd").GAIT_MULTIPLIER
 const GRAVITY := 18.0
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
@@ -228,7 +229,7 @@ func _physics_process(delta: float) -> void:
  var state: StringName = &"idle"; var progress := 0.0
  var actual_speed:=Vector2(velocity.x,velocity.z).length()
  if actual_speed>0.03:
-  phase = fposmod(phase+delta/Clips.duration(&"run" if running else &"walk")*actual_speed/(SPEED*(RUN_MULTIPLIER if running else 1.0)),1)
+  phase = fposmod(phase+delta/Clips.duration(&"run" if running else &"walk")*actual_speed/(SPEED*(RUN_GAIT_MULTIPLIER if running else 1.0)),1)
  visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
  model.sprint_weight=movement_response.sprint_weight
  model.sprint_crouch=locomotion.crouch

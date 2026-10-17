@@ -8,6 +8,12 @@ const STRIDE:=0.095
 const SUPPORT:=0.60
 const SPEED:=2.0*STRIDE/(SUPPORT*CYCLE_SECONDS)
 const GROUND_OFFSET:=0.015508
+const RUN_CYCLE_SECONDS:=.60
+const RUN_SUPPORT:=.42
+const RUN_SPEED:=SPEED*10.0
+const RUN_STRIDE:=RUN_SPEED*RUN_SUPPORT*RUN_CYCLE_SECONDS*.5
+const RUN_PITCH:=PI/3
+const VISUAL_BOUNDS:=AABB(Vector3(-1,-.7,-1.7),Vector3(2,2.5,3.6))
 var skeleton:Skeleton3D
 var mesh_node:MeshInstance3D
 var bind:Array[Transform3D]=[]
@@ -20,7 +26,7 @@ func _ready() -> void:
  var model:=SOURCE.instantiate();add_child(model);model.position.y+=GROUND_OFFSET
  skeleton=model.find_children("*","Skeleton3D",true,false)[0]
  mesh_node=model.find_children("*","MeshInstance3D",true,false)[0]
- mesh_node.custom_aabb=AABB(Vector3(-1,-.7,-1.7),Vector3(2,2.5,2.5))
+ mesh_node.custom_aabb=VISUAL_BOUNDS
  for i in skeleton.get_bone_count():
   bind.append(skeleton.get_bone_global_pose(i));local_bind.append(skeleton.get_bone_pose(i));parents.append(skeleton.get_bone_parent(i))
  posed.assign(bind)
@@ -72,5 +78,43 @@ func animate(phase:float,amount:float=1.0) -> void:
   if i==bone("pierna1_R.002"):turn_about(i,Vector3.UP,.045*sin(phase*TAU-.45)*amount)
   if i==bone("pierna1_R.004"):turn_about(i,Vector3.UP,.035*sin(phase*TAU-.9)*amount)
  # amount=0 restores the supplied pose exactly, including the authored wrist.
+ if amount==0:posed.assign(bind)
+ for i in bind.size():skeleton.set_bone_pose(i,posed[parents[i]].affine_inverse()*posed[i] if parents[i]>=0 else posed[i])
+
+
+func animate_run(phase:float,amount:float=1.0) -> void:
+ if not is_instance_valid(skeleton):return
+ phase=fposmod(phase,1.0);amount=clampf(amount,0,1)
+ contacts.clear()
+ # The original roots share a modest running crouch; the lumbar joint alone
+ # inclines the chest/head. Legs keep independent support on the ground.
+ var bob:=.010*sin(phase*TAU*2)
+ var body:=Transform3D(Basis.IDENTITY,Vector3(.007*sin(phase*TAU)*amount,(-.11+bob)*amount,0))
+ for i in bind.size():
+  inherit(i)
+  if parents[i]<0:posed[i]=body*bind[i]
+  if i==bone("Hueso.001"):turn_about(i,Vector3.RIGHT,RUN_PITCH*amount)
+  for side in 2:
+   var suffix:="_L" if side==0 else "_R"
+   var hip:=bone("pierna2"+suffix);var knee:=bone("pierna3"+suffix);var hock:=bone("pierna4"+suffix);var foot:=bone("pierna5"+suffix)
+   if i==hip:
+    var step:=Body.stance_swing(phase+side*.5,RUN_STRIDE*amount,.13*amount,RUN_SUPPORT,amount)
+    var ankle:=bind[foot].origin+Vector3(0,step.lift,step.z)
+    var target_hock:Vector3=ankle-(bind[foot].origin-bind[hock].origin)
+    var upper:float=bind[hip].origin.distance_to(bind[knee].origin)
+    var lower:float=bind[knee].origin.distance_to(bind[hock].origin)
+    var solved:=Body.joint(posed[hip].origin*100,target_hock*100,upper*100,lower*100,Vector3(0,0,1))
+    var joint:Vector3=solved.joint/100;var end:Vector3=solved.end/100
+    aim(hip,knee,posed[hip].origin,joint)
+    contacts.append({"side":side,"stance":fposmod(phase+side*.5,1)<RUN_SUPPORT,"target":ankle,"knee":joint,"hock":end,"foot":foot})
+   if i==knee:
+    var c:Dictionary=contacts[side];aim(knee,hock,c.knee,c.hock)
+   if i==hock:
+    var c:Dictionary=contacts[side];aim(hock,foot,c.hock,c.target)
+   if i==foot:posed[i]=Transform3D(bind[i].basis,contacts[side].target)
+   # Shoulder swing stays local to the tilted chest, preserving elbows/digits.
+   if i==bone("brazo2"+suffix):turn_about(i,Vector3.RIGHT,.32*sin((phase+side*.5)*TAU)*amount)
+  if i==bone("pierna1_R.002"):turn_about(i,Vector3.RIGHT,-.12*amount)
+  if i==bone("pierna1_R.004"):turn_about(i,Vector3.UP,.065*sin(phase*TAU-.6)*amount)
  if amount==0:posed.assign(bind)
  for i in bind.size():skeleton.set_bone_pose(i,posed[parents[i]].affine_inverse()*posed[i] if parents[i]>=0 else posed[i])

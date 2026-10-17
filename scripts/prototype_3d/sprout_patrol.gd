@@ -1,6 +1,6 @@
 extends RefCounted
-## Two fixed endpoints, ten horizontal metres apart. No pursuit or combat.
-const DISTANCE:=10.0
+## Two fixed endpoints, twenty horizontal metres apart. No pursuit or combat.
+const DISTANCE:=20.0
 const TURN_SECONDS:=.65
 var origin:=Vector3.ZERO
 var axis:=Vector3.FORWARD

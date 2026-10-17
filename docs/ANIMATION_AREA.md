@@ -197,7 +197,7 @@ y el pie del lado que golpea da un pequeño paso antes del contacto. Se mantiene
 el ataque agachado y la selección de contacto de la mira.
 
 `movement_response.gd` coordina velocidad y mezcla visual: arranque de 0,16 s,
-fase máxima que acelera durante 1 s hasta el multiplicador 1,6, y frenada de
+fase máxima que acelera durante 1 s hasta el multiplicador 2,24, y frenada de
 0,24 s hacia reposo, marcha o marcha agachada. Interrumpir o reiniciar captura
 la velocidad y la carga de sprint actuales; no exige terminar una fase.
 Los pasos, torso, manos ocupadas y balanceo de brazos usan esa carga común.
@@ -373,3 +373,13 @@ perfil y contactos cercanos/lejanos; comprueba resultados repetidos, aislamiento
 de devoluciones, memoria limitada y mejora relativa frente al cálculo anterior.
 Las suites de golpes, oclusión, agachado, mira, equipamiento y movimiento del
 jugador permanecen vigentes. Se revisan también fotogramas nativos completos.
+
+
+## Velocidad del personaje principal (17-10-2026)
+
+Por solicitud del usuario, el máximo de sprint sube un 40 %: multiplicador
+1,6 → 2,24 respecto a la marcha. Sin modificadores de nutrición/progresión,
+3,2 → 4,48 m/s. Se conservan arranque, aceleración durante un segundo y
+frenada; el paso visual sigue la distancia física con su calibración anterior
+para acompañar la velocidad mayor. La validación del guardado acepta el nuevo
+máximo y mantiene los archivos anteriores.

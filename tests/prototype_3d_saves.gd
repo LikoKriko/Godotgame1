@@ -19,6 +19,8 @@ func run():
  app.menu.settings_button.pressed.emit()
  require(is_instance_valid(app.menu.settings_panel),"Title configuration uses 3D settings")
  app.menu.close_settings()
+ # Keep persistence integration on the supported minimum streaming radius.
+ app.settings.values.world_generation=100
  await app.new_game()
  if not await wait_loaded(app):app.free();quit(1);return
  var game=app.game;game.paused=true;game.player.equip_elapsed=-1
@@ -41,6 +43,7 @@ func run():
  var building=get_nodes_in_group("prototype_buildings")[0];game.player.position=building.position+Vector3(0,0.15,0)
  var sprout=load("res://scripts/prototype_3d/sprout_enemy.gd").new();game.add_child(sprout);sprout.position=Vector3(-7,.025,-7);sprout.configure(game)
  sprout.patrol.begin_turn();sprout.patrol.turn(.21);sprout.phase=.37
+ sprout.run_cycle.restore({"stage":"run","kind":2,"elapsed":18.7});sprout.run_phase=.41
  require(Save.save_block_reason(game).is_empty(),"Settled paused game can be saved")
  require(game.save_current_game()==OK,"Manual pause save writes a real file")
  var result:=Save.read_result(path);require(result.ok,"New disk save validates")
@@ -77,6 +80,7 @@ func run():
  var restored=sprouts[0];var route:Dictionary=saved.sprouts[0].patrol
  require(restored.position.distance_to(Save.point(saved.sprouts[0].position))<.00001 and restored.patrol.origin.distance_to(Save.point(route.origin))<.00001 and restored.patrol.axis.distance_to(Save.point(route.axis))<.00001,"Enemy3 preserves its route endpoints and position through JSON")
  require(restored.patrol.turning==route.turning and restored.patrol.returning==route.returning and absf(restored.patrol.turn_elapsed-route.turn_elapsed)<.000001 and absf(restored.patrol.heading-route.heading)<.000001 and absf(restored.phase-saved.sprouts[0].phase)<.000001,"Enemy3 preserves its partial turn and animation phase")
+ require(restored.run_cycle.snapshot()==saved.sprouts[0].run_cycle and absf(restored.run_phase-.41)<.000001,"Enemy3 preserves the partial flee rest and run phase through disk save/load")
  var actors=get_nodes_in_group("prototype_enemies");require(actors.size()==2,"Loading replaces initial enemy instead of duplicating it")
  require(actors[0].health==0 and actors[0].death_elapsed==43 and actors[0].corpse_area!=null and not actors[0].loot_slots[0].is_empty(),"Corpse timer, loot and aim volume restore")
  require(actors[1].health==7 and actors[1].brain.remembers_player and actors[1].brain.last_seen==Vector3(-2,0,1) and absf(actors[1].effects.remaining(&"stun")-1.1)<0.001,"Living creature retains memory and stun")

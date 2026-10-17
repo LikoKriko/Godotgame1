@@ -175,7 +175,10 @@ static func valid(data) -> bool:
   if uid>=b.next_uid:return false
  return true
 static func valid_sprout(actor) -> bool:
- if not actor is Dictionary or not in_world(actor.get("position")) or not number(actor.get("phase"),0,1):return false
+ if not actor is Dictionary:return false
+ if not number(actor.get("run_phase",0),0,1) or not actor.get("run_preview_enabled",true) is bool:return false
+ if actor.has("run_cycle") and not preload("res://scripts/prototype_3d/sprout_run_cycle.gd").valid(actor.run_cycle):return false
+ if not in_world(actor.get("position")) or not number(actor.get("phase"),0,1):return false
  var patrol=actor.get("patrol")
  if not patrol is Dictionary or not in_world(patrol.get("origin")) or not valid_vector(patrol.get("axis")):return false
  var axis:=point(patrol.axis)

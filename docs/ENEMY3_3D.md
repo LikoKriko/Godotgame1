@@ -5,8 +5,8 @@ triángulos**, un esqueleto de **35 huesos** (29 grupos de deformación) y ningu
 animación. Se conserva su geometría, proporciones, normales, UV y jerarquía,
 incluidos los nombres de huesos. Altura original: aproximadamente **1,901 m**.
 El frente mira hacia **+Z** en Godot. El menú **K → Añadir enemigo3** crea una
-instancia de **0,9 m de altura** con una patrulla temporal de 10 metros de ida
-y 10 de vuelta, en bucle. No tiene persecución, ataques ni aparición automática.
+instancia de **0,9 m de altura** con una patrulla temporal de 20 metros de ida
+y 20 de vuelta, en bucle. No tiene persecución, ataques ni aparición automática.
 
 ## Texturas
 
@@ -30,14 +30,14 @@ la escena nativa de 35 huesos y sus texturas externas.
 Abrir **`scenes/prototype_3d/enemy3_review.tscn`** y pulsar **F6**:
 
 - Cuatro vistas simultáneas con luz, suelo y sombras.
-- **Espacio** pausa/reanuda; **R** muestra la pose original; **W** camina.
+- **Espacio** pausa/reanuda; **R** muestra la pose original; **W** camina; **C** corre.
 - La escena reproduce el clip guardado, no una simulación distinta del horneado.
 
 [Ver la caminata animada](previews/enemy3_walk.gif) ·
 [Captura de la caminata](previews/enemy3_walk.png).
 
 **`scenes/prototype_3d/enemy3.tscn`** es el modelo reutilizable, con
-`AnimationPlayer`, `walk` en bucle y `RESET` para recuperar la pose suministrada.
+`AnimationPlayer`, `walk`/`run` en bucle y `RESET` para recuperar la pose suministrada.
 La animación tiene **1,25 segundos**, 61 muestras y 70 pistas de posición/rotación.
 Camina en el sitio; al desplazarlo por un suelo plano, **0,2533 m/s** hacia +Z
 coincide con la velocidad de apoyo de los pies. La raíz no se desplaza por el
@@ -96,13 +96,13 @@ El GIF se captura ejecutando la escena de revisión con
 `item_catalog.gd` añade el botón **Añadir enemigo3** junto al enemigo joven.
 `world.spawn_sprout_near_player()` busca una posición a tres metros del jugador,
 con un corredor completo libre de obstáculos y dentro de los límites del mundo.
-Si no encuentra espacio para los diez metros, el menú lo indica sin crear una
+Si no encuentra espacio para los veinte metros, el menú lo indica sin crear una
 criatura dentro de una pared o árbol. Al cerrar K se reanuda la marcha.
 
 `sprout_enemy.gd` controla un CharacterBody3D con gravedad y cápsula de 0,9 m.
 Escala uniformemente el modelo por `0.9 / 1.9013426`, sin cambiar el FBX ni su rig.
 `sprout_patrol.gd` separa los dos extremos, la dirección y el giro de la física;
-los extremos siempre distan diez metros. El giro de 180° dura 0,65 segundos.
+los extremos siempre distan veinte metros. El giro de 180° dura 0,65 segundos.
 La distancia usa metros reales del mundo, sin multiplicarla por la escala del
 modelo; cada tramo termina antes de cambiar de dirección, sin teletransporte.
 
@@ -122,6 +122,62 @@ campo siguen siendo válidas y se cargan sin crear enemigos3 adicionales.
 
 Pruebas de integración: `tests/prototype_3d_sprout_patrol.gd` acciona el botón
 real, comprueba corredores bloqueados, escala, pausa, tres tramos consecutivos
-de diez metros, vueltas, ausencia de saltos de posición y restauración de estado.
+de veinte metros, vueltas, ausencia de saltos de posición y restauración de estado.
 `tests/prototype_3d_saves.gd` añade el caso de guardado/carga real durante un giro.
 `tools/enemy3/review_patrol.gd` reproduce las capturas del menú y del mundo.
+
+
+## Carrera y ciclo temporal de prueba (17-10-2026)
+
+Se añade `run.res` a la escena reutilizable y **C** a la revisión F6. Conserva
+los 35 huesos, geometría, pesos, UV y PNG originales. `animate_run()` genera
+la referencia; `tools/enemy3/bake_run.gd` hornea 70 pistas y 259 muestras adaptativas,
+incluidos los instantes exactos de entrada/salida del apoyo y refinamiento
+de la interpolación alrededor de la extensión de rodillas. El runtime reproduce
+el clip guardado con AnimationPlayer; no ejecuta IK ni deforma vértices en CPU.
+
+Torso y cabeza inclinan **60°** respecto a su pose original, con bisagra lumbar
+en `Hueso.001`, sin inclinar las raíces de las piernas. El apoyo baja suavemente
+la pelvis; rodillas, corvejones y pies resuelven una zancada amplia sin alargar
+huesos. Brazos acompañan el paso contrario y la cola contrapesa. Ciclo de
+**0,60 s**, apoyo del **42 %**, amplitud de zancada de **0,3192 m** por delante
+y detrás a escala fuente, frente a los 0,095 m de la caminata. A escala de 0,9 m,
+la velocidad de marcha es **0,119915 m/s** y la carrera **1,199153 m/s**,
+exactamente diez veces mayor. La fase sigue la distancia física recorrida;
+si se bloquea o gira, no sigue pedaleando. Se amplía solo el AABB de presentación
+para cubrir el cuerpo inclinado, sin cambiar malla ni cápsula física.
+
+Por la aclaración del usuario, las tres modalidades se prueban sobre la misma
+patrulla de **20 m por tramo**, sin perseguir criaturas ni huir realmente del
+jugador. `sprout_run_cycle.gd` separa el reloj de la física:
+
+| Intervalo desde aparición | Conducta de prueba |
+| --- | --- |
+| 0–5 s | Marcha por la patrulla |
+| 5–15 s | Carrera libre, 10 s |
+| 15–20 s | Descanso, 5 s |
+| 20–40 s | Carrera de persecución simulada, 20 s |
+| 40–45 s | Descanso, 5 s |
+| 45–85 s | Carrera de huida simulada, 40 s totales |
+| 85–90 s | Descanso, 5 s; vuelve a carrera libre |
+
+La prueba de huida alterna **8 s corriendo y 2 s parado**, cuatro veces:
+32 s de carrera + 8 s de descanso dentro de sus 40 s. Los descansos generales
+no se solapan con los internos. Los cambios de clip mezclan la pose durante
+0,18 s. Los giros conservan su parada de 0,65 s y los relojes de prueba siguen
+avanzando; la velocidad de carrera se refiere a los tramos en movimiento.
+La pausa del juego congela movimiento y todos los temporizadores.
+
+K comprueba ahora el corredor completo de veinte metros y sus extremos antes
+de aparecer. Guardado opcional: fase de carrera, habilitación de la prueba,
+modalidad, etapa y tiempo transcurrido; restaura descansos parciales y admite
+archivos anteriores sin esos campos. `run_preview_enabled=false` conserva la
+patrulla de marcha para comprobarla aisladamente. No se añaden objetivos,
+percepción, ataques ni apariciones automáticas.
+
+Pruebas: `prototype_3d_enemy3_run.gd`, `prototype_3d_enemy3.gd`,
+`prototype_3d_sprout_patrol.gd` y `prototype_3d_saves.gd`. Cubren inclinación,
+longitudes, bucle, apoyo real de piel, sincronía del clip horneado, temporizadores
+a 30/60/120 FPS, saltos grandes de tiempo, velocidad física, pausas, menú,
+corredores, recorrido de 20 m y guardado/carga real. La prueba de sesiones usa
+el radio admitido de 100 m para aislar persistencia del coste del streaming.

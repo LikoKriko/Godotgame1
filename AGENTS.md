@@ -139,11 +139,15 @@ y los agarres al cambiar animaciones.
 El enemigo3 conserva el FBX Sunny Sprout de
 `entregables/enemigos/enemigo3/modelo_enemigo3.fbx`, **con su rig original**:
 35 huesos, 13582 triángulos y PNG/UV originales. No sustituir su ligadura por
-la del joven o el humano. `scenes/prototype_3d/enemy3.tscn` expone `walk` y
+la del joven o el humano. `scenes/prototype_3d/enemy3.tscn` expone `walk`, `run` y
 `RESET` mediante AnimationPlayer; `enemy3_review.tscn` permite revisar cuatro
 vistas. El menú K permite añadir instancias de 0,9 m: `sprout_enemy.gd` y
-`sprout_patrol.gd` las hacen recorrer diez metros de ida y diez de vuelta,
-sin combate ni apariciones automáticas. Guardado en el campo opcional `sprouts`;
+`sprout_patrol.gd` las hacen recorrer veinte metros de ida y veinte de vuelta.
+El ciclo temporal de prueba alterna carreras de 10/20/40 s con descansos de
+5 s entre ellas; la última incluye pausas de 2 s cada 8 s corriendo. Carrera
+a 10 veces la velocidad de marcha, torso/cabeza a 60 grados, rig intacto.
+No añadir detección, objetivos ni combate a este ciclo de revisión.
+Guardado en el campo opcional `sprouts`;
 no mezclar su grupo `prototype_sprouts` con las reglas del enemigo joven.
 Procedencia y conversión a ocho influencias máximas:
 `assets/enemies/third/sprout/source.json`; ver `docs/ENEMY3_3D.md`.

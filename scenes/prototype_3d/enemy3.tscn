@@ -1,12 +1,15 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="PackedScene" path="res://assets/enemies/third/sprout/model.scn" id="1"]
 [ext_resource type="Animation" path="res://assets/enemies/third/sprout/walk.res" id="2"]
 [ext_resource type="Animation" path="res://assets/enemies/third/sprout/rest.res" id="3"]
 
+[ext_resource type="Animation" path="res://assets/enemies/third/sprout/run.res" id="4"]
+
 [sub_resource type="AnimationLibrary" id="Library"]
 _data = {
 &"RESET": ExtResource("3"),
+&"run": ExtResource("4"),
 &"walk": ExtResource("2")
 }
 

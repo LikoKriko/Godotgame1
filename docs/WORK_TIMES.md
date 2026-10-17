@@ -2081,3 +2081,46 @@ iniciales/de extensión), procedencia Meshy (106), equipo importado (44), hitbox
 (73) y streaming/guardado remoto (207). Fuente verificada por separado con
 `verify_prop.gd`; importación final sin errores de scripts/recursos y
 `git diff --check` sin incidencias. No se afirma una medición de FPS.
+
+
+### Carrera del enemigo3 y aumento de sprint del superviviente
+
+Inicio observado **15:07:32 Europe/Madrid**; cierre previo al commit
+**15:23:24 Europe/Madrid**, 17 de octubre de 2026:
+**15 min 52 s** medidos, intervalo parcial desde el primer reloj.
+Sin estimación previa. Incluye actualización, rig, clip, ciclo, integración,
+verificaciones y revisión visual. No incluye push posterior.
+
+Se actualiza desde GitHub hasta `967de33` (mismo estado de main), con enemigo3
+de 35 huesos. El usuario aclara que desea pruebas de carrera sobre patrulla,
+sin IA de objetivos: veinte metros de ida y vuelta; cinco segundos iniciales,
+carreras de 10/20/40 s y cinco segundos de descanso entre modalidades. En la
+última se alternan 8 s de carrera y 2 s de descanso dentro de sus 40 s.
+El cuerpo/cabeza inclinan 60 grados en su lumbar, con zancada amplia, apoyos
+IK y cola/brazos acompañando, conservando huesos y malla. Clip horneado de
+70 pistas, 259 muestras adaptativas y ciclo de 0,6 s; el runtime reproduce
+AnimationPlayer. Carrera a diez veces la marcha (aproximadamente 1,199 m/s
+a escala de 0,9 m), con mezcla de poses al detenerse y guardado de fase/relojes.
+K comprueba veinte metros completos antes de aparecer. Archivos antiguos
+siguen aceptados. No se añaden detección ni objetivos reales.
+
+Durante el trabajo el usuario solicita un 40 % más de velocidad de carrera
+del superviviente: máximo 3,2 a 4,48 m/s antes de modificadores. Se ajustan
+respuesta física, cadencia por distancia y límites de guardado, conservando
+arranque/aceleración/frenada. Después autoriza subir los cambios y solicita
+no enviar capturas ni informes de pruebas. Se integran también por avance
+rápido `9d79951` y `7ebdbf4` de main, conservando sus cambios de FPS y roca1.
+
+Godot 4.6.3: caminata/rig original 487975 comprobaciones; carrera 243548;
+patrulla de veinte metros 30110; guardado/carga de sesión 48; respuesta del
+jugador 25701. Total **787382**, cinco suites superadas. La primera muestra
+interpolada de carrera detecta un error de rodilla de 2,44 mm: se refina el
+horneado adaptativamente, manteniendo tolerancia de 0,8 mm en la comparación
+independiente. Longitudes invariantes y piel sobre suelo; peor error de
+longitud medido 0,00000018 m. El primer intento de guardado supera el límite
+de carga a 200 m; la prueba se acota al radio admitido de 100 m y pasa con
+restauración del descanso parcial, sin cambiar la configuración del juego.
+Revisión nativa en Compatibility/OpenGL de 24 fases y cuatro vistas; capturas
+internas sin publicar. CPU aislada de enemigo3 en 2400 pasos: mediana
+0,051 ms, p95 0,085 ms, máximo 0,393 ms; no son FPS ni prueba en el PC del
+usuario. `git diff --check` limpio. Commit/push autorizados por el usuario.
