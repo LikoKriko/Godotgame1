@@ -18,13 +18,31 @@ credenciales ni los permisos técnicos exigidos por GitHub o por el entorno.
 
 ## Acabado permanente de todas las texturas
 
-Todas las texturas nuevas o adaptadas deben tener acabado pixel art de muy alta
-resolución: píxeles definidos, paleta controlada y detalle moderado, sin acabado
-fotográfico ni pinceladas borrosas. Incluye texturas generadas, adaptadas de
-imágenes o sprites del usuario y sus versiones para modelos 3D, objetos e
-interfaz. Esta indicación sustituye el acabado pintado suavizado de la primera
-prueba 3D. Conservar contornos finos y usar muestreo que preserve los píxeles;
-el tamaño grande de un atlas no justifica ruido ni exceso de contraste.
+Todas las texturas nuevas o adaptadas deben mantener el estilo visual actual
+del juego. La referencia principal de acabado es el enemigo3 Sunny Sprout,
+sus materiales en `assets/enemies/third/sprout/` y su apariencia dentro del juego.
+El estilo es fantasía 3D estilizada con acabado pintado: formas orgánicas
+legibles, colores armonizados, variaciones de tono suaves y detalles de
+superficie definidos y limpios. El enemigo3 combina amarillos cálidos, crema,
+verdes vegetales y marrones; usarlo como referencia de tratamiento y calidad,
+adaptando la paleta al material y la identidad de cada personaje u objeto.
+
+La textura debe acompañar el volumen y distinguir piel, pelo, hojas, tela,
+madera o piedra mediante color, rugosidad y relieve moderado. Se permiten mapas
+de normales y otros mapas de material para aportar detalle fino sin aumentar
+innecesariamente la geometría. Mantener transiciones cuidadas, costuras UV
+discretas y rasgos propios como cicatrices, ojos y expresión de la boca.
+Evitar ruido, manchas de material incorrecto, contrastes excesivos y relieve
+que deforme visualmente las facciones. El resultado debe leerse bien tanto
+de cerca como a la distancia habitual de juego.
+
+Esta referencia sustituye la exigencia anterior de pixel art, incluso donde
+queden menciones antiguas: no imponer pixelado visible ni reducir la paleta
+para simularlo. Elegir resolución, filtrado y mipmaps para reproducir el acabado
+de referencia con nitidez y estabilidad, sin escalones artificiales ni pérdida
+de detalle por desenfoque. Se aplica a texturas generadas, adaptadas de imágenes
+o sprites y destinadas a modelos 3D, objetos e interfaz. Conservar las reglas
+de contornos finos y las excepciones de interfaz indicadas a continuación.
 
 El superviviente 3D representa un hombre estilizado de 1,75 m y 60 kg, delgado,
 con articulaciones identificables y definición anatómica discreta. Compartir
