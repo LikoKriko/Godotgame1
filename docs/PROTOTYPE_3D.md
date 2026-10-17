@@ -332,6 +332,10 @@ una fabricación/colocación, un golpe, equipamiento o consumo en curso, o esper
 el final de un proyectil/impacto diferido. No consume ni devuelve objetos como
 efecto secundario de guardar. Un salto o deslizamiento sí se puede guardar.
 
+Configuración → Gráficos → **Mostrar FPS** activa un contador a la izquierda
+del nivel, alineado con él y con la misma escala del HUD. Empieza desactivado,
+se guarda entre sesiones y actualiza la lectura cada 0,25 s.
+
 Configuración tiene **Juego, Gráficos y Audio**: correr automático, seis tamaños
 del HUD, VSync, FPS, MSAA 3D y volúmenes. Se aplican y se guardan al cambiar.
 Resolución y modo de pantalla siguen bloqueados para no reintroducir el desfase

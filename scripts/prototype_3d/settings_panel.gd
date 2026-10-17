@@ -17,6 +17,7 @@ func configure(owner_game) -> void:
  hud_slider.value_changed.connect(func(value):game.settings.values.hud_size=int(value);save())
  var graphics:=page("Gráficos")
  check(graphics,"Sincronización vertical",game.settings.values.vsync,func(value):game.settings.values.vsync=value;save())
+ var show_fps:=check(graphics,"Mostrar FPS",game.settings.values.show_fps,func(value):game.settings.values.show_fps=value;save());show_fps.name="ShowFPS"
  var row:=HBoxContainer.new();graphics.add_child(row)
  var label:=Label.new();label.text="Límite de FPS";row.add_child(label)
  var fps:=OptionButton.new();fps.name="FPS";var limits:=[30,60,120,144,0]

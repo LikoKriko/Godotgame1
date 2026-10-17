@@ -10,6 +10,8 @@ var water:Label
 var weight:Label
 var clock:Label
 var level:Label
+var fps_counter:Label
+var fps_elapsed:=0.0
 var message:Label
 var gear:Button
 var pause_button:Button
@@ -25,6 +27,7 @@ func configure(owner_game) -> void:
  game=owner_game;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter=Control.MOUSE_FILTER_IGNORE
  theme=Style.theme()
  life=label(Vector2(160,40));food=label(Vector2(180,40));water=label(Vector2(180,40));weight=label(Vector2(120,28));clock=label(Vector2(180,32));level=label(Vector2(120,32))
+ fps_counter=label(Vector2(120,32));fps_counter.name="FPSCounter"
  var life_icon:=TextureRect.new();life_icon.texture=load("res://assets/ui/styles/life_icon.png");life_icon.position=Vector2(8,8);life_icon.size=Vector2(25,25);life_icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;life_icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;life.add_child(life_icon)
  add_child(map_frame);map_frame.size=Vector2(190,194);map_frame.add_theme_stylebox_override("panel",Style.frame());map_frame.mouse_filter=Control.MOUSE_FILTER_IGNORE
  map_view=preload("res://scripts/prototype_3d/map_view.gd").new();map_view.game=game;map_frame.add_child(map_view);map_view.position=Vector2(10,28);map_view.size=Vector2(170,156)
@@ -52,7 +55,7 @@ func icon_button(kind:String,callback:Callable) -> Button:
  var button:=Button.new();button.size=Vector2(50,48);button.icon=load("res://assets/ui/styles/"+kind+".png");button.expand_icon=true;button.pressed.connect(callback);Style.skin_button(button);add_child(button);return button
 func fit() -> void:
  var factor:=Settings.hud_scale(game.settings.values.hud_size);var screen:=get_viewport_rect().size
- for node in [life,food,water,weight,clock,level,gear,pause_button,quick,map_frame,skills]:node.scale=Vector2.ONE*factor
+ for node in [life,food,water,weight,clock,level,fps_counter,gear,pause_button,quick,map_frame,skills]:node.scale=Vector2.ONE*factor
  gear.position=Vector2(18,18);pause_button.position=gear.position+Vector2(62*factor,0)
  life.position=Vector2(18,screen.y-18-120*factor);food.position=life.position+Vector2(0,40*factor);water.position=food.position+Vector2(0,40*factor)
  message.position=life.position-Vector2(0,32)
@@ -61,8 +64,16 @@ func fit() -> void:
  weight.position=Vector2(screen.x-18-weight.size.x*factor,screen.y-18-weight.size.y*factor)
  map_frame.position=Vector2(screen.x-18-map_frame.size.x*factor,18)
  clock.position=map_frame.position+Vector2(0,202*factor);level.position=map_frame.position-Vector2(132*factor,0)
-func _process(_delta:float) -> void:
+ fps_counter.position=level.position-Vector2((fps_counter.size.x+12)*factor,0)
+ fps_counter.visible=game.settings.values.show_fps
+ if fps_counter.visible:fps_counter.text="FPS %d"%Engine.get_frames_per_second()
+ fps_elapsed=0.0
+func _process(delta:float) -> void:
  if game==null:return
+ if fps_counter.visible:
+  fps_elapsed+=delta
+  if fps_elapsed>=0.25:
+   fps_counter.text="FPS %d"%Engine.get_frames_per_second();fps_elapsed=fmod(fps_elapsed,0.25)
  life.text="%d / %d"%[int(game.player_health),int(game.progression.max_health())];food.text="%d kcal"%game.nutrition.calories_today
  water.text="Agua: %d ml"%roundi(game.nutrition.hydration_ml);weight.text="60 kg";clock.text=game.day_cycle.clock_text();level.text="Nivel %d"%game.level
  message.text=game.status.text

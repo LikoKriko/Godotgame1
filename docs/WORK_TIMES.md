@@ -2039,3 +2039,19 @@ conflicto es el registro de tiempos: se conservan las entradas de ambos
 departamentos. Importación nuevamente limpia; nueva suite de patrulla
 superada (15101 comprobaciones) y guardado/carga actualizado superado
 (47 comprobaciones). No se repiten suites ajenas a esos cambios.
+
+
+## 2026-10-17 — Contador FPS configurable junto al nivel
+
+Opción Mostrar FPS en Configuración → Gráficos, desactivada de inicio y
+persistente. Lectura real del motor cada 0,25 s, a la izquierda del nivel
+y alineada con su posición y escala. Las configuraciones anteriores sin
+show_fps reciben false sin alterar su límite de fotogramas.
+
+Sin estimación previa. Intervalo parcial observado desde las 15:12:29
+hasta las 15:15:34 Europe/Madrid: 3 min 5 s, antes del commit/push.
+Incluye la reimportación del checkout principal con Godot 4.7.2, sin errores,
+y comprobación temporal de activación/desactivación, persistencia, migración,
+actualización y alineación en tres resoluciones por cinco tamaños de HUD
+(15 combinaciones). Configuración de prueba aislada y restaurada al terminar.
+git diff --check limpio. Documentada la opción en PROTOTYPE_3D.md.
