@@ -2055,3 +2055,29 @@ y comprobación temporal de activación/desactivación, persistencia, migración
 actualización y alineación en tres resoluciones por cinco tamaños de HUD
 (15 combinaciones). Configuración de prueba aislada y restaurada al terminar.
 git diff --check limpio. Documentada la opción en PROTOTYPE_3D.md.
+
+## 2026-10-17 — Roca1 optimizada y altura única de un metro
+
+Solicitud: sustituir roca1 por la nueva Release y retirar los otros tamaños,
+reservándolos para futuros modelos de piedra. Rama vigente `main`, según las
+instrucciones actuales del repositorio; se comprueba que coincide con la rama
+anterior antes de cambiar. Sin estimación previa. Primer reloj observado
+**15:08:28 Europe/Madrid**; pruebas e importación final completadas a las
+**15:15:56**: **7 min 28 s**, intervalo parcial que excluye la preparación
+anterior al primer reloj y la publicación posterior.
+
+Se descarga `modelo_roca1_3d/piedra1_3d.zip`, FBX `1016215008`: 5163 triángulos,
+frente a 755810. Se conservan la malla y los cinco PNG originales; la comparación
+independiente de las 15489 esquinas de triángulos da error cero de posiciones
+tras la transformación registrada y de UV. Malla nativa: 15784003 → 166826 bytes.
+Una sola altura mundial de 1 m, eliminados el índice de tamaño y el reescalado
+por instancia en generación inicial y streaming. Se conservan posiciones, IDs,
+resistencia y cantidades para no romper los guardados. Los afloramientos de un
+metro se minan, sin tratarlos como guijarros recogibles a mano. Iconos actualizados
+y captura real de Godot junto al superviviente.
+
+**494 comprobaciones en cinco suites**: roca1 (64, incluyendo 55 registros
+iniciales/de extensión), procedencia Meshy (106), equipo importado (44), hitboxes
+(73) y streaming/guardado remoto (207). Fuente verificada por separado con
+`verify_prop.gd`; importación final sin errores de scripts/recursos y
+`git diff --check` sin incidencias. No se afirma una medición de FPS.

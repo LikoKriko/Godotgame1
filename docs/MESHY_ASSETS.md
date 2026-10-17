@@ -171,8 +171,9 @@ Se sustituyen las representaciones anteriores del hacha, pico, arco, armadura
 de hojas y roca 3D por los modelos originales facilitados en Releases. Los
 objetos en el suelo y los iconos de inventario/fabricación usan las mismas
 formas importadas. No se cambian recetas, durabilidad, daño ni recompensas.
-La roca era una única familia procedural de cuatro tamaños: los cuatro
-conservan sus alturas y reglas, compartiendo ahora el afloramiento entregado.
+La roca se importó inicialmente como una familia de cuatro tamaños. Desde
+el 17 de octubre, roca1 usa la versión optimizada y una sola altura de 1 m;
+ver la actualización al final de este documento.
 
 | Recurso | Release | Archivo válido | Triángulos originales | Altura de autor |
 | --- | --- | --- | ---: | ---: |
@@ -180,7 +181,7 @@ conservan sus alturas y reglas, compartiendo ahora el afloramiento entregado.
 | Pico | `modelo_pico3d` | `pico3dmodelo.zip` | 255.100 | 21,6 |
 | Arco | `modelo_arco1_3d` | `arco1_3d.zip` | 5.215 | 28 |
 | Armadura | `modelo_armadurahojas_3d` | `armadurahojas_3d.zip` | 10.425 | 29 |
-| Roca | `modelo_roca1_3d` | `roca1_3d.zip` | 755.810 | 1 m de base |
+| Roca1 | `modelo_roca1_3d` | `piedra1_3d.zip` | 5.163 | 1 m fijo en el mundo |
 
 Los originales están en `entregables/modelos/*/source/`; los PNG byte a byte,
 la malla base `model.res` y los hashes están en `assets/models/meshy/*/`.
@@ -374,3 +375,41 @@ de arista deformada y original baja de 8,25 a 3,52 en el sobaco. Sigue existiend
 estiramiento propio de una piel de cuatro influencias, pero se elimina el salto
 local de pesos que creaba el pliegue excesivo. Las pruebas cubren también
 volumen, continuidad, apoyo de piel real y fidelidad a la fuente importada.
+
+
+## Roca1 optimizada y una sola altura — 17 de octubre de 2026
+
+Fuente vigente: `modelo_roca1_3d/piedra1_3d.zip`, FBX
+`Meshy_AI_Wild_Wanderer_1016215008_texture.fbx`. Tiene **2526 vértices de
+origen y 5163 triángulos**, frente a los 755810 anteriores (**99,32 % menos**).
+La malla nativa baja de 15784003 a 166826 bytes; no se presenta esta reducción
+como una medición de FPS o de la memoria total de las texturas.
+
+Se conservan las formas, proporciones, normales, UV y los cinco PNG del archivo
+entregado. Los cuatro mapas separados se asignan al material; el combinado
+metálico/rugosidad se conserva sin duplicar su aplicación. Procedencia y hashes:
+`assets/models/meshy/rock1/source.json`. El FBX anterior queda únicamente como
+fuente histórica y ya no se usa en el juego.
+
+**Roca1 mide un metro de alto en el mundo**, con anchura 2,843731 m y profundidad
+2,905249 m. Se retiran los escalados de 0,28/0,7/1,4/2,4 m: `rock.configure()`
+no recibe un índice de tamaño, y tanto `world_layout` como `stream_layout`
+emiten altura 1,0. `world_content` no aplica una segunda escala. Las otras
+familias de piedra quedan pendientes de sus propios modelos.
+
+Se conservan las posiciones e identificadores de recursos, sus puntos de
+resistencia, cantidades y estado de agotamiento para no invalidar los guardados.
+Los afloramientos de un metro tienen colisión y se minan; ya no son variantes
+pequeñas recogibles a mano. El material de inventario `piedra` y sus piezas
+soltadas siguen representando el recurso extraído, usando la geometría nueva.
+Se actualizan ambos iconos y se conserva la tolerancia de impacto de 15 cm.
+
+[Vista junto al superviviente de 1,75 m](previews/rock1_optimized.png).
+
+Regeneración: exportar el FBX con `convert_source.py`; usar la entrada `rock1`
+de `tools/meshy/props.json` con la ruta GLB exportada y ejecutar `bake_props.gd`.
+`verify_prop.gd -- res://assets/models/meshy/rock1/model.res /ruta/rock1.glb`
+compara cada esquina de los 5163 triángulos y sus UV contra la fuente: error
+cero observado. `review_rock.gd` genera la captura y los dos iconos.
+`prototype_3d_rock1.gd` comprueba la única altura en el claro inicial y en
+36 chunks de extensión, la colisión y el agotamiento por minería.

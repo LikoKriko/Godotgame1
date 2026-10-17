@@ -4,11 +4,11 @@ var required_hits:=4
 var health:=4
 var yield_count:=4
 var hand_collectable:=false
-var height:=0.7
+const HEIGHT:=1.0
+var height:=HEIGHT
 var visual:Node3D
 var shake:=0.0
-func configure(size_index:int) -> void:
- height=[0.28,0.7,1.4,2.4][size_index];required_hits=[1,4,8,12][size_index];health=required_hits;yield_count=[2,4,10,15][size_index];hand_collectable=size_index==0
+func configure() -> void:
  add_to_group("prototype_rocks");collision_layer=1;collision_mask=0
  var collision:=CollisionShape3D.new();var shape:=BoxShape3D.new();shape.size=IMPORTED.get_aabb().size*height*Vector3(.86,.94,.86);collision.shape=shape;collision.position=IMPORTED.get_aabb().get_center()*height;add_child(collision)
  if hand_collectable:collision.disabled=true

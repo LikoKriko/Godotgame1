@@ -45,7 +45,7 @@ func chunk(key:Vector2i,include_grass:bool=true) -> Dictionary:
   var record:Dictionary={"id":"w2:%d:%d:%d"%[key.x,key.y,slot],"position":Vector3(point.x,0,point.y),"kind":kind,"variant":variant,"hits":3,"yield":4}
   if kind==2:record.design=design;record.height=Nature.profile(2,variant).size*UNIT
   elif kind==1:
-   record.height=[.28,.7,1.4,2.4][variant%4];record.hand_collectable=variant%4==0
+   record.height=1.0;record.hand_collectable=false
    record.hits=[1,4,8,12][variant%4];record.yield=[2,4,10,15][variant%4]
   elif kind==4:record.hits=2;record.yield=3
   else:record.variant=1+variant%2;record.hits=1;record.yield=5 if record.variant==1 else 3

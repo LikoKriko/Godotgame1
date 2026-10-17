@@ -17,7 +17,7 @@ func generate(seed_value:int) -> void:
   if kind==2:
    record.design=source.tree_designs.get(cell,0);record.height=source.tree_dimensions(cell).y*UNIT
   if kind==1:
-   record.height=source.physical_height(cell)*UNIT;record.hand_collectable=node.hand_collectable
+   record.height=1.0;record.hand_collectable=false
   if kind==5:record.variant=source.burdock[cell]
   if kind==4:record.variant=posmod(cell.x*31+cell.y*17,5)
   records.append(record)

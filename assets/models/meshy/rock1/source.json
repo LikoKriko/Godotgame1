@@ -1,14 +1,23 @@
 {
   "release": "modelo_roca1_3d",
-  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_roca1_3d/roca1_3d.zip",
-  "zip_sha256": "eb322dea39c26d02e55a3b8780708ee00e08d19b5e3e9bda937cfcc21bfc8b8e",
-  "source_fbx": "entregables/modelos/rock1/source/Meshy_AI_Wild_Wanderer_1015205921_texture.fbx",
-  "fbx_sha256": "9c9e42765be9b0640dcc99a0fd74d1a3941fb02b452eb9ab72883e456612dc35",
-  "triangles": 755810,
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_roca1_3d/piedra1_3d.zip",
+  "zip_sha256": "0b9acc62bb6d2599a548c7ad2fb097ac18a00cdcfe513fcc367472b2a32d4ed4",
+  "source_fbx": "entregables/modelos/rock1/source/Meshy_AI_Wild_Wanderer_1016215008_texture.fbx",
+  "fbx_sha256": "bcf0eba0d0faa12a2ebb3d0f09649ddacf02eb5262d3371962a25b57f0d6de64",
+  "triangles": 5163,
   "textures_sha256": {
-    "albedo": "2442719f572cb1f9c7c1389d6c528b43be9fd8980642991eab15302939da7b01",
-    "normal": "6c94fd5ca9ce4a36d48f2dd3d13125fc3e4577b3a7c7e3e051053a69576daa7f",
-    "metallic": "b50729808930b4350049cf56e3ae9453c3a9b80ab7204e9917136350d74424ec",
-    "roughness": "39b7384da232661e0ace78ec1d52d3739cf9276d2790d286ff494aae86ecc8ee"
-  }
+    "albedo": "d7fd49cf79b88f6af4076d3e2e0073d7c881e69b7bf625fb557e7cbb5d4b82ff",
+    "normal": "e23f2a6db65c10e1932db01997db0615fc94e96b276688d27995772a4fee029a",
+    "roughness": "d2f151f2af2874f02f46746ef6d49b2deb37829e5f5381d0f7c50216f82b003a",
+    "metallic": "991ea94f2bddbde71f8cbccff6074bbf6c03b53d87990cf10f03c9f62da497f0",
+    "metallic_roughness": "362548b9d07f01474702efa6bb4b398850f7a554ca791b2a49b0b03694a2635a"
+  },
+  "previous_source": {
+    "zip_sha256": "eb322dea39c26d02e55a3b8780708ee00e08d19b5e3e9bda937cfcc21bfc8b8e",
+    "fbx_sha256": "9c9e42765be9b0640dcc99a0fd74d1a3941fb02b452eb9ab72883e456612dc35",
+    "source_fbx": "entregables/modelos/rock1/source/Meshy_AI_Wild_Wanderer_1015205921_texture.fbx",
+    "triangles": 755810
+  },
+  "vertices": 2526,
+  "height_metres": 1.0
 }

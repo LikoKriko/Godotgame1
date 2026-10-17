@@ -122,8 +122,8 @@ func spawn_resource(record:Dictionary,parent:Node3D=null) -> void:
   var tree:=preload("res://scripts/prototype_3d/tree_model.gd").new();tree.variant_id=record.variant;tree.design_id=record.get("design",0);parent.add_child(tree)
   tree.scale=Vector3.ONE*(record.height/tree.visual_height());node=tree
  elif record.kind==1:
-  var rock:=preload("res://scripts/prototype_3d/rock.gd").new();parent.add_child(rock);rock.configure(0 if record.hand_collectable else 2)
-  rock.scale=Vector3.ONE*(record.height/rock.height);rock.height=record.height;rock.health=record.hits;rock.required_hits=record.hits;rock.yield_count=record.yield;node=rock
+  var rock:=preload("res://scripts/prototype_3d/rock.gd").new();parent.add_child(rock);rock.configure()
+  rock.health=record.hits;rock.required_hits=record.hits;rock.yield_count=record.yield;node=rock
  else:
   var plant:=preload("res://scripts/prototype_3d/gatherable.gd").new();parent.add_child(plant);plant.configure(record);node=plant
  node.position=record.position;node.set_meta("resource_id",record.id)

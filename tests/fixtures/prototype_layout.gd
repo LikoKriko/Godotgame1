@@ -10,7 +10,7 @@ func populate(game) -> void:
  game.terrain.refresh_influences()
  var rock_points:=[Vector3(3,0,2.5),Vector3(4,0,-2.2),Vector3(-3,0,1.5),Vector3(8,0,-7)]
  for i in rock_points.size():
-  var rock:=preload("res://scripts/prototype_3d/rock.gd").new();game.add_child(rock);rock.position=rock_points[i];rock.configure(i)
+  var rock:=preload("res://scripts/prototype_3d/rock.gd").new();game.add_child(rock);rock.position=rock_points[i];rock.configure()
  var water:=preload("res://scripts/prototype_3d/water_source.gd").new();game.add_child(water);water.position=Vector3(-2,0,4)
  # A solid test wall also provides an explicit camera collision case.
  var wall := StaticBody3D.new(); game.add_child(wall); wall.position = Vector3(-6,1,-2)

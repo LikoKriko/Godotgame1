@@ -59,7 +59,7 @@ func run():
     head_clear=head_clear and (head/Vector3(5.1,6.2,6.2)).length()>=.95
    require(rib_clear,"Complete source mesh stays outside torso interior during the stroke")
    require(head_clear,"Complete source mesh stays outside skull interior during the stroke")
- var rock=load("res://scripts/prototype_3d/rock.gd").new();root.add_child(rock);rock.configure(1)
+ var rock=load("res://scripts/prototype_3d/rock.gd").new();root.add_child(rock);rock.configure()
  var visual:MeshInstance3D=rock.visual.get_child(0)
  require(visual.mesh==load("res://assets/models/meshy/rock1/model.res"),"World outcrop uses the supplied rock geometry")
  require(absf(visual.mesh.get_aabb().size.y*visual.scale.y-rock.height)<.001,"Rock height preserves the resource's physical scale")

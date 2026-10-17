@@ -147,3 +147,12 @@ sin combate ni apariciones automáticas. Guardado en el campo opcional `sprouts`
 no mezclar su grupo `prototype_sprouts` con las reglas del enemigo joven.
 Procedencia y conversión a ocho influencias máximas:
 `assets/enemies/third/sprout/source.json`; ver `docs/ENEMY3_3D.md`.
+
+Roca1 usa la versión optimizada de `modelo_roca1_3d/piedra1_3d.zip`, FBX
+`Meshy_AI_Wild_Wanderer_1016215008_texture.fbx`: 5163 triángulos. Todas sus
+instancias del mundo miden **1 m de alto**, sin variantes de escala; los demás
+tamaños tendrán modelos propios futuros. `rock.configure()` no recibe índice.
+`world_layout` y `stream_layout` fijan altura 1.0, y `world_content` no reescala.
+Conservar los ID, posiciones, resistencia y cantidades de recursos para cargar
+partidas existentes; los afloramientos de un metro se minan, no se recogen a
+mano. Procedencia y medidas: `assets/models/meshy/rock1/source.json`.
