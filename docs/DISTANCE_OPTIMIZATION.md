@@ -35,6 +35,27 @@ interrumpe a mitad. El césped y la suspensión de enemigos mantienen su revisi�
 cada 0,1 segundos. Los objetos creados posteriormente se incorporan al recorrido;
 interfaz y visores de inventario quedan fuera de él.
 
+## Detalle propio de las criaturas
+
+Los descendientes de `creatures`, `prototype_enemies` y `prototype_sprouts`
+utilizan una curva de malla más conservadora para mantener su silueta:
+
+| Distancia | Presupuesto de malla |
+| --- | --- |
+| Hasta 50 m incluidos | 100 % |
+| Más de 50 m y menos de 75 m | 95 % |
+| Desde 75 m y menos de 100 m | 90 % |
+| Desde 100 m y menos de 125 m | 80 % |
+| Desde 125 m | 65 % |
+
+Conservan los materiales originales y sus mipmaps naturales, sin el sesgo extra
+de resolución del escenario. Detrás de la cámara mantienen el detalle completo
+hasta 50 m; más allá, su límite es del 65 %. Al volver a mirar recuperan diez
+puntos cada 0,1 segundos hasta su presupuesto de distancia. La selección real
+entre LOD sigue siendo discreta. Las colisiones, animaciones y tamaños no cambian.
+El enemigo1 conserva su descarga a 150 m; el enemigo3 de revisión mantiene su
+ciclo y reglas de carga actuales. La curva del escenario y la generación no cambian.
+
 ## Texturas y geometría
 
 Las texturas del mundo usan mipmaps y un sesgo de muestreo calculado como

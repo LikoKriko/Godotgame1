@@ -26,13 +26,14 @@ func added(node:Node) -> void:
 func register(reference:WeakRef) -> void:
  var node:Node=reference.get_ref()
  if not is_instance_valid(node) or not game.is_ancestor_of(node) or node.has_meta("quality_bucket"):return
- var parent:Node=node.get_parent()
+ var parent:Node=node.get_parent();var creature:=false
  while parent!=game:
   if parent==null or parent is Viewport or parent is CanvasLayer:return
+  if parent.is_in_group("creatures") or parent.is_in_group("prototype_enemies") or parent.is_in_group("prototype_sprouts"):creature=true
   parent=parent.get_parent()
  var id:int=node.get_instance_id()
  if entries.has(id):return
- var entry:={"node":weakref(node),"state":{},"material":node.material_override,"quality":-1,"revision":-1}
+ var entry:={"node":weakref(node),"state":{},"material":node.material_override,"quality":-1,"revision":-1,"creature":creature}
  if node is MeshInstance3D:
   if node.mesh==null:return
   entry.mesh=node.mesh;entry.center=node.mesh.get_aabb().get_center();entry.overrides=[]
@@ -118,7 +119,7 @@ func update_entry(entry:Dictionary,delta:float,observer:Vector3,forward:Vector3)
   entry.material=node.material_override;entry.quality=-1
  if node is MultiMeshInstance3D:update_batch(node,entry,observer,forward,delta);return
  var point:Vector3=node.to_global(entry.center)
- var percent:=Policy.advance(entry.state,observer.distance_to(point),Policy.behind(point,observer,forward),delta)
+ var percent:=Policy.advance(entry.state,observer.distance_to(point),Policy.behind(point,observer,forward),delta,entry.creature)
  var source_revision:int=1 if meshes.cache.has(entry.mesh.get_instance_id()) else 0
  if entry.quality==percent and entry.revision==source_revision:return
  var replacement:Mesh=meshes.mesh(entry.mesh,percent)
@@ -128,11 +129,12 @@ func update_entry(entry:Dictionary,delta:float,observer:Vector3,forward:Vector3)
    for i in node.mesh.get_blend_shape_count():morphs.append(node.get_blend_shape_value(i))
   node.mesh=replacement
   for i in morphs.size():node.set_blend_shape_value(i,morphs[i])
- node.material_override=materials.material(entry.material,percent,node.material_override)
+ var texture_percent:int=100 if entry.creature else percent
+ node.material_override=materials.material(entry.material,texture_percent,node.material_override)
  for surface in entry.mesh.get_surface_count():
   var original:Material=entry.overrides[surface]
   if original==null:original=entry.mesh.surface_get_material(surface)
-  node.set_surface_override_material(surface,materials.material(original,percent,node.get_surface_override_material(surface)))
+  node.set_surface_override_material(surface,materials.material(original,texture_percent,node.get_surface_override_material(surface)))
  entry.quality=percent;entry.revision=source_revision
 func update_batch(node:MultiMeshInstance3D,entry:Dictionary,observer:Vector3,forward:Vector3,delta:float) -> void:
  # Batch by budget rather than treating thousands of scattered tufts as one
@@ -141,7 +143,7 @@ func update_batch(node:MultiMeshInstance3D,entry:Dictionary,observer:Vector3,for
  for i in entry.instances.size():
   var instance:Dictionary=entry.instances[i]
   var point:Vector3=node.to_global(instance.transform.origin)
-  var percent:=Policy.advance(instance.state,observer.distance_to(point),Policy.behind(point,observer,forward),delta)
+  var percent:=Policy.advance(instance.state,observer.distance_to(point),Policy.behind(point,observer,forward),delta,entry.creature)
   if not groups.has(percent):groups[percent]=[]
   groups[percent].append(i)
  for percent in entry.buckets:
@@ -165,7 +167,7 @@ func update_batch(node:MultiMeshInstance3D,entry:Dictionary,observer:Vector3,for
    target.multimesh=batch;entry.members[percent]=groups[percent].duplicate()
   target.multimesh.mesh=meshes.mesh(entry.mesh,percent)
   var original:Material=entry.material if entry.material!=null else entry.mesh.surface_get_material(0)
-  target.material_override=materials.material(original,percent,target.material_override)
+  target.material_override=materials.material(original,100 if entry.creature else percent,target.material_override)
  # Keep the original instance buffer immutable for other scenes/users.
  if node.multimesh==entry.source:
   var empty:=MultiMesh.new();empty.transform_format=MultiMesh.TRANSFORM_3D

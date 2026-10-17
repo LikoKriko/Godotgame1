@@ -4,16 +4,23 @@ const DISTANCES:=[30.0,40.0,50.0,65.0,75.0,90.0]
 const QUALITY:=[95,90,80,65,45,35]
 const TICK:=0.1
 const ENEMY_DISTANCE:=150.0
-static func distance_percent(distance:float) -> int:
+static func distance_percent(distance:float,creature:bool=false) -> int:
+ if creature:
+  if distance<=50:return 100
+  if distance<75:return 95
+  if distance<100:return 90
+  if distance<125:return 80
+  return 65
  var result:=100
  for i in DISTANCES.size():
   if distance>=DISTANCES[i]:result=QUALITY[i]
  return result
 static func behind(point:Vector3,observer:Vector3,forward:Vector3) -> bool:
  return observer.distance_squared_to(point)>=2500.0 and (point-observer).dot(forward)<0
-static func advance(state:Dictionary,distance:float,rear:bool,delta:float) -> int:
- var limit:=distance_percent(distance)
- var target:=mini(limit,50) if rear else limit
+static func advance(state:Dictionary,distance:float,rear:bool,delta:float,creature:bool=false) -> int:
+ var limit:=distance_percent(distance,creature)
+ var rear_limit:=(100 if distance<=50 else 65) if creature else 50
+ var target:=mini(limit,rear_limit) if rear else limit
  if state.is_empty():
   state.merge({"quality":target,"rear":rear,"recovering":false,"elapsed":0.0})
  else:
