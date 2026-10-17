@@ -2,6 +2,7 @@ extends RefCounted
 ## Mip bias implements a resolution budget without making texture copies each tick.
 var shaders:Dictionary={}
 var variants:Dictionary={}
+var uniform_names:Dictionary={}
 func forget(source:Material) -> void:
  if source==null:return
  var prefix:=str(source.get_instance_id())+":"
@@ -12,9 +13,7 @@ static func bias(percent:int) -> float:return -log(maxf(.01,percent/100.0))/log(
 func material(source:Material,percent:int,current:Material=null) -> Material:
  if source==null:return null
  if source is ShaderMaterial and current is ShaderMaterial and current!=source:
-  for uniform in source.shader.get_shader_uniform_list():
-   var name:StringName=uniform.name
-   source.set_shader_parameter(name,current.get_shader_parameter(name))
+  for name in parameters(source.shader):source.set_shader_parameter(name,current.get_shader_parameter(name))
  if percent>=100:return source
  var key:=str(source.get_instance_id())+":"+str(percent)
  if variants.has(key):
@@ -53,8 +52,15 @@ func material(source:Material,percent:int,current:Material=null) -> Material:
  if source.next_pass!=null:result.next_pass=material(source.next_pass,percent)
  variants[key]=result
  return result
-static func copy_parameters(source:ShaderMaterial,target:ShaderMaterial) -> void:
- for uniform in source.shader.get_shader_uniform_list():target.set_shader_parameter(uniform.name,source.get_shader_parameter(uniform.name))
+func parameters(shader:Shader) -> Array[StringName]:
+ var id:=shader.get_instance_id()
+ if not uniform_names.has(id):
+  var names:Array[StringName]=[]
+  for uniform in shader.get_shader_uniform_list():names.append(uniform.name)
+  uniform_names[id]=names
+ return uniform_names[id]
+func copy_parameters(source:ShaderMaterial,target:ShaderMaterial) -> void:
+ for name in parameters(source.shader):target.set_shader_parameter(name,source.get_shader_parameter(name))
 static func channel(value:int) -> Vector4:
  return [Vector4(1,0,0,0),Vector4(0,1,0,0),Vector4(0,0,1,0),Vector4(0,0,0,1),Vector4(.333333,.333333,.333333,0)][clampi(value,0,4)]
 func standard_shader(source:StandardMaterial3D) -> Shader:

@@ -8,7 +8,11 @@ var entries:Dictionary={}
 var mesh_uses:Dictionary={}
 var material_uses:Dictionary={}
 var elapsed:=0.0
-var revision:=0
+const FRAME_BUDGET_USEC:=2000
+var scheduled:Array[Dictionary]=[]
+var cursor:=0
+var credit:=0.0
+var quality_clock:=0.0
 func configure(owner_game) -> void:
  game=owner_game
  get_tree().node_added.connect(added)
@@ -31,13 +35,14 @@ func register(reference:WeakRef) -> void:
  var entry:={"node":weakref(node),"state":{},"material":node.material_override,"quality":-1,"revision":-1}
  if node is MeshInstance3D:
   if node.mesh==null:return
-  entry.mesh=node.mesh;entry.overrides=[]
+  entry.mesh=node.mesh;entry.center=node.mesh.get_aabb().get_center();entry.overrides=[]
   for surface in node.mesh.get_surface_count():entry.overrides.append(node.get_surface_override_material(surface))
  else:
   if node.multimesh==null or node.multimesh.mesh==null:return
   entry.mesh=node.multimesh.mesh;entry.source=node.multimesh;entry.instances=[];entry.buckets={};entry.members={}
   var count:int=node.multimesh.instance_count if node.multimesh.visible_instance_count<0 else mini(node.multimesh.visible_instance_count,node.multimesh.instance_count)
   for i in count:entry.instances.append({"transform":node.multimesh.get_instance_transform(i),"state":{},"color":node.multimesh.get_instance_color(i) if node.multimesh.use_colors else Color.WHITE,"custom":node.multimesh.get_instance_custom_data(i) if node.multimesh.use_custom_data else Color()})
+ entry.slot=scheduled.size();entry.sampled_at=quality_clock;scheduled.append(entry)
  entries[id]=entry
  var mesh_id:int=entry.mesh.get_instance_id()
  mesh_uses[mesh_id]=int(mesh_uses.get(mesh_id,0))+1
@@ -59,6 +64,10 @@ func track_entry_materials(entry:Dictionary,add:bool) -> void:
 func unregister(id:int) -> void:
  if not entries.has(id):return
  var entry:Dictionary=entries[id]
+ var slot:int=entry.slot;var last:Dictionary=scheduled.pop_back()
+ if slot<scheduled.size():scheduled[slot]=last;last.slot=slot
+ # Keep the current sweep moving forward when old chunks retire.
+ cursor=mini(cursor,scheduled.size())
  track_entry_materials(entry,false)
  var mesh_id:int=entry.mesh.get_instance_id()
  mesh_uses[mesh_id]-=1
@@ -66,41 +75,65 @@ func unregister(id:int) -> void:
  entries.erase(id)
 func _process(delta:float) -> void:
  if game==null or (game.paused and not game.loading_state) or not is_instance_valid(game.player):return
- var before:int=meshes.cache.size();meshes.collect()
- if before!=meshes.cache.size():revision+=1
+ meshes.collect()
+ quality_clock+=maxf(0,delta)
+ # Each object keeps its own sampling time; spread the tenth-second sweep
+ # across frames instead of changing every LOD/material on a single frame.
+ update_scheduled(delta)
  elapsed+=delta
  if elapsed+0.000001<Policy.TICK:return
  var step:=elapsed;elapsed=0
- update_quality(step)
+ update_grass(step)
  update_enemies()
-func update_quality(delta:float,observer:Vector3=Vector3.INF,forward:Vector3=Vector3.INF) -> void:
+func update_grass(delta:float,observer:Vector3=Vector3.INF,forward:Vector3=Vector3.INF) -> void:
  if not observer.is_finite():observer=game.player.global_position
  if not forward.is_finite():forward=-game.camera_rig.camera.global_basis.z
  if game.environment_content!=null and game.environment_content.has_method("update_grass_quality"):game.environment_content.update_grass_quality(observer,forward,delta)
- for entry in entries.values():
-  var node=entry.node.get_ref()
-  if not is_instance_valid(node) or not node.is_inside_tree():continue
-  if node.material_override!=entry.material and (node.material_override==null or not node.material_override.has_meta("distance_quality_variant")):
-   track_material(entry.material,false);track_material(node.material_override,true)
-   entry.material=node.material_override;entry.quality=-1
-  if node is MultiMeshInstance3D:update_batch(node,entry,observer,forward,delta);continue
-  var point:Vector3=node.to_global(entry.mesh.get_aabb().get_center())
-  var percent:=Policy.advance(entry.state,observer.distance_to(point),Policy.behind(point,observer,forward),delta)
-  var source_revision:int=1 if meshes.cache.has(entry.mesh.get_instance_id()) else 0
-  if entry.quality==percent and entry.revision==source_revision:continue
-  var replacement:Mesh=meshes.mesh(entry.mesh,percent)
-  if node.mesh!=replacement:
-   var morphs:PackedFloat32Array=[]
-   if node.mesh is ArrayMesh:
-    for i in node.mesh.get_blend_shape_count():morphs.append(node.get_blend_shape_value(i))
-   node.mesh=replacement
-   for i in morphs.size():node.set_blend_shape_value(i,morphs[i])
-  node.material_override=materials.material(entry.material,percent,node.material_override)
-  for surface in entry.mesh.get_surface_count():
-   var original:Material=entry.overrides[surface]
-   if original==null:original=entry.mesh.surface_get_material(surface)
-   node.set_surface_override_material(surface,materials.material(original,percent,node.get_surface_override_material(surface)))
-  entry.quality=percent;entry.revision=source_revision
+func update_scheduled(delta:float) -> void:
+ if scheduled.is_empty():credit=0;cursor=0;return
+ credit=minf(scheduled.size(),credit+scheduled.size()*maxf(0,delta)/Policy.TICK)
+ var count:=int(floor(credit+0.000001))
+ if count==0:return
+ var observer:Vector3=game.player.global_position;var forward:Vector3=-game.camera_rig.camera.global_basis.z
+ var deadline:=Time.get_ticks_usec()+FRAME_BUDGET_USEC
+ for i in count:
+  if cursor>=scheduled.size():cursor=0
+  var entry:Dictionary=scheduled[cursor];cursor+=1;credit=maxf(0,credit-1)
+  update_entry(entry,maxf(0,quality_clock-entry.sampled_at),observer,forward)
+  entry.sampled_at=quality_clock
+  # One individual mesh/material change cannot be interrupted halfway.
+  if Time.get_ticks_usec()>=deadline:break
+func update_quality(delta:float,observer:Vector3=Vector3.INF,forward:Vector3=Vector3.INF) -> void:
+ # Explicit full refresh for loaders, tooling and deterministic checks.
+ if not observer.is_finite():observer=game.player.global_position
+ if not forward.is_finite():forward=-game.camera_rig.camera.global_basis.z
+ update_grass(delta,observer,forward)
+ for entry in scheduled:
+  update_entry(entry,delta,observer,forward);entry.sampled_at=quality_clock
+func update_entry(entry:Dictionary,delta:float,observer:Vector3,forward:Vector3) -> void:
+ var node=entry.node.get_ref()
+ if not is_instance_valid(node) or not node.is_inside_tree():return
+ if node.material_override!=entry.material and (node.material_override==null or not node.material_override.has_meta("distance_quality_variant")):
+  track_material(entry.material,false);track_material(node.material_override,true)
+  entry.material=node.material_override;entry.quality=-1
+ if node is MultiMeshInstance3D:update_batch(node,entry,observer,forward,delta);return
+ var point:Vector3=node.to_global(entry.center)
+ var percent:=Policy.advance(entry.state,observer.distance_to(point),Policy.behind(point,observer,forward),delta)
+ var source_revision:int=1 if meshes.cache.has(entry.mesh.get_instance_id()) else 0
+ if entry.quality==percent and entry.revision==source_revision:return
+ var replacement:Mesh=meshes.mesh(entry.mesh,percent)
+ if node.mesh!=replacement:
+  var morphs:PackedFloat32Array=[]
+  if node.mesh is ArrayMesh:
+   for i in node.mesh.get_blend_shape_count():morphs.append(node.get_blend_shape_value(i))
+  node.mesh=replacement
+  for i in morphs.size():node.set_blend_shape_value(i,morphs[i])
+ node.material_override=materials.material(entry.material,percent,node.material_override)
+ for surface in entry.mesh.get_surface_count():
+  var original:Material=entry.overrides[surface]
+  if original==null:original=entry.mesh.surface_get_material(surface)
+  node.set_surface_override_material(surface,materials.material(original,percent,node.get_surface_override_material(surface)))
+ entry.quality=percent;entry.revision=source_revision
 func update_batch(node:MultiMeshInstance3D,entry:Dictionary,observer:Vector3,forward:Vector3,delta:float) -> void:
  # Batch by budget rather than treating thousands of scattered tufts as one
  # object at the origin. Rebuild buffers only when membership actually changes.

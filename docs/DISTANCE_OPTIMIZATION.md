@@ -26,8 +26,14 @@ por cada 0,1 segundos, hasta el límite que corresponda a su distancia actual.
 Se utiliza la orientación real de la cámara de apuntado, incluido su cabeceo.
 
 `distance_quality.gd` contiene estos umbrales. `distance_optimization.gd`
-actualiza el mundo cada 0,1 segundos y registra también los objetos creados
-posteriormente. Interfaz y visores de inventario quedan fuera del recorrido.
+reparte la revisión de objetos entre fotogramas, con una vuelta objetivo de
+0,1 segundos y un presupuesto aproximado de 2 ms por fotograma. Cada objeto
+conserva su propio tiempo de muestreo para la recuperación gradual. Si el equipo
+agota ese presupuesto, la revisión continúa en los siguientes fotogramas, sin
+saltar objetos ni cambiar los umbrales. Una actualización individual no se
+interrumpe a mitad. El césped y la suspensión de enemigos mantienen su revisión
+cada 0,1 segundos. Los objetos creados posteriormente se incorporan al recorrido;
+interfaz y visores de inventario quedan fuera de él.
 
 ## Texturas y geometría
 
