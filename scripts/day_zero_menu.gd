@@ -143,16 +143,8 @@ func fit() -> void:
 	title_area.size = Vector2(size.x*0.6,size.y)
 
 func open_settings() -> void:
-	if is_instance_valid(settings_panel): return
-	# Keep the live pause captions visible; the backdrop blocks their input.
-	settings_backdrop = ColorRect.new()
-	settings_backdrop.color = Color(0,0,0,0.35)
-	settings_backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(settings_backdrop)
-	settings_panel = preload("res://scripts/settings_panel.gd").new()
-	add_child(settings_panel)
-	settings_panel.configure(settings)
-	settings_panel.closed.connect(close_settings)
+	# Supplied by the 3D menu subclass with its settings owner.
+	pass
 
 func close_settings() -> void:
 	if is_instance_valid(settings_panel):

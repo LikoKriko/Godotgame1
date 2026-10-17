@@ -27,7 +27,8 @@ esta división y se cierra como última tarea compartida de esta tanda.
 La integración de cintura, pinturas y ropa está publicada en `979623f`, sobre
 `prototype/third-person-3d`. Revisar los commits remotos y cambios locales antes
 de integrar trabajo de otro chat; conservarlos y no sobrescribir su historial.
-`main` mantiene la versión 2D.
+`main` contiene ahora el juego 3D. El juego 2D ha sido retirado; consultar
+[RETIRED_2D.md](RETIRED_2D.md) antes de recuperar dependencias antiguas.
 
 ## Coordinación natural y contacto de acciones
 

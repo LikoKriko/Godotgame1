@@ -1993,3 +1993,49 @@ Una ejecución simultánea con el render excedió el plazo de carga de 30 s;
 la repetición aislada pasó las 47 comprobaciones. Importación final sin errores
 de scripts/recursos. Capturas reales del menú K y del tamaño junto al
 superviviente: `docs/previews/enemy3_k_menu.png` y `enemy3_in_game.png`.
+
+
+
+## 2026-10-17 — Retirada del 2D y promoción del 3D a main
+
+Solicitud: eliminar el juego 2D conservando los sprites todavía compartidos
+y publicar el 3D completo en main. Sin estimación previa. Intervalo medido
+parcial desde el primer reloj registrado: 14:26:17–14:45:50 Europe/Madrid,
+19 min 33 s. Excluye revisión inicial anterior al registro y commit/push finales.
+
+2674 archivos obsoletos retirados, ~246,6 MiB del árbol actual: escenas,
+renderers, personajes/enemigos por atlas, cursor/sombras 2D, exportadores,
+guardado exclusivo, pruebas y documentación antiguas. Conservados todos
+los sprites de objetos, UI común, máscaras/texturas y lógica compartida.
+Los FBX, PNG, rigs y modelos originales del 3D permanecen intactos,
+comprobados contra la rama remota. Se traslada exactamente la validación
+de objetos del guardado 2D al 3D, normalizando solo la indentación.
+La primera importación detectó esa indentación mezclada; corregida,
+ambas importaciones finales pasan sin errores.
+
+13 suites de arranque, sistemas, interacciones, recursos, campamento,
+mesas de trabajo, configuración, distancia, keyframes, guardado, streaming,
+reglas de fabricación y caché de iconos superadas. Entre ellas: keyframes
+126372, guardado 44, streaming 207. Inventario nativo: 17 comprobaciones.
+La primera prueba nativa de sesión superó el límite de 60 s durante carga
+a 200 m con llvmpipe; se detuvo para evitar comprobaciones posteriores
+sobre una carga incompleta. La prueba selecciona ahora 100 m desde
+el control gráfico real, con una comprobación adicional: pasa las 12
+comprobaciones de menú, configuración, guardado, retorno y carga.
+No cambia el valor inicial del juego (200 m). Vista 3D revisada en nativo.
+
+Se incorpora además 0768cf4 del otro departamento, publicado durante
+esta tarea: enemigo3 con rig original de 35 huesos y primera caminata.
+Su suite pasa 487975 comprobaciones. Se respetan sus instrucciones y fuentes.
+Auditoría de referencias a archivos eliminados y git diff --check limpios.
+
+main no tiene commits exclusivos respecto al 3D: publicación por avance
+rápido, sin forzar historial. Se sincronizan main y prototype/third-person-3d
+con el mismo resultado, y se actualizan README, documentación y AGENTS.
+
+Antes de publicar se detecta e integra también 6eb0dca: enemigo3 desde K,
+altura 0,9 m, patrulla de diez metros y campo opcional de guardado. El único
+conflicto es el registro de tiempos: se conservan las entradas de ambos
+departamentos. Importación nuevamente limpia; nueva suite de patrulla
+superada (15101 comprobaciones) y guardado/carga actualizado superado
+(47 comprobaciones). No se repiten suites ajenas a esos cambios.

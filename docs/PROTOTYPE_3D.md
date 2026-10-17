@@ -1,8 +1,8 @@
 # Prototipo 3D de Day Zero
 
-Rama `prototype/third-person-3d`; `main` conserva el juego 2D. Seleccionar esta
-rama antes de descargar el ZIP, importar `project.godot` en Godot 4.7.2 y pulsar
-F5. La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú principal.
+La versión 3D se publica en `main`. Descargar esa rama, importar
+`project.godot` en Godot 4.7.2 y pulsar F5. El juego 2D ha sido retirado;
+ver [recursos compartidos conservados](RETIRED_2D.md). La escena inicial es `scenes/prototype_3d/day_zero.tscn`: abre el menú principal.
 `day_zero_3d.tscn` sigue siendo la escena del mundo, también usada por las pruebas.
 
 Modelos vigentes: superviviente y botella de las Releases Meshy aportadas por
@@ -127,8 +127,8 @@ Una sola malla por personaje conserva pesos y UV durante toda la animación;
 no se regeneran sprites ni superficies cada frame. La personalidad usa
 `creature_profile.gd`; la memoria y los objetivos están en `creature_brain.gd`.
 
-Las ventanas 3D heredan la interfaz 2D con proveedores de iconos, mapa y retrato
-sustituibles. Los valores por defecto del 2D permanecen intactos. La fabricación,
+Las ventanas 3D reutilizan la interfaz compartida, con iconos, mapa y retrato
+específicos del 3D. Se han retirado los proveedores de mapa y retrato antiguos. La fabricación,
 almacenamiento, reparación, nutrición, progresión y parry comparten sus reglas
 originales. La captura del ratón se libera únicamente al abrir interfaces;
 no se convierte la posición del cursor manualmente ni se abren ventanas nativas.
@@ -306,8 +306,8 @@ sustitución automática del guardado al crear, salir o morir.
 
 El archivo es `user://day_zero_3d.save`. En una instalación normal de Windows
 corresponde a `%APPDATA%/Godot/app_userdata/Day Zero/day_zero_3d.save`.
-El guardado 2D `day_zero_save.cfg` conserva su formato y archivo propios. No se
-convierten partidas 2D en 3D en esta versión.
+El código del guardado 2D se ha retirado. El 3D conserva su archivo propio
+y no convierte ni borra partidas 2D existentes en el equipo del usuario.
 
 `scripts/prototype_3d/session.gd` gestiona el menú y el ciclo de vida de la
 partida. `save_game.gd` guarda datos JSON versionados con comprobación SHA-256;

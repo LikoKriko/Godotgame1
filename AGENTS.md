@@ -1,5 +1,10 @@
 # Day Zero: regla visual permanente del usuario
 
+La rama de integración vigente es `main` y contiene el juego 3D.
+El runtime 2D ha sido retirado; conservar los sprites y sistemas compartidos
+que se detallan en `docs/RETIRED_2D.md`. Actualizar las ramas de departamento
+antes de trabajar para evitar restaurar archivos obsoletos.
+
 ## Acabado permanente de todas las texturas
 
 Todas las texturas nuevas o adaptadas deben tener acabado pixel art de muy alta
@@ -28,9 +33,10 @@ Si una decisión visual o de comportamiento no está especificada, presentar opc
 
 ## Animación y anatomía compartidas
 
-Usar las superficies continuas de `tools/continuous_actor.gd` y la cinemática de
+Usar los modelos y rigs de `scripts/prototype_3d/` y la cinemática de
 `scripts/continuous_body_pose.gd` como base reutilizable para personajes y
-enemigos. Los huesos mantienen su longitud; hombros y caderas permanecen dentro
+enemigos. El runtime y los exportadores de sprites 2D se han retirado. Los huesos
+mantienen su longitud; hombros y caderas permanecen dentro
 del torso, y piel, manos, pies y ropa acompañan sus articulaciones. Las fases de
 apoyo y transferencia se comparten mediante `stance_swing`; el número de patas y
 la postura deben corresponder a la criatura. El joven camina sobre cuatro patas
@@ -66,9 +72,9 @@ conservar anatomía y proporciones en las dieciséis direcciones. El joven camin
 sobre cuatro patas, se sienta en el suelo y se alza para atacar.
 
 Las sombras de objetos parten del contorno visible de sus apoyos. Declarar cada
-pata de muebles y apoyos de edificios en coordenadas del dibujo, y reutilizar
-`ground_contact_shadow.gd`; la hitbox no define el origen. Conservar la sombra
-del personaje. Ver `docs/CREATURES_AND_SHADOWS.md` para parámetros y exportación.
+pata de muebles y apoyos de edificios en coordenadas del dibujo, y usar sus
+apoyos físicos 3D; la hitbox no define el origen visual. Conservar la sombra
+del personaje. Ver `docs/YOUNG_3D.md` y `docs/PROTOTYPE_3D.md` para el runtime vigente.
 
 ## Registro de tiempos solicitado por el usuario
 

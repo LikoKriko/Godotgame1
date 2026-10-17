@@ -224,15 +224,8 @@ func refresh() -> void:
 	if creation_page != null: creation_page.refresh()
 
 func update_portrait() -> void:
-	var appearance := "burdock_armor__bare" if model.equipment[&"torso"].get("id") == &"burdock_armor" else "bare"
-	if appearance != portrait_key:
-		portrait_key = appearance
-		var image := AtlasTexture.new()
-		image.atlas = load("res://assets/characters/complete/"+appearance+"_idle.png")
-		var cell := Rect2i(0,4*192,192,192)
-		var used := image.atlas.get_image().get_region(cell).get_used_rect()
-		image.region = Rect2(used.position+cell.position,used.size)
-		portrait.texture = image
+	# Supplied by the 3D inventory subclass.
+	pass
 
 func select_backpack(index: int) -> void:
 	chosen = index
@@ -459,4 +452,4 @@ func open_section(index: int) -> void:
 	refresh(); navigation.current_tab = index; select_section(index); show()
 
 func make_map_view() -> Control:
-	return preload("res://scripts/world_map.gd").TerrainView.new()
+	return Control.new() # The 3D inventory supplies its map view.

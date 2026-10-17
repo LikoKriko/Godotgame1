@@ -6,7 +6,6 @@ const VERSION:=1
 const LAYOUT_VERSION:=1
 const MAX_BYTES:=16*1024*1024
 const Bag=preload("res://scripts/inventory.gd")
-const Items=preload("res://scripts/save_game.gd")
 const Progress=preload("res://scripts/progression.gd")
 const MOTION:=["from_slide","jump_heading","launch_heading","jump_speed","jump_elapsed","slide_elapsed","cooldown","crouch"]
 const ENEMY_FIELDS:=["health","phase","attack_elapsed","impact_done","punch_left","rise_elapsed","lower_elapsed","standing","damage_received","boxing_unlocked","boxing_check_remaining","boxing_remaining","attack_boxing","lower_from_boxing","death_elapsed","avoid_remaining"]
@@ -78,7 +77,21 @@ static func save_block_reason(game) -> String:
  for arrow in game.get_tree().get_nodes_in_group("player_arrows_3d"):
   if game.is_ancestor_of(arrow) and not arrow.is_queued_for_deletion():return "Espera a que termine el disparo antes de guardar."
  return ""
-static func valid_item(value,uids:Dictionary) -> bool:return Items.valid_item(value,uids)
+static func valid_item(item, uids: Dictionary) -> bool:
+ if not item is Dictionary: return false
+ if item.is_empty(): return true
+ for key in ["id", "quantity", "uses", "rarity", "uid"]:
+  if not item.has(key): return false
+ var definitions: Dictionary = preload("res://scripts/inventory.gd").DEFINITIONS
+ if not definitions.has(item.id) or item.rarity != &"basico": return false
+ if not item.quantity is int or item.quantity < 1 or item.quantity > definitions[item.id].stack: return false
+ if not item.uses is int or item.uses < -1 or item.uses > definitions[item.id].uses: return false
+ if definitions[item.id].uses >= 0 and item.uses < 0: return false
+ if item.id == &"botella":
+  if not item.get("water_ml") is int or item.water_ml < 0 or item.water_ml > 500 or item.water_ml%250 != 0: return false
+ if not item.uid is int or item.uid < 1 or uids.has(item.uid): return false
+ uids[item.uid] = true
+ return true
 static func item_array(value,size_value:int,uids:Dictionary) -> bool:
  if not value is Array or value.size()!=size_value:return false
  for item in value:

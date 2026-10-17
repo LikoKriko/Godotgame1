@@ -1,5 +1,5 @@
 extends Node
-## Owns the title screen and one live 3D session; never touches the 2D save.
+## Owns the title screen and one live 3D session and its separate save file.
 signal session_ready(world:Node3D)
 const Save=preload("res://scripts/prototype_3d/save_game.gd")
 var settings=preload("res://scripts/game_settings.gd").new()

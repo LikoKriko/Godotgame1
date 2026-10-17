@@ -1,4 +1,5 @@
 extends RefCounted
+## Source-image masks retained to build physical 3D platform contours.
 const HEIGHT := 9.6
 static var textures: Array[Texture2D] = []
 static var surfaces: Array[BitMap] = []
@@ -30,52 +31,3 @@ static func contains(platform: Dictionary, point: Vector2) -> bool:
  var uv: Vector2 = (point-platform.rect.position)/platform.rect.size
  var pixel := Vector2i(uv*Vector2(mask.get_size()))
  return uv.x >= 0 and uv.y >= 0 and uv.x < 1 and uv.y < 1 and mask.get_bitv(pixel)
-static func make_mesh(platform: Dictionary) -> ArrayMesh:
- # A dense strip raises the stone top while keeping the original soil at ground level.
- var arrays := []; arrays.resize(Mesh.ARRAY_MAX)
- var vertices := PackedVector3Array(); var uvs := PackedVector2Array(); var indices := PackedInt32Array()
- for row in 33:
-  var t := row/32.0
-  var rise := HEIGHT*(1-smoothstep(0.87,1.0,t))
-  for side in 2:
-   vertices.append(Vector3(platform.rect.position.x+side*platform.rect.size.x,platform.rect.position.y+t*platform.rect.size.y+17-rise,0))
-   uvs.append(Vector2(side,t))
- for row in 32:
-  var a := row*2
-  indices.append_array(PackedInt32Array([a,a+1,a+2,a+1,a+3,a+2]))
- arrays[Mesh.ARRAY_VERTEX] = vertices; arrays[Mesh.ARRAY_TEX_UV] = uvs; arrays[Mesh.ARRAY_INDEX] = indices
- var mesh := ArrayMesh.new(); mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays); return mesh
-
-static var detail_cache: Dictionary = {}
-static func detailed_texture(variant: int, dimensions: Vector2) -> Texture2D:
- prepare()
- var key := str(variant)+str(dimensions)
- if not detail_cache.has(key):
-  if detail_cache.size() >= 64: detail_cache.clear()
-  var style = preload("res://scripts/visual_style.gd")
-  # Stone sampling is half the previous width/height. Soil keeps a
-  # separate fine raster, so reducing the slabs never enlarges soil pixels.
-  var stone: Texture2D = style.normalized(textures[variant],dimensions,false,false,1.0)
-  var result := stone.get_image()
-  result.resize(roundi(dimensions.x*style.PIXELS_PER_WORLD*2),roundi(dimensions.y*style.PIXELS_PER_WORLD*2),Image.INTERPOLATE_NEAREST)
-  var soil := textures[variant].get_image()
-  soil.convert(Image.FORMAT_RGBA8)
-  soil.resize(result.get_width(),result.get_height(),Image.INTERPOLATE_BILINEAR)
-  var silhouette := textures[variant].get_image()
-  silhouette.resize(result.get_width(),result.get_height(),Image.INTERPOLATE_NEAREST)
-  var grain := FastNoiseLite.new()
-  grain.seed = 8107+variant
-  grain.frequency = 0.32
-  for y in result.get_height():
-   for x in result.get_width():
-    var original := silhouette.get_pixel(x,y)
-    # Brown earth only: slab faces, moss and stone cracks retain crisp pixels.
-    if original.a < 0.8 or original.r < original.g*1.18 or original.g < original.b*1.25: continue
-    var paint := soil.get_pixel(x,y)
-    if paint.a < 0.8: continue
-    var variation := 1.0+grain.get_noise_2d(x,y)*0.045
-    paint.r *= variation; paint.g *= variation; paint.b *= variation
-    paint.a = original.a
-    result.set_pixel(x,y,paint)
-  detail_cache[key] = ImageTexture.create_from_image(style.outlined(result))
- return detail_cache[key]

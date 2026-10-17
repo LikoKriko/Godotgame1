@@ -1,5 +1,5 @@
 extends RefCounted
-## The existing 2D generator remains the single source of seeded placement rules.
+## Shared seeded placement rules, retained independently of the retired 2D renderer.
 const UNIT:=1.75/64.0
 var source=preload("res://scripts/test_world.gd").new()
 var resources=preload("res://scripts/harvesting.gd").new()

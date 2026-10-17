@@ -41,6 +41,11 @@ func run():
  require(Engine.max_fps==120 and root.size==window_size and root.content_scale_mode==scale_mode,"Graphics applies FPS without resizing the viewport or cursor coordinates")
  var aa=panel.find_child("MSAA",true,false);aa.select(1);aa.item_selected.emit(1)
  require(root.msaa_3d==Viewport.MSAA_2X and root.size==window_size,"3D antialiasing applies without changing input coordinates")
+ # Keep the native UI/save round-trip bounded on software renderers. Full
+ # generation at 200/400 m is covered independently by the streaming suite.
+ var generation=panel.find_child("WorldGeneration",true,false)
+ generation.select(0);generation.item_selected.emit(0)
+ require(app.settings.values.world_generation==100,"World generation applies 100 m from the actual graphics selector")
  panel.tabs.current_tab=2;var volume=panel.find_child("master",true,false);volume.value=0.25
  require(absf(AudioServer.get_bus_volume_db(0)-linear_to_db(0.25))<0.01,"Audio slider updates the actual master bus")
  panel.tabs.current_tab=0;panel.hud_slider.value=3;panel.auto_run.button_pressed=true

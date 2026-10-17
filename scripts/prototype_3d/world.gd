@@ -52,13 +52,7 @@ var loading_screen:Control
 var loading_progress:ProgressBar
 var distance_optimization:Node
 func _ready() -> void:
- # The 2D cursor autoload would override captured mouse mode each frame.
  if not initial_state.is_empty():world_seed=initial_state.seed
- var cursor := get_tree().root.get_node_or_null("GameCursor")
- if cursor != null: cursor.set_process(false); cursor.hide()
- for overlay in get_tree().root.get_children():
-  if overlay.name == &"GameCursor": continue
-  if overlay.get("name") == &"DayZeroCursor": overlay.hide(); overlay.process_mode = Node.PROCESS_MODE_DISABLED
  Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
  settings.load_settings()
  preload("res://scripts/prototype_3d/settings_panel.gd").apply_runtime(settings,get_viewport())
@@ -209,10 +203,6 @@ func respawn() -> void:
 func request_main_menu() -> void:
  if main_menu_requested.get_connections().is_empty():get_tree().change_scene_to_file("res://scenes/prototype_3d/day_zero.tscn")
  else:main_menu_requested.emit()
-func open_2d() -> void:
- if get_tree().root.get_node_or_null("GameCursor") == null:
-  var cursor := preload("res://scripts/cursor_overlay.gd").new(); cursor.name = "GameCursor"; get_tree().root.add_child(cursor)
- get_tree().change_scene_to_file("res://scenes/day_zero.tscn")
 func _unhandled_input(event: InputEvent) -> void:
  if loading_state:return
  if workbenches!=null and workbenches.placing():
@@ -409,8 +399,6 @@ func spawn_sprout_near_player() -> bool:
  return false
 func _exit_tree() -> void:
  Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
- var cursor := get_tree().root.get_node_or_null("GameCursor")
- if cursor != null: cursor.show(); cursor.set_process(true)
 
 func build_loading_screen(root:Control) -> void:
  loading_screen=Control.new();loading_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(loading_screen)

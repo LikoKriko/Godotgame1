@@ -1,5 +1,8 @@
 # Migración 2D → 3D: alcance y revisión
 
+> Registro de la migración. Desde el 17/10/2026, `main` contiene el 3D y se
+> ha retirado el runtime 2D. Estado de la limpieza: [RETIRED_2D.md](RETIRED_2D.md).
+
 El usuario autoriza continuar sin comprobaciones suyas entre cambios. Las pruebas
 necesarias se realizan durante la integración. Después de migrar **todo** lo que
 ya existía, se hará una fase dedicada a localizar errores, corregirlos y pulir

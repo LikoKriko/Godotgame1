@@ -1,6 +1,5 @@
 extends RefCounted
-## Data-only building definitions are safe for the generation worker. Raster
-## preparation stays on the main thread and uses the shared contour policy.
+## Data-only building dimensions and seeded layout used by the 3D world.
 static var DEFINITIONS := [
  {"name":"Choza","file":"hut_01.png","size":Vector2(280,233),"door":Vector2(0.643,0.854),"opening":PackedVector2Array([Vector2(0.535,0.62),Vector2(0.699,0.57),Vector2(0.70,0.89),Vector2(0.54,0.92)])},
  {"name":"Refugio comunal","file":"camp_01.png","size":Vector2(325,260),"door":Vector2(0.66,0.9),"opening":PackedVector2Array([Vector2(0.49,0.59),Vector2(0.57,0.47),Vector2(0.88,0.54),Vector2(0.86,0.80),Vector2(0.54,0.91),Vector2(0.44,0.81)])},
@@ -9,18 +8,6 @@ static var DEFINITIONS := [
  {"name":"Taller primitivo","file":"camp_04.png","size":Vector2(313,260),"door":Vector2(0.70,0.91),"opening":PackedVector2Array([Vector2(0.54,0.57),Vector2(0.73,0.59),Vector2(0.82,0.78),Vector2(0.74,0.90),Vector2(0.53,0.89)])},
  {"name":"Zona comunal","file":"camp_05.png","size":Vector2(332,260),"door":Vector2(0.53,0.96),"opening":PackedVector2Array([Vector2(0.41,0.50),Vector2(0.61,0.53),Vector2(0.75,0.77),Vector2(0.53,0.94),Vector2(0.27,0.74)])},
 ]
-static var textures: Array[Texture2D] = []
-static func prepare() -> void:
- if not textures.is_empty(): return
- for record in DEFINITIONS:
-  var original: Texture2D = load("res://assets/environment/imported/"+record.file)
-  var normalized: Texture2D = preload("res://scripts/visual_style.gd").normalized(original,record.size,true,true)
-  var pixels := normalized.get_image()
-  for y in pixels.get_height():
-   for x in pixels.get_width():
-    if Geometry2D.is_point_in_polygon(Vector2(x+0.5,y+0.5)/Vector2(pixels.get_size()),record.opening):
-     var paint := pixels.get_pixel(x,y); pixels.set_pixel(x,y,Color(paint.r*0.3,paint.g*0.3,paint.b*0.3,paint.a))
-  textures.append(ImageTexture.create_from_image(pixels))
 static func layout() -> Array[Dictionary]:
  var result: Array[Dictionary] = []
  var points := [Vector2(-250,-120),Vector2(-962,-120),Vector2(462,-120),Vector2(-250,520),Vector2(-962,520),Vector2(462,520)]
