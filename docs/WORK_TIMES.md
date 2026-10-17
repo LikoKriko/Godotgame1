@@ -1910,3 +1910,10 @@ Sin estimación previa. Rama y diferencias comprobadas; GitHub sigue en
 `dd604ef`, sin nuevas revisiones que integrar. Se conservan las nueve suites
 y 85003 comprobaciones del hito anterior; `git diff --check` sin errores.
 El intervalo no incluye el commit ni el push posteriores.
+
+
+## 2026-10-17 — Carpeta de entregables enemigo3
+
+Creada `entregables/enemigos/enemigo3` con `.gitkeep` para conservarla en Git.
+Existencia comprobada el 17/10/2026 a las 14:10 (Europe/Madrid).
+Sin estimación previa; duración no cronometrada.
