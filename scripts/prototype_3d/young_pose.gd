@@ -268,7 +268,9 @@ static func blend(current:Dictionary,target:Dictionary,delta:float) -> Dictionar
  return mix(current,target,1-exp(-maxf(0,delta)*18))
 
 static func mix(current:Dictionary,target:Dictionary,amount:float) -> Dictionary:
- var pose:Dictionary=target.duplicate(true)
+ # All mutable blend buffers below are replaced before solving fresh limbs.
+ # Keep the input read-only without copying its unused nested limb trees.
+ var pose:Dictionary=target.duplicate()
  pose.body=(current.body as Transform3D).interpolate_with(target.body,amount)
  pose.pelvis=(current.get("pelvis",current.body) as Transform3D).interpolate_with(target.get("pelvis",target.body),amount)
  pose.head=(current.head as Basis).slerp(target.head,amount)

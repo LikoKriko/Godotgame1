@@ -21,6 +21,14 @@ var local_bind:Array[Transform3D]=[]
 var posed:Array[Transform3D]=[]
 var parents:Array[int]=[]
 var contacts:Array[Dictionary]=[]
+var pose_writer=preload("res://scripts/prototype_3d/skeleton_pose.gd").new()
+var leg_chains:Array[Dictionary]=[]
+var motion_sides:=PackedInt32Array()
+var aim_axes:Dictionary={}
+var lumbar_bone:int
+var head_bone:int
+var tail_base:int
+var tail_tip:int
 
 func _ready() -> void:
  var model:=SOURCE.instantiate();add_child(model);model.position.y+=GROUND_OFFSET
@@ -30,12 +38,20 @@ func _ready() -> void:
  for i in skeleton.get_bone_count():
   bind.append(skeleton.get_bone_global_pose(i));local_bind.append(skeleton.get_bone_pose(i));parents.append(skeleton.get_bone_parent(i))
  posed.assign(bind)
+ pose_writer.configure(parents);motion_sides.resize(bind.size());motion_sides.fill(-1)
+ for side in 2:
+  var suffix:="_L" if side==0 else "_R"
+  var hip:=bone("pierna2"+suffix);var knee:=bone("pierna3"+suffix);var hock:=bone("pierna4"+suffix);var foot:=bone("pierna5"+suffix)
+  leg_chains.append({"hip":hip,"knee":knee,"hock":hock,"foot":foot,"arm":bone("brazo2"+suffix),"upper":bind[hip].origin.distance_to(bind[knee].origin),"lower":bind[knee].origin.distance_to(bind[hock].origin),"offset":bind[foot].origin-bind[hock].origin})
+  for index in [hip,knee,hock,foot,leg_chains[side].arm]:motion_sides[index]=side
+  for pair in [Vector2i(hip,knee),Vector2i(knee,hock),Vector2i(hock,foot)]:aim_axes[pair.y]=(bind[pair.y].origin-bind[pair.x].origin).normalized()
+ lumbar_bone=bone("Hueso.001");head_bone=bone("Hueso.004");tail_base=bone("pierna1_R.002");tail_tip=bone("pierna1_R.004")
 
 func bone(label:String) -> int:return skeleton.find_bone(label)
 func inherit(i:int) -> void:
  posed[i]=posed[parents[i]]*local_bind[i] if parents[i]>=0 else local_bind[i]
 func aim(i:int,child:int,origin:Vector3,target:Vector3) -> void:
- var turn:=Basis(Quaternion((bind[child].origin-bind[i].origin).normalized(),(target-origin).normalized()))
+ var turn:=Basis(Quaternion(aim_axes[child],(target-origin).normalized()))
  posed[i]=Transform3D(turn*bind[i].basis,origin)
 func turn_about(i:int,axis:Vector3,angle:float) -> void:
  posed[i].basis=Basis(axis,angle)*posed[i].basis
@@ -49,19 +65,18 @@ func animate(phase:float,amount:float=1.0) -> void:
  for i in bind.size():
   inherit(i)
   if parents[i]<0:posed[i]=body*bind[i]
-  for side in 2:
-   var suffix:="_L" if side==0 else "_R"
-   var hip:=bone("pierna2"+suffix);var knee:=bone("pierna3"+suffix);var hock:=bone("pierna4"+suffix);var foot:=bone("pierna5"+suffix)
+  var side:int=motion_sides[i]
+  if side>=0:
+   var chain:Dictionary=leg_chains[side]
+   var hip:int=chain.hip;var knee:int=chain.knee;var hock:int=chain.hock;var foot:int=chain.foot
    if i==hip:
     var step:=Body.stance_swing(phase+side*.5,STRIDE*amount,.045*amount,SUPPORT,amount)
     var ankle:=bind[foot].origin+Vector3(0,step.lift,step.z)
     # Keep the digitigrade lower segment and sole level during ground support.
     # The shared solver uses authoring units; scale metres to centimetres so its
     # fixed numerical margin is 0.4 mm instead of four centimetres.
-    var target_hock:Vector3=ankle-(bind[foot].origin-bind[hock].origin)
-    var upper:float=bind[hip].origin.distance_to(bind[knee].origin)
-    var lower:float=bind[knee].origin.distance_to(bind[hock].origin)
-    var solved:=Body.joint(posed[hip].origin*100,target_hock*100,upper*100,lower*100,Vector3(0,0,1))
+    var target_hock:Vector3=ankle-chain.offset
+    var solved:=Body.joint(posed[hip].origin*100,target_hock*100,chain.upper*100,chain.lower*100,Vector3(0,0,1))
     var joint:Vector3=solved.joint/100;var end:Vector3=solved.end/100
     aim(hip,knee,posed[hip].origin,joint)
     # Children are solved when visited; temporary targets survive inheritance.
@@ -72,14 +87,14 @@ func animate(phase:float,amount:float=1.0) -> void:
     var c:Dictionary=contacts[side];aim(hock,foot,c.hock,c.target)
    if i==foot:posed[i]=Transform3D(bind[i].basis,contacts[side].target)
    # Small arms counterbalance the alternating hind legs, preserving the fingers.
-   if i==bone("brazo2"+suffix):turn_about(i,Vector3.RIGHT,.13*sin((phase+side*.5)*TAU)*amount)
-  if i==bone("Hueso.001"):turn_about(i,Vector3.UP,.025*sin(phase*TAU)*amount)
-  if i==bone("Hueso.004"):turn_about(i,Vector3.UP,-.02*sin(phase*TAU)*amount)
-  if i==bone("pierna1_R.002"):turn_about(i,Vector3.UP,.045*sin(phase*TAU-.45)*amount)
-  if i==bone("pierna1_R.004"):turn_about(i,Vector3.UP,.035*sin(phase*TAU-.9)*amount)
+   if i==chain.arm:turn_about(i,Vector3.RIGHT,.13*sin((phase+side*.5)*TAU)*amount)
+  if i==lumbar_bone:turn_about(i,Vector3.UP,.025*sin(phase*TAU)*amount)
+  if i==head_bone:turn_about(i,Vector3.UP,-.02*sin(phase*TAU)*amount)
+  if i==tail_base:turn_about(i,Vector3.UP,.045*sin(phase*TAU-.45)*amount)
+  if i==tail_tip:turn_about(i,Vector3.UP,.035*sin(phase*TAU-.9)*amount)
  # amount=0 restores the supplied pose exactly, including the authored wrist.
  if amount==0:posed.assign(bind)
- for i in bind.size():skeleton.set_bone_pose(i,posed[parents[i]].affine_inverse()*posed[i] if parents[i]>=0 else posed[i])
+ pose_writer.apply(skeleton,posed)
 
 
 func animate_run(phase:float,amount:float=1.0) -> void:
@@ -93,17 +108,16 @@ func animate_run(phase:float,amount:float=1.0) -> void:
  for i in bind.size():
   inherit(i)
   if parents[i]<0:posed[i]=body*bind[i]
-  if i==bone("Hueso.001"):turn_about(i,Vector3.RIGHT,RUN_PITCH*amount)
-  for side in 2:
-   var suffix:="_L" if side==0 else "_R"
-   var hip:=bone("pierna2"+suffix);var knee:=bone("pierna3"+suffix);var hock:=bone("pierna4"+suffix);var foot:=bone("pierna5"+suffix)
+  if i==lumbar_bone:turn_about(i,Vector3.RIGHT,RUN_PITCH*amount)
+  var side:int=motion_sides[i]
+  if side>=0:
+   var chain:Dictionary=leg_chains[side]
+   var hip:int=chain.hip;var knee:int=chain.knee;var hock:int=chain.hock;var foot:int=chain.foot
    if i==hip:
     var step:=Body.stance_swing(phase+side*.5,RUN_STRIDE*amount,.13*amount,RUN_SUPPORT,amount)
     var ankle:=bind[foot].origin+Vector3(0,step.lift,step.z)
-    var target_hock:Vector3=ankle-(bind[foot].origin-bind[hock].origin)
-    var upper:float=bind[hip].origin.distance_to(bind[knee].origin)
-    var lower:float=bind[knee].origin.distance_to(bind[hock].origin)
-    var solved:=Body.joint(posed[hip].origin*100,target_hock*100,upper*100,lower*100,Vector3(0,0,1))
+    var target_hock:Vector3=ankle-chain.offset
+    var solved:=Body.joint(posed[hip].origin*100,target_hock*100,chain.upper*100,chain.lower*100,Vector3(0,0,1))
     var joint:Vector3=solved.joint/100;var end:Vector3=solved.end/100
     aim(hip,knee,posed[hip].origin,joint)
     contacts.append({"side":side,"stance":fposmod(phase+side*.5,1)<RUN_SUPPORT,"target":ankle,"knee":joint,"hock":end,"foot":foot})
@@ -113,8 +127,8 @@ func animate_run(phase:float,amount:float=1.0) -> void:
     var c:Dictionary=contacts[side];aim(hock,foot,c.hock,c.target)
    if i==foot:posed[i]=Transform3D(bind[i].basis,contacts[side].target)
    # Shoulder swing stays local to the tilted chest, preserving elbows/digits.
-   if i==bone("brazo2"+suffix):turn_about(i,Vector3.RIGHT,.32*sin((phase+side*.5)*TAU)*amount)
-  if i==bone("pierna1_R.002"):turn_about(i,Vector3.RIGHT,-.12*amount)
-  if i==bone("pierna1_R.004"):turn_about(i,Vector3.UP,.065*sin(phase*TAU-.6)*amount)
+   if i==chain.arm:turn_about(i,Vector3.RIGHT,.32*sin((phase+side*.5)*TAU)*amount)
+  if i==tail_base:turn_about(i,Vector3.RIGHT,-.12*amount)
+  if i==tail_tip:turn_about(i,Vector3.UP,.065*sin(phase*TAU-.6)*amount)
  if amount==0:posed.assign(bind)
- for i in bind.size():skeleton.set_bone_pose(i,posed[parents[i]].affine_inverse()*posed[i] if parents[i]>=0 else posed[i])
+ pose_writer.apply(skeleton,posed)

@@ -8,6 +8,9 @@ var skeleton := Skeleton3D.new()
 var rest: Array[Transform3D] = []
 var posed: Array[Transform3D] = []
 var parents: Array[int] = []
+var pose_writer=preload("res://scripts/prototype_3d/skeleton_pose.gd").new()
+var limb_frames:Array[Basis]=[]
+var collar_frames:Array[Basis]=[]
 var names: Dictionary = {}
 var neutral: Dictionary
 var arm_rest: Array[Dictionary] = []
@@ -55,6 +58,10 @@ func setup(actor:Node3D,mesh_instance:MeshInstance3D) -> void:
  var skin := Skin.new()
  for i in rest.size(): skin.add_bind(i,rest[i].affine_inverse())
  mesh_instance.skin = skin
+ pose_writer.configure(parents);limb_frames.resize(rest.size());collar_frames.resize(rest.size())
+ for side in 2:
+  cache_limb(4+side*3,20+side,arm_rest[side])
+  cache_limb(10+side*3,22+side,neutral.legs[side])
 
 func bone(label: String, parent: int, position: Vector3,basis:Basis=Basis.IDENTITY) -> void:
  var index := skeleton.get_bone_count(); skeleton.add_bone(label)
@@ -65,16 +72,20 @@ func bone(label: String, parent: int, position: Vector3,basis:Basis=Basis.IDENTI
  var local := rest[parent].affine_inverse()*transform if parent >= 0 else transform
  skeleton.set_bone_rest(index,local); skeleton.set_bone_pose(index,local)
 
-func orient_limb(start:int,chain:Dictionary,bind_chain:Dictionary) -> void:
+func cache_limb(start:int,collar:int,chain:Dictionary) -> void:
+ for segment in 2:limb_frames[start+segment]=Kinematics.segment_frame(chain,segment).inverse()
+ var axis:Vector3=(chain.joint-chain.root).normalized()+(chain.end-chain.joint).normalized()
+ collar_frames[collar]=Kinematics.frame(axis,Kinematics.plane(chain)).inverse()
+
+func orient_limb(start:int,chain:Dictionary) -> void:
  # A shortest-arc quaternion alone loses the hinge plane and flips limb roll.
  for segment in 2:
-  var rotation:=Kinematics.segment_frame(chain,segment)*Kinematics.segment_frame(bind_chain,segment).inverse()
+  var rotation:=Kinematics.segment_frame(chain,segment)*limb_frames[start+segment]
   posed[start+segment]=Transform3D(rotation,chain.root if segment==0 else chain.joint)
 
-func hinge_collar(index:int,chain:Dictionary,bind_chain:Dictionary) -> void:
+func hinge_collar(index:int,chain:Dictionary) -> void:
  var current:Vector3=(chain.joint-chain.root).normalized()+(chain.end-chain.joint).normalized()
- var original:Vector3=(bind_chain.joint-bind_chain.root).normalized()+(bind_chain.end-bind_chain.joint).normalized()
- var rotation:=Kinematics.frame(current,Kinematics.plane(chain))*Kinematics.frame(original,Kinematics.plane(bind_chain)).inverse()
+ var rotation:=Kinematics.frame(current,Kinematics.plane(chain))*collar_frames[index]
  posed[index]=Transform3D(rotation,chain.joint)
 
 func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
@@ -135,8 +146,8 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
    var forearm:Vector3=(arm.end-arm.joint).normalized().lerp((running_pose.end-running_pose.joint).normalized(),amount).normalized()
    arm.joint=arm.root+upper*Pose.UPPER_ARM;arm.end=arm.joint+forearm*Pose.FOREARM
   var start := 4+side*3
-  orient_limb(start,arm,arm_rest[side])
-  hinge_collar(20+side,arm,arm_rest[side])
+  orient_limb(start,arm)
+  hinge_collar(20+side,arm)
   var balancing:bool=pose.get("family",&"")==&"sword" and clip==&"action" and side!=pose.active
   var bare_action:bool=family==&"" and clip==&"action"
   var palm:=Kinematics.hand_frame(arm,torso.basis,side,not swinging and not balancing and not bare_action)
@@ -163,8 +174,8 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
    var close_fist:=sin(clampf(float(pose.phase),0,1)*PI)
    posed[start+2].basis=posed[start+2].basis*Basis.from_scale(Vector3(1+0.1*close_fist,1-0.12*close_fist,1+0.1*close_fist))
   var leg: Dictionary = pose.legs[side]; start = 10+side*3
-  orient_limb(start,leg,neutral.legs[side])
-  hinge_collar(22+side,leg,neutral.legs[side])
+  orient_limb(start,leg)
+  hinge_collar(22+side,leg)
   posed[start+2] = Transform3D(pose.foot_bases[side] if pose.has("foot_bases") else pose.get("leg_frame",Basis.IDENTITY)*Basis(Vector3.RIGHT,leg.pitch),leg.end)
   var leg_angle := atan2((leg.joint-leg.root).z,-(leg.joint-leg.root).y)
   if delta>0:
@@ -182,6 +193,4 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
    var index:=16+side*2+panel
    var origin: Vector3=leg.root+posed[10+side*3].basis*(rest[index].origin-rest[10+side*3].origin)
    posed[index]=Transform3D(posed[10+side*3].basis*Basis(Vector3.RIGHT,cloth_display*(1 if panel==0 else 0.7)),origin)
- for i in posed.size():
-  var parent := parents[i]
-  skeleton.set_bone_pose(i,posed[parent].affine_inverse()*posed[i] if parent >= 0 else posed[i])
+ pose_writer.apply(skeleton,posed)

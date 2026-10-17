@@ -44,6 +44,10 @@ muestreo nearest con mipmaps. Materiales y procedencia están en
 `sprout_model.gd` define las poses; `sprout_enemy.gd`, movimiento y física;
 `sprout_patrol.gd`, extremos y giros. La caminata usa 61 muestras y la carrera 259 muestras adaptativas,
 ambas con 70 pistas sobre su rig original. No sustituirlo por el esqueleto de otra criatura.
+El generador de poses resuelve al crear el modelo los índices de huesos, ejes de
+referencia y longitudes de sus cadenas. Conserva el cálculo de apoyo e IK en cada
+muestra. En partida se leen los clips precalculados mediante AnimationPlayer;
+la optimización del generador no modifica esos clips ni sus transiciones.
 
 
 ## Ciclo de carrera para revisión

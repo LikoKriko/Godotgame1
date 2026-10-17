@@ -8,7 +8,10 @@ var skeleton:=Skeleton3D.new()
 var rest:Array[Transform3D]=[]
 var posed:Array[Transform3D]=[]
 var parents:Array[int]=[]
+var pose_writer=preload("res://scripts/prototype_3d/skeleton_pose.gd").new()
 var facial_open:=0.0
+var expression_time:=NAN
+var expression_weights:=PackedFloat32Array()
 var facial_elapsed:=Face.SECONDS
 var facial_state:StringName=&"reference"
 var facial_phase:=0.0
@@ -54,7 +57,7 @@ func make_skeleton() -> void:
  add_child(skeleton);mesh_node.reparent(skeleton);mesh_node.skeleton=NodePath("..")
  var skin:=Skin.new()
  for i in rest.size():skin.add_bind(i,rest[i].affine_inverse())
- mesh_node.skin=skin
+ mesh_node.skin=skin;pose_writer.configure(parents)
 func animate(state:StringName,phase:float,left:bool = true,delta:float = 0.0) -> void:
  var target:=Motion.sample(state,phase,left)
  if state!=previous_state:
@@ -101,9 +104,11 @@ func apply_pose(pose:Dictionary,delta:float=0.0) -> void:
   var closing:=smoothstep(0,.16,facial_close_time)
   for control in 5:mesh_node.set_blend_shape_value(control,facial_close_weights[control]*closing)
   facial_open=facial_close_weights[0]*Face.CONTROL_SCALE*closing
- for i in posed.size():skeleton.set_bone_pose(i,posed[parents[i]].affine_inverse()*posed[i] if parents[i]>=0 else posed[i])
+ pose_writer.apply(skeleton,posed)
 
 func set_facial_time(seconds:float) -> void:
  facial_elapsed=clampf(seconds,0,Face.SECONDS)
- var expression:=Face.weights(facial_elapsed);facial_open=expression[0]*Face.CONTROL_SCALE
- for control in 5:mesh_node.set_blend_shape_value(control,expression[control])
+ if expression_time!=facial_elapsed:
+  expression_weights=Face.weights(facial_elapsed);expression_time=facial_elapsed
+ facial_open=expression_weights[0]*Face.CONTROL_SCALE
+ for control in 5:mesh_node.set_blend_shape_value(control,expression_weights[control])

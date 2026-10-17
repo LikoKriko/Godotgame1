@@ -22,7 +22,8 @@ func run() -> void:
  var enemy=actors[0];enemy.set_physics_process(false);enemy.run_preview_enabled=false
  var visual:MeshInstance3D=enemy.model.find_children("*","MeshInstance3D",true,false)[0]
  require(absf(visual.mesh.get_aabb().size.y*enemy.model.scale.y-.9)<.000001,"Actual mesh height scales uniformly to 0.9 m")
- require(absf(enemy.patrol.target().distance_to(enemy.patrol.origin)-20)<.000001,"Route endpoints are twenty metres apart")
+ # Diagonal endpoints use single-precision world coordinates.
+ require(absf(enemy.patrol.target().distance_to(enemy.patrol.origin)-20)<.00001,"Route endpoints are twenty metres apart")
  var floor_node:=StaticBody3D.new();var shape:=CollisionShape3D.new();var box:=BoxShape3D.new();box.size=Vector3(50,.2,50);shape.shape=box;floor_node.add_child(shape);floor_node.position=Vector3(100,-.1,100);root.add_child(floor_node)
  enemy.global_position=Vector3(100,.025,100);enemy.patrol.configure(enemy.global_position,Vector3(0,0,1))
  await physics_frame

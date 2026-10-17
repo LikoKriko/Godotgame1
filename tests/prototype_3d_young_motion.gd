@@ -15,6 +15,13 @@ func compare(a:Dictionary,b:Dictionary,label:String):
   require(a.legs[side].end.distance_to(b.legs[side].end)<.001,label+": foot contact joins the next state")
   require(a.arms[side].end.distance_to(b.arms[side].end)<.001,label+": fist joins the next state")
 func run():
+ for state in Motion.STATES:
+  var current:=Motion.sample(&"idle",.17);var target:=Motion.sample(state,.43)
+  var before_current:=var_to_bytes(current);var before_target:=var_to_bytes(target)
+  var mixed:=Motion.mix(current,target,.4)
+  mixed.legs[0].end+=Vector3.ONE;mixed.arms[1].joint-=Vector3.ONE
+  if not mixed.foot_bases.is_empty():mixed.foot_bases[0]=Basis.IDENTITY
+  require(var_to_bytes(current)==before_current and var_to_bytes(target)==before_target,"Blended limbs and foot bases cannot mutate input poses or shared keyframes: "+str(state))
  var actor=load("res://scripts/prototype_3d/young_model.gd").new();root.add_child(actor)
  var mesh:Mesh=actor.mesh_node.mesh
  var seeds:Array=JSON.parse_string(FileAccess.get_file_as_string("res://assets/enemies/first/meshy/rig_seeds.json"))
