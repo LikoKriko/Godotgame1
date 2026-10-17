@@ -135,6 +135,9 @@ El enemigo3 conserva el FBX Sunny Sprout de
 35 huesos, 13582 triángulos y PNG/UV originales. No sustituir su ligadura por
 la del joven o el humano. `scenes/prototype_3d/enemy3.tscn` expone `walk` y
 `RESET` mediante AnimationPlayer; `enemy3_review.tscn` permite revisar cuatro
-vistas. Es una primera caminata de presentación, todavía sin apariciones ni
-IA de enemigo3. Procedencia y conversión a ocho influencias máximas:
+vistas. El menú K permite añadir instancias de 0,9 m: `sprout_enemy.gd` y
+`sprout_patrol.gd` las hacen recorrer diez metros de ida y diez de vuelta,
+sin combate ni apariciones automáticas. Guardado en el campo opcional `sprouts`;
+no mezclar su grupo `prototype_sprouts` con las reglas del enemigo joven.
+Procedencia y conversión a ocho influencias máximas:
 `assets/enemies/third/sprout/source.json`; ver `docs/ENEMY3_3D.md`.

@@ -53,6 +53,9 @@ static func capture(game) -> Dictionary:
   for key in BRAIN_FIELDS:brain[key]=actor.brain.get(key)
   if is_instance_valid(actor.brain.tree):brain.tree=str(actor.brain.tree.get_meta("resource_id",""))
   entry.brain=brain;enemies.append(entry)
+ var sprouts:Array=[]
+ for actor in game.get_tree().get_nodes_in_group("prototype_sprouts"):
+  if actor.game==game and not actor.is_queued_for_deletion():sprouts.append(actor.snapshot())
  var drops:Array=[]
  for drop in game.get_tree().get_nodes_in_group("prototype_drops"):
   if not game.is_ancestor_of(drop) or drop.is_queued_for_deletion() or drop.item.is_empty():continue
@@ -65,7 +68,7 @@ static func capture(game) -> Dictionary:
   "progress":{"level":game.level,"experience":game.experience,"points":game.skill_points,"health":game.player_health,"skills":game.progression.skills.duplicate(),"perks":game.progression.perks.duplicate(),"active":game.progression.active.duplicate(),"cooldowns":game.progression.cooldowns.duplicate(),"rng":str(game.progression.rng.state)},
   "nutrition":{"calories":game.nutrition.calories_today,"hydration":game.nutrition.hydration_ml,"water_today":game.nutrition.water_today_ml},
   "clock":{"day":game.day_cycle.day,"hour":game.day_cycle.hour},"parry":{"remaining":game.parry.cooldown_remaining(),"used":game.parry.used},
-  "resources":resources,"enemies":enemies,"drops":drops,"tables":tables}
+  "resources":resources,"enemies":enemies,"sprouts":sprouts,"drops":drops,"tables":tables}
 static func save_block_reason(game) -> String:
  if game.loading_state or game.environment_content==null:return "Espera a que termine de cargar el mundo."
  if not game.pending_consumption.is_empty() or game.player.preview_state!=&"" or game.player.action_elapsed>=0 or game.player.equip_elapsed>=0 or game.player.parry_elapsed>=0:return "Reanuda y termina la acción del personaje antes de guardar."
@@ -151,9 +154,22 @@ static func valid(data) -> bool:
  if not data.get("enemies") is Array or data.enemies.size()>1024:return false
  for actor in data.enemies:
   if not valid_enemy(actor,uids):return false
+ var sprouts=data.get("sprouts",[])
+ if not sprouts is Array or sprouts.size()>1024:return false
+ for actor in sprouts:
+  if not valid_sprout(actor):return false
  for uid in uids:
   if uid>=b.next_uid:return false
  return true
+static func valid_sprout(actor) -> bool:
+ if not actor is Dictionary or not in_world(actor.get("position")) or not number(actor.get("phase"),0,1):return false
+ var patrol=actor.get("patrol")
+ if not patrol is Dictionary or not in_world(patrol.get("origin")) or not valid_vector(patrol.get("axis")):return false
+ var axis:=point(patrol.axis)
+ if absf(axis.y)>.00001 or absf(axis.length()-1)>.0001:return false
+ for key in ["returning","turning"]:
+  if not patrol.get(key) is bool:return false
+ return number(patrol.get("turn_elapsed"),0,.65) and number(patrol.get("turn_start"),-100000,100000) and number(patrol.get("heading"),-100000,100000)
 static func valid_enemy(actor,uids:Dictionary) -> bool:
  if not actor is Dictionary:return false
  for key in ["position","velocity","avoid_direction"]:
@@ -282,6 +298,10 @@ static func restore(game,data:Dictionary) -> bool:
   actor.brain.goal=point(entry.brain.goal);actor.brain.last_seen=point(entry.brain.last_seen);actor.brain.rng.state=int(entry.brain.rng)
   actor.brain.tree=game.environment_content.resource_nodes.get(entry.brain.tree)
   actor.restore_presentation()
+ for actor in game.get_tree().get_nodes_in_group("prototype_sprouts"):
+  if actor.game==game:actor.free()
+ for entry in data.get("sprouts",[]):
+  var actor=load("res://scripts/prototype_3d/sprout_enemy.gd").new();game.add_child(actor);actor.configure(game);actor.restore(entry)
  for entry in data.tables:game.workbenches.add_table(point(entry.position),entry.uid)
  for entry in data.drops:game.corpse_loot.spawn_drop(entry.item,point(entry.position),false)
  game.sync_equipment();game.player.model.family_override=game.player.family()

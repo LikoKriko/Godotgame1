@@ -1971,3 +1971,25 @@ longitudes constantes, apoyos, continuidad, cierre del ciclo y RESET original.
 Revisión real de Godot Compatibility/OpenGL con cuatro vistas y 48 fotogramas
 publicados en GIF; clip de 1,25 s en bucle. No se añade IA ni aparición del
 enemigo en el mundo. Ver `docs/ENEMY3_3D.md`.
+
+## 2026-10-17 — Enemigo3 en K, altura de 0,9 m y patrulla de diez metros
+
+Solicitud: añadir el enemigo3 desde el menú K, medir 0,9 m y caminar diez
+metros, girar y volver otros diez, repitiendo el recorrido. Se conserva el rig,
+la malla y la caminata anterior. Se añade física con gravedad, comprobación del
+corredor completo antes de aparecer, pausa y persistencia del estado de patrulla.
+Sin estimación previa. Primer reloj observado **14:32:47 Europe/Madrid**;
+comprobaciones terminadas e importación revisada a las **14:40:21**:
+**7 min 34 s**, intervalo parcial, excluye preparación previa al primer reloj y
+publicación posterior.
+
+Pruebas finales: **15101 comprobaciones** del botón real de K, rechazo de
+corredores bloqueados, escala uniforme a 0,9 m, pausa, física y tres tramos
+consecutivos de diez metros con giro y sin saltos de posición. **47 pruebas**
+de guardado/sesión, incluyendo enemigo3 a mitad de giro, fase de animación y
+compatibilidad con partidas sin el nuevo campo opcional. La igualdad de
+posiciones tras JSON usa tolerancia numérica; no igualdad exacta de decimales.
+Una ejecución simultánea con el render excedió el plazo de carga de 30 s;
+la repetición aislada pasó las 47 comprobaciones. Importación final sin errores
+de scripts/recursos. Capturas reales del menú K y del tamaño junto al
+superviviente: `docs/previews/enemy3_k_menu.png` y `enemy3_in_game.png`.

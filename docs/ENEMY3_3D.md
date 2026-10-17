@@ -4,9 +4,9 @@ El FBX aportado por el usuario contiene una malla de **6791 vértices y 13582
 triángulos**, un esqueleto de **35 huesos** (29 grupos de deformación) y ninguna
 animación. Se conserva su geometría, proporciones, normales, UV y jerarquía,
 incluidos los nombres de huesos. Altura original: aproximadamente **1,901 m**.
-El frente mira hacia **+Z** en Godot. No se ha añadido IA, combate ni generación
-del enemigo en el mundo: esta entrega permite revisar el modelo y su primera
-caminata antes de esa integración.
+El frente mira hacia **+Z** en Godot. El menú **K → Añadir enemigo3** crea una
+instancia de **0,9 m de altura** con una patrulla temporal de 10 metros de ida
+y 10 de vuelta, en bucle. No tiene persecución, ataques ni aparición automática.
 
 ## Texturas
 
@@ -90,3 +90,38 @@ Verificación realizada:
 
 El GIF se captura ejecutando la escena de revisión con
 `-- --capture /workspace/work/enemy3/frames`; son capturas del motor.
+
+## Aparición desde K y recorrido de prueba
+
+`item_catalog.gd` añade el botón **Añadir enemigo3** junto al enemigo joven.
+`world.spawn_sprout_near_player()` busca una posición a tres metros del jugador,
+con un corredor completo libre de obstáculos y dentro de los límites del mundo.
+Si no encuentra espacio para los diez metros, el menú lo indica sin crear una
+criatura dentro de una pared o árbol. Al cerrar K se reanuda la marcha.
+
+`sprout_enemy.gd` controla un CharacterBody3D con gravedad y cápsula de 0,9 m.
+Escala uniformemente el modelo por `0.9 / 1.9013426`, sin cambiar el FBX ni su rig.
+`sprout_patrol.gd` separa los dos extremos, la dirección y el giro de la física;
+los extremos siempre distan diez metros. El giro de 180° dura 0,65 segundos.
+La distancia usa metros reales del mundo, sin multiplicarla por la escala del
+modelo; cada tramo termina antes de cambiar de dirección, sin teletransporte.
+
+La fase de la caminata sigue el desplazamiento físico real y se detiene al
+pausar, girar o quedar bloqueado. Se conserva la cadencia inicial del clip:
+aproximadamente 0,12 m/s a esta escala. Es una caminata lenta de prueba.
+La presentación nativa de referencia conserva los metros originales; la altura
+de 0,9 m se aplica a las instancias del mundo.
+
+Los enemigos3 usan el grupo propio `prototype_sprouts`, separado de los sistemas
+de combate, cadáveres y conducta del enemigo joven. El guardado conserva posición,
+fase, extremos, dirección y progreso del giro; las partidas anteriores sin este
+campo siguen siendo válidas y se cargan sin crear enemigos3 adicionales.
+
+[Botón del menú K](previews/enemy3_k_menu.png) ·
+[Altura dentro del juego junto al superviviente](previews/enemy3_in_game.png).
+
+Pruebas de integración: `tests/prototype_3d_sprout_patrol.gd` acciona el botón
+real, comprueba corredores bloqueados, escala, pausa, tres tramos consecutivos
+de diez metros, vueltas, ausencia de saltos de posición y restauración de estado.
+`tests/prototype_3d_saves.gd` añade el caso de guardado/carga real durante un giro.
+`tools/enemy3/review_patrol.gd` reproduce las capturas del menú y del mundo.

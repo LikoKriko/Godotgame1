@@ -39,6 +39,8 @@ func run():
  game.nutrition.hydration_ml=725;game.nutrition.calories_today=1750;game.nutrition.water_today_ml=500;game.day_cycle.day=3;game.day_cycle.hour=18.5
  game.camera_rig.yaw=0.8;game.camera_rig.pitch=-0.4
  var building=get_nodes_in_group("prototype_buildings")[0];game.player.position=building.position+Vector3(0,0.15,0)
+ var sprout=load("res://scripts/prototype_3d/sprout_enemy.gd").new();game.add_child(sprout);sprout.position=Vector3(-7,.025,-7);sprout.configure(game)
+ sprout.patrol.begin_turn();sprout.patrol.turn(.21);sprout.phase=.37
  require(Save.save_block_reason(game).is_empty(),"Settled paused game can be saved")
  require(game.save_current_game()==OK,"Manual pause save writes a real file")
  var result:=Save.read_result(path);require(result.ok,"New disk save validates")
@@ -70,11 +72,17 @@ func run():
  for id in saved.resources:require(game.environment_content.resource_nodes[id].health==saved.resources[id],"Resource depletion and partial damage persist")
  require(game.workbenches.tables.size()==1 and game.workbenches.tables[0].uid==table_item.uid,"Placed table and UID persist")
  var drops=get_nodes_in_group("prototype_drops");require(drops.size()==1 and drops[0].item.water_ml==250 and drops[0].item.uid==drop_item.uid,"Ground item retains water and identity")
+ var sprouts=get_nodes_in_group("prototype_sprouts")
+ require(sprouts.size()==1,"Enemy3 is restored once")
+ var restored=sprouts[0];var route:Dictionary=saved.sprouts[0].patrol
+ require(restored.position.distance_to(Save.point(saved.sprouts[0].position))<.00001 and restored.patrol.origin.distance_to(Save.point(route.origin))<.00001 and restored.patrol.axis.distance_to(Save.point(route.axis))<.00001,"Enemy3 preserves its route endpoints and position through JSON")
+ require(restored.patrol.turning==route.turning and restored.patrol.returning==route.returning and absf(restored.patrol.turn_elapsed-route.turn_elapsed)<.000001 and absf(restored.patrol.heading-route.heading)<.000001 and absf(restored.phase-saved.sprouts[0].phase)<.000001,"Enemy3 preserves its partial turn and animation phase")
  var actors=get_nodes_in_group("prototype_enemies");require(actors.size()==2,"Loading replaces initial enemy instead of duplicating it")
  require(actors[0].health==0 and actors[0].death_elapsed==43 and actors[0].corpse_area!=null and not actors[0].loot_slots[0].is_empty(),"Corpse timer, loot and aim volume restore")
  require(actors[1].health==7 and actors[1].brain.remembers_player and actors[1].brain.last_seen==Vector3(-2,0,1) and absf(actors[1].effects.remaining(&"stun")-1.1)<0.001,"Living creature retains memory and stun")
  require(actors[1].boxing_unlocked and actors[1].boxing_remaining==13.25 and actors[1].boxing_check_remaining==3.25 and actors[1].attack_boxing,"Boxing activation, attack variant and both timers survive reload")
  var legacy:=saved.duplicate(true)
+ legacy.erase("sprouts")
  for entry in legacy.enemies:
   for key in ["boxing_unlocked","boxing_remaining","boxing_check_remaining","attack_boxing","lower_from_boxing","damage_received"]:entry.erase(key)
   entry.brain.erase("feeding_cooldown")
