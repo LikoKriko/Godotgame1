@@ -114,9 +114,11 @@ originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
 - Superviviente: Wild Wanderer 1016142901, 20878 triángulos, 1,75 m,
   24 huesos con tela y volumen de articulaciones. Mantener skin_seams_v1;
   regenerar mediante transferencia de piel, no con ligadura automática.
-- Enemigo1: Mossclaw Boar 1016001519, 7340 triángulos, 0,875 m,
+- Enemigo1: Mossclaw Boar 1016001519, 4036 triángulos de superficie, 0,875 m,
   25 huesos originales SmartRigArmature de modelo1_rig. Mantener jerarquía,
-  ejes de reposo y pesos originales; animaciones nativas compartidas en rig/.
+  ejes de reposo y ligadura original, con pesos interpolados en la superficie
+  reducida. Fuente intacta de 7340 triángulos; relieve horneado en normal de
+  2048 px. Animaciones nativas compartidas en rig/.
 - Enemigo3: Sunny Sprout de entregables/enemigos/enemigo3/modelo_enemigo3.fbx,
   13582 triángulos y 35 huesos originales. Altura de partida 0,9 m. K permite
   añadirlo con patrulla de veinte metros por tramo y ciclo de carrera de
