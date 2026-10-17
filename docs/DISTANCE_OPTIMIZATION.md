@@ -1,7 +1,6 @@
 # Optimización por distancia y orientación
 
-Primera optimización del prototipo 3D, 16 de octubre de 2026. Una unidad del
-mundo equivale a un metro. Se modifica la representación de texturas y mallas;
+Una unidad del mundo equivale a un metro. Se modifica la representación de texturas y mallas;
 las colisiones, hitboxes y reglas del combate conservan sus dimensiones.
 
 ## Presupuesto visual
@@ -63,18 +62,3 @@ al cargar si corresponde.
 El mundo ampliado se describe en [WORLD_STREAMING.md](WORLD_STREAMING.md).
 La suspensión a 150 m se mantiene con cualquiera de los tres radios de
 generación. La optimización adicional de cadáveres inmóviles sigue aplazada.
-
-## Verificación
-
-Godot 4.7.2, pruebas `tests/prototype_3d_distance_optimization.gd` y
-`tests/prototype_3d_quality_resources.gd`: umbrales, recuperación temporal,
-suspensión/reanudación y guardado de acciones, geometría e índices, piel,
-formas de mezcla, materiales y restauración al 100 %. El renderizador headless
-no expone los buffers MultiMesh; sus comprobaciones específicas se ejecutan
-también con Compatibility/OpenGL nativo.
-
-Regresión adicional: guardado, población, hitboxes, separación de criaturas,
-rutinas, gestos faciales, botín, caídas e integración. Capturas nativas con la
-misma cámara confirman cambios de detalle y restauración idéntica del fotograma
-al recuperar el 100 %. No se ha medido una mejora de FPS en el PC del usuario ni
-validado un ejecutable de Windows.

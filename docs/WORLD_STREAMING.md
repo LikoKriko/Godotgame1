@@ -75,29 +75,3 @@ simplificación geométrica se calcula en el hilo secundario y las mallas de
 renderizado se crean en el hilo principal, evitando conflictos con la creación
 y destrucción de nodos durante el streaming. La limpieza se difiere hasta que
 el nodo ha terminado de salir del árbol.
-
-## Comprobaciones
-
-- `tests/prototype_3d_world_streaming.gd`: superficie total, cobertura local,
-  semilla, posiciones originales, viajes de kilómetros, descarga real, los tres
-  radios, vuelta a recursos dañados/agotados, guardado en disco y continuación
-  en una posición remota. Comprueba además guardados anteriores y registro en
-  el controlador de calidad.
-- `tests/prototype_3d_generation_settings.gd`: valores admitidos, migración,
-  persistencia real y selección de las tres opciones en el control gráfico.
-- `tests/prototype_3d_distance_optimization.gd`: umbrales, recuperación,
-  suspensión de enemigos y liberación de cachés sin usuarios. Los dos casos de
-  buffers MultiMesh requieren renderizador nativo.
-- Regresión de población, recursos derivados, guardado, terreno, interiores e
-  integración del prototipo. Revisión gráfica de inicio, menú y una ubicación
-  a X=2100/Z=−1800 con Compatibility/OpenGL.
-
-Las distancias mayores exigen más memoria y trabajo de renderizado. Las
-pruebas del entorno usan Linux y renderizado por software; no equivalen a una
-medición de FPS ni a una prueba del ejecutable en el ordenador del usuario.
-
-
-Las máscaras visuales de biomas y caminos se preparan ahora en una caché
-asíncrona ligada a estos mismos chunks. La disposición y las consultas del
-sampler permanecen como fuente de generación. Detalles y comparación visual
-en [SHADING_ANIMATION_OPTIMIZATION.md](SHADING_ANIMATION_OPTIMIZATION.md).

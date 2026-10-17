@@ -15,7 +15,7 @@ Jugar inicia una partida y Continuar recupera la última partida guardada.
 - **Clic izquierdo**: usar el objeto o arma; **E**: interactuar y recoger.
 - **1–6**: accesos rápidos; **F**: parry.
 - **I**: inventario; **T**: creación; **M**: mapa.
-- **K**: catálogo de pruebas; **Esc**: pausa y opciones de guardado.
+- **K**: catálogo de objetos y criaturas; **Esc**: pausa y opciones de guardado.
 
 El mundo mide **6,4 × 6,4 km (40,96 km²)** y se genera alrededor del personaje.
 Configuración → Gráficos → Generación de mundo permite elegir **100, 200 o
@@ -28,27 +28,12 @@ keyframes compartidos para los ciclos del enemigo.
 - [Estado, controles y sistemas 3D](docs/PROTOTYPE_3D.md).
 - [Mundo procedural y persistencia](docs/WORLD_STREAMING.md).
 - [Modelos originales Meshy y regeneración](docs/MESHY_ASSETS.md).
-- [Departamento de animación](docs/ANIMATION_AREA.md).
+- [Funcionamiento de las animaciones](docs/ANIMATION_AREA.md).
 - [Modelo y caminata de enemigo3](docs/ENEMY3_3D.md).
 - [Optimización de sombreado y animación](docs/SHADING_ANIMATION_OPTIMIZATION.md).
-- [Retirada del 2D y recursos conservados](docs/RETIRED_2D.md).
+- [Recursos compartidos](docs/SHARED_RESOURCES.md).
 - [Entregables de los departamentos](entregables/README.md).
 
 Los modelos vigentes proceden de los FBX aportados por el usuario. Sus PNG,
 UV y geometría originales se conservan. `entregables/` contiene fuentes y
 referencias de los departamentos; los recursos integrados están en `assets/`.
-
-## Comprobaciones
-
-Desde la raíz del repositorio, con `godot` apuntando a Godot 4.7.2:
-
-```sh
-godot --headless --editor --import
-godot --headless --script tests/prototype_3d.gd
-godot --headless --script tests/prototype_3d_systems.gd
-godot --headless --script tests/prototype_3d_saves.gd
-godot --headless --script tests/prototype_3d_world_streaming.gd
-```
-
-Las pruebas de renderizado e interacción nativa requieren una sesión gráfica.
-El historial de Git conserva las versiones anteriores del juego.
