@@ -2,7 +2,7 @@
 
 La rama de integración vigente es `main` y contiene el juego 3D.
 El runtime 2D ha sido retirado; conservar los sprites y sistemas compartidos
-que se detallan en `docs/RETIRED_2D.md`. Actualizar las ramas de departamento
+que se detallan en `docs/SHARED_RESOURCES.md`. Actualizar las ramas de departamento
 antes de trabajar para evitar restaurar archivos obsoletos.
 
 ## Acabado permanente de todas las texturas
@@ -76,87 +76,38 @@ pata de muebles y apoyos de edificios en coordenadas del dibujo, y usar sus
 apoyos físicos 3D; la hitbox no define el origen visual. Conservar la sombra
 del personaje. Ver `docs/YOUNG_3D.md` y `docs/PROTOTYPE_3D.md` para el runtime vigente.
 
-## Registro de tiempos solicitado por el usuario
+## Documentación del proyecto
 
-Registrar hitos y duración real de las tareas para informar cuando el usuario
-lo pida y mejorar futuras estimaciones. Guardar los datos en
-`docs/WORK_TIMES.md`; indicar alcance, comprobaciones incluidas, estimación
-previa y duración medida. No inventar horas de inicio ni reconstruir como exactos
-intervalos no registrados: marcarlos como parciales o estimados. Los informes
-al usuario usan Europe/Madrid. El registro no sustituye terminar las tareas.
-
+Mantener solo información vigente: dimensiones, velocidades, comportamiento,
+controles, reglas, configuración y recursos actuales. No añadir registros de
+cambios de departamentos, tiempos de trabajo, informes de pruebas, métricas
+comparativas ni capturas de revisión al repositorio. Las verificaciones y
+archivos temporales quedan locales. Actualizar los valores documentados cuando
+cambie su definición en el código. No recrear WORK_TIMES.md ni galerías de
+informes; las imágenes generadas de docs/previews están excluidas de Git.
 
 ## Referencias vigentes de los modelos 3D
 
-El superviviente usa ahora el FBX Meshy Wild Wanderer aportado por el usuario
-en la Release `modelo_personaje3d`: `assets/characters/prototype_3d/meshy/source.json`.
-La botella usa el FBX de la Release `modelo_botella_3d`:
-`assets/items/prototype_3d/bottle_meshy/source.json`. El enemigo1 usa el FBX Meshy
-Mossclaw Boar de `modelo-enemigo1`: `assets/enemies/first/meshy/source.json`.
-Las peticiones de sustituir los modelos anteriores tienen prioridad: conservar
-la geometría, proporciones, UV y PNG originales de esos archivos, sin
-reconstruirlos con formas procedurales ni reproyectar las láminas antiguas.
-Las pinturas de personajes y `entregables/enemigos/enemigo1_joven_3d.png` se
-conservan como referencias históricas. Adaptar los rigs a los archivos
-importados, manteniendo las alturas de 1,75 m/0,875 m. Los FBX de esos tres modelos no traen esqueleto
-ni animaciones; las ligaduras añadidas integran las acciones del juego.
-Ver `docs/MESHY_ASSETS.md` para regenerar el personaje y la botella.
+Consultar `docs/MESHY_ASSETS.md` y los manifiestos source.json de assets para
+la fuente actual de cada modelo. Conservar los FBX, PNG, UV, geometría y rigs
+originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
 
-El hacha, pico, arco, armadura de hojas y primera familia de rocas usan los
-FBX de las Releases `modelo_hacha3d`, `modelo_pico3d`, `modelo_arco1_3d`,
-`modelo_armadurahojas_3d` y `modelo_roca1_3d`. Procedencia y mallas originales:
-`assets/models/meshy/*/source.json`. La Release de hacha válida contiene
-`hacha1_3d.zip`; el ZIP anterior era un duplicado del pico. Conservar las
-mallas nativas originales, sus PNG/UV y sus anclajes medidos. La armadura
-vestida añade ajuste de cavidad y pesos al mismo tejido; el arco deforma su
-cuerda original mediante blend shapes. No superponer los modelos anteriores.
-
-La versión vigente del enemigo1 es el FBX reducido
-`Meshy_AI_Mossclaw_Boar_1016001519_texture.fbx` de `enemigo1_3d.zip`, en la misma
-Release `modelo-enemigo1`: 7340 triángulos. La malla nueva hereda la ligadura
-de quince huesos (incluida la cola) del donante `1d58ff4`; conservar las
-animaciones existentes. `assets/enemies/first/meshy/source.json` y
-`skin_transfer.json` identifican ambas fuentes. No reactivar la malla densa
-anterior; se conserva su FBX solo como histórico.
-
-El superviviente vigente usa `personaje1_3d.zip`, FBX
-`Meshy_AI_Wild_Wanderer_1016142901_texture.fbx`: 20878 triángulos. Hereda por
-transferencia la piel de 24 huesos de `4b5a50d`, con tela, codos y rodillas.
-El perfil `skin_seams_v1` suaviza normales coincidentes de piel y atenúa su
-mapa normal con una máscara por vértice; no altera posiciones, UV, índices
-ni PNG originales. El pelo y la ropa conservan su detalle. Regenerar con
-`transfer_survivor.py` y `bind_human.gd ... transferred`, no con el horneado
-automático antiguo. Ver `docs/MESHY_ASSETS.md`.
-
-El hacha y el pico usan ahora el **60 % del tamaño anterior**, por solicitud
-del usuario. `tools/meshy/props.json` declara `model_scale: 0.6` y el ajuste
-del agarre `grip_bottom: -4`. Usar los anclajes generados en
-`assets/models/meshy/{axe,pickaxe}/anchors.gd`: las palmas se separan 4,95
-unidades y las puntas/límites corresponden a las mallas pequeñas. No aplicar
-una segunda escala al sostenerlos o soltarlos. Conservar longitudes de huesos
-y los agarres al cambiar animaciones.
-
-El enemigo3 conserva el FBX Sunny Sprout de
-`entregables/enemigos/enemigo3/modelo_enemigo3.fbx`, **con su rig original**:
-35 huesos, 13582 triángulos y PNG/UV originales. No sustituir su ligadura por
-la del joven o el humano. `scenes/prototype_3d/enemy3.tscn` expone `walk`, `run` y
-`RESET` mediante AnimationPlayer; `enemy3_review.tscn` permite revisar cuatro
-vistas. El menú K permite añadir instancias de 0,9 m: `sprout_enemy.gd` y
-`sprout_patrol.gd` las hacen recorrer veinte metros de ida y veinte de vuelta.
-El ciclo temporal de prueba alterna carreras de 10/20/40 s con descansos de
-5 s entre ellas; la última incluye pausas de 2 s cada 8 s corriendo. Carrera
-a 10 veces la velocidad de marcha, torso/cabeza a 60 grados, rig intacto.
-No añadir detección, objetivos ni combate a este ciclo de revisión.
-Guardado en el campo opcional `sprouts`;
-no mezclar su grupo `prototype_sprouts` con las reglas del enemigo joven.
-Procedencia y conversión a ocho influencias máximas:
-`assets/enemies/third/sprout/source.json`; ver `docs/ENEMY3_3D.md`.
-
-Roca1 usa la versión optimizada de `modelo_roca1_3d/piedra1_3d.zip`, FBX
-`Meshy_AI_Wild_Wanderer_1016215008_texture.fbx`: 5163 triángulos. Todas sus
-instancias del mundo miden **1 m de alto**, sin variantes de escala; los demás
-tamaños tendrán modelos propios futuros. `rock.configure()` no recibe índice.
-`world_layout` y `stream_layout` fijan altura 1.0, y `world_content` no reescala.
-Conservar los ID, posiciones, resistencia y cantidades de recursos para cargar
-partidas existentes; los afloramientos de un metro se minan, no se recogen a
-mano. Procedencia y medidas: `assets/models/meshy/rock1/source.json`.
+- Superviviente: Wild Wanderer 1016142901, 20878 triángulos, 1,75 m,
+  24 huesos con tela y volumen de articulaciones. Mantener skin_seams_v1;
+  regenerar mediante transferencia de piel, no con ligadura automática.
+- Enemigo1: Mossclaw Boar 1016001519, 7340 triángulos, 0,875 m,
+  15 huesos incluida la cola. Mantener su ligadura y las animaciones compartidas.
+- Enemigo3: Sunny Sprout de entregables/enemigos/enemigo3/modelo_enemigo3.fbx,
+  13582 triángulos y 35 huesos originales. Altura de partida 0,9 m. K permite
+  añadirlo con patrulla de veinte metros de ida y vuelta, carrera a diez veces
+  la marcha y ciclo de carreras de 10/20/40 s, con descansos de 5 s. La última
+  modalidad alterna 8 s corriendo y 2 s parado. Mantener inclinación de torso y
+  cabeza de 60°, rig intacto, sin detección, combate ni aparición automática. Guardado en sprouts; no mezclar prototype_sprouts con el joven.
+- Hacha y pico: model_scale 0.6, grip_bottom −4 y palmas separadas 4,95 unidades.
+  Usar assets/models/meshy/{axe,pickaxe}/anchors.gd sin duplicar la escala.
+- Botella, arco y armadura: conservar sus fuentes Meshy, anclajes y materiales;
+  la armadura acompaña torso y articulaciones y el arco deforma su cuerda nativa.
+- Roca1: Wild Wanderer 1016215008 de modelo_roca1_3d/piedra1_3d.zip,
+  5163 triángulos y altura única de 1 m, sin variantes de escala.
+  Los afloramientos se minan con pico. Conservar IDs, posiciones, resistencia
+  y rendimientos para cargar partidas existentes.

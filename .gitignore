@@ -1,3 +1,8 @@
 .godot/
 /export/
 *.tmp
+
+# Generated review images and measurements stay local.
+/docs/previews/*
+!/docs/previews/.gdignore
+/work/

@@ -2,8 +2,7 @@
 
 Fuente vigente: `personaje1_3d.zip`, Release `modelo_personaje3d`. El FBX original
 `source/Meshy_AI_Wild_Wanderer_1016142901_texture.fbx` tiene 10440 vértices y
-20878 triángulos, sin rig ni animaciones. `source/survivor.fbx` se conserva
-solo como histórico. Los PNG originales y los hashes están en
+20878 triángulos, sin rig ni animaciones. Los PNG originales y los hashes están en
 `assets/characters/prototype_3d/meshy/source.json`.
 
 El juego carga `survivor_skin.res`, con la ligadura existente de 24 huesos

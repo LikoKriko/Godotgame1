@@ -6,4 +6,3 @@ La carpeta `source/` queda fuera de la importación automática de Godot mediant
 
 Versión vigente: `Meshy_AI_Wild_Wanderer_1016215008_texture.fbx`, de
 `piedra1_3d.zip`: 5163 triángulos, un único tamaño mundial de 1 m de alto.
-El FBX `1015205921` es histórico; no reactivarlo ni sus cuatro escalas antiguas.
