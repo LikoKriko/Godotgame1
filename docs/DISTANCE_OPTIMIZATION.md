@@ -43,8 +43,14 @@ número de triángulos disponible más cercano: la reducción geométrica es
 discreta y no garantiza exactamente ese porcentaje de polígonos. Mientras se
 prepara un recurso se conserva su malla original. Se mantienen UV, materiales,
 pesos de piel, formas de mezcla y sus valores activos. Los FBX y recursos fuente
-no se sustituyen. Los grupos MultiMesh se reparten por calidad sin modificar
-sus buffers originales, transformaciones, colores ni datos personalizados.
+no se sustituyen. Los grupos MultiMesh generales se reparten por calidad sin
+modificar sus buffers originales, transformaciones, colores ni datos personalizados.
+
+El césped conserva sus siete hojas triangulares por grupo y agrupa la geometría
+de cada parcela en una superficie. Su shader aplica el presupuesto de textura
+por grupo, con el mismo historial de distancia, orientación y recuperación,
+sin recorrer cada instancia desde GDScript. Las variantes de LOD mantienen
+sus índices independientes y el cambio de una malla no invalida las demás.
 
 Los mipmaps y la caché de LOD consumen memoria adicional; esta implementación
 busca reducir el trabajo de representación y no promete ahorro global de RAM.

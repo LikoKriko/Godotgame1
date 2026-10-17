@@ -1,6 +1,7 @@
 extends Area3D
 const Meshes=preload("res://scripts/prototype_3d/prop_mesh.gd")
 const UNIT:=1.75/64.0
+static var mesh_cache:Dictionary={}
 var kind:=5
 var variant:=1
 var health:=1
@@ -12,6 +13,9 @@ func configure(record:Dictionary) -> void:
  add_to_group("prototype_saplings" if kind==4 else "prototype_burdock")
  var shape:=CollisionShape3D.new();var volume:=CylinderShape3D.new();volume.radius=0.47 if kind==4 else 0.32;volume.height=1.05 if kind==4 else 0.55;shape.shape=volume;shape.position.y=volume.height*0.5;add_child(shape)
  var visual:=Node3D.new();visual.scale=Vector3.ONE*UNIT;add_child(visual)
+ var key:=Vector2i(kind,variant if kind==4 else 0)
+ if mesh_cache.has(key):
+  var model:=MeshInstance3D.new();model.mesh=mesh_cache[key];visual.add_child(model);return
  var wood:=Meshes.material(&"wood",Color("77623d"));var green:=Meshes.material(&"leaf",Color("637644"))
  if kind==4:
   Meshes.segment(visual,Vector3.ZERO,Vector3(0,36,0),0.75,wood)
@@ -23,6 +27,10 @@ func configure(record:Dictionary) -> void:
   for i in 6:
    var leaf:=Meshes.slab(visual,PackedVector2Array([Vector2(0,0),Vector2(-4,4),Vector2(-5,10),Vector2(0,17),Vector2(5,10),Vector2(4,4)]),0.35,green)
    leaf.rotation=Vector3(0.45,i*TAU/6,0);leaf.position=Vector3(sin(i)*2,1,cos(i)*2)
+ var merged:Mesh=preload("res://scripts/prototype_3d/visual_merge.gd").merge(visual)
+ for child in visual.get_children():child.free()
+ mesh_cache[key]=merged
+ var model:=MeshInstance3D.new();model.mesh=merged;visual.add_child(model)
 func hit() -> bool:
  if health<=0:return false
  health-=1

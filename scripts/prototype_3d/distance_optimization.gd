@@ -76,6 +76,7 @@ func _process(delta:float) -> void:
 func update_quality(delta:float,observer:Vector3=Vector3.INF,forward:Vector3=Vector3.INF) -> void:
  if not observer.is_finite():observer=game.player.global_position
  if not forward.is_finite():forward=-game.camera_rig.camera.global_basis.z
+ if game.environment_content!=null and game.environment_content.has_method("update_grass_quality"):game.environment_content.update_grass_quality(observer,forward,delta)
  for entry in entries.values():
   var node=entry.node.get_ref()
   if not is_instance_valid(node) or not node.is_inside_tree():continue
@@ -85,7 +86,8 @@ func update_quality(delta:float,observer:Vector3=Vector3.INF,forward:Vector3=Vec
   if node is MultiMeshInstance3D:update_batch(node,entry,observer,forward,delta);continue
   var point:Vector3=node.to_global(entry.mesh.get_aabb().get_center())
   var percent:=Policy.advance(entry.state,observer.distance_to(point),Policy.behind(point,observer,forward),delta)
-  if entry.quality==percent and entry.revision==revision:continue
+  var source_revision:int=1 if meshes.cache.has(entry.mesh.get_instance_id()) else 0
+  if entry.quality==percent and entry.revision==source_revision:continue
   var replacement:Mesh=meshes.mesh(entry.mesh,percent)
   if node.mesh!=replacement:
    var morphs:PackedFloat32Array=[]
@@ -98,7 +100,7 @@ func update_quality(delta:float,observer:Vector3=Vector3.INF,forward:Vector3=Vec
    var original:Material=entry.overrides[surface]
    if original==null:original=entry.mesh.surface_get_material(surface)
    node.set_surface_override_material(surface,materials.material(original,percent,node.get_surface_override_material(surface)))
-  entry.quality=percent;entry.revision=revision
+  entry.quality=percent;entry.revision=source_revision
 func update_batch(node:MultiMeshInstance3D,entry:Dictionary,observer:Vector3,forward:Vector3,delta:float) -> void:
  # Batch by budget rather than treating thousands of scattered tufts as one
  # object at the origin. Rebuild buffers only when membership actually changes.

@@ -12,6 +12,11 @@ func run():
  var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();game.use_test_layout=true;root.add_child(game);game.set_physics_process(false);game.player.set_physics_process(false)
  for enemy in get_nodes_in_group("prototype_enemies"):enemy.set_physics_process(false)
  var rock=get_nodes_in_group("prototype_rocks")[0]
+ # Exercise the generic hand-pickup route explicitly: the current rock1
+ # fixture is a one-metre mineable model rather than a small loose stone.
+ rock.hand_collectable=true;rock.health=1;rock.yield_count=2
+ for child in rock.get_children():
+  if child is CollisionShape3D:child.disabled=true
  game.player.position=rock.global_position+Vector3(0,0,0.9)
  await aim(game,rock.global_position+Vector3.UP*0.13)
  require(game.target_owner(game.camera_rig.target().collider)==rock,"Reticle ray selects tiny pickup area")

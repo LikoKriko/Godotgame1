@@ -3,21 +3,45 @@ const UNIT:=1.75/64.0
 const Meshes=preload("res://scripts/prototype_3d/prop_mesh.gd")
 static var meshes:Dictionary={}
 static var material:Material
-func configure(records:Array) -> void:
- if material==null:
-  material=Meshes.material(&"leaf",Color("647646")).duplicate();material.vertex_color_use_as_albedo=true;material.next_pass=null;material.cull_mode=BaseMaterial3D.CULL_DISABLED
- var groups:Dictionary={}
+var instance_count:=0
+func configure(records:Array,paint:Material=null,prepared:Dictionary={}) -> void:
+ instance_count=records.size()
+ if paint==null:
+  if material==null:material=create_material()
+  paint=material
+ var data:=prepared
+ if data.is_empty():
+  var shapes:Array=[]
+  for variant in 15:shapes.append(mesh_for(variant).surface_get_arrays(0))
+  data=build_arrays(records,Vector2.ZERO,shapes)
+ if data.arrays[Mesh.ARRAY_VERTEX].is_empty():return
+ var geometry:=ArrayMesh.new();geometry.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,data.arrays)
+ var node:=MeshInstance3D.new();node.mesh=geometry;node.position=data.origin
+ node.set_meta("quality_bucket",true);node.material_override=paint
+ node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;add_child(node)
+static func create_material() -> ShaderMaterial:
+ var paint:=ShaderMaterial.new();paint.shader=preload("res://shaders/prototype_3d/grass_batch.gdshader")
+ paint.set_shader_parameter("detail",Meshes.detail_texture(&"leaf"))
+ paint.set_shader_parameter("tint",Color("647646"));return paint
+static func build_arrays(records:Array,origin:Vector2,shapes:Array) -> Dictionary:
+ var vertices:=PackedVector3Array();var normals:=PackedVector3Array()
+ var uvs:=PackedVector2Array();var centers:=PackedVector2Array();var colors:=PackedColorArray()
+ var counts:Dictionary={}
  for record in records:
-  var variant:int=posmod(int(record.variant),15)
-  if not groups.has(variant):groups[variant]=[]
-  groups[variant].append(record)
- for variant in groups:
-  var node:=MultiMeshInstance3D.new();var multimesh:=MultiMesh.new();multimesh.transform_format=MultiMesh.TRANSFORM_3D;multimesh.use_colors=true;multimesh.mesh=mesh_for(variant);multimesh.instance_count=groups[variant].size();node.multimesh=multimesh;node.material_override=material;node.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF;add_child(node)
-  for i in groups[variant].size():
-   var record:Dictionary=groups[variant][i];var p:Vector2=record.position*UNIT;var size:float=record.width*UNIT/0.4
-   var basis:=Basis(Vector3.UP,float(i%13)*0.57).scaled(Vector3.ONE*size)
-   multimesh.set_instance_transform(i,Transform3D(basis,Vector3(p.x,0.01,p.y)))
-   multimesh.set_instance_color(i,Color(0.88+0.01*(i%9),0.92+0.008*(i%9),0.86+0.01*(i%9)))
+  var variant:int=posmod(int(record.variant),15);var i:int=counts.get(variant,0);counts[variant]=i+1
+  var p:Vector2=record.position*UNIT-origin;var size:float=record.width*UNIT/0.4
+  var rotation:=Basis(Vector3.UP,float(i%13)*0.57)
+  var transform:=Transform3D(rotation.scaled(Vector3.ONE*size),Vector3(p.x,.01,p.y))
+  var color:=Color(0.88+0.01*(i%9),0.92+0.008*(i%9),0.86+0.01*(i%9))
+  var source:Array=shapes[variant]
+  for v in source[Mesh.ARRAY_VERTEX].size():
+   vertices.append(transform*source[Mesh.ARRAY_VERTEX][v])
+   normals.append(rotation*source[Mesh.ARRAY_NORMAL][v]);uvs.append(source[Mesh.ARRAY_TEX_UV][v])
+   centers.append(p);colors.append(color)
+ var arrays:Array=[];arrays.resize(Mesh.ARRAY_MAX)
+ arrays[Mesh.ARRAY_VERTEX]=vertices;arrays[Mesh.ARRAY_NORMAL]=normals
+ arrays[Mesh.ARRAY_TEX_UV]=uvs;arrays[Mesh.ARRAY_TEX_UV2]=centers;arrays[Mesh.ARRAY_COLOR]=colors
+ return {"arrays":arrays,"origin":Vector3(origin.x,0,origin.y)}
 static func mesh_for(variant:int) -> ArrayMesh:
  if meshes.has(variant):return meshes[variant]
  var rng:=RandomNumberGenerator.new();rng.seed=7759+variant*3571

@@ -33,7 +33,8 @@ func run():
  var grass_count:=0
  for node in content.find_children("*","Node3D",true,false):
   if node.get_script()==preload("res://scripts/prototype_3d/ground_cover.gd"):
-   for batch in node.get_children():grass_count+=batch.multimesh.instance_count
+   grass_count+=node.instance_count
+   for batch in node.get_children():require(batch.mesh.surface_get_array_len(0)==node.instance_count*21,"Merged grass retains all seven original blades per tuft")
  require(grass_count>=layout.source.grass_tufts.size() and grass_count>100,"Seeded grass is batched without losing its distribution")
  var data=preload("res://scripts/prototype_3d/world_layout.gd").new();data.generate(73129)
  require(var_to_str(data.records)==var_to_str(layout.records),"Returning to the seed reproduces all resource placements")

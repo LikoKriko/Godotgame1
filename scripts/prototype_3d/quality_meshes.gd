@@ -49,7 +49,14 @@ func prepare(source:Mesh) -> void:
   var shapes:Array=source.surface_get_blend_shape_arrays(surface) if source is ArrayMesh else []
   var format:int=source.surface_get_format(surface) if source is ArrayMesh else 0
   var primitive:int=source.surface_get_primitive_type(surface) if source is ArrayMesh else Mesh.PRIMITIVE_TRIANGLES
-  importer.add_surface(primitive,source.surface_get_arrays(surface),shapes,{},source.surface_get_material(surface),"",format)
+  var arrays:Array=source.surface_get_arrays(surface)
+  if primitive==Mesh.PRIMITIVE_TRIANGLES and (arrays[Mesh.ARRAY_INDEX]==null or arrays[Mesh.ARRAY_INDEX].is_empty()):
+   # meshoptimizer requires an indexed triangle list. Procedural tree/plant
+   # surfaces are triangle soup; without this they silently receive no LODs.
+   var indices:=PackedInt32Array();indices.resize(arrays[Mesh.ARRAY_VERTEX].size())
+   for i in indices.size():indices[i]=i
+   arrays[Mesh.ARRAY_INDEX]=indices
+  importer.add_surface(primitive,arrays,shapes,{},source.surface_get_material(surface),"",format)
  importer.generate_lods(60.0,25.0,[])
  var built:Dictionary={};var variants:Dictionary={}
  for percent in range(35,100,5):
@@ -67,7 +74,7 @@ func prepare(source:Mesh) -> void:
   if not built.has(key):
    var surfaces:Array=[]
    for surface in importer.get_surface_count():
-    var arrays:Array=importer.get_surface_arrays(surface)
+    var arrays:Array=importer.get_surface_arrays(surface).duplicate()
     if choices[surface]>=0:arrays[Mesh.ARRAY_INDEX]=importer.get_surface_lod_indices(surface,choices[surface])
     var shapes:Array=[]
     if source is ArrayMesh:

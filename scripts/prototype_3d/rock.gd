@@ -17,10 +17,10 @@ func configure() -> void:
  var area:=Area3D.new();area.collision_layer=16;area.collision_mask=0;area.set_meta("resource",self);add_child(area)
  var aim:=CollisionShape3D.new();var aim_shape:=BoxShape3D.new();aim_shape.size=shape.size+Vector3.ONE*.3;aim.shape=aim_shape;aim.position=collision.position;area.add_child(aim)
  visual=Node3D.new();add_child(visual)
- var model:=MeshInstance3D.new();model.mesh=IMPORTED;model.scale=Vector3.ONE*height;visual.add_child(model)
+ var model:=MeshInstance3D.new();model.mesh=IMPORTED;model.scale=Vector3.ONE*height;visual.add_child(model);set_process(false)
 func hit() -> bool:
  if health<=0:return false
- health-=1;shake=0.2
+ health-=1;shake=0.2;set_process(true)
  if health==0:
   hide();collision_layer=0
   for child in get_children():
@@ -29,3 +29,4 @@ func hit() -> bool:
 func _process(delta:float) -> void:
  shake=maxf(0,shake-delta)
  if visual!=null:visual.rotation.z=sin(shake*50)*0.02*shake/0.2
+ if shake<=0:set_process(false)

@@ -1,6 +1,13 @@
 extends Node3D
 signal progress_changed(value:float)
 signal completed
+const Cover=preload("res://scripts/prototype_3d/ground_cover.gd")
+var chunk_builder=preload("res://scripts/prototype_3d/chunk_builder.gd").new()
+var prepared_chunks:Dictionary={}
+var grass_material:ShaderMaterial
+var grass_observers:=PackedVector4Array()
+var grass_forwards:=PackedVector4Array()
+const SPAWN_BUDGET_USEC:=1500
 const UNIT:=1.75/64.0
 const Layout=preload("res://scripts/prototype_3d/stream_layout.gd")
 var game
@@ -24,6 +31,7 @@ func configure(owner_game,seed_value:int) -> void:
  game.terrain.sampler.existing_paths=true
  for influence in layout.source.terrain_influences:game.terrain.sampler.add_influence(influence.id,&"dirt",influence.rect,0.65)
  game.terrain.refresh_influences()
+ grass_material=Cover.create_material();chunk_builder.configure(stream_layout)
  radius=int(game.settings.values.world_generation)
  update_observer(game.player.global_position,true)
 func update_observer(point:Vector3,force:bool=false) -> void:
@@ -39,6 +47,8 @@ func update_observer(point:Vector3,force:bool=false) -> void:
   for x in range(first.x,last.x+1):
    var key:=Vector2i(x,y)
    if Layout.rect(key).intersects(Layout.BOUNDS):wanted[key]=true
+ for key in prepared_chunks.keys():
+  if not wanted.has(key):prepared_chunks.erase(key)
  retiring.clear()
  for key in active.keys():
   # One extra chunk of retention avoids churn when pacing at a boundary.
@@ -55,12 +65,17 @@ func set_radius(value:int) -> void:
 func _process(_delta:float) -> void:
  if game==null or (game.paused and not initial_loading):return
  update_observer(game.player.global_position)
- var deadline:=Time.get_ticks_usec()+4000
+ var ready:Dictionary=chunk_builder.collect()
+ if not ready.is_empty() and wanted.has(ready.key):prepared_chunks[ready.key]=ready.data
+ prefetch_chunk()
+ var deadline:=Time.get_ticks_usec()+SPAWN_BUDGET_USEC
  while Time.get_ticks_usec()<deadline:
   if not retiring.is_empty():unload_chunk(retiring.pop_front());continue
   if job.is_empty():
    if pending.is_empty():break
-   begin_chunk(pending.pop_front())
+   if not prepared_chunks.has(pending[0]):break
+   var key:Vector2i=pending.pop_front();begin_chunk(key)
+   prefetch_chunk()
   if job.next<job.resources.size():
    spawn_resource(job.resources[job.next],active[job.key].node);job.next+=1
   else:finish_chunk();job.clear();built+=1
@@ -68,17 +83,31 @@ func _process(_delta:float) -> void:
   progress_changed.emit(.1+.85*float(built)/maxi(1,total))
   if pending.is_empty() and job.is_empty() and game.terrain.pending.is_empty():
    initial_loading=false;progress_changed.emit(1);completed.emit()
+func prefetch_chunk() -> void:
+ if chunk_builder.worker==null and not pending.is_empty() and not prepared_chunks.has(pending[0]):chunk_builder.request(pending[0])
+func _exit_tree() -> void:chunk_builder.finish()
+func update_grass_quality(observer:Vector3,forward:Vector3,delta:float) -> void:
+ if grass_material==null:return
+ grass_observers.append(Vector4(observer.x,observer.y,observer.z,delta))
+ grass_forwards.append(Vector4(forward.x,forward.y,forward.z,0))
+ if grass_observers.size()>8:grass_observers.remove_at(0);grass_forwards.remove_at(0)
+ var positions:=grass_observers.duplicate();var directions:=grass_forwards.duplicate()
+ positions.resize(8);directions.resize(8)
+ grass_material.set_shader_parameter("observers",positions);grass_material.set_shader_parameter("forwards",directions)
+ grass_material.set_shader_parameter("history_count",grass_observers.size())
 func begin_chunk(key:Vector2i) -> void:
  var holder:=Node3D.new();holder.name="WorldChunk_%d_%d"%[key.x,key.y];add_child(holder)
- var data:Dictionary=stream_layout.chunk(key)
+ var data:Dictionary=prepared_chunks.get(key,{})
+ prepared_chunks.erase(key)
+ if data.is_empty():data=stream_layout.chunk(key)
  active[key]={"node":holder,"resources":data.resources}
- job={"key":key,"resources":data.resources,"grass":data.grass,"next":0};generation_count+=1
+ job={"key":key,"resources":data.resources,"grass":data.grass,"grass_mesh":data.get("grass_mesh",{}),"next":0};generation_count+=1
 func in_chunk(point:Vector2,key:Vector2i) -> bool:return Layout.coordinate(point)==key
 func finish_chunk() -> void:
  var holder:Node3D=active[job.key].node
  var grass:Array=job.grass
  if not grass.is_empty():
-  var cover:=preload("res://scripts/prototype_3d/ground_cover.gd").new();holder.add_child(cover);cover.configure(grass)
+  var cover:=preload("res://scripts/prototype_3d/ground_cover.gd").new();holder.add_child(cover);cover.configure(grass,grass_material,job.grass_mesh)
  for record in layout.source.camp_buildings:
   if in_chunk(record.base*UNIT,job.key):
    var building:=preload("res://scripts/prototype_3d/camp_building.gd").new();holder.add_child(building);building.configure(game,record)

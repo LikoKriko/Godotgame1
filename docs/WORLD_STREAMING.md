@@ -33,9 +33,13 @@ por eso puede permanecer algo más de terreno que la distancia nominal.
   plantas, césped, caminos y texturas a partir de la misma semilla y sampler.
   El orden en que se explora no modifica los resultados.
 - `world_content.gd`: chunks de contenido de 32 metros, con prioridad a los más
-  cercanos y presupuesto aproximado de 4 ms por fotograma para crear y liberar
-  nodos. Una instancia individual no puede interrumpirse a mitad de su creación.
+  cercanos y presupuesto aproximado de 1,5 ms por fotograma para crear y liberar
+  nodos. `chunk_builder.gd` prepara la distribución y los buffers del césped
+  en un hilo secundario, con una parcela anticipada y datos de semilla inmutables.
+  Los nodos, materiales y recursos de render se crean en el hilo principal. Una instancia individual no puede interrumpirse a mitad de su creación.
   No se calculan ni almacenan los 40000 chunks potenciales antes de explorar.
+  El césped usa una superficie agrupada por parcela. Las plantas del mismo
+  tipo y variante comparten sus mallas; las colisiones siguen en los objetos.
 - `terrain_chunks.gd`: superficies de 28 metros (1024 unidades del sampler),
   hasta ocho activaciones progresivas por fotograma y caché de 16 chunks
   ocultos. El shader conserva coordenadas globales para evitar costuras. La
