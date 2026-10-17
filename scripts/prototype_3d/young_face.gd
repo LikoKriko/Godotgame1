@@ -190,6 +190,18 @@ static func mesh(source:Mesh,head_bones:Array[int]=[1],source_frame:Transform3D=
  var packed:PackedByteArray=surfaces[0].vertex_data
  var positions_end:int=arrays[Mesh.ARRAY_VERTEX].size()*12
  surfaces[0].vertex_data=packed.slice(0,positions_end)+original_bytes.slice(source_count*12)+packed.slice(positions_end+source_count*8)
+ # Facial shapes move positions only. Reuse the final packed directions in
+ # every shape so a second normal/tangent quantization cannot change shading.
+ for surface in surfaces:
+  var count:int=surface.vertex_count
+  var stride:int=count*20
+  var directions:PackedByteArray=surface.vertex_data.slice(count*12,stride)
+  var shape_bytes:PackedByteArray=surface.blend_shapes
+  assert(shape_bytes.size()==stride*CONTROLS.size())
+  for shape in CONTROLS.size():
+   var start:int=shape*stride+count*12
+   for byte in directions.size():shape_bytes[start+byte]=directions[byte]
+  surface.blend_shapes=shape_bytes
  surfaces[0].aabb=source.get_aabb();surfaces[1].aabb=source.get_aabb()
  var rebuilt:=ArrayMesh.new();rebuilt.blend_shape_mode=Mesh.BLEND_SHAPE_MODE_NORMALIZED
  for label in CONTROLS:rebuilt.add_blend_shape(label)

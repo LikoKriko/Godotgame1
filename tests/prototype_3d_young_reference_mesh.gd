@@ -22,8 +22,46 @@ func run():
  var original:Array=node.mesh.surface_get_arrays(0)
  var current:Array=baked_node.mesh.surface_get_arrays(0)
  var facial:Array=actor.mesh_node.mesh.surface_get_arrays(0)
- for channel in [Mesh.ARRAY_VERTEX,Mesh.ARRAY_TEX_UV,Mesh.ARRAY_INDEX,Mesh.ARRAY_BONES,Mesh.ARRAY_WEIGHTS]:
-  require(original[channel].to_byte_array()==current[channel].to_byte_array(),"Original geometry, UV and skin channel survives native conversion: "+str(channel))
+ require(current[Mesh.ARRAY_VERTEX].size()==manifest.optimization.runtime_vertices and current[Mesh.ARRAY_VERTEX].size()<original[Mesh.ARRAY_VERTEX].size(),"Runtime really reduces vertex processing")
+ require(current[Mesh.ARRAY_INDEX].size()/3==manifest.optimization.runtime_triangles,"Runtime uses the reduced surface")
+ require(node.mesh.get_aabb().position.distance_to(baked_node.mesh.get_aabb().position)<.000002 and node.mesh.get_aabb().size.distance_to(baked_node.mesh.get_aabb().size)<.000002,"Optimization preserves height and extreme silhouette bounds")
+ var buckets:Dictionary={}
+ for vertex in current[Mesh.ARRAY_VERTEX].size():
+  var cell:=Vector3i((current[Mesh.ARRAY_VERTEX][vertex] as Vector3)/.00001)
+  if not buckets.has(cell):buckets[cell]=[]
+  buckets[cell].append(vertex)
+  var total:=0.0
+  for slot in 4:total+=current[Mesh.ARRAY_WEIGHTS][vertex*4+slot]
+  require(absf(total-1)<.0001,"Reduced surface retains normalized skin weights")
+ var protected_count:=0
+ for vertex in original[Mesh.ARRAY_VERTEX].size():
+  var head_weight:=0.0;var foot_weight:=0.0
+  for slot in 4:
+   var name:=rig.get_bone_name(node.skin.get_bind_bone(original[Mesh.ARRAY_BONES][vertex*4+slot]))
+   if name in ["Bone_016","Bone_015"]:head_weight+=original[Mesh.ARRAY_WEIGHTS][vertex*4+slot]
+   if name in ["Bone_007","Bone_008","Bone_009","Bone_010","Bone_011","Bone_012","Bone_013","Bone_014"]:foot_weight+=original[Mesh.ARRAY_WEIGHTS][vertex*4+slot]
+  if head_weight<=.25 and not (foot_weight>.4 and original[Mesh.ARRAY_VERTEX][vertex].y<.14):continue
+  # Boundary faces can disappear during collapse. Require their position and
+  # skin; the central face and actual sole also retain their source UV corners.
+  var preserve_uv:bool=head_weight>.5 or (foot_weight>.4 and original[Mesh.ARRAY_VERTEX][vertex].y<.065)
+  protected_count+=1
+  var point:Vector3=original[Mesh.ARRAY_VERTEX][vertex];var cell:=Vector3i(point/.00001);var found:=false
+  for x in range(-1,2):
+   for y in range(-1,2):
+    for z in range(-1,2):
+     for candidate in buckets.get(cell+Vector3i(x,y,z),[]):
+      if point.distance_to(current[Mesh.ARRAY_VERTEX][candidate])>=.000002:continue
+      if preserve_uv and original[Mesh.ARRAY_TEX_UV][vertex].distance_to(current[Mesh.ARRAY_TEX_UV][candidate])>=.000002:continue
+      var matching_skin:=true
+      for slot in 4:
+       var bone:int=original[Mesh.ARRAY_BONES][vertex*4+slot];var weight:=0.0
+       for current_slot in 4:
+        if current[Mesh.ARRAY_BONES][candidate*4+current_slot]==bone:weight+=current[Mesh.ARRAY_WEIGHTS][candidate*4+current_slot]
+       if absf(weight-original[Mesh.ARRAY_WEIGHTS][vertex*4+slot])>.0001:matching_skin=false
+      if matching_skin:found=true
+  require(found,"Head, facial UVs, soles and their original skin weights remain in the reduced mesh")
+ require(protected_count>1000,"Protection check covers detailed source features")
+ require(FileAccess.get_sha256("res://assets/enemies/first/rig/"+manifest.optimization.normal_map)==manifest.optimization.normal_map_sha256,"Baked tangent normal is the approved derived texture")
  for channel in [Mesh.ARRAY_VERTEX,Mesh.ARRAY_NORMAL,Mesh.ARRAY_TANGENT,Mesh.ARRAY_TEX_UV,Mesh.ARRAY_BONES,Mesh.ARRAY_WEIGHTS]:
   var expected:PackedByteArray=current[channel].to_byte_array()
   require(facial[channel].to_byte_array().slice(0,expected.size())==expected,"Facial derivation preserves the original vertex prefix: "+str(channel))

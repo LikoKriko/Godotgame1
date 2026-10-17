@@ -9,7 +9,7 @@ están en `assets/`; los originales se organizan en `entregables/`.
 | Modelo | Altura en partida | Triángulos | Esqueleto |
 | --- | --- | --- | --- |
 | Superviviente Wild Wanderer | 1,75 m | 20878 | 24 huesos, con controles de ropa y volumen articular |
-| Enemigo1 Mossclaw Boar | 0,875 m | 7340 | 25 huesos originales SmartRigArmature |
+| Enemigo1 Mossclaw Boar | 0,875 m | 4036, sin apertura facial | 25 huesos originales SmartRigArmature |
 | Enemigo3 Sunny Sprout | 0,9 m | 13582 | 35 huesos originales |
 
 El superviviente usa `Meshy_AI_Wild_Wanderer_1016142901_texture.fbx`, de
@@ -26,7 +26,9 @@ su esqueleto propio. La escena nativa está en
 `assets/enemies/third/sprout/model.scn`.
 
 El superviviente tiene una ligadura añadida para el juego. Enemigo1 y enemigo3
-conservan las jerarquías y pesos de sus rigs originales.
+conservan las jerarquías de sus rigs originales. Enemigo1 interpola los pesos
+existentes sobre una superficie reducida con cabeza, plantas y límites
+protegidos; conserva intacta la fuente de 7340 triángulos.
 Los manifiestos `source.json`, `rig_seeds.json` y `skin_transfer.json` junto a
 los recursos contienen medidas, procedencia y datos necesarios de conversión.
 
@@ -49,7 +51,10 @@ escala a esta familia; otras dimensiones requieren sus propios modelos.
 
 ## Materiales y preparación
 
-Se mantienen albedo, normal, rugosidad y metal originales. El muestreo utiliza
+Se mantienen los PNG originales. Enemigo1 usa un normal tangente derivado
+de 2048 × 2048 en `rig/surface_normal.png`, que proyecta el relieve y el normal
+del modelo fuente sobre la superficie reducida; comparte los albedos y mapas
+de rugosidad y metal originales. El muestreo utiliza
 nearest y mipmaps. El perfil `skin_seams_v1` del superviviente suaviza normales
 coincidentes de piel y atenúa su mapa normal mediante máscara por vértice;
 no altera posiciones, UV, índices ni PNG. Pelo y ropa conservan su detalle.
@@ -58,5 +63,7 @@ Las herramientas de preparación están en `tools/meshy/`, `tools/enemy/`,
 `tools/enemy1/` y `tools/enemy3/`. La configuración de objetos es `tools/meshy/props.json`.
 El superviviente usa transferencia de piel con `transfer_survivor.py` y
 `bind_human.gd` en modo `transferred`; enemigo1 utiliza `import_rig.gd`
-y `bake_motion.gd` en `tools/enemy1/`. La armadura se prepara con `prepare_wearables.gd`.
+y `bake_motion.gd` en `tools/enemy1/`; la superficie optimizada se deriva con
+`optimize_surface.py` y `bake_surface.gd`, sin regenerar las animaciones.
+La armadura se prepara con `prepare_wearables.gd`.
 Usar las fuentes y manifiestos vigentes al regenerar recursos.

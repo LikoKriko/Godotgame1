@@ -12,7 +12,10 @@
 | Detección nocturna y al despertar | 20 m |
 | Alcance nominal | 0,65 m; el contacto considera también el radio corporal |
 | Esqueleto corporal | 25 huesos originales SmartRigArmature |
-| Malla fuente | 7340 triángulos |
+| Malla fuente conservada | 7340 triángulos |
+| Superficie corporal en runtime | 4036 triángulos, 5901 vértices con costuras UV |
+| Superficie con apertura facial | 4148 triángulos, más el interior de boca |
+| Relieve de superficie | Mapa de normales tangentes de 2048 × 2048 |
 
 El movimiento habitual es cuadrúpedo. La marcha dura 0,64 s por ciclo, la
 persecución 0,48 s y la marcha de boxeo 0,36 s. La cadencia se ajusta a la
@@ -80,7 +83,12 @@ El runtime carga `assets/enemies/first/rig/model.scn`, `face.res` y `motions.res
 Los PNG originales se comparten desde `assets/enemies/first/meshy/`; la
 procedencia y hashes están en `assets/enemies/first/rig/source.json`.
 
-Se conserva el rig original de 25 huesos, sus pesos, geometría y UV. La malla
+La fuente original se conserva intacta. La superficie de runtime se reduce
+protegiendo cabeza, plantas de las patas y límites del modelo; mantiene las UV
+y transfiere los pesos de piel existentes. El relieve del original, incluido
+su mapa normal, se proyecta sobre `rig/surface_normal.png`. Albedo, rugosidad
+y metal siguen usando los PNG originales. Se conservan el rig de 25 huesos,
+su jerarquía, ejes de reposo y matrices de ligadura. La malla
 facial derivada añade la abertura y el interior de boca, con cinco controles
 y un gesto de 2 s. Todas las acciones corporales se hornean sobre ese mismo
 esqueleto: referencia, reposo, marcha, carrera, incorporaciones, ataques
@@ -89,12 +97,19 @@ despertar, aturdimiento, muerte y cadáver. Las transiciones mezclan poses
 locales para mantener las longitudes óseas. La resolución de apoyos y el
 ajuste al suelo se hacen al preparar los recursos, sin IK por enemigo en runtime.
 
-Para regenerar desde la raíz del proyecto con Godot 4.6:
+Para regenerar la superficie optimizada desde la raíz del proyecto con
+Blender 4.3 o posterior y Godot 4.7, sin modificar las animaciones existentes:
 
 ```sh
-godot --headless --path . --script tools/enemy1/import_rig.gd -- entregables/enemigos/enemigo1/source/Meshy_AI_Character_output.glb
-godot --headless --path . --script tools/enemy1/bake_motion.gd
+blender -b -t 6 --python tools/enemy1/optimize_surface.py -- /tmp/enemy1-surface
+cp /tmp/enemy1-surface/normal.png assets/enemies/first/rig/surface_normal.png
+godot --headless --editor --path . --import
+godot --headless --path . --script tools/enemy1/bake_surface.gd -- /tmp/enemy1-surface
 ```
+
+`import_rig.gd` prepara la escena completa de la fuente original;
+`bake_motion.gd` prepara los clips corporales cuando cambia su autoría.
+La reducción de superficie no requiere regenerar esos clips.
 
 `young_enemy.gd` controla combate y movimiento; `creature_brain.gd`, las
 rutinas y memoria; `young_rig_motion.gd`, la autoría de poses y apoyos;
