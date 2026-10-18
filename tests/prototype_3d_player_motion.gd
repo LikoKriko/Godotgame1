@@ -117,6 +117,28 @@ func run():
     require(actor.rig.posed[bone].origin.distance_to(previous[bone].origin)<travel_limit,"Interrupted sprint bounds joint travel, including the fast foot return at maximum speed")
     require(actor.rig.posed[bone].basis.get_rotation_quaternion().angle_to(previous[bone].basis.get_rotation_quaternion())<.70,"Interrupted sprint avoids knee or elbow flips")
    previous=actor.rig.posed.duplicate()
+ # Repeated run/strike transitions must retain an upright pelvis even when
+ # the movement clock lands at the largest reach of a diagonal or side step.
+ for direction in [Vector3.BACK,Vector3.RIGHT,Vector3(1,0,1).normalized()]:
+  for family in [&"",&"axe",&"pickaxe",&"sword"]:
+   actor.family_override=family
+   for frame in 61:
+    var t:=frame/60.0
+    actor.animate(&"action",t,family!=&"",0,t,direction,1)
+    var height:float=(actor.last_pose.pelvis*Vector3(0,31,0)).y
+    require(height>29.4 and height<31.2,"Moving strikes stay at walking height instead of dipping on each hit")
+    require(actor.grip_error<.045,"Upright moving strikes retain tool contacts")
+   actor.action_crouch=1
+   actor.animate(&"action",.5,family!=&"",0,.25,direction,1)
+   require((actor.last_pose.pelvis*Vector3(0,31,0)).y<28,"Intentional crouched attacks remain crouched")
+   var previous_height:float=(actor.last_pose.pelvis*Vector3(0,31,0)).y
+   for step in 60:
+    actor.action_crouch=1-(step+1)/60.0
+    actor.animate(&"action",.5,family!=&"",0,.25,direction,1)
+    var height:float=(actor.last_pose.pelvis*Vector3(0,31,0)).y
+    require(absf(height-previous_height)<.8,"Releasing crouch during a hit raises the stance continuously")
+    previous_height=height
+   actor.action_crouch=0
  actor.free()
  var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();game.use_test_layout=true;root.add_child(game)
  game.set_physics_process(false);game.player.set_physics_process(false);game.settings.values.auto_run=false
@@ -180,5 +202,23 @@ func run():
  player.cancel_action();require(player.strike(),"First empty-hand attack begins")
  var first:int=player.punch_side;player.cancel_action();require(player.strike(),"Second empty-hand attack begins")
  require(player.punch_side==1-first and player.model.punch_side==player.punch_side,"Real attack input alternates both the fist and the model")
+ player.cancel_action();player.reset_motion_state();player.position=Vector3(12,.01,12)
+ key(KEY_W,true);key(KEY_SHIFT,true);await physics_frame;await process_frame
+ for frame in 90:
+  player._physics_process(1.0/60);await physics_frame
+ require(player.strike(),"A strike can interrupt a full sprint")
+ var before_height:float=(player.model.last_pose.pelvis*Vector3(0,31,0)).y
+ var max_height_step:=0.0
+ for frame in 29:
+  player._physics_process(1.0/60);await physics_frame
+  var height:float=(player.model.last_pose.pelvis*Vector3(0,31,0)).y
+  max_height_step=maxf(max_height_step,absf(height-before_height));before_height=height
+ require(max_height_step<.75,"Run-to-strike transition avoids the old deep vertical snap")
+ var factors:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-.05*player.equip_recovery)
+ require(absf(Vector2(player.velocity.x,player.velocity.z).length()-player.SPEED*factors*.5)<.01,"Live melee hit moves at half the previous walking speed after sprint braking")
+ for frame in 45:
+  player._physics_process(1.0/60);await physics_frame
+ require(player.velocity.length()>player.SPEED*factors,"Holding sprint recovers speed after the attack")
+ key(KEY_W,false);key(KEY_SHIFT,false)
  player.cancel_action();game.free()
  print("%s: %d delayed facing, sprint interruption, backward slide, jump and alternate punch checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

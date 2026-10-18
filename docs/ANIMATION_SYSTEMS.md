@@ -150,8 +150,20 @@ descenso total anterior, incluido el rebote y la compensación de alcance.
 Las rodillas se resuelven con longitudes constantes y los objetivos de pie
 limitan suavemente el alcance horizontal a la altura de la suela, evitando
 alargar huesos o levantar los apoyos para alcanzar una zancada imposible.
-La marcha agachada mantiene su altura propia.
-El balanceo lateral y la rotación total de cadera usan `GAIT_HIP_MOTION = 0.45`.
+La marcha agachada mantiene su altura propia. Los golpes erguidos comparten
+esta corrección de altura y el límite horizontal de alcance de los pies antes
+de resolver el contacto del arma. Los golpes agachados conservan su postura;
+los objetivos bajos pueden necesitar una bajada adicional para alcanzarlos.
+Durante los golpes cuerpo a cuerpo la velocidad se multiplica por 0,50, además
+de desactivar el sprint. La entrada tarda 0,08 s y la recuperación ocupa los
+últimos 0,12 s del gesto, con interpolación suave; no cambia el tiempo del golpe
+ni la velocidad normal de marcha/carrera. El arco conserva su comportamiento.
+El balanceo y giro base usan `GAIT_HIP_MOTION = 0.45`; después de resolver
+la postura completa, `GAIT_HIP_REDUCTION = 0.40` conserva el 40 % del
+desplazamiento final de pelvis alrededor de su altura de apoyo habitual
+y de sus giros respecto a la inclinación
+media del torso. Se aplica también a la oscilación vertical y de inclinación
+de carrera, sin alterar el reloj de las piernas.
 Al caminar, la pelvis mantiene un giro leve opuesto al de la espalda visible;
 los contactos conservan un balanceo suave de 0,004 rad. El brazo libre opuesto
 a la pierna que recupera inicia un pequeño gesto del codo hacia atrás, con

@@ -16,6 +16,7 @@ const RUN_PLAYBACK_RATE:=.60
 const ARM_SWING_SCALE:=0.9
 const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right"]
 const RUN_HIP_SCALE:=.7
+const GAIT_HIP_REDUCTION:=.40
 const GAIT_HIP_MOTION:=.45
 const GAIT_LOWERING:=.15
 const WALK_ARM_LAG_SECONDS:=.025
@@ -70,6 +71,8 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  pose.leg_frame=Basis.IDENTITY
  pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state in [&"walk",&"run",&"crouch_walk"] else movement_phase
  pose.look_contact=contact
+ pose.upright_attack=state==&"action" and family!=&"bow" and crouch_amount<1.0
+ pose.attack_stance_weight=1-clampf(crouch_amount,0,1)
  if family==&"" and state==&"action":pose.active=clampi(punch_side,0,1)
  var original_body: Transform3D = pose.body
  var body: Transform3D = original_body
@@ -166,9 +169,11 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     local.z=lerpf(3.5*Anatomy.BODY_DEPTH,local.z,ARM_SWING_SCALE)
     pose.hands[side]=body*local
  natural_motion(pose,state,phase,movement_phase,movement,contact,striding)
- if upright_gait(pose):raise_gait(pose)
  if state in [&"action",&"draw"] and family in [&"axe",&"pickaxe",&"sword",&"bow"]:reduce_weapon_pitch(pose,crouch_amount)
  if state==&"action" and family!=&"bow":reduce_attack_knees(pose,phase,movement_phase,movement,crouch_amount)
+ if upright_gait(pose):
+  raise_gait(pose)
+  if not pose.upright_attack:calm_gait(pose)
  body=pose.body
  if state in SLIDE_STATES:
   lengthen_stride(pose)
@@ -445,23 +450,58 @@ static func lengthen_stride(pose:Dictionary,horizontal_scale:float=STRIDE_SCALE)
     var distance_xz:=Vector2(extreme.x-hip.x,extreme.z-hip.z).length_squared()
     var height:=sqrt(maxf(.01,pow(Anatomy.THIGH+Anatomy.SHIN-.08,2)-distance_xz))
     settle=maxf(settle,hip.y-2.1-height)
+ # Phase-independent support height: damp vertical motion around the gait's
+ # existing stance, rather than raising its mean and clipping the swing arc.
+ var centre_height:=Anatomy.HIP.y
+ if pose.has("gait_extent"):
+  for side in 2:
+   var centre_hip:=Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
+   var lane:Vector3=pose.get("leg_frame",Basis.IDENTITY)*Vector3((-1 if side==0 else 1)*pose.stance_lane,0,0)
+   for sign_value in [-1.0,1.0]:
+    var end:Vector3=lane+pose.gait_travel*pose.gait_extent*sign_value
+    var horizontal:=Vector2(end.x-centre_hip.x,end.z-centre_hip.z).length_squared()
+    centre_height=minf(centre_height,2.1+sqrt(maxf(.01,pow(Anatomy.THIGH+Anatomy.SHIN-.08,2)-horizontal)))
+ pose.gait_center_height=lerpf(Anatomy.HIP.y,centre_height,GAIT_LOWERING)
  var down:=Vector3.DOWN*settle
  pose.body.origin+=down;pose.grip+=down
  for side in 2:
   pose.hips[side]+=down;pose.shoulders[side]+=down;pose.hands[side]+=down
 
 static func upright_gait(pose:Dictionary) -> bool:
- return pose.get("clip_state",&"") in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"equip_walk",&"equip_run"]
+ return pose.get("upright_attack",false) or pose.get("clip_state",&"") in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"equip_walk",&"equip_run"]
 
 static func raise_gait(pose:Dictionary) -> void:
  # Reduce the complete descent, including authored bob and reach compensation,
  # rather than just one term of the pelvis motion.
  var pelvis:Transform3D=pose.get("pelvis",pose.body)
  var height:float=(pelvis*Vector3(0,Anatomy.HIP.y,0)).y
- var up:=Vector3.UP*(Anatomy.HIP.y-height)*(1-GAIT_LOWERING)
+ var lowering:=GAIT_LOWERING
+ var target_height:=lerpf(height,Anatomy.HIP.y,1-lowering)
+ if pose.get("upright_attack",false):
+  # Leave a small, eased knee reserve for the striking-side support step.
+  target_height=minf(target_height,Anatomy.HIP.y-.35*pickup_weight(pose.phase))
+ var up:Vector3=Vector3.UP*(target_height-height)*(pose.attack_stance_weight if pose.get("upright_attack",false) else 1.0)
  pose.body.origin+=up;pose.pelvis.origin+=up;pose.grip+=up
  for side in 2:
   pose.hips[side]+=up;pose.shoulders[side]+=up;pose.hands[side]+=up
+
+static func calm_gait(pose:Dictionary) -> void:
+ # Dampen the final hip motion, not individual terms which may cancel each
+ # other. Keep the mean forward lean and all foot timing/leg trajectories.
+ var pivot:=Vector3(0,Anatomy.HIP.y,0)
+ var pelvis:Transform3D=pose.pelvis
+ var hip:Vector3=pelvis*pivot
+ var centre:=Vector3(0,pose.get("gait_center_height",Anatomy.HIP.y),0)
+ var shift:Vector3=(centre-hip)*(1-GAIT_HIP_REDUCTION)
+ var angles:=pelvis.basis.get_euler()
+ var lean:float=pose.body.basis.get_euler().x
+ angles=Vector3(lerpf(lean,angles.x,GAIT_HIP_REDUCTION),angles.y*GAIT_HIP_REDUCTION,angles.z*GAIT_HIP_REDUCTION)
+ pelvis.basis=Basis.from_euler(angles)
+ pelvis.origin=hip+shift-pelvis.basis*pivot
+ pose.pelvis=pelvis;pose.body.origin+=shift;pose.grip+=shift
+ for side in 2:
+  pose.hips[side]=pelvis*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
+  pose.shoulders[side]+=shift;pose.hands[side]+=shift
 
 static func grounded_reach(hip:Vector3,ankle:Vector3,a:float,b:float) -> Vector3:
  # Keep the sole height when a more upright pelvis makes the old extreme

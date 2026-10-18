@@ -162,7 +162,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
    displayed_pose.legs[side].end=target.legs[side].end+gait_entry_offsets[side]*entry
    displayed_pose.legs[side].pitch=target.legs[side].pitch
  if state==&"death":displayed_pose=target.duplicate(true)
- for key in ["gait_weight","run_weight","head_basis","arm_poles","foot_bases","equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
+ for key in ["upright_attack","gait_weight","run_weight","head_basis","arm_poles","foot_bases","equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
   if target.has(key):displayed_pose[key]=target[key]
   else:displayed_pose.erase(key)
  displayed_pose.tool_basis=target.get("tool_basis",Aim.frame(target.shaft))

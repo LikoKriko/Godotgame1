@@ -45,6 +45,13 @@ var slide_forward_axis:=1
 var slide_facing:=0.0
 var punch_side:=1
 var next_punch_side:=1
+static func attack_speed_scale(elapsed:float,attack_family:StringName) -> float:
+ if elapsed<0 or attack_family==&"bow":return 1.0
+ var seconds:=Clips.duration(&"action",attack_family)
+ # Ease into the extra slowdown during preparation and out during recovery.
+ var effort:=smoothstep(0,.08,elapsed)*(1-smoothstep(seconds-.12,seconds,elapsed))
+ return lerpf(1.0,.5,effort)
+
 func reset_motion_state() -> void:
  locomotion.reset();velocity=Vector3.ZERO;visual_motion=0
  movement_response=preload("res://scripts/prototype_3d/movement_response.gd").new()
@@ -214,7 +221,7 @@ func _physics_process(delta: float) -> void:
  var movement_multiplier:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-0.05*equip_recovery)
  movement_multiplier*=0.4 if preview_state==&"pickup" else 1-0.6*pickup_recovery/0.5
  var response:Vector2=movement_response.advance(Vector2(direction.x,direction.z),running,locomotion.crouch,delta)
- var planar:Vector2=response*SPEED*movement_multiplier
+ var planar:Vector2=response*SPEED*movement_multiplier*attack_speed_scale(action_elapsed,action_family)
  if locomotion.sliding() or (locomotion.airborne() and locomotion.from_slide):planar=locomotion.velocity(planar,WORLD_SCALE)
  if locomotion.from_slide: planar *= WORLD_SCALE
  if locomotion.airborne() and not game.can_cross_jump(global_position,Vector3(planar.x,0,planar.y)*delta,get_rid()):planar=Vector2.ZERO
