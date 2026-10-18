@@ -19,6 +19,9 @@ var tool_cutting_axis:=Vector3.ZERO
 var axe: Node3D
 var rig = preload("res://scripts/prototype_3d/humanoid_rig.gd").new()
 var displayed_pose: Dictionary = {}
+var gait_active:=false
+var gait_entry_age:=0.0
+var gait_entry_offsets:Array[Vector3]=[Vector3.ZERO,Vector3.ZERO]
 var gait_direction=preload("res://scripts/prototype_3d/gait_direction.gd").new()
 var slide_launch_pose:Dictionary={}
 var equipment_from:Dictionary={}
@@ -66,7 +69,7 @@ func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: B
  tool_cutting_axis = x_axis
  return {"grip":grip,"support":grip+shaft*Profiles.profile(_item).support}
 func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0, movement_phase: float = 0.0, movement: Vector3 = Vector3.ZERO, motion_amount:float=1.0) -> void:
- if state in [&"walk",&"crouch_walk",&"equip_walk",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk",&"unequip"]:
+ if state in [&"walk",&"run",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk",&"unequip"]:
   movement=gait_direction.sample(movement,delta)
  else:gait_direction.reset()
  var item: StringName = (&"axe" if equipped else &"") if family_override==&"default" else family_override
@@ -120,6 +123,12 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   for side in 2:
    target.hands[side]=neutral.hands[side].lerp(target.hands[side],motion_amount)
    target.legs[side].end=neutral.legs[side].end.lerp(target.legs[side].end,motion_amount)
+ var moving_gait:=not movement.is_zero_approx() and state in [&"walk",&"run",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk",&"unequip",&"action",&"bow_release"]
+ if moving_gait and not gait_active:
+  gait_entry_age=0
+  for side in 2:gait_entry_offsets[side]=displayed_pose.legs[side].end-target.legs[side].end if not displayed_pose.is_empty() else Vector3.ZERO
+ gait_entry_age+=maxf(delta,0)
+ gait_active=moving_gait
  if displayed_pose.is_empty() or delta <= 0:
   displayed_pose = target.duplicate(true)
  else:
@@ -140,6 +149,13 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   displayed_pose.look_contact=target.look_contact
   displayed_pose.state = target.state; displayed_pose.phase = target.phase
   displayed_pose.family=target.family;displayed_pose.clip_state=target.clip_state;displayed_pose.gait_phase=target.gait_phase
+ if moving_gait:
+  # Smooth the entry once, not every new foot target: a rolling low-pass
+  # delays lift/contact and erases the fast return of a lateral step.
+  var entry:=1-smoothstep(0,.15,gait_entry_age) if delta>0 else 0.0
+  for side in 2:
+   displayed_pose.legs[side].end=target.legs[side].end+gait_entry_offsets[side]*entry
+   displayed_pose.legs[side].pitch=target.legs[side].pitch
  if state==&"death":displayed_pose=target.duplicate(true)
  for key in ["run_weight","head_basis","arm_poles","foot_bases","equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
   if target.has(key):displayed_pose[key]=target[key]

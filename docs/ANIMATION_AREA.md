@@ -46,7 +46,10 @@ Los golpes fijan el objetivo al iniciarse; el arco sigue la mira al tensar.
 La velocidad base es 2 m/s caminando y 4,48 m/s corriendo, antes de modificadores.
 Arranque de 0,16 s, aceleración durante 1 s y frenada de 0,24 s. La cadencia
 visual sigue la distancia real para acompañar el sprint; el ciclo de referencia
-se reproduce aproximadamente en 0,418 s al alcanzar el máximo sin modificadores.
+frontal se reproduce aproximadamente en 0,418 s al alcanzar el máximo sin
+modificadores. Caminando a 2 m/s, el ciclo diagonal dura unos 0,471 s y el
+lateral 0,343 s. La cadencia usa la distancia efectiva de la zancada y conserva
+los apoyos durante la aceleración y la frenada.
 
 ## Criaturas
 

@@ -105,12 +105,13 @@ func run():
   for frame in 240:
    var sprint:bool=frame/120.0<stop_time
    envelope.advance(Vector2.UP if sprint else Vector2.ZERO,sprint,0,1.0/120)
-   gait=fposmod(gait+envelope.speed/Response.GAIT_MULTIPLIER/.585/120,1)
+   gait=fposmod(gait+2*envelope.speed/Clips.cycle_distance(envelope.sprint_weight)/120,1)
    actor.sprint_weight=envelope.sprint_weight
    var state:StringName=&"start_run" if envelope.stage==&"start" else (&"run" if envelope.stage==&"maximum" else (&"stop_run" if envelope.speed>.001 else &"idle"))
    actor.animate(state,envelope.phase() if state!=&"run" else gait,false,1.0/120,gait,Vector3.BACK,clampf(envelope.speed,0,1))
    for bone in 16:
-    require(actor.rig.posed[bone].origin.distance_to(previous[bone].origin)<2.0,"Interrupted sprint keeps full-body joint positions continuous")
+    var travel_limit:=3.0 if bone in [11,12,14,15] else 2.0
+    require(actor.rig.posed[bone].origin.distance_to(previous[bone].origin)<travel_limit,"Interrupted sprint bounds joint travel, including the fast foot return at maximum speed")
     require(actor.rig.posed[bone].basis.get_rotation_quaternion().angle_to(previous[bone].basis.get_rotation_quaternion())<.70,"Interrupted sprint avoids knee or elbow flips")
    previous=actor.rig.posed.duplicate()
  actor.free()

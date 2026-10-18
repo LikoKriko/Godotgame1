@@ -33,6 +33,13 @@ static func duration(state: StringName,family: StringName = &"") -> float:
  if state in [&"walk",&"run"]:return (0.45 if state==&"run" else 0.60)*STRIDE_SCALE
  return 0.60
 
+# Distance travelled during one complete left/right cycle, shared with Player.
+static func directional_stride(direction:Vector3) -> float:
+ return lerpf(1.0,.44,absf(direction.normalized().x))
+
+static func cycle_distance(sprint_weight:float,crouch:float=0.0,direction:Vector3=Vector3.BACK) -> float:
+ return lerpf(duration(&"walk")*2.0,duration(&"run")*3.2,clampf(sprint_weight,0,1))*lerpf(1.0,.68,crouch)*directional_stride(direction)
+
 static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF,slide_launch:Dictionary={},crouch_amount:float=0.0,punch_side:int=1) -> Dictionary:
  if String(state).begins_with("equip") or state==&"unequip":
   return equipment_pose(family,state,phase,movement_phase,movement,contact)
@@ -110,12 +117,30 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   if state!=&"pickup_walk":
    pose.leg_frame=Basis(Vector3.UP,yaw)
    pose.leg_poles=[pose.leg_frame*Vector3.BACK,pose.leg_frame*Vector3.BACK]
-  var walk_pose:=Pose.sample(family,&"walk",movement_phase) if state in [&"action",&"pickup_walk",&"eat_walk",&"drink_walk",&"unequip"] else pose
+  var gait_state:StringName=&"run" if state in [&"run",&"start_run",&"stop_run"] else &"walk"
+  var gait_phase:float=phase if state in [&"walk",&"run",&"crouch_walk"] else movement_phase
+  var keys:=Controls.sample(gait_state,gait_phase)
+  var crouched:=state==&"crouch_walk"
+  var stride:=directional_stride(travel)*(.68 if crouched else 1.0)
+  # A lateral step needs room to open and close. Reserve the complete path
+  # before IK, rather than clipping the inward half against the other foot.
+  var support:=.40 if gait_state==&"run" else lerpf(.60,.45,absf(travel.x))
+  var reach:=cycle_distance(1.0 if gait_state==&"run" else 0.0)*support*.5/(Anatomy.HEIGHT_METRES/64)*stride
+  var lane:=maxf(Anatomy.HIP.x,Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*.5+absf(travel.dot(pose.leg_frame.x))*reach*1.04)
+  pose.stance_lane=lane
   for side in 2:
-   var ankle: Vector3=walk_pose.legs[side].end
-   var step:=ankle.z*lerpf(1,0.65,absf(travel.x))
-   pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,0,0)+Vector3.UP*ankle.y+travel*step
-   pose.legs[side].pitch*=travel.z
+   var foot:Vector3=keys.foot_l if side==0 else keys.foot_r
+   if gait_state==&"walk" and absf(travel.x)>.001:
+    # Shorter lateral contact gives a quicker, less spread side step while
+    # preserving planted speed. Resample the same reduced control curve.
+    var p:=fposmod(gait_phase+side*.5,1.0)
+    var mapped:=p/support*.60 if p<support else .60+(p-support)/(1-support)*.40
+    foot=Controls.sample(&"walk",mapped).foot_l
+    foot.x*=support/.60
+   var step:=foot.x*stride/STRIDE_SCALE
+   pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*lane,2.1+foot.y*(.70 if crouched else 1.0),0)+travel*step
+   pose.legs[side].pitch=foot.z*travel.z
+
  var striding:=state in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"] or (not movement.is_zero_approx() and state in [&"action",&"unequip",&"bow_release"])
  if striding:
   lengthen_stride(pose);body=pose.body
@@ -383,7 +408,7 @@ static func lengthen_stride(pose:Dictionary) -> void:
  var settle:=0.0
  for side in 2:
   var ankle:Vector3=pose.legs[side].end
-  var neutral:Vector3=pose.get("leg_frame",Basis.IDENTITY)*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,0,0)
+  var neutral:Vector3=pose.get("leg_frame",Basis.IDENTITY)*Vector3((-1 if side==0 else 1)*pose.get("stance_lane",Anatomy.HIP.x),0,0)
   ankle.x=neutral.x+(ankle.x-neutral.x)*STRIDE_SCALE;ankle.z=neutral.z+(ankle.z-neutral.z)*STRIDE_SCALE
   pose.legs[side].end=ankle
   var hip:Vector3=pose.hips[side]

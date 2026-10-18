@@ -85,8 +85,16 @@ La reducción de claves usa límites de error de 0,018 unidades para posiciones
 y 0,0004 para ángulos y pesos de mezcla. Conserva las fases de contacto, impacto,
 entrada y salida, además de los extremos del ciclo. Las pistas constantes
 usan una sola clave. Los datos de autoría no se evalúan durante el juego.
-La cadencia de marcha/carrera sigue el desplazamiento horizontal real y
-compensa la zancada más corta de los pasos laterales.
+La cadencia sigue el desplazamiento horizontal real en coordenadas del modelo.
+La distancia por ciclo mezcla marcha/carrera según la aceleración visible:
+1,56–1,872 m, multiplicada por `lerp(1, 0.44, abs(direccion.x))` y por
+`lerp(1, 0.68, agachado)`. El apoyo de marcha baja de 60 % frontal a 45 %
+lateral, conservando la velocidad del pie plantado. Las calles de apoyo dejan
+espacio para la trayectoria completa antes de resolver IK, sin recortar su
+mitad interior. El pie levantado regresa en el sentido real de desplazamiento.
+Los pies suavizan la entrada durante 0,15 s; el ciclo posterior sigue las claves
+sin un filtro acumulativo que retrase el contacto. Los giros de marcha y carrera
+comparten el suavizado de dirección de 0,12 s.
 
 La caída de 3 s apoya primero las rodillas y termina boca abajo, con brazos y
 piernas abiertos. Un conjunto reducido de apoyos de la piel real mantiene el

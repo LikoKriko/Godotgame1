@@ -1,0 +1,52 @@
+extends SceneTree
+const Clips=preload('res://scripts/prototype_3d/survivor_animation.gd')
+const Anatomy=preload('res://scripts/prototype_3d/survivor_anatomy.gd')
+var checks:=0
+var failures:=0
+func require(value:bool,message:String):
+ checks+=1
+ if not value:
+  failures+=1
+  if failures<15:push_error(message)
+func _initialize():call_deferred('run')
+func run():
+ var actor=load('res://scripts/prototype_3d/survivor_model.gd').new();root.add_child(actor)
+ var directions:Array[Vector3]=[]
+ for x in [-1,0,1]:
+  for z in [-1,0,1]:
+   if x!=0 or z!=0:directions.append(Vector3(x,0,z).normalized())
+ # Signed checks distinguish the planted return from the lifted forward swing.
+ # Test final rendered bones, with the runtime delta/blending enabled.
+ for family in [&'',&'axe',&'bow']:
+  actor.family_override=family
+  for state in [&'walk',&'run',&'crouch_walk']:
+   var weight:=1.0 if state==&'run' else 0.0
+   var crouch:=1.0 if state==&'crouch_walk' else 0.0
+   actor.sprint_weight=weight;actor.sprint_crouch=crouch
+   for fps in [30,60,120]:
+    for direction in directions:
+     actor.displayed_pose.clear();actor.gait_direction.reset();actor.gait_active=false
+     var cycle:=Clips.cycle_distance(weight,crouch,direction)
+     var dt:float=1.0/fps
+     var previous:Array=[]
+     for frame in int(ceil(cycle*.5*fps))*3:
+      var phase:=fposmod(frame*dt*2.0/cycle,1)
+      actor.animate(state,phase,family!=&'',dt,phase,direction)
+      var foot:Vector3=actor.rig.posed[12].origin
+      if frame*dt>cycle*.5:
+       var delta:Vector3=(foot-previous[0])*Anatomy.HEIGHT_METRES/64
+       if phase>.18 and phase<.30:
+        var world_velocity:=delta/dt+direction*2.0
+        require(Vector2(world_velocity.x,world_velocity.z).length()<.09,'Support stays planted at real speed: %s %s %s %s'%[family,state,direction,world_velocity])
+       if phase>.74 and phase<.86:
+        require(delta.dot(direction)>.0001,'Lifted foot returns in the signed travel direction: %s %s %s'%[family,state,direction])
+      for side in 2:
+       var leg:Dictionary=actor.last_pose.legs[side]
+       require(absf(leg.root.distance_to(leg.joint)-Anatomy.THIGH)<.001 and absf(leg.joint.distance_to(leg.end)-Anatomy.SHIN)<.001,'Directional gait preserves both leg lengths')
+       var across:Vector3=actor.last_pose.leg_frame.x
+       require(leg.end.dot(across)*(-1 if side==0 else 1)>Anatomy.FOOT_HALF_WIDTH,'Foot keeps clearance from opposite lane')
+      previous=[foot]
+ # Walk/run acceleration uses its actual blended distance, without a cadence jump.
+ require(Clips.cycle_distance(.5)==(Clips.cycle_distance(0)+Clips.cycle_distance(1))*.5,'Acceleration shares the visual stride metric')
+ require(Clips.directional_stride(Vector3.RIGHT)<.5,'Lateral steps recover faster than the previous .65 stride')
+ actor.free();print('%s: %d signed directional contact, swing, cadence and anatomy checks'%['PASS' if failures==0 else 'FAIL',checks]);quit(1 if failures else 0)

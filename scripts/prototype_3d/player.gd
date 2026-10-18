@@ -1,7 +1,6 @@
 extends CharacterBody3D
 const SPEED := 2.0
 const RUN_MULTIPLIER := preload("res://scripts/prototype_3d/movement_response.gd").SPRINT_MULTIPLIER
-const RUN_GAIT_MULTIPLIER := preload("res://scripts/prototype_3d/movement_response.gd").GAIT_MULTIPLIER
 const GRAVITY := 18.0
 const Anatomy = preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Clips = preload("res://scripts/prototype_3d/survivor_animation.gd")
@@ -234,10 +233,13 @@ func _physics_process(delta: float) -> void:
  var state: StringName = &"idle"; var progress := 0.0
  var travelled:=Vector2(global_position.x-before_move.x,global_position.z-before_move.z).length()
  var actual_speed:=travelled/maxf(delta,.00001)
+ var local_travel:Vector3=model.global_basis.inverse()*(global_position-before_move)
+ local_travel.y=0
+ local_travel=local_travel.normalized()
  if actual_speed>0.03:
-  var local_travel:Vector3=model.global_basis.inverse()*Vector3(velocity.x,0,velocity.z).normalized()
-  var directional_scale:=lerpf(1.0,.65,absf(local_travel.x))
-  phase = fposmod(phase+travelled/(Clips.duration(&"run" if running else &"walk")*SPEED*(RUN_GAIT_MULTIPLIER if running else 1.0)*directional_scale),1)
+  # Match the visible blended stride throughout acceleration and braking too.
+  phase=fposmod(phase+travelled/Clips.cycle_distance(movement_response.sprint_weight,locomotion.crouch,local_travel),1)
+
  visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
  model.sprint_weight=movement_response.sprint_weight
  model.sprint_crouch=locomotion.crouch
@@ -286,7 +288,6 @@ func _physics_process(delta: float) -> void:
  if family()==&"bow" and equipped:model.aim_contact=model.to_local(live_aim if state in [&"action",&"draw"] else delayed_aim)
  if state==&"parry" and guard_point.is_finite():model.aim_contact=model.to_local(guard_point)
  if state in [&"pickup",&"pickup_walk"] and pickup_point.is_finite():model.aim_contact=model.to_local(pickup_point)
- var local_travel: Vector3 = (model.global_basis.inverse()*Vector3(movement_response.direction.x,0,movement_response.direction.y)).normalized()
  model.animate(state,progress,equipped or (unequipping and state==&"unequip"),delta,phase,local_travel,visual_motion)
  _finish_visual_frame(state,progress)
 
