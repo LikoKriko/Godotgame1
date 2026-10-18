@@ -21,6 +21,7 @@ func run() -> void:
   game.settings.values.hud_size=hud_size;game.hud.fit()
   require(reticle.get_global_rect().get_center().distance_to(root.get_visible_rect().get_center())<.01,"HUD scaling cannot shift the aiming point")
  player.position=Vector3(12,0,12);rig.yaw=0;rig.pitch=0
+ player.velocity=Vector3.DOWN;player.move_and_slide() # Establish real support for melee.
  await physics_frame;rig.update(1)
  var anchor:Vector3=player.position+Vector3(0,1.45,0)
  var center:Vector2=root.get_visible_rect().get_center()

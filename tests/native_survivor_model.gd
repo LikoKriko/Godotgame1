@@ -132,6 +132,31 @@ func run():
     previous=[native.posed[native.legs[0].ids[0]].basis.get_rotation_quaternion(),native.posed[native.legs[1].ids[0]].basis.get_rotation_quaternion()]
    require(maximum-minimum<.8,"Walking/running hips avoid reach-induced pumping in every direction")
    require(minimum>(29.7 if state==&"walk" else 29.9),"Upright gait removes 85 percent of the previous low stance")
+ # Lateral stepping must not pull the proximal thighs far out of the shorts
+ # or pump the rendered hip contour open/closed on every transfer.
+ var hip_vertices:Array[int]=[]
+ for index in surfaces[0][Mesh.ARRAY_VERTEX].size():
+  var point:Vector3=native.frame*surfaces[0][Mesh.ARRAY_VERTEX][index]
+  if point.y>26 and point.y<34:hip_vertices.append(index)
+ require(hip_vertices.size()>100,"Lateral contour check samples the visible hip and upper shorts")
+ for state in [&"walk",&"run"]:
+  for direction in [Vector3.LEFT,Vector3.RIGHT]:
+   var narrowest:=INF;var widest:=0.0
+   for sample in 33:
+    var phase:=sample/32.0
+    actor.animate(state,phase,false,0,phase,direction)
+    var matrices:Array[Transform3D]=[]
+    for bind in skin.get_bind_count():matrices.append(native.posed[skin.get_bind_bone(bind)]*skin.get_bind_pose(bind))
+    var minimum:=INF;var maximum:=-INF
+    for index in hip_vertices:
+     var point:=deform(surfaces[0],index,matrices)
+     minimum=minf(minimum,point.x);maximum=maxf(maximum,point.x)
+    narrowest=minf(narrowest,maximum-minimum);widest=maxf(widest,maximum-minimum)
+    for side in 2:
+     var ids:Array=native.legs[side].ids
+     var thigh:Vector3=native.posed[ids[1]].origin-native.posed[ids[0]].origin
+     require(absf(atan2(thigh.x,-thigh.y))<deg_to_rad(12),"Lateral shuffle bounds thigh abduction instead of stretching the hip")
+   require(widest-narrowest<2.5,"Rendered lateral hip/short contour avoids the previous broad expansion")
  actor.animate(&"walk",.25,false,0,.25,Vector3.BACK)
  var visible:Basis=native.posed[native.spine[2]].basis*native.rest[native.spine[2]].basis.inverse()
  require(visible.get_euler().y*actor.last_pose.pelvis.basis.get_euler().y<0,"The visible walking back counter-rotates gently against the hips")

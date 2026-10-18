@@ -67,7 +67,9 @@ rellena cerca del agua. Los objetos tirados tienen representación física.
 
 Los golpes se dirigen al contacto de la mira, respetando alcance, obstáculos y
 agarres. El desgaste se aplica según la acción y el contacto. El arco necesita
-una flecha y 0,5 s de tensado. El parry tiene 4 s de recuperación, acepta
+una flecha y 0,5 s de tensado. Los puñetazos y golpes de espada, hacha y pico
+requieren apoyo en el suelo: saltar o perder el apoyo cancela el golpe pendiente.
+En el aire sigue disponible el arco, incluso si se empieza a tensar antes del salto. El parry tiene 4 s de recuperación, acepta
 intentos desde 0,5 s antes hasta 0,2 s después del contacto y aturde 1,5 s.
 El daño enemigo se resuelve con 0,35 s de retraso.
 

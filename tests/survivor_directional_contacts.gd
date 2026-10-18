@@ -40,6 +40,7 @@ func run():
         var expected_return:=direction*2.0*Clips.GAIT_STRIDE_LENGTH*rate
         var return_velocity:=delta/dt
         if state==&'crouch_walk':
+         expected_return*=lerpf(1,Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x)))
          require(Vector2((return_velocity+expected_return).x,(return_velocity+expected_return).z).length()<.09,'Crouching retains its grounded support rate')
         else:
          require(return_velocity.dot(direction)<.06 and Vector2(return_velocity.x,return_velocity.z).length()<=expected_return.length()+.12,'Upright support keeps the return direction and limits its rate within anatomical reach')

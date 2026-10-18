@@ -16,6 +16,8 @@ const RUN_PLAYBACK_RATE:=.60
 const ARM_SWING_SCALE:=0.9
 const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right"]
 const RUN_HIP_SCALE:=.7
+const LATERAL_STEP_SCALE:=.45
+const LATERAL_LIFT_SCALE:=.40
 const GAIT_HIP_REDUCTION:=.40
 const GAIT_HIP_MOTION:=.45
 const GAIT_LOWERING:=.15
@@ -135,7 +137,10 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var gait_phase:float=phase if state in [&"walk",&"run",&"crouch_walk"] else movement_phase
   var keys:=Controls.sample(gait_state,gait_phase)
   var crouched:=state==&"crouch_walk"
-  var stride:=directional_stride(travel)*(.68 if crouched else 1.0)
+  # A side shuffle stays under the hips. Blend from diagonal travel instead
+  # of reserving a wide, symmetric opening on every support transfer.
+  var lateral:=smoothstep(sqrt(.5),1,absf(travel.x))
+  var stride:=directional_stride(travel)*(.68 if crouched else 1.0)*lerpf(1,LATERAL_STEP_SCALE,lateral)
   # A lateral step needs room to open and close. Reserve the complete path
   # before IK, rather than clipping the inward half against the other foot.
   var support:=.40 if gait_state==&"run" else lerpf(.60,.45,absf(travel.x))
@@ -155,7 +160,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     foot=Controls.sample(&"walk",mapped).foot_l
     foot.x*=support/.60
    var step:=foot.x*stride/STRIDE_SCALE
-   pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*lane,2.1+foot.y*(.70 if crouched else 1.0),0)+travel*step
+   pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*lane,2.1+foot.y*(.70 if crouched else 1.0)*lerpf(1,LATERAL_LIFT_SCALE,lateral),0)+travel*step
    pose.legs[side].pitch=foot.z*travel.z
 
  var striding:=state in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"] or (not movement.is_zero_approx() and state in [&"action",&"unequip",&"bow_release"])

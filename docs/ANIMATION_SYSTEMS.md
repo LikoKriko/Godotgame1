@@ -144,6 +144,11 @@ permanece independiente, por lo que estos ajustes visuales permiten patinaje.
 El apoyo de marcha baja de 60 % frontal a 45 % lateral. Las calles de apoyo dejan
 espacio para la trayectoria completa antes de resolver IK, sin recortar su
 mitad interior. El pie levantado regresa en el sentido real de desplazamiento.
+El paso lateral usa `LATERAL_STEP_SCALE = 0.45` y
+`LATERAL_LIFT_SCALE = 0.40`: reduce apertura y elevación de la pierna para
+recoger el paso bajo la cadera y evitar tirones del pantalón. Entra suavemente
+al pasar de diagonales de 45° al desplazamiento lateral puro, sin cambiar
+la cadencia global ni la velocidad física.
 La altura de apoyo calcula el alcance de ambos extremos del paso completo.
 En marcha y carrera erguidas, `GAIT_LOWERING = 0.15` conserva solo el 15 % del
 descenso total anterior, incluido el rebote y la compensación de alcance.

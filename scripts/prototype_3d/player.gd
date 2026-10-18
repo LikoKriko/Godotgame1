@@ -100,6 +100,7 @@ func strike() -> bool:
   return game.consume_item(location.index,location.kind==&"quick")
  action_family=family()
  if action_family not in [&"",&"axe",&"pickaxe",&"sword",&"bow"]:return false
+ if action_family!=&"bow" and (not is_on_floor() or locomotion.airborne()):return false
  if not item.is_empty() and item.uses<=0:game.status.text="El objeto está roto; repáralo.";return false
  if action_family==&"bow":
   if game.bag.count(&"flecha")<=0:game.status.text="Necesitas flechas para disparar el arco";return false
@@ -131,6 +132,8 @@ func update_facing(point:Vector3,delta:float) -> void:
  model.rotation.y=lerp_angle(model.rotation.y,visual_heading,1-exp(-maxf(0,delta)*15))
 func advance_action(delta:float) -> void:
  if action_elapsed<0:return
+ if action_family!=&"bow" and (not is_on_floor() or locomotion.airborne()):
+  cancel_action();return
  var seconds:=0.5 if action_family==&"bow" else Clips.duration(&"action",action_family)
  action_elapsed+=maxf(0,delta)
  var impact_time:=seconds if action_family==&"bow" else seconds*0.5
@@ -212,7 +215,9 @@ func _physics_process(delta: float) -> void:
  control_was_pressed = control
  var jump_pressed := Input.is_physical_key_pressed(KEY_SPACE)
  if jump_pressed and not jump_was_pressed and is_on_floor():
-  locomotion.jump(); velocity.y = 5.5
+  if locomotion.jump():
+   velocity.y = 5.5
+   if action_elapsed>=0 and action_family!=&"bow":cancel_action()
  jump_was_pressed = jump_pressed
  locomotion.steer_air(Vector2(direction.x,direction.z),delta)
  locomotion.advance(delta,control and not locomotion.sliding())
@@ -229,6 +234,8 @@ func _physics_process(delta: float) -> void:
  if not is_on_floor(): velocity.y -= GRAVITY*delta
  var before_move:=global_position
  move_and_slide()
+ # Also cover leaving a ledge or loading a melee windup while in the air.
+ if action_elapsed>=0 and action_family!=&"bow" and (not is_on_floor() or locomotion.airborne()):cancel_action()
  game.camera_rig.update(delta)
  var live_aim:Vector3=game.camera_rig.aim_point()
  if action_elapsed>=0 and action_family==&"bow":
