@@ -4,12 +4,19 @@ const DISTANCE := 3.6
 const SHOULDER := 0.30
 const SENSITIVITY := 0.0025
 const PITCH_LIMIT := PI*0.5
+const FREE_LOOK_LIMIT := PI*0.5
+const FREE_LOOK_RETURN_SPEED := PI*0.25
 const BOOM_OFFSET := Vector3(SHOULDER,0.12,DISTANCE)
 var boom_shape:=SphereShape3D.new()
 var boom_query:=PhysicsShapeQueryParameters3D.new()
 var pitch := -0.12
 var yaw := 0.0
 var camera := Camera3D.new()
+# A projection-only camera preserves steering and action rays while looking aside.
+# It never becomes current and does not add a rendered viewport.
+var aim_camera := Camera3D.new()
+var free_look_held := false
+var free_look_offset := 0.0
 var player: CharacterBody3D
 var game
 var actual_distance := DISTANCE
@@ -17,7 +24,28 @@ func configure(owner_game, target: CharacterBody3D) -> void:
  game = owner_game; player = target
  boom_shape.radius=0.18;boom_query.shape=boom_shape;boom_query.exclude=[player.get_rid()];boom_query.collision_mask=5
  camera.fov = 75; camera.near = 0.08; add_child(camera); camera.current = true
+ aim_camera.fov=camera.fov;aim_camera.near=camera.near;add_child(aim_camera);aim_camera.current=false
+ get_window().focus_exited.connect(func():free_look_held=false)
+func head_yaw() -> float:
+ # Native bind axes differ from the character frame; remove the head's rest
+ # orientation before reading its actual animated forward direction.
+ var native=player.model.native
+ var forward:Vector3=player.model.global_basis*(native.posed[native.head].basis*native.inverse_rest[native.head].basis*Vector3.BACK)
+ if Vector2(forward.x,forward.z).length_squared()<0.000001:return yaw
+ return atan2(-forward.x,-forward.z)
+func sync_free_look_input() -> void:
+ free_look_held=not game.paused and Input.mouse_mode==Input.MOUSE_MODE_CAPTURED and Input.is_physical_key_pressed(KEY_ALT)
+func constrain_free_look() -> void:
+ var centre:=wrapf(head_yaw()-yaw,-PI,PI)
+ free_look_offset=clampf(free_look_offset,centre-FREE_LOOK_LIMIT,centre+FREE_LOOK_LIMIT)
+func reset_free_look() -> void:
+ free_look_held=false;free_look_offset=0
+func is_free_looking() -> bool:
+ return free_look_held or not is_zero_approx(free_look_offset)
 func look(relative: Vector2) -> void:
+ sync_free_look_input()
+ if free_look_held:
+  free_look_offset-=relative.x*SENSITIVITY;constrain_free_look();return
  yaw=wrapf(yaw-relative.x*SENSITIVITY,-PI,PI)
  pitch=clampf(pitch-relative.y*SENSITIVITY,-PITCH_LIMIT,PITCH_LIMIT)
 func movement_direction(input: Vector2) -> Vector3:
@@ -27,8 +55,12 @@ func facing() -> Vector3:
  return -Basis(Vector3.UP,yaw).z
 func update(delta: float) -> void:
  if player == null: return
+ sync_free_look_input()
+ if free_look_held:constrain_free_look()
+ else:free_look_offset=move_toward(free_look_offset,0,FREE_LOOK_RETURN_SPEED*maxf(delta,0))
  global_position = player.global_position+Vector3(0,1.45,0)
- basis = Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,pitch)
+ var aim_basis:=Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,pitch)
+ basis = Basis(Vector3.UP,yaw+free_look_offset)*Basis(Vector3.RIGHT,pitch)
  boom_query.transform=Transform3D(Basis.IDENTITY,global_position)
  boom_query.motion=global_basis*BOOM_OFFSET
  var fractions:=get_world_3d().direct_space_state.cast_motion(boom_query)
@@ -39,10 +71,17 @@ func update(delta: float) -> void:
  else:actual_distance=lerpf(actual_distance,safe,1-exp(-maxf(0,delta)*10))
  camera.position=BOOM_OFFSET*(actual_distance/DISTANCE)
  camera.rotation = Vector3.ZERO
+ if is_zero_approx(free_look_offset):aim_camera.global_transform=camera.global_transform
+ else:
+  # The original aim boom also respects walls when it differs from the view.
+  # Only free look needs this extra sphere cast.
+  boom_query.motion=aim_basis*BOOM_OFFSET
+  var aim_fractions:=get_world_3d().direct_space_state.cast_motion(boom_query)
+  aim_camera.global_transform=Transform3D(aim_basis,global_position+aim_basis*BOOM_OFFSET*aim_fractions[0])
 func target(max_distance: float = 100.0) -> Dictionary:
  var center := get_viewport().get_visible_rect().size/2
- var from := camera.project_ray_origin(center)
- var direction := camera.project_ray_normal(center)
+ var from := aim_camera.project_ray_origin(center)
+ var direction := aim_camera.project_ray_normal(center)
  var query := PhysicsRayQueryParameters3D.create(from,from+direction*max_distance,25,[player.get_rid()])
  query.collide_with_areas=true
  return get_world_3d().direct_space_state.intersect_ray(query)
@@ -60,8 +99,8 @@ func action_sample(interaction:bool=false) -> Dictionary:
   for sector in count:
    var offset:=Vector2.ZERO if ring==0 else Vector2.from_angle(sector*TAU/count)*radius*ring/2.0
    var pixel:=center+offset
-   var from:=camera.project_ray_origin(pixel)
-   var ray:=PhysicsRayQueryParameters3D.create(from,from+camera.project_ray_normal(pixel)*100.0,25,[player.get_rid()])
+   var from:=aim_camera.project_ray_origin(pixel)
+   var ray:=PhysicsRayQueryParameters3D.create(from,from+aim_camera.project_ray_normal(pixel)*100.0,25,[player.get_rid()])
    ray.collide_with_areas=true
    var hit:=get_world_3d().direct_space_state.intersect_ray(ray)
    if hit.is_empty():continue
@@ -85,6 +124,6 @@ func aim_sample() -> Dictionary:
  # Do not raycast twice at click time or use a parallel ray from the player.
  var result:=target()
  var center:=get_viewport().get_visible_rect().size/2
- var point:Vector3=result.position if not result.is_empty() else camera.project_ray_origin(center)+camera.project_ray_normal(center)*100.0
+ var point:Vector3=result.position if not result.is_empty() else aim_camera.project_ray_origin(center)+aim_camera.project_ray_normal(center)*100.0
  return {"hit":result,"point":point}
 func aim_point() -> Vector3:return aim_sample().point

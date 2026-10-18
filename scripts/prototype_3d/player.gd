@@ -53,6 +53,7 @@ static func attack_speed_scale(elapsed:float,attack_family:StringName) -> float:
  return lerpf(1.0,.5,effort)
 
 func reset_motion_state() -> void:
+ if game.camera_rig!=null:game.camera_rig.reset_free_look()
  locomotion.reset();velocity=Vector3.ZERO;visual_motion=0
  movement_response=preload("res://scripts/prototype_3d/movement_response.gd").new()
  facing_history=preload("res://scripts/prototype_3d/facing_delay.gd").new()

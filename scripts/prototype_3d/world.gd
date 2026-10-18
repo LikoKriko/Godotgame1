@@ -116,7 +116,7 @@ func build_environment() -> void:
 func build_ui() -> void:
  var layer := CanvasLayer.new(); add_child(layer)
  var root := Control.new(); root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); root.mouse_filter = Control.MOUSE_FILTER_IGNORE; layer.add_child(root)
- var aim:=preload("res://scripts/prototype_3d/reticle.gd").new();aim.name="Reticle";root.add_child(aim)
+ var aim:=preload("res://scripts/prototype_3d/reticle.gd").new();aim.name="Reticle";aim.game=self;root.add_child(aim)
  status = Label.new();status.hide();status.text="";root.add_child(status)
  hud=preload("res://scripts/prototype_3d/hud.gd").new();root.add_child(hud);hud.configure(self)
  pause_panel = CenterContainer.new(); pause_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); root.add_child(pause_panel); pause_panel.hide()

@@ -16,6 +16,12 @@ El menú inicial permite iniciar una partida, continuar, configurar y salir.
 | Campo de visión | 75° |
 | Inclinación de cámara | −90° a +90° |
 
+Mantener ALT permite observar a los lados sin cambiar la dirección de movimiento
+ni la de apuntado. El límite horizontal sigue la dirección real de la cabeza
+animada. Al soltar ALT, la vista vuelve al apuntado a 45°/s (90° en 2 s, 45°
+en 1 s), conservando la protección de cámara contra paredes. El punto de mira
+se oculta mientras la vista está desviada y reaparece al completar el retorno.
+
 El personaje puede caminar, correr, agacharse, deslizarse, saltar, recoger,
 equipar objetos, comer, beber, bloquear y usar armas. La cámara evita atravesar
 paredes y copas. El modelo tiene un esqueleto de 24 huesos, con controles de
@@ -31,6 +37,7 @@ inversa de padre dentro del mismo fotograma; no reduce la frecuencia de animaci�
 | --- | --- |
 | WASD | Movimiento relativo a la cámara |
 | Ratón | Mirar y apuntar |
+| ALT + ratón horizontal | Mirada lateral hasta ±90° respecto a la cabeza; retorno al soltar |
 | Shift | Correr |
 | Ctrl | Agacharse; al correr, deslizarse |
 | Espacio | Saltar |
