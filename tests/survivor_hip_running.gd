@@ -26,8 +26,8 @@ func run():
   if skin.get_bind_bone(bind)==native.binding.names["smartrig_Hips"]:hip_bind=bind
  var samples:Array[int]=[]
  for index in source[Mesh.ARRAY_VERTEX].size():
-  var height:float=(native.frame*source[Mesh.ARRAY_VERTEX][index]).y
-  if height>30 and height<36:samples.append(index)
+  var rest_point:Vector3=native.frame*source[Mesh.ARRAY_VERTEX][index]
+  if rest_point.y>34.5 and rest_point.y<36 or rest_point.y>31.5 and rest_point.y<36 and rest_point.z<1.2:samples.append(index)
  require(samples.size()>100,"Skin regression measures the actual visible pelvis")
  var displaced:=0;var worst_error:=0.0
  for family in [&"",&"sword",&"axe",&"pickaxe"]:

@@ -137,7 +137,7 @@ func run():
  var hip_vertices:Array[int]=[]
  for index in surfaces[0][Mesh.ARRAY_VERTEX].size():
   var point:Vector3=native.frame*surfaces[0][Mesh.ARRAY_VERTEX][index]
-  if point.y>26 and point.y<34:hip_vertices.append(index)
+  if point.y>33 and point.y<36:hip_vertices.append(index)
  require(hip_vertices.size()>100,"Lateral contour check samples the visible hip and upper shorts")
  for state in [&"walk",&"run"]:
   for direction in [Vector3.LEFT,Vector3.RIGHT]:

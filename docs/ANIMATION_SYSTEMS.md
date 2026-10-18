@@ -183,7 +183,12 @@ nominal de cada dirección. La muñeca añade solo 0,025 rad de giro. Las manos
 ocupadas mantienen sus agarres y la carrera mantiene su gesto propio.
 La piel visible de la pelvis conserva el 40 % de su deformación anterior
 respecto al hueso de cadera. `hip_skin.gd` mezcla el 60 % restante hacia ese
-hueso entre alturas 30–36, con transición suave de 24–30 y 36–40 unidades.
+hueso en la cintura (34,5–36) y la zona posterior de glúteos (31,5–36).
+La cintura entra suavemente entre 32,7–34,5; el apoyo posterior entre
+27,5–31,5 y se desvanece hacia el frente entre z=1,2–3,4. Ambos terminan
+suavemente entre alturas 36–40. Usa transiciones C2. El cuádriceps frontal
+por debajo de la articulación de cadera conserva sus pesos originales de muslo;
+no se fija a la pelvis ni recibe una segunda flexión en mitad del músculo.
 La malla GPU se prepara una sola vez y se comparte: no se recalculan vértices
 durante el juego. Conserva los vértices de reposo, UV, materiales, morfos de
 rodilla y ligaduras originales de las fuentes; solo la copia de pesos de la
