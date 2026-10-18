@@ -26,6 +26,16 @@ procede de ambas fuentes. No superponer dos cuellos ni dejar una cabeza rígida
 separada del cuerpo. La referencia completa mide 64 unidades de autoría y se
 convierte a 1,75 m; consultar `author_bounds()` para encuadrar o escalar instancias.
 
+La parte posterior de cada rodilla conserva volumen mediante los correctivos
+`KneeFoldRight` y `KneeFoldLeft`, evaluados en GPU antes de la ligadura.
+Se limitan a la piel posterior en un radio longitudinal de 0,13 m, con
+un desplazamiento máximo de autoría de 0,08 m y caída cosenoidal suave.
+El peso por pierna es `sin(flexión/2)^2`, atenuado de forma continua entre
+115° y 145° para respetar el contacto muslo/pantorrilla al arrodillarse.
+Se calcula desde la flexión real en todas las acciones, sin cambiar la pose
+de reposo, huesos, pesos originales, UV ni geometría de cabeza y cuello.
+Las instancias comparten la malla; sus dos pesos correctivos son independientes.
+
 Las fuentes originales y `approved_head_source.glb` están en
 `entregables/personajes/personaje1/source/`, excluidas de importación automática.
 La instantánea de cabeza conserva la aprobación anterior y permite regenerar

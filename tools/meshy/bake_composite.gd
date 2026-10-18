@@ -40,6 +40,8 @@ func run():
   if not buckets.has(cell):buckets[cell]=[]
   buckets[cell].append(i)
  var rebuilt:=ArrayMesh.new();var matched:=0
+ rebuilt.blend_shape_mode=node.mesh.blend_shape_mode
+ for shape in node.mesh.get_blend_shape_count():rebuilt.add_blend_shape(node.mesh.get_blend_shape_name(shape))
  for surface in node.mesh.get_surface_count():
   var arrays:Array=node.mesh.surface_get_arrays(surface)
   if surface==1:
@@ -59,7 +61,13 @@ func run():
     matched+=1;colors[i]=approved[Mesh.ARRAY_COLOR][best];arrays[Mesh.ARRAY_NORMAL][i]=approved[Mesh.ARRAY_NORMAL][best]
     for slot in 4:arrays[Mesh.ARRAY_TANGENT][i*4+slot]=approved[Mesh.ARRAY_TANGENT][best*4+slot]
    arrays[Mesh.ARRAY_COLOR]=colors
-  rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays,[],{},node.mesh.surface_get_format(surface))
+  var shapes:Array=node.mesh.surface_get_blend_shape_arrays(surface)
+  if surface==1:
+   # Both knee morphs leave the approved face and its shading unchanged.
+   for shape:Array in shapes:
+    shape[Mesh.ARRAY_NORMAL]=arrays[Mesh.ARRAY_NORMAL].duplicate()
+    shape[Mesh.ARRAY_TANGENT]=arrays[Mesh.ARRAY_TANGENT].duplicate()
+  rebuilt.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays,shapes,{},node.mesh.surface_get_format(surface))
   rebuilt.surface_set_material(surface,node.mesh.surface_get_material(surface))
  node.mesh=rebuilt
  print("Approved head corners restored: ",matched)
@@ -79,7 +87,7 @@ func run():
  var file:=FileAccess.open(DEST+"rig.json",FileAccess.WRITE);file.store_string(JSON.stringify(records,"  ")+"\n");file.close()
  var parts:=[]
  for surface in node.mesh.get_surface_count():parts.append({"vertices":node.mesh.surface_get_array_len(surface),"triangles":node.mesh.surface_get_array_index_len(surface)/3})
- var manifest:Dictionary={"source_fbx":"entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx","fbx_sha256":FileAccess.get_sha256("res://entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx"),"url":"https://github.com/LikoKriko/Godotgame1/releases/download/Personaje1_Renewed_3d/psnj1_3d_rigged.fbx","head_source":"entregables/personajes/personaje1/source/approved_head_source.glb","head_sha256":FileAccess.get_sha256("res://entregables/personajes/personaje1/source/approved_head_source.glb"),"head_source_commit":"7c93acb","scene":"model.scn","game_height_m":1.75,"author_height":64,"native_height_m":height,"original_bones":66,"profile":"res://data/animation/characters/survivor_native.tres","rig_method":"Original T-pose hierarchy, rest axes and inverse binds; original body skin; approved head bound to native Neck/Head","head_material":"face_materials_v1","body_albedo_sha256":FileAccess.get_sha256(DEST+"body_albedo.png"),"surfaces":parts,"neck":{"body_cut_m":52.5*1.7/64,"head_cut_m":54*1.7/64,"method":"Conforming angular zipper; shared boundary skin; source color gradient","boundary_vertices":[91,64]},"ground_profile":"ground_supports.tres"}
+ var manifest:Dictionary={"source_fbx":"entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx","fbx_sha256":FileAccess.get_sha256("res://entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx"),"url":"https://github.com/LikoKriko/Godotgame1/releases/download/Personaje1_Renewed_3d/psnj1_3d_rigged.fbx","head_source":"entregables/personajes/personaje1/source/approved_head_source.glb","head_sha256":FileAccess.get_sha256("res://entregables/personajes/personaje1/source/approved_head_source.glb"),"head_source_commit":"7c93acb","scene":"model.scn","game_height_m":1.75,"author_height":64,"native_height_m":height,"original_bones":66,"profile":"res://data/animation/characters/survivor_native.tres","rig_method":"Original T-pose hierarchy, rest axes and inverse binds; original body skin; approved head bound to native Neck/Head","head_material":"face_materials_v1","body_albedo_sha256":FileAccess.get_sha256(DEST+"body_albedo.png"),"surfaces":parts,"neck":{"body_cut_m":52.5*1.7/64,"head_cut_m":54*1.7/64,"method":"Conforming angular zipper; shared boundary skin; source color gradient","boundary_vertices":[91,64]},"ground_profile":"ground_supports.tres","knee_correctives":{"shapes":["KneeFoldRight","KneeFoldLeft"],"posterior_offset_m":0.08,"radius_m":0.13,"activation":"sin(flexion/2)^2; smooth fade at 115-145 degrees"}}
  file=FileAccess.open(DEST+"source.json",FileAccess.WRITE);file.store_string(JSON.stringify(manifest,"  ")+"\n");file.close()
  print("Native rig ",skeleton.get_bone_count()," bones; parts ",parts)
  model.free();reference.free();approved_model.free();quit()

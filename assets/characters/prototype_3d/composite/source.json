@@ -8,6 +8,15 @@
   "head_sha256": "dd3d3deb77ddb6c48b5397fa9db7cb9c6d01f36fc4e177c80df2093314256211",
   "head_source": "entregables/personajes/personaje1/source/approved_head_source.glb",
   "head_source_commit": "7c93acb",
+  "knee_correctives": {
+    "activation": "sin(flexion/2)^2; smooth fade at 115-145 degrees",
+    "posterior_offset_m": 0.08,
+    "radius_m": 0.13,
+    "shapes": [
+      "KneeFoldRight",
+      "KneeFoldLeft"
+    ]
+  },
   "native_height_m": 1.72656273841858,
   "neck": {
     "body_cut_m": 1.39453125,

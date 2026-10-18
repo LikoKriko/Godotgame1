@@ -22,6 +22,7 @@ var local_globals:Array[Transform3D]=[]
 var parents:Array[int]=[]
 var arms:Array[Dictionary]=[]
 var legs:Array[Dictionary]=[]
+var knee_shapes:Array[int]=[]
 var driven:Dictionary={}
 var spine:Array[int]=[]
 var grip=preload("res://scripts/animation/characters/native_hand_grip.gd").new()
@@ -47,6 +48,8 @@ func configure(actor:Node3D,model:Node3D) -> void:
  for name in ["Hips","Spine","Spine1","Spine2","Neck","Head"]:driven[binding.names["smartrig_"+name]]=true
  for side in 2:
   var label:="Right" if side==0 else "Left"
+  knee_shapes.append(mesh.find_blend_shape_by_name("KneeFold"+label))
+  assert(knee_shapes[-1]>=0,"Native skin requires its posterior knee corrective")
   var arm:Array[int]=[];var leg:Array[int]=[]
   for part in ["Shoulder","Arm","ForeArm","Hand"]:arm.append(binding.names["smartrig_"+label+part])
   for part in ["UpLeg","Leg","Foot"]:leg.append(binding.names["smartrig_"+label+part])
@@ -165,6 +168,13 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
   if gait:untwisted_chain(ids,0,solved,pelvis.basis)
   else:orient_chain(ids,0,solved,chain.axes)
   posed[ids[2]]=Transform3D(foot_rotation*rest[ids[2]].basis,solved.end)
+  var upper:Vector3=solved.joint-solved.root;var lower_leg:Vector3=solved.end-solved.joint
+  # Continuous anatomical response, shared by every action and direction.
+  var cosine:float=clampf(upper.normalized().dot(lower_leg.normalized()),-1,1)
+  # At deep kneeling flexion the calf already meets the thigh; taper the
+  # support instead of pushing that contact into the floor.
+  var fold:float=.5*(1-cosine)*(1-smoothstep(deg_to_rad(115),deg_to_rad(145),acos(cosine)))
+  mesh.set_blend_shape_value(knee_shapes[side],fold)
  # Native fingers, toes and end bones inherit their actual native parents.
  for i in posed.size():
   if driven.has(i):continue

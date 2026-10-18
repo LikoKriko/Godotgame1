@@ -131,6 +131,22 @@ body.data.normals_split_custom_set(custom)
 # Export vertex masks and neck colors in separate named attributes. Godot selects
 # the appropriate attribute per material when importing the derived geometry.
 body.data.color_attributes.active_color=body.data.color_attributes.get('SurfaceMask')or body.data.color_attributes[0]
+# Pose-space posterior knee support. Rest geometry and original skin stay intact;
+# two independent morphs restore the small fold lost by linear skinning in flexion.
+body.shape_key_add(name='Basis')
+for side in ['Right','Left']:
+ key=body.shape_key_add(name='KneeFold'+side)
+ knee=body.matrix_world.inverted()@rig.matrix_world@rig.data.bones['smartrig:'+side+'Leg'].head_local
+ groups={body.vertex_groups['smartrig:'+side+part].index for part in ['UpLeg','Leg']}
+ affected=0
+ for vertex in body.data.vertices:
+  point=vertex.co;distance=abs(point.z-knee.z)/.13
+  if distance>=1 or sum(g.weight for g in vertex.groups if g.group in groups)<.8:continue
+  back=max(0,min(1,(point.y-knee.y+.005)/.045))
+  back=back*back*(3-2*back)
+  offset=.08*back*(.5+.5*math.cos(math.pi*distance))
+  if offset>1e-7:key.data[vertex.index].co.y+=offset;affected+=1
+ print('Posterior knee corrective',side,affected)
 assert [b.name for b in rig.data.bones]==original_bones
 for polygon in body.data.polygons:polygon.use_smooth=True
 bpy.ops.object.select_all(action='DESELECT');body.select_set(True);rig.select_set(True)

@@ -1,27 +1,46 @@
 extends SceneTree
 ## The actual visible 66-bone composite, including both neck seams and native skin.
 var failures:=0;var checks:=0
+var morphs:Array=[]
+var skin_node:MeshInstance3D
 func require(value:bool,message:String):
  checks+=1
  if not value:
   failures+=1
   if failures<18:push_error(message)
 func _initialize():call_deferred("run")
-func deform(arrays:Array,index:int,matrices:Array[Transform3D]) -> Vector3:
+func deform(arrays:Array,index:int,matrices:Array[Transform3D],surface:int=0) -> Vector3:
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var ids:PackedInt32Array=arrays[Mesh.ARRAY_BONES];var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
  var slots:int=ids.size()/vertices.size();var point:=Vector3.ZERO
+ var vertex:Vector3=vertices[index]
+ for shape in morphs[surface].size():vertex+=(morphs[surface][shape][Mesh.ARRAY_VERTEX][index]-vertices[index])*skin_node.get_blend_shape_value(shape)
  for slot in slots:
-  if weights[index*slots+slot]>0:point+=(matrices[ids[index*slots+slot]]*vertices[index])*weights[index*slots+slot]
+  if weights[index*slots+slot]>0:point+=(matrices[ids[index*slots+slot]]*vertex)*weights[index*slots+slot]
  return point
 func run():
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor)
  var native=actor.native;var mesh:Mesh=actor.mesh_node.mesh;var skin:Skin=actor.mesh_node.skin
+ skin_node=actor.mesh_node
+ for surface in mesh.get_surface_count():morphs.append(mesh.surface_get_blend_shape_arrays(surface))
  require(native.skeleton.get_bone_count()==66,"The original 66-bone rig skins the visible character")
  require(mesh!=actor.AXILLA_SKIN and mesh.get_surface_count()==3,"One new skinned mesh contains body, approved head and connected neck")
  require(absf(actor.author_bounds().size.y-64)<.002,"Composite retains the common 1.75 m authoring scale")
  require(native.binding.errors.is_empty(),"Native rig resolves through the shared humanoid profile")
  var surfaces:Array=[]
  for s in mesh.get_surface_count():surfaces.append(mesh.surface_get_arrays(s))
+ require(mesh.get_blend_shape_count()==2,"Each knee has an independent corrective")
+ for surface in 3:
+  for side in 2:
+   var changed:=0
+   var knee:Vector3=native.inverse_frame*native.rest[native.legs[side].ids[1]].origin
+   for vertex in surfaces[surface][Mesh.ARRAY_VERTEX].size():
+    var base:Vector3=surfaces[surface][Mesh.ARRAY_VERTEX][vertex]
+    var offset:Vector3=morphs[surface][side][Mesh.ARRAY_VERTEX][vertex]-base
+    if offset.length()<.000001:continue
+    changed+=1
+    require(surface==0 and absf(base.y-knee.y)<.131 and base.z<knee.z+.006,"Corrective stays at the back of its own knee")
+    require(absf(offset.x)<.000001 and absf(offset.y)<.000001 and offset.z<0 and offset.length()<.081,"Corrective fills the fold without moving the knee joint")
+   require(changed>100 if surface==0 else changed==0,"Head and neck remain unchanged by both knee morphs")
  # Every bridge vertex is also present on the adjacent body or head boundary.
  var pairs:Array=[];var bridge:Array=surfaces[2]
  for i in bridge[Mesh.ARRAY_VERTEX].size():
@@ -51,7 +70,7 @@ func run():
    var matrices:Array[Transform3D]=[]
    for bind in skin.get_bind_count():matrices.append(native.frame*native.skeleton.get_bone_global_pose(skin.get_bind_bone(bind))*skin.get_bind_pose(bind))
    for pair in pairs:
-    var error:=deform(bridge,pair[0],matrices).distance_to(deform(surfaces[pair[1]],pair[2],matrices));worst_seam=maxf(worst_seam,error)
+    var error:=deform(bridge,pair[0],matrices,2).distance_to(deform(surfaces[pair[1]],pair[2],matrices,pair[1]));worst_seam=maxf(worst_seam,error)
     require(error<.01,"Neck remains closed throughout animation")
    for bone in native.posed.size():
     var parent:int=native.parents[bone]
@@ -59,19 +78,37 @@ func run():
     var error:float=absf(native.posed[bone].origin.distance_to(native.posed[parent].origin)-native.rest[bone].origin.distance_to(native.rest[parent].origin));worst_bone=maxf(worst_bone,error)
     require(error<.0001,"Native bone lengths remain fixed")
    var floor_value:=INF
-   for arrays:Array in surfaces:
+   for surface in surfaces.size():
+    var arrays:Array=surfaces[surface]
     for vertex in range(0,arrays[Mesh.ARRAY_VERTEX].size(),5):
-     var point:=deform(arrays,vertex,matrices);require(point.is_finite(),"Visible skin remains finite")
+     var point:=deform(arrays,vertex,matrices,surface);require(point.is_finite(),"Visible skin remains finite")
      floor_value=minf(floor_value,point.y)
    worst_floor=minf(worst_floor,floor_value)
    require(floor_value>-.10,"Native skin clears floor: %s %.2f %.6f"%[state,phase,floor_value])
+ # Measure the bent, rendered skin: the posterior contour gains volume instead
+ # of merely moving a bone or changing a number on the animation controller.
+ for side in 2:
+  actor.animate(&"run",.75 if side==0 else .25,false,0,.75 if side==0 else .25,Vector3.BACK)
+  native.skeleton.force_update_all_bone_transforms()
+  var matrices:Array[Transform3D]=[]
+  for bind in skin.get_bind_count():matrices.append(native.frame*native.skeleton.get_bone_global_pose(skin.get_bind_bone(bind))*skin.get_bind_pose(bind))
+  var value:float=skin_node.get_blend_shape_value(side)
+  require(value>.35,"The flexed running knee receives posterior support")
+  var gain:=0.0;var count:=0;var knee:Vector3=native.posed[native.legs[side].ids[1]].origin
+  for vertex in surfaces[0][Mesh.ARRAY_VERTEX].size():
+   if (morphs[0][side][Mesh.ARRAY_VERTEX][vertex]-surfaces[0][Mesh.ARRAY_VERTEX][vertex]).z>-.025:continue
+   skin_node.set_blend_shape_value(side,0)
+   var before:=deform(surfaces[0],vertex,matrices).distance_to(knee)
+   skin_node.set_blend_shape_value(side,value)
+   gain+=deform(surfaces[0],vertex,matrices).distance_to(knee)-before;count+=1
+  require(count>20 and gain/count>.2,"Visible posterior knee contour retains volume in flexion")
  # Explicit skull turns exercise the new head/neck weights independently of gait.
  for yaw in [-.7,.7]:
   actor.animate(&"idle",0,false);actor.rig.posed[3].basis=Basis(Vector3.UP,yaw);native.sync(actor.rig,actor.last_pose)
   native.skeleton.force_update_all_bone_transforms()
   var matrices:Array[Transform3D]=[]
   for bind in skin.get_bind_count():matrices.append(native.frame*native.skeleton.get_bone_global_pose(skin.get_bind_bone(bind))*skin.get_bind_pose(bind))
-  for pair in pairs:require(deform(bridge,pair[0],matrices).distance_to(deform(surfaces[pair[1]],pair[2],matrices))<.01,"Head turns keep both neck contours closed")
+  for pair in pairs:require(deform(bridge,pair[0],matrices,2).distance_to(deform(surfaces[pair[1]],pair[2],matrices,pair[1]))<.01,"Head turns keep both neck contours closed")
  for family in [&"axe",&"pickaxe",&"sword",&"bow",&"bottle"]:
   actor.family_override=family
   for phase in [.25,.5,.75]:
