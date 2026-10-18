@@ -12,15 +12,16 @@ func run():
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor)
  var mesh:Mesh=actor.mesh_node.mesh
  var arrays:Array=mesh.surface_get_arrays(0)
+ var source_arrays:Array=actor.IMPORTED_SKIN.surface_get_arrays(0)
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
  var bones:PackedInt32Array=arrays[Mesh.ARRAY_BONES]
  var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
  var hashes:=PackedStringArray()
  for i in arrays.size():
   if i in [Mesh.ARRAY_BONES,Mesh.ARRAY_WEIGHTS]:continue
-  var hash:=HashingContext.new();hash.start(HashingContext.HASH_SHA256);hash.update(var_to_bytes(arrays[i]));hashes.append(hash.finish().hex_encode())
+  var hash:=HashingContext.new();hash.start(HashingContext.HASH_SHA256);hash.update(var_to_bytes(source_arrays[i]));hashes.append(hash.finish().hex_encode())
  require("|".join(hashes).sha256_text()==JSON.parse_string(FileAccess.get_file_as_string("res://assets/characters/prototype_3d/meshy/source.json")).runtime_geometry_sha256,"All published source geometry, normals, tangents, UVs and topology remain byte-identical")
- require(preload("res://scripts/prototype_3d/human_skin_weights.gd").correct(arrays.duplicate(true))==0,"The baked torso correction is stable when applied again")
+ require(preload("res://scripts/prototype_3d/human_skin_weights.gd").correct(source_arrays.duplicate(true))==0,"The baked torso correction is stable when applied again")
  var seeds:Array=JSON.parse_string(FileAccess.get_file_as_string("res://assets/characters/prototype_3d/meshy/rig_seeds.json"))
  for i in 16:
   var point:Array=seeds[i].a
@@ -94,7 +95,7 @@ func run():
     if state==&"death":
      require(not actor.axe.visible,"Death releases the axe visual and its grasp constraint")
      for prop in actor.held_props.values():require(not prop.visible,"Death hides the carried prop while the hands settle")
- require(actor.mesh_node.mesh==mesh and mesh==load("res://assets/characters/prototype_3d/meshy/survivor_skin.res"),"Every action reuses the published original Meshy resource")
+ require(actor.mesh_node.mesh==mesh and mesh==actor.AXILLA_SKIN,"Every action shares the derived axillary surface")
  actor.family_override=&"";actor.aim_contact=Vector3(4,3,20);actor.animate(&"pickup",.5,false)
  require(actor.rig.posed[9].origin.distance_to(actor.aim_contact)<.03,"Wrist rotation clears the fingers without moving the E contact")
  actor.free();print("%s: %d Meshy bind, visible skin support, pickup wrist and death equipment checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

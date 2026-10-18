@@ -8,13 +8,14 @@ están en `assets/`; los originales se organizan en `entregables/`.
 
 | Modelo | Altura en partida | Triángulos | Esqueleto |
 | --- | --- | --- | --- |
-| Superviviente Rugged Castaway | 1,75 m | 31182 | 24 huesos, con controles de ropa y volumen articular |
+| Superviviente Rugged Castaway | 1,75 m | 32569 | 24 huesos, con controles de ropa y volumen articular |
 | Enemigo1 Mossclaw Boar | 0,875 m | 4036, sin apertura facial | 25 huesos originales SmartRigArmature |
 | Enemigo3 Sunny Sprout | 0,9 m | 13582 | 35 huesos originales |
 
 El superviviente usa `Meshy_AI_Rugged_Castaway_1017215425_texture.fbx`, de
 `modelo_personaje3d/personaje1.zip`. El recurso nativo es
-`assets/characters/prototype_3d/meshy/survivor_skin.res`.
+`assets/characters/prototype_3d/meshy/survivor_skin.res`; el runtime muestra
+la derivación local `survivor_axilla.res` descrita al final de esta página.
 
 Enemigo1 usa `Meshy_AI_Character_output.glb`, de la Release `modelo1_rig`.
 Su fuente está en `entregables/enemigos/enemigo1/source/`. La escena nativa,
@@ -85,3 +86,9 @@ y `bake_motion.gd` en `tools/enemy1/`; la superficie optimizada se deriva con
 `optimize_surface.py` y `bake_surface.gd`, sin regenerar las animaciones.
 La armadura se prepara con `prepare_wearables.gd`.
 Usar las fuentes y manifiestos vigentes al regenerar recursos.
+
+El superviviente muestra `meshy/survivor_axilla.res`, una derivación local de
+`survivor_skin.res` con soporte adicional del pliegue axilar y transición suave
+de pesos. El recurso fuente conserva su geometría y UV; el manifiesto distingue
+la superficie de ejecución. Al actualizar el modelo, regenerar el soporte y
+los apoyos según [ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md).

@@ -26,7 +26,7 @@ func run():
  require(knee.body.basis.y.dot(Vector3.UP)>.97,"Knees support the body before it reclines")
  for leg in knee.legs:require(leg.joint.y>1 and leg.joint.y<3.0,"Both knees reach their visible support phase")
  var final=Human.sample(&"",&"death",1)
- require(final.body.basis.z.dot(Vector3.UP)>.99,"Final body lies on its back")
+ require(final.body.basis.z.dot(Vector3.DOWN)>.99,"Final body lies face down")
  for side in 2:
   var hand:Vector3=final.hands[side]
   var hip:Vector3=final.hips[side]

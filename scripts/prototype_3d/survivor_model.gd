@@ -1,12 +1,15 @@
 extends Node3D
 ## Original Meshy survivor supplied by the user; shared mesh, independent rig.
 const IMPORTED_SKIN=preload("res://assets/characters/prototype_3d/meshy/survivor_skin.res")
+const AXILLA_SKIN=preload("res://assets/characters/prototype_3d/meshy/survivor_axilla.res")
 const Pose=preload("res://scripts/continuous_body_pose.gd")
 const Clips=preload("res://scripts/prototype_3d/survivor_animation.gd")
 const Anatomy=preload("res://scripts/prototype_3d/survivor_anatomy.gd")
 const Aim=preload("res://scripts/prototype_3d/tool_aim.gd")
 const Profiles=preload("res://scripts/prototype_3d/held_profiles.gd")
 const GRIP_HEIGHT:=4.0
+var ground=preload("res://scripts/animation/characters/skin_ground.gd").new()
+var ground_enabled:=true
 var mesh_node:MeshInstance3D
 var body_material:Material
 var last_pose:Dictionary={}
@@ -41,9 +44,10 @@ func begin_equipment_transition() -> void:
  equipment_from={"body":displayed_pose.body,"pelvis":displayed_pose.get("pelvis",displayed_pose.body),"hands":[rig.posed[6].origin,rig.posed[9].origin],"poles":[rig.posed[5].origin-rig.posed[4].origin,rig.posed[8].origin-rig.posed[7].origin],"palms":[rig.posed[6].basis.orthonormalized(),rig.posed[9].basis.orthonormalized()],"forearms":[rig.posed[5].basis.orthonormalized(),rig.posed[8].basis.orthonormalized()],"axes":[rig.posed[4].origin.direction_to(rig.posed[6].origin),rig.posed[7].origin.direction_to(rig.posed[9].origin)]}
 func _ready() -> void:
  mesh_node=MeshInstance3D.new();add_child(mesh_node)
- mesh_node.mesh=IMPORTED_SKIN
- body_material=IMPORTED_SKIN.surface_get_material(0)
+ mesh_node.mesh=AXILLA_SKIN
+ body_material=AXILLA_SKIN.surface_get_material(0)
  rig.initialize_imported(self,mesh_node)
+ ground.configure(AXILLA_SKIN,rig.rest)
  axe = preload("res://scripts/prototype_3d/stone_axe.gd").new(); add_child(axe)
  for socket in [grip_socket,support_socket,tip_socket]: add_child(socket)
  grip_socket.name="ObjectGrip";support_socket.name="SupportHand";tip_socket.name="ObjectTip"
@@ -79,7 +83,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   death_from.low_start=(death_from.pelvis*Vector3(0,Anatomy.HIP.y,0)).y<15.6
  if state!=&"death":death_from.clear()
  if not equipping:equipment_from.clear()
- var death_phase:=lerpf(.72,1,phase) if state==&"death" and death_from.get("low_start",false) and delta>0 else phase
+ var death_phase:=lerpf(.40,1,phase) if state==&"death" and death_from.get("low_start",false) and delta>0 else phase
  var target := Clips.sample(item,state,death_phase,movement_phase,movement,aim_contact,slide_launch_pose,action_crouch,punch_side)
  if state in [&"run",&"start_run",&"stop_run"] and sprint_weight>=0:
   var walking:=Clips.sample(item,&"walk",movement_phase,movement_phase,movement)
@@ -189,6 +193,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   support_socket.position=hands[1-last_pose.active]
   tip_socket.position=tool_tip
  rig.apply(last_pose,hands,delta)
+ if state==&"death" and ground_enabled:ground_clearance(smoothstep(0,.025,phase) if delta>0 else 1.0)
  leaf_armor.transform=last_pose.body
  leaf_armor.update_pose(rig,last_pose.body)
  parry_pulse.update_hands([rig.posed[6].origin,rig.posed[9].origin])
@@ -212,3 +217,14 @@ func can_reach_contact(point: Vector3,family:StringName=&"axe") -> bool:
 func wear(item:Dictionary) -> void:leaf_armor.visible=item.get("id")==&"burdock_armor"
 func confirm_parry() -> void:
  parry_pulse.play()
+
+func ground_clearance(weight:float=1.0) -> void:
+ var lift:float=ground.correction(rig.posed)*weight
+ if lift<=0:return
+ var shift:=Vector3.UP*lift
+ last_pose.body.origin+=shift;last_pose.pelvis.origin+=shift;last_pose.grip+=shift
+ for side in 2:
+  last_pose.hips[side]+=shift;last_pose.shoulders[side]+=shift;last_pose.hands[side]+=shift
+  for field in ["root","joint","end"]:last_pose.legs[side][field]+=shift
+ for bone in rig.posed.size():rig.posed[bone].origin+=shift
+ rig.pose_writer.apply(rig.skeleton,rig.posed)

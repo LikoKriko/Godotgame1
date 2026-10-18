@@ -7,12 +7,13 @@ const Profiles = preload("res://scripts/prototype_3d/held_profiles.gd")
 const Weapons=preload("res://scripts/prototype_3d/weapon_motion.gd")
 const Fall=preload("res://scripts/prototype_3d/fall_motion.gd")
 const Slide=preload("res://scripts/prototype_3d/slide_pose.gd")
+const Controls=preload("res://scripts/animation/characters/survivor_controls.gd")
 const STRIDE_SCALE:=1.3
 const ARM_SWING_SCALE:=0.9
-const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",&"slide_back_right"]
+const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right"]
 const RUN_HIP_SCALE:=.7
 const FAMILIES: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow",&"bottle",&"food",&"carried"]
-const STATES: Array[StringName] = [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"jump",&"slide_jump",&"equip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk",&"unequip",&"action",&"draw",&"bow_release",&"pickup",&"pickup_walk",&"eat",&"eat_walk",&"drink",&"drink_walk",&"parry",&"hurt",&"death"]
+const STATES: Array[StringName] = [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right",&"jump",&"slide_jump",&"equip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk",&"unequip",&"action",&"draw",&"bow_release",&"pickup",&"pickup_walk",&"eat",&"eat_walk",&"drink",&"drink_walk",&"parry",&"hurt",&"death"]
 
 static func duration(state: StringName,family: StringName = &"") -> float:
  if state==&"death": return 3.0
@@ -99,7 +100,8 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  if family==&"carried":
   for side in 2: pose.hands[side]=body*Vector3(-5 if side==0 else 5,33,10)
   pose.grip=pose.hands[1];pose.shaft=body.basis*Vector3.LEFT
- if not movement.is_zero_approx() and state not in [&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"jump",&"slide_jump",&"death"]:
+ if state in [&"walk",&"run"]:keyed_locomotion(pose,state,phase)
+ if not movement.is_zero_approx() and state not in [&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right",&"jump",&"slide_jump",&"death"]:
   var travel:=Vector3(movement.x,0,movement.z).normalized()
   # Rotate the stance lanes and knee/foot frames together. Keeping the old
   # frontal lanes clips the inward half of a diagonal step into a sideways fan.
@@ -133,7 +135,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   for side in 2:
    var arm:=running_arm(pose,side,movement_phase)
    if not arm.is_empty():pose.hands[side]=arm.end
-  Slide.apply(pose,phase,state!=&"slide",-1.0 if state==&"slide_back_left" else (1.0 if state==&"slide_back_right" else 0.0));body=pose.body
+  Slide.apply(pose,phase,state);body=pose.body
  if family==&"" and state==&"action":
   punch(pose,phase)
  if family==&"axe":
@@ -150,7 +152,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   # The empty arm opens away from the strike as a counterweight. Keep a soft
   # elbow instead of locking the joint, then return smoothly after the effort.
   var free_side:int=1-pose.active
-  var opening:=smoothstep(0,0.28,phase)*(1-smoothstep(0.62,1,phase))
+  var opening:float=Controls.sample(&"sword",phase).effort.z
   var outward:Vector3=Vector3(-0.86 if free_side==0 else 0.86,-0.38,-0.34).normalized()
   var rest_offset:Vector3=body.basis.inverse()*(relaxed_arm(pose,free_side).end-pose.shoulders[free_side])
   var lower_y:=lerpf(rest_offset.y,outward.y*18.3,.3)
@@ -179,7 +181,9 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   pose.hands[1]=pose.hands[1].lerp(contact,reach)
   pose.contact_reachable=pose.shoulders[1].distance_to(contact)>=8.15 and pose.shoulders[1].distance_to(contact)<=Pose.UPPER_ARM+Pose.FOREARM-0.04 and contact.z>=4.8
  clear_soles(pose)
- if state in [&"jump",&"slide_jump"]:jump_arms(pose,phase)
+ if state in [&"jump",&"slide_jump"]:
+  keyed_jump(pose,phase)
+  jump_arms(pose,phase)
  if state==&"slide_jump":
   var launch:Dictionary=slide_launch if not slide_launch.is_empty() else sample(family,&"slide",0.55,movement_phase)
   Slide.jump_from(pose,launch,phase)
@@ -271,6 +275,11 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
   offset.x=-wave*0.32*hip_scale
   pelvis_rotation=Vector3(0,wave*0.035*hip_scale+pose.leg_frame.get_euler().y*0.5,wave*0.012*hip_scale)
   chest_rotation=Vector3(0,-wave*0.025,-wave*0.014)
+  if state in [&"walk",&"run"]:
+   var keyed:=Controls.sample(state,cycle)
+   offset=Vector3.ZERO
+   pelvis_rotation=keyed.pelvis
+   chest_rotation=Vector3.ZERO
  elif state==&"idle":
   var breath:=sin(phase*TAU)
   chest_rotation.x=breath*0.004
@@ -280,8 +289,9 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
   pelvis_rotation.x+=low*0.025
   offset.z-=low*0.45
  if state==&"action" and pose.family!=&"bow":
-  var load:=smoothstep(0,0.28,phase)*(1-smoothstep(0.52,0.9,phase))
-  var drive:=smoothstep(0.28,0.5,phase)*(1-smoothstep(0.62,1,phase))
+  var keyed:Dictionary=Controls.sample(pose.family,phase) if pose.family in Weapons.MELEE else {}
+  var load:float=keyed.effort.x if not keyed.is_empty() else smoothstep(0,0.28,phase)*(1-smoothstep(0.52,0.9,phase))
+  var drive:float=keyed.effort.y if not keyed.is_empty() else smoothstep(0.28,0.5,phase)*(1-smoothstep(0.62,1,phase))
   var sign_side:float=-1 if pose.active==0 else 1
   chest_rotation.y+=sign_side*(load*0.055-drive*0.095)
   pelvis_rotation.y+=sign_side*(load*0.025-drive*0.045)
@@ -343,7 +353,7 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
    var lift:=sin(clampf(phase/0.30,0,1)*PI) if phase<0.30 else sin(clampf((phase-0.74)/0.26,0,1)*PI)
    pose.legs[side].end.y+=lift*1.3*low
   pose.hands[0]=pose.hands[0].lerp(original*Vector3(-10,32,10),reach)
- if state not in [&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_jump",&"death"]:
+ if state not in SLIDE_STATES and state not in [&"slide_jump",&"death"]:
   chest=Transform3D(Basis.from_euler(chest_rotation),pivot+offset-Basis.from_euler(chest_rotation)*pivot)*original
   pelvis=Transform3D(Basis.from_euler(pelvis_rotation),pivot+offset-Basis.from_euler(pelvis_rotation)*pivot)*original
   if state in [&"run",&"start_run",&"stop_run",&"equip_run"]:
@@ -417,7 +427,7 @@ static func running_arm(pose:Dictionary,side:int,gait:float) -> Dictionary:
  # Occupied hands preserve their category grip, including the drawing hand.
  if not arm_is_free(pose,side):return {}
  var body:Transform3D=pose.body
- var swing:=sin((gait+side*0.5)*TAU)*deg_to_rad(18)*ARM_SWING_SCALE
+ var swing:float=Controls.sample(&"run",gait).arms[side]*ARM_SWING_SCALE
  var upper:Vector3=body.basis*(Basis(Vector3.RIGHT,swing)*Vector3(0.24*(-1 if side==0 else 1),-1,0)).normalized()
  var hinge:=body.basis.x-upper*upper.dot(body.basis.x);hinge=hinge.normalized()
  var forearm:=upper.rotated(hinge,-deg_to_rad(105))
@@ -496,12 +506,13 @@ static func punch(pose:Dictionary,t:float) -> void:
 static func jump_arms(pose:Dictionary,t:float) -> void:
  var rest:=sample(pose.family,&"idle",0,0,Vector3.ZERO,pose.get("look_contact",Vector3.INF))
  var change:Transform3D=pose.body*(rest.body as Transform3D).affine_inverse()
- var lift:=smoothstep(0,.52,t)*(1-smoothstep(.58,1,t))
+ var keyed:=Controls.sample(&"jump",t)
+ var lift:float=keyed.arms.z
  for side in 2:
   var arm:=relaxed_arm(rest,side)
   var hand:Vector3=arm.end if not arm.is_empty() else rest.hands[side]
-  pose.hands[side]=change*hand+pose.body.basis*Vector3(0,3.8*lift,1.8*lift)
- pose.grip=change*rest.grip+pose.body.basis*Vector3(0,3.8*lift,1.8*lift)
+  pose.hands[side]=change*hand+pose.body.basis*Vector3(0,keyed.arms.y,keyed.arms.x)
+ pose.grip=change*rest.grip+pose.body.basis*Vector3(0,keyed.arms.y,keyed.arms.x)
  var wrist:=Basis(pose.body.basis.x,-.08*lift)
  pose.tool_basis=wrist*change.basis*rest.get("tool_basis",Aim.frame(rest.shaft))
  pose.shaft=pose.tool_basis.y
@@ -519,3 +530,36 @@ static func mix_motion(a:Dictionary,b:Dictionary,weight:float) -> Dictionary:
   pose.legs[side].end=(a.legs[side].end as Vector3).lerp(b.legs[side].end,t)
   pose.legs[side].pitch=lerpf(a.legs[side].pitch,b.legs[side].pitch,t)
  return pose
+
+static func keyed_locomotion(pose:Dictionary,state:StringName,phase:float) -> void:
+ var keys:=Controls.sample(state,phase)
+ var original:Transform3D=pose.body
+ var basis:=Basis.from_euler(keys.chest)
+ var pivot:=Vector3(0,Anatomy.HIP.y,0)
+ var next:=Transform3D(basis,pivot-basis*pivot+keys.body)
+ var change:=next*original.affine_inverse()
+ pose.body=next;pose.grip=change*pose.grip;pose.shaft=change.basis*pose.shaft
+ for side in 2:
+  pose.shoulders[side]=next*Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,Anatomy.SHOULDER.z)
+  pose.hips[side]=next*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
+  pose.hands[side]=change*pose.hands[side]
+  var foot:Vector3=keys.foot_l if side==0 else keys.foot_r
+  pose.legs[side].end=Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,2.1+foot.y,foot.x/STRIDE_SCALE)
+  pose.legs[side].pitch=foot.z
+  if arm_is_free(pose,side) and state==&"walk":
+   var upper:Vector3=next.basis*(Basis(Vector3.RIGHT,keys.arms[side])*Vector3((-.16 if side==0 else .16),-1,0)).normalized()
+   var hinge:Vector3=(next.basis.x-upper*upper.dot(next.basis.x)).normalized()
+   pose.hands[side]=pose.shoulders[side]+upper*Pose.UPPER_ARM+upper.rotated(hinge,-deg_to_rad(12))*Pose.FOREARM
+
+static func keyed_jump(pose:Dictionary,phase:float) -> void:
+ var keys:=Controls.sample(&"jump",phase)
+ var shift:Vector3=keys.body
+ var turn:=Basis.from_euler(keys.chest)
+ var pivot:Vector3=pose.body*Vector3(0,Anatomy.HIP.y,0)
+ var change:=Transform3D(turn,pivot-turn*pivot+shift)
+ pose.body=change*pose.body;pose.pelvis.origin+=shift;pose.grip=change*pose.grip
+ for side in 2:
+  pose.shoulders[side]=change*pose.shoulders[side];pose.hips[side]+=shift;pose.hands[side]=change*pose.hands[side]
+  var foot:Vector3=keys.foot_l if side==0 else keys.foot_r
+  pose.legs[side].end=Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,2.1+foot.y,foot.x)
+  pose.legs[side].pitch=foot.z

@@ -13,7 +13,7 @@ herramientas proceden de `assets/models/meshy/*/anchors.gd`.
 
 ## Superviviente
 
-Puede caminar, correr, agacharse, deslizarse hacia delante o atrás, saltar,
+Puede caminar, correr, agacharse, deslizarse en ocho direcciones, saltar,
 equipar/desequipar, recoger, comer, beber, bloquear, recibir daño y morir.
 Las familias de objetos son manos libres, hacha, pico, espada, arco, botella,
 comida y objetos transportados. La pose se adapta al desplazamiento y a la mira.
@@ -35,7 +35,12 @@ comida y objetos transportados. La pose se adapta al desplazamiento y a la mira.
 | Equipar/desequipar otras familias | 0,42 s |
 | Morir | 3 s |
 
-Los tiempos proceden de `survivor_animation.gd`. La orientación de mira usa
+Los tiempos proceden de `survivor_animation.gd`. Las trayectorias de marcha,
+carrera, salto, deslizamiento, herramientas y caída usan las curvas compartidas
+reducidas de `motion/controls.res`. Ver [ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md)
+para tolerancias y regeneración. La muerte apoya rodillas y termina boca abajo.
+La superficie derivada del sobaco incorpora soporte local sin cambiar el rig.
+ La orientación de mira usa
 `facing_delay.gd`; la respuesta de movimiento, `movement_response.gd`.
 Los golpes fijan el objetivo al iniciarse; el arco sigue la mira al tensar.
 La velocidad base es 2 m/s caminando y 4,48 m/s corriendo, antes de modificadores.

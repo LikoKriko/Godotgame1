@@ -1,6 +1,7 @@
 extends RefCounted
 ## Authored reference-informed gestures for the imported survivor. Contacts are
 ## solved at the hit key; the rest of the stroke has its own load and recovery.
+const Controls=preload("res://scripts/animation/characters/survivor_controls.gd")
 const Aim=preload("res://scripts/prototype_3d/tool_aim.gd")
 const Profiles=preload("res://scripts/prototype_3d/held_profiles.gd")
 const Anatomy=preload("res://scripts/prototype_3d/survivor_anatomy.gd")
@@ -80,16 +81,9 @@ static func melee(pose:Dictionary,t:float,contact:Vector3,impact_pose:Dictionary
    solution=Aim.solve(center+center.direction_to(contact)*30,pose.shoulders,profile.tip,pose.active,profile.two_hands,pose.body,profile.support,profile.get("shaft_range",Vector2(-4,28)))
  var body:Transform3D=pose.body
  var rest:=guard(body,family)
- var wind_grip:=Vector3(-1.5,46.0,18.0)
- var wind_axis:=Vector3(.35,.936,.03)
- var hit_grip:=Vector3(-1,34,15)
- var hit_axis:=Vector3(.10,.14,.98)
- if family==&"pickaxe":
-  wind_grip=Vector3(-2,46,18);wind_axis=Vector3(.03,.99,.06)
-  hit_grip=Vector3(-1,29,16);hit_axis=Vector3(0,-.45,.89)
- elif family==&"sword":
-  wind_grip=Vector3(12,43,10);wind_axis=Vector3(.14,.96,-.24)
-  hit_grip=Vector3(1,36,15);hit_axis=Vector3(-.55,-.15,.82)
+ var keyed:=Controls.sample(family,t)
+ var wind_grip:Vector3=keyed.wind;var wind_axis:Vector3=keyed.wind_axis
+ var hit_grip:Vector3=keyed.hit;var hit_axis:Vector3=keyed.hit_axis
  var wind:=Transform3D(frame(body.basis,wind_axis,family),body*wind_grip)
  var hit:=Transform3D(solution.basis,solution.grip) if not solution.is_empty() else Transform3D(frame(body.basis,hit_axis,family),body*hit_grip)
  var follow:=hit
@@ -98,15 +92,15 @@ static func melee(pose:Dictionary,t:float,contact:Vector3,impact_pose:Dictionary
  var recover:=rest
  recover.origin+=body.basis*Vector3(0,3.0,4.0)
  var tool:Transform3D
- if t<=.28:tool=rest.interpolate_with(wind,smoothstep(0,.28,t))
- elif t<=.5:tool=wind.interpolate_with(hit,pow(clampf((t-.28)/.22,0,1),1.85))
- elif t<=.65:tool=hit.interpolate_with(follow,smoothstep(.5,.65,t))
- elif t<=.84:tool=follow.interpolate_with(recover,smoothstep(.65,.84,t))
- else:tool=recover.interpolate_with(rest,smoothstep(.84,1,t))
+ if t<=.28:tool=rest.interpolate_with(wind,keyed.timing.x)
+ elif t<=.5:tool=wind.interpolate_with(hit,keyed.timing.y)
+ elif t<=.65:tool=hit.interpolate_with(follow,keyed.timing.z)
+ elif t<=.90:tool=follow.interpolate_with(recover,keyed.recovery.x)
+ else:tool=recover.interpolate_with(rest,keyed.recovery.y)
  if family in [&"axe",&"pickaxe"]:
   # Extract the head forward/up before recovering, keeping the supporting arm
   # outside the upper garment instead of sweeping it across the chest.
-  var extraction:=smoothstep(.5,.62,t)*(1-smoothstep(.88,1,t))
+  var extraction:float=keyed.recovery.z
   tool.origin+=body.basis*Vector3(0,2,8)*extraction
  pose.grip=tool.origin;pose.tool_basis=tool.basis;pose.shaft=tool.basis.y
 static func bow(pose:Dictionary,state:StringName,t:float,contact:Vector3) -> void:

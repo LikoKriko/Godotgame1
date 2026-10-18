@@ -71,3 +71,47 @@ archivo de entrada puede ser un `Animation` o una `AnimationLibrary` con `--clip
 La herramienta necesita un solo esqueleto por escena y escribe un archivo nuevo;
 no reemplaza las fuentes ni incorpora el resultado al catálogo del juego. Informa
 las pistas omitidas para que el departamento complete lo específico del modelo.
+
+## Curvas del superviviente
+
+`assets/characters/prototype_3d/motion/controls.res` contiene curvas nativas
+compartidas para marcha, carrera, salto, ocho deslizamientos, caída frontal y
+los golpes de hacha, pico y espada. Se interpolan controles de cuerpo, manos,
+apoyos y esfuerzo; las extremidades se resuelven después con las longitudes
+del rig. La mira sigue resolviendo el contacto real y los agarres del objeto.
+No se interpolan escalas de brazos, piernas, cabeza ni cuello.
+
+La reducción de claves usa límites de error de 0,018 unidades para posiciones
+y 0,0004 para ángulos y pesos de mezcla. Conserva las fases de contacto, impacto,
+entrada y salida, además de los extremos del ciclo. Las pistas constantes
+usan una sola clave. Los datos de autoría no se evalúan durante el juego.
+La cadencia de marcha/carrera sigue el desplazamiento horizontal real y
+compensa la zancada más corta de los pasos laterales.
+
+La caída de 3 s apoya primero las rodillas y termina boca abajo, con brazos y
+piernas abiertos. Un conjunto reducido de apoyos de la piel real mantiene el
+contacto con el suelo, incluyendo interrupciones desde posturas bajas.
+
+La superficie `meshy/survivor_axilla.res` deriva de `survivor_skin.res`: añade
+bucles de soporte locales al pliegue del sobaco y suaviza la transición de
+pesos entre costillas y húmero. Conserva las posiciones y UV originales y los
+24 huesos; los archivos de origen y las texturas se mantienen intactos.
+La espalda interior queda ligada al tórax. No añade una lámina superpuesta.
+
+Después de actualizar la malla o los pesos del personaje, regenerar en orden:
+
+```sh
+godot --headless --path . --script tools/animation/characters/build_axilla.gd
+godot --headless --path . --script tools/animation/characters/bake_controls.gd
+godot --headless --path . --script tools/animation/characters/bake_ground.gd
+```
+
+Referencias de autoría: [marcha](https://www.animationmentor.com/blog/tutorial-animating-human-walk-cycle/),
+[carrera](https://www.animationmentor.com/blog/animating-dynamic-run-cycles/),
+[salto y aterrizaje](https://www.animationmentor.com/blog/tutorial-animate-a-jump-and-land/),
+[deslizamiento sobre cadera](https://www.littleleague.org/university/articles/backyard-tips-sliding-tip/),
+[mecánica de hacha](https://www.fs.usda.gov/t-d/pubs/pdfpubs/pdf18232812P/Part11a_UsingAnAx.pdf),
+[golpes de herramientas](https://mocaponline.com/blogs/mocap-news/survival-game-animation-guide)
+y [espada](https://www.animationmentor.com/blog/tutorial-animate-sword-fights-battle-sequences/).
+Los movimientos se adaptan al rig y los tiempos de juego; no se incluyen clips
+comerciales de terceros.

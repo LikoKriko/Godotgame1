@@ -44,11 +44,16 @@ func run():
  var sprout=load("res://scripts/prototype_3d/sprout_enemy.gd").new();game.add_child(sprout);sprout.position=Vector3(-7,.025,-7);sprout.configure(game)
  sprout.patrol.begin_turn();sprout.patrol.turn(.21);sprout.phase=.37
  sprout.run_cycle.restore({"stage":"run","kind":2,"elapsed":18.7});sprout.run_phase=.41
+ game.player.slide_side=-1;game.player.slide_forward_axis=0
  require(Save.save_block_reason(game).is_empty(),"Settled paused game can be saved")
  require(game.save_current_game()==OK,"Manual pause save writes a real file")
  var result:=Save.read_result(path);require(result.ok,"New disk save validates")
  if not result.ok:app.free();quit(1);return
  var saved:Dictionary=result.state;var bytes:=FileAccess.get_file_as_bytes(path)
+ var old_slide:=saved.duplicate(true);old_slide.player.erase("slide_forward_axis")
+ require(Save.valid(old_slide),"Older saves without directional slide mode remain valid")
+ var invalid_slide:=saved.duplicate(true);invalid_slide.player.slide_forward_axis=2
+ require(not Save.valid(invalid_slide),"Invalid directional slide mode is rejected")
  var wrong:=saved.duplicate(true);wrong.bag.quick[0].uid=wrong.bag.equipment.legs.uid
  require(not Save.valid(wrong),"Duplicate item UID is rejected")
  wrong=saved.duplicate(true);wrong.player.position=[NAN,0,0];require(not Save.valid(wrong),"Non-finite positions are rejected")
@@ -63,6 +68,7 @@ func run():
  await app.continue_game()
  if not await wait_loaded(app):app.free();quit(1);return
  game=app.game;game.paused=true
+ require(game.player.slide_clip()==&"slide_left","Lateral slide posture survives save/load")
  require(game.player.position.distance_to(Save.point(saved.player.position))<0.001,"Continue restores player position on the relief")
  require(get_nodes_in_group("prototype_buildings").is_empty(),"Continuing does not restore removed spawn houses")
  require(game.bag.slots==saved.bag.slots and game.bag.quick_slots==saved.bag.quick and game.bag.equipment==saved.bag.equipment,"Physical backpack, quick bar and armor restore exactly")

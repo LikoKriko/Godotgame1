@@ -133,6 +133,8 @@ originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
   24 huesos con tela y volumen de articulaciones. Mantener skin_seams_v1 y
   face_materials_v1 (máscaras de pelo/barba y relieve facial sutil);
   regenerar mediante transferencia de piel, no con ligadura automática.
+  El runtime muestra survivor_axilla.res, con soporte local del sobaco; conservar
+  survivor_skin.res como fuente y regenerar según docs/ANIMATION_SYSTEMS.md.
 - Enemigo1: Mossclaw Boar 1016001519, 4036 triángulos de superficie, 0,875 m,
   25 huesos originales SmartRigArmature de modelo1_rig. Mantener jerarquía,
   ejes de reposo y ligadura original, con pesos interpolados en la superficie

@@ -38,5 +38,14 @@
   },
   "triangles": 31182.0,
   "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_personaje3d/personaje1.zip",
-  "zip_sha256": "a20c087e51a17f1ad58fb10a38a95fa2e06393b24ad335af5777b1670a1ab5f5"
+  "zip_sha256": "a20c087e51a17f1ad58fb10a38a95fa2e06393b24ad335af5777b1670a1ab5f5",
+  "runtime_surface": {
+    "path": "res://assets/characters/prototype_3d/meshy/survivor_axilla.res",
+    "profile": "support_fold_v1",
+    "vertices": 32366,
+    "triangles": 32569,
+    "bones": 24,
+    "source_skin_sha256": "15f224962d68d6d8b1cc7934cbebdc6a0018cc6b93e6e2629b621146841950e6",
+    "method": "Conforming local axillary subdivision and smooth proximal skin weights; original source positions, UV, FBX and texture maps preserved"
+  }
 }
