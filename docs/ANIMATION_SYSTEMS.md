@@ -10,7 +10,10 @@ usa `survivor_native.tres`: los **66 huesos originales** de
 `assets/characters/prototype_3d/composite/model.scn`.
 
 `native_survivor.gd` enlaza ese rig mediante `RigBinding` y aplica las poses
-mediante `SkeletonPose`. Conserva las longitudes y ejes nativos; usa los planos
+mediante `SkeletonPose`. Conserva los ejes nativos y las longitudes de brazos,
+piernas y columna; ambas manos usan una proporción uniforme de 0,90 desde la
+muñeca (`NativeHandGrip.HAND_SCALE`), heredada una sola vez por palma y dedos.
+Los pesos originales mantienen la unión de la muñeca con el antebrazo. Usa los planos
 articulares compartidos para orientar brazos y piernas. Las curvas existentes
 siguen proporcionando ritmo, cuerpo y contactos. Las extremidades libres
 adaptan su alcance a las proporciones nuevas; las manos ocupadas resuelven IK
@@ -298,11 +301,18 @@ pose no sustituye ataques, recogida, salto, deslizamiento ni manos ocupadas.
 Referencias de postura: [Hand Posing Basics](https://blog.animschool.edu/2025/05/09/hand-posing-basics/)
 y [Posing Hands for Animation](https://blog.animschool.edu/2025/06/13/posing-hands-for-animation-2/), de AnimSchool.
 Los dedos nativos de pico, hacha y espada envuelven el mango con pulgar opuesto,
-conservando la longitud de cada falange. El cierre usa el peso de equipamiento
+conservando la longitud reducida de cada falange. El centro de palma se adapta
+al tamaño 0,90 en todos los contactos, incluido el arco y su cuerda. El cierre
+de los dedos usa sus longitudes efectivas y su grosor reducido alrededor de
+los mangos a tamaño real, sin escalar las armas ni sus anclajes.
+El cierre usa el peso de equipamiento
 y el de la mano de apoyo. `data/animation/characters/hand_grips.tres` contiene
 las secciones medidas y las orientaciones de palma relativas a cada mango;
 se regenera con `bake_grips.gd`. Esa orientación estable evita inversiones del
-agarre al cambiar el plano del golpe. La geometría
+agarre al cambiar el plano del golpe. Al equipar o guardar se resuelve el cierre
+en el contacto final y se mezcla en las articulaciones locales nativas: los
+dedos no persiguen el eje del mango mientras la muñeca todavía se aproxima.
+La geometría
 de herramientas se consulta únicamente en esa herramienta de autoría.
 El apoyo de marcha/carrera rueda suavemente de talón a planta y despega por
 los dedos: −0,05/+0,085 rad caminando y −0,035/+0,085 rad corriendo. La bajada

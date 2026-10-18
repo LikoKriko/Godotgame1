@@ -40,7 +40,7 @@ func run():
     require(n.hand_error<.08,'Visible palms keep the actual tool contacts')
     for bone in n.posed.size():
      var parent:int=n.parents[bone]
-     if parent>=0:require(absf(n.posed[bone].origin.distance_to(n.posed[parent].origin)-n.rest[bone].origin.distance_to(n.rest[parent].origin))<.0001,'Spine, clavicles and all fingers preserve native bone lengths')
+     if parent>=0:require(absf(n.posed[bone].origin.distance_to(n.posed[parent].origin)-n.rest[bone].origin.distance_to(n.rest[parent].origin)*(n.grip.HAND_SCALE if n.grip.relaxed.has(bone) else 1.0))<.0001,'Spine and clavicles preserve native lengths; fingers preserve their configured hand proportion')
     if state==&'equip':continue
     var shaft:Vector3=actor.last_pose.shaft.normalized()
     for side in 2:

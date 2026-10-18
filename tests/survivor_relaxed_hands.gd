@@ -35,7 +35,7 @@ func run():
        require(actual.origin.distance_to(reference[side][index].origin)<.0001,'Relaxed fingers follow their palm in every locomotion direction')
        require(actual.basis.orthonormalized().get_rotation_quaternion().angle_to(reference[side][index].basis.orthonormalized().get_rotation_quaternion())<.002,'Finger curvature stays stable through the gait cycle')
        var parent:int=n.parents[bone]
-       require(absf(n.posed[bone].origin.distance_to(n.posed[parent].origin)-n.rest[bone].origin.distance_to(n.rest[parent].origin))<.0001,'Relaxed posing cannot stretch native fingers')
+       require(absf(n.posed[bone].origin.distance_to(n.posed[parent].origin)-n.rest[bone].origin.distance_to(n.rest[parent].origin)*(n.grip.HAND_SCALE if n.grip.relaxed.has(bone) else 1.0))<.0001,'Relaxed posing cannot stretch native fingers')
        index+=1
  # Classify actual skin triangles by native bind weights. Distal finger skin
  # must not intersect the palm or another finger. Exclude shared webbing.

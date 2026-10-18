@@ -75,8 +75,8 @@ func run():
    for bone in native.posed.size():
     var parent:int=native.parents[bone]
     if parent<0:continue
-    var error:float=absf(native.posed[bone].origin.distance_to(native.posed[parent].origin)-native.rest[bone].origin.distance_to(native.rest[parent].origin));worst_bone=maxf(worst_bone,error)
-    require(error<.0001,"Native bone lengths remain fixed")
+    var error:float=absf(native.posed[bone].origin.distance_to(native.posed[parent].origin)-native.rest[bone].origin.distance_to(native.rest[parent].origin)*(native.grip.HAND_SCALE if native.grip.relaxed.has(bone) else 1.0));worst_bone=maxf(worst_bone,error)
+    require(error<.0001,"Native limb lengths and configured hand proportions remain fixed")
    var floor_value:=INF
    for surface in surfaces.size():
     var arrays:Array=surfaces[surface]

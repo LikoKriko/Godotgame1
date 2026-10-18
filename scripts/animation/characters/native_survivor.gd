@@ -1,6 +1,7 @@
 extends RefCounted
 ## Native T-pose skin driven by shared gameplay contacts, without reweighting it
-## onto the retired A-pose skeleton. Native bind axes and bone lengths stay fixed.
+## onto the retired A-pose skeleton. Native bind axes remain intact; the hand
+## proportion is applied once at each wrist without resizing the source mesh.
 const PROFILE=preload("res://data/animation/characters/survivor_native.tres")
 const Binding=preload("res://scripts/animation/shared/rig_binding.gd")
 const Solver=preload("res://scripts/continuous_body_pose.gd")
@@ -192,7 +193,7 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
    goal=body*rest[ids[1]].origin+(goal-control.posed[source].origin)*((chain.a+chain.b)/19.0)
    if pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:goal.y+=Clips.pickup_weight(pose.phase)
   elif pickup or pose.get("clip_state",&"")==&"action" or (pose.get("family",&"")!=&"" and pose.get("clip_state",&"")!=&"death"):
-   var contact:Vector3=chain.contact*(2.0 if pose.get("family",&"")==&"" and pose.get("clip_state",&"")==&"action" else 1.0)
+   var contact:Vector3=chain.contact*grip.HAND_SCALE*(2.0 if pose.get("family",&"")==&"" and pose.get("clip_state",&"")==&"action" else 1.0)
    goal-=palm_basis*chain.palm*contact
   var core:Vector3=posed[ids[0]].origin
   var offset:Vector3=body.basis*(rest[ids[1]].origin-rest[ids[0]].origin)
@@ -215,7 +216,9 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   var solved:=Solver.joint(shoulder,goal,chain.a,chain.b,pole)
   if balancing:untwisted_chain(ids,1,solved,body.basis)
   else:orient_chain(ids,1,solved,chain.axes)
-  posed[ids[3]]=Transform3D(palm_basis*chain.palm*rest[ids[3]].basis,solved.end)
+  # Scale once at the wrist; native finger descendants inherit the same
+  # proportion. Original skin weights blend the wrist into the forearm.
+  posed[ids[3]]=Transform3D(palm_basis*chain.palm*rest[ids[3]].basis*grip.HAND_SCALE,solved.end)
   hand_errors[side]=solved.end.distance_to(goal)
   if not free:hand_error=maxf(hand_error,hand_errors[side])
   chain=legs[side];ids=chain.ids;source=10+side*3
