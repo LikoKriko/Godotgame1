@@ -205,10 +205,24 @@ func refresh_shadow_quality() -> void:
  refresh_daylight()
 func refresh_daylight() -> void:
  var daylight:Dictionary=day_cycle.sun_state()
- main_sun.light_energy=daylight.elevation*1.2;main_sun.rotation_degrees=Vector3(-lerpf(18,76,daylight.elevation),lerpf(-70,70,daylight.progress),0)
- MOON_TRIAL.update(moon_light,day_cycle.moon_state(),settings.values.moon_light_trial)
- world_ambient.background_color=MOON_TRIAL.night_background.lerp(Color("809495"),smoothstep(0,0.18,daylight.elevation)) if settings.values.moon_light_trial else Color("809495")
- world_ambient.ambient_light_color=daylight.ambient;world_ambient.ambient_light_energy=lerpf(0.32,0.65,daylight.elevation)
+ # Zero energy alone still leaves a visible directional light in the shadow
+ # caster list. Hide the sun outside its actual daylight interval.
+ var solar_active:bool=day_cycle.hour>6.0 and day_cycle.hour<20.0
+ if main_sun.visible!=solar_active:main_sun.visible=solar_active
+ if solar_active:
+  main_sun.light_energy=daylight.elevation*1.2
+  main_sun.rotation_degrees=Vector3(-lerpf(18,76,daylight.elevation),lerpf(-70,70,daylight.progress),0)
+ elif main_sun.light_energy!=0:main_sun.light_energy=0
+ var lunar_active:bool=settings.values.moon_light_trial and not solar_active
+ MOON_TRIAL.update(moon_light,day_cycle.moon_state() if lunar_active else {},lunar_active)
+ var background:Color=MOON_TRIAL.night_background.lerp(Color("809495"),smoothstep(0,0.18,daylight.elevation)) if settings.values.moon_light_trial else Color("809495")
+ var ambient_energy:float=lerpf(0.32,0.65,daylight.elevation)
+ # Avoid invalidating unchanged environment parameters throughout the night
+ # and the constant daytime sky; animated objects still cast shadows each frame.
+ if world_ambient.background_color!=background:world_ambient.background_color=background
+ if world_ambient.ambient_light_color!=daylight.ambient:world_ambient.ambient_light_color=daylight.ambient
+ if not is_equal_approx(world_ambient.ambient_light_energy,ambient_energy):world_ambient.ambient_light_energy=ambient_energy
+
 func respawn() -> void:
  player_health=20;level=1;nutrition.reset();parry.reset()
  if workbenches!=null:workbenches.cancel_placement();workbenches.window.hide()

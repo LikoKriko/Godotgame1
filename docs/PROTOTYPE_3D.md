@@ -152,3 +152,13 @@ La prueba oscurece gradualmente el fondo del cielo al anochecer; conserva la
 iluminación ambiental, el sol y el filtrado global de sombras existente.
 Durante el día o al desactivar la prueba, la luz y sus sombras se deshabilitan.
 No añade geometría lunar, fases ni estrellas.
+
+El sol se excluye del renderizador entre las 20:00 y las 06:00; dejar su
+energía a cero no basta para retirarlo de la lista de luces que generan sombras.
+Solo la luz que contribuye a la escena ocupa sus cascadas: el sol durante el
+día o la luna, si está habilitada y tiene intensidad suficiente, por la noche.
+Las luces inactivas conservan su orientación sin reenviarla al renderizador,
+y los parámetros ambientales constantes no se reasignan cada tick. El reloj,
+las transiciones, la intensidad y el filtrado conservan su funcionamiento;
+los personajes y objetos siguen actualizando sus sombras en cada fotograma.
+Esta gestión se aplica tanto al activar como al desactivar las sombras de prueba.

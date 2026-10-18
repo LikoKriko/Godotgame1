@@ -18,7 +18,11 @@ func configure(light:DirectionalLight3D) -> void:
  light.shadow_normal_bias=1.5
 func update(light:DirectionalLight3D,state:Dictionary,enabled:bool) -> void:
  var strength:float=state.strength if enabled else 0.0
- light.visible=strength>0.001
- light.shadow_enabled=light.visible
+ var active:bool=strength>0.001
+ if light.visible!=active:light.visible=active
+ if light.shadow_enabled!=active:light.shadow_enabled=active
+ if not active:
+  if light.light_energy!=0:light.light_energy=0
+  return
  light.light_energy=energy*strength
  light.rotation_degrees=Vector3(-lerpf(18,68,state.elevation),lerpf(110,250,state.progress),0)

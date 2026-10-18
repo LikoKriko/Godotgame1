@@ -42,6 +42,8 @@ func run():
  for hour in [0.,1.,5.,6.,8.,13.,19.,20.,21.,23.999]:
   world.day_cycle.hour=hour;world.refresh_daylight()
   var night:bool=hour<6 or hour>20
+  require(light.visible==(hour>6 and hour<20),"The zero-energy sun leaves the render and shadow lists at night: "+str(hour))
+  require(int(light.visible)+int(moon.visible)<=1,"Only the contributing directional light occupies the shadow atlas")
   require(moon.visible==night and moon.shadow_enabled==night,"Lunar shadows only load at night: "+str(hour))
   require(moon.light_energy>=0 and moon.light_energy<=0.16,"Moon remains faint: "+str(hour))
   require(moon.shadow_opacity<light.shadow_opacity*0.25,"Moon shadows are much fainter than sunlight")
@@ -57,6 +59,22 @@ func run():
  require(before.distance_to(moon.rotation)<0.01,"Moon follows continuously across midnight")
  world.day_cycle.hour=13;world.refresh_daylight()
  require(not moon.shadow_enabled,"Daytime avoids an extra lunar shadow pass")
+ # Inactive lights keep their transforms stable rather than invalidating the
+ # renderer every physics tick; direct clock changes still restore active light.
+ var dormant_moon:Vector3=moon.rotation
+ for hour in [8.,12.,18.,19.999999]:
+  world.day_cycle.hour=hour;world.refresh_daylight()
+  require(not moon.visible and moon.rotation==dormant_moon,"Daytime does not rotate an inactive moon")
+ world.day_cycle.hour=1;world.refresh_daylight()
+ var dormant_sun:Vector3=light.rotation
+ for hour in [21.,23.,0.,4.,5.999999]:
+  world.day_cycle.hour=hour;world.refresh_daylight()
+  require(not light.visible and light.light_energy==0 and light.rotation==dormant_sun,"Nighttime excludes the dormant sun and preserves its transform")
+ for hour in [6.,6.000001,19.999999,20.,20.000001]:
+  world.day_cycle.hour=hour;world.refresh_daylight()
+  require(light.visible==(hour>6 and hour<20) and int(light.visible)+int(moon.visible)<=1,"Sunrise and sunset never render two directional shadow casters")
+ world.day_cycle.hour=13;world.refresh_daylight()
+ require(light.visible and light.light_energy>1 and not moon.visible,"Restoring a daytime clock immediately restores the solar light")
  var loaded:=Settings.new();loaded.load_settings();require(loaded.values.moon_light_trial and loaded.values.shadow_trial and loaded.values.master==.4,"Enabled trial and unrelated preferences survive reload")
  require(light.shadow_enabled and RenderingServer.get_current_rendering_method()=="gl_compatibility","Real sun shadows keep the existing Compatibility renderer")
  world.original_shadows.apply(light);world.free();await process_frame
