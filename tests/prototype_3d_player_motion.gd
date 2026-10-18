@@ -15,10 +15,13 @@ func _initialize():call_deferred("run")
 func sample_floor(actor,arrays:Array) -> float:
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var bones:PackedInt32Array=arrays[Mesh.ARRAY_BONES];var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
  var minimum:=INF
+ var skin:Skin=actor.mesh_node.skin
+ var slots:int=bones.size()/vertices.size()
  for i in range(0,vertices.size(),997):
   var point:=Vector3.ZERO
-  for slot in 4:
-   var bone:int=bones[4*i+slot];point+=actor.rig.posed[bone]*actor.rig.rest[bone].affine_inverse()*vertices[i]*weights[4*i+slot]
+  for slot in slots:
+   var bind:int=bones[slots*i+slot]
+   point+=actor.native.posed[skin.get_bind_bone(bind)]*skin.get_bind_pose(bind)*vertices[i]*weights[slots*i+slot]
   minimum=minf(minimum,point.y)
  return minimum
 func run():
@@ -105,7 +108,7 @@ func run():
   for frame in 240:
    var sprint:bool=frame/120.0<stop_time
    envelope.advance(Vector2.UP if sprint else Vector2.ZERO,sprint,0,1.0/120)
-   gait=fposmod(gait+2*envelope.speed/Clips.cycle_distance(envelope.sprint_weight)/120,1)
+   gait=fposmod(gait+2*envelope.speed*Clips.gait_playback_rate(envelope.sprint_weight)/Clips.cycle_distance(envelope.sprint_weight)/120,1)
    actor.sprint_weight=envelope.sprint_weight
    var state:StringName=&"start_run" if envelope.stage==&"start" else (&"run" if envelope.stage==&"maximum" else (&"stop_run" if envelope.speed>.001 else &"idle"))
    actor.animate(state,envelope.phase() if state!=&"run" else gait,false,1.0/120,gait,Vector3.BACK,clampf(envelope.speed,0,1))

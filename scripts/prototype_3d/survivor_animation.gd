@@ -9,6 +9,10 @@ const Fall=preload("res://scripts/prototype_3d/fall_motion.gd")
 const Slide=preload("res://scripts/prototype_3d/slide_pose.gd")
 const Controls=preload("res://scripts/animation/characters/survivor_controls.gd")
 const STRIDE_SCALE:=1.3
+# Independent visual adjustments; they never change CharacterBody velocity.
+const GAIT_STRIDE_LENGTH:=1.10
+const GAIT_PLAYBACK_RATE:=.90
+const RUN_PLAYBACK_RATE:=.60
 const ARM_SWING_SCALE:=0.9
 const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right"]
 const RUN_HIP_SCALE:=.7
@@ -33,12 +37,15 @@ static func duration(state: StringName,family: StringName = &"") -> float:
  if state in [&"walk",&"run"]:return (0.45 if state==&"run" else 0.60)*STRIDE_SCALE
  return 0.60
 
-# Distance travelled during one complete left/right cycle, shared with Player.
+# Reference distance of one left/right cycle, before visual tuning.
 static func directional_stride(direction:Vector3) -> float:
  return lerpf(1.0,.44,absf(direction.normalized().x))
 
 static func cycle_distance(sprint_weight:float,crouch:float=0.0,direction:Vector3=Vector3.BACK) -> float:
  return lerpf(duration(&"walk")*2.0,duration(&"run")*3.2,clampf(sprint_weight,0,1))*lerpf(1.0,.68,crouch)*directional_stride(direction)
+
+static func gait_playback_rate(sprint_weight:float) -> float:
+ return GAIT_PLAYBACK_RATE*lerpf(1.0,RUN_PLAYBACK_RATE,clampf(sprint_weight,0,1))
 
 static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF,slide_launch:Dictionary={},crouch_amount:float=0.0,punch_side:int=1) -> Dictionary:
  if String(state).begins_with("equip") or state==&"unequip":
@@ -125,7 +132,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   # A lateral step needs room to open and close. Reserve the complete path
   # before IK, rather than clipping the inward half against the other foot.
   var support:=.40 if gait_state==&"run" else lerpf(.60,.45,absf(travel.x))
-  var reach:=cycle_distance(1.0 if gait_state==&"run" else 0.0)*support*.5/(Anatomy.HEIGHT_METRES/64)*stride
+  var reach:=cycle_distance(1.0 if gait_state==&"run" else 0.0)*support*.5/(Anatomy.HEIGHT_METRES/64)*stride*GAIT_STRIDE_LENGTH
   var lane:=maxf(Anatomy.HIP.x,Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*.5+absf(travel.dot(pose.leg_frame.x))*reach*1.04)
   pose.stance_lane=lane
   for side in 2:
@@ -143,7 +150,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
 
  var striding:=state in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"] or (not movement.is_zero_approx() and state in [&"action",&"unequip",&"bow_release"])
  if striding:
-  lengthen_stride(pose);body=pose.body
+  lengthen_stride(pose,STRIDE_SCALE*GAIT_STRIDE_LENGTH);body=pose.body
   # Free walking arms retain their resting depth and share the slower gait.
   if state not in [&"run",&"start_run",&"equip_run"]:
    for side in 2:
@@ -401,7 +408,7 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
    pose.hands[side]=change*pose.hands[side]
  else:pose.pelvis=pose.body
 
-static func lengthen_stride(pose:Dictionary) -> void:
+static func lengthen_stride(pose:Dictionary,horizontal_scale:float=STRIDE_SCALE) -> void:
  # Keep the existing stance/lift curve, extending only horizontal travel.
  # Settle the pelvis just enough to reach both planted feet with fixed bones;
  # otherwise clamped IK would shorten the requested step or lift a support foot.
@@ -409,7 +416,7 @@ static func lengthen_stride(pose:Dictionary) -> void:
  for side in 2:
   var ankle:Vector3=pose.legs[side].end
   var neutral:Vector3=pose.get("leg_frame",Basis.IDENTITY)*Vector3((-1 if side==0 else 1)*pose.get("stance_lane",Anatomy.HIP.x),0,0)
-  ankle.x=neutral.x+(ankle.x-neutral.x)*STRIDE_SCALE;ankle.z=neutral.z+(ankle.z-neutral.z)*STRIDE_SCALE
+  ankle.x=neutral.x+(ankle.x-neutral.x)*horizontal_scale;ankle.z=neutral.z+(ankle.z-neutral.z)*horizontal_scale
   pose.legs[side].end=ankle
   var hip:Vector3=pose.hips[side]
   var horizontal:=Vector2(ankle.x-hip.x,ankle.z-hip.z).length_squared()

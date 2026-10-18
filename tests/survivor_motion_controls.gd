@@ -30,5 +30,5 @@ func _initialize():
   var a:=Clips.sample(&"",state,.02,.02,Vector3.BACK)
   var b:=Clips.sample(&"",state,.20,.20,Vector3.BACK)
   var speed:float=(a.legs[0].end.z-b.legs[0].end.z)*(1.75/64)/(.18*Clips.duration(state))
-  require(absf(speed-(2.0 if state==&"walk" else 3.2))<.035,"Support foot travels the real nominal distance: %s %.4f"%[state,speed])
+  require(absf(speed-(2.0 if state==&"walk" else 3.2)*Clips.GAIT_STRIDE_LENGTH)<.035,"Support foot retains the requested longer stride at the reference duration: %s %.4f"%[state,speed])
  print("%s: %d reduced-curve, cache, loop and gait-distance checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

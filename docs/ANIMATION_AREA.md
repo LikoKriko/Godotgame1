@@ -19,7 +19,7 @@ equipar/desequipar, recoger, comer, beber, bloquear, recibir daño y morir.
 Las familias de objetos son manos libres, hacha, pico, espada, arco, botella,
 comida y objetos transportados. La pose se adapta al desplazamiento y a la mira.
 
-| Acción o ciclo | Duración |
+| Acción o ciclo | Duración del recurso o referencia |
 | --- | --- |
 | Caminar | 0,78 s |
 | Correr, ciclo de referencia | 0,585 s |
@@ -46,11 +46,13 @@ y los pesos del rig nativo. La orientación de mira usa
 Los golpes fijan el objetivo al iniciarse; el arco sigue la mira al tensar.
 La velocidad base es 2 m/s caminando y 4,48 m/s corriendo, antes de modificadores.
 Arranque de 0,16 s, aceleración durante 1 s y frenada de 0,24 s. La cadencia
-visual sigue la distancia real para acompañar el sprint; el ciclo de referencia
-frontal se reproduce aproximadamente en 0,418 s al alcanzar el máximo sin
-modificadores. Caminando a 2 m/s, el ciclo diagonal dura unos 0,471 s y el
-lateral 0,343 s. La cadencia usa la distancia efectiva de la zancada y conserva
-los apoyos durante la aceleración y la frenada.
+visual parte de la distancia real y aplica un factor de 0,90 a la marcha y
+0,54 a la carrera completa. Las zancadas son 1,10 veces su longitud base.
+Sin modificadores, el ciclo frontal de carrera máxima dura unos 0,774 s;
+caminando a 2 m/s, el diagonal dura unos 0,523 s y el lateral 0,381 s.
+Los multiplicadores afectan al movimiento visual, conservando la velocidad
+física y los tiempos de arranque, aceleración y frenada.
+
 
 ## Criaturas
 

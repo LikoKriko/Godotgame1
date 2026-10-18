@@ -120,11 +120,18 @@ La reducción de claves usa límites de error de 0,018 unidades para posiciones
 y 0,0004 para ángulos y pesos de mezcla. Conserva las fases de contacto, impacto,
 entrada y salida, además de los extremos del ciclo. Las pistas constantes
 usan una sola clave. Los datos de autoría no se evalúan durante el juego.
-La cadencia sigue el desplazamiento horizontal real en coordenadas del modelo.
-La distancia por ciclo mezcla marcha/carrera según la aceleración visible:
-1,56–1,872 m, multiplicada por `lerp(1, 0.44, abs(direccion.x))` y por
-`lerp(1, 0.68, agachado)`. El apoyo de marcha baja de 60 % frontal a 45 %
-lateral, conservando la velocidad del pie plantado. Las calles de apoyo dejan
+El reloj base usa el desplazamiento horizontal real en coordenadas del modelo.
+Su distancia de referencia por ciclo mezcla marcha/carrera: 1,56–1,872 m,
+multiplicada por `lerp(1, 0.44, abs(direccion.x))` y por
+`lerp(1, 0.68, agachado)`. Los ajustes visuales independientes de
+`survivor_animation.gd` son `GAIT_STRIDE_LENGTH = 1.10`,
+`GAIT_PLAYBACK_RATE = 0.90` y `RUN_PLAYBACK_RATE = 0.60`.
+La longitud horizontal de la zancada aumenta sin escalar huesos. El reloj
+avanza a `0.90 * lerp(1, 0.60, sprint_weight)` de su ritmo base y alimenta
+piernas, brazos y torso juntos. La marcha conserva un 99 % de la velocidad
+relativa de los apoyos; en carrera máxima queda un 59,4 %. La velocidad física
+permanece independiente, por lo que estos ajustes visuales permiten patinaje.
+El apoyo de marcha baja de 60 % frontal a 45 % lateral. Las calles de apoyo dejan
 espacio para la trayectoria completa antes de resolver IK, sin recortar su
 mitad interior. El pie levantado regresa en el sentido real de desplazamiento.
 Los pies suavizan la entrada durante 0,15 s; el ciclo posterior sigue las claves

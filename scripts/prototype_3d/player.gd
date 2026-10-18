@@ -237,8 +237,8 @@ func _physics_process(delta: float) -> void:
  local_travel.y=0
  local_travel=local_travel.normalized()
  if actual_speed>0.03:
-  # Match the visible blended stride throughout acceleration and braking too.
-  phase=fposmod(phase+travelled/Clips.cycle_distance(movement_response.sprint_weight,locomotion.crouch,local_travel),1)
+  # Visual gait tuning shares one clock for feet, arms and torso.
+  phase=fposmod(phase+travelled*Clips.gait_playback_rate(movement_response.sprint_weight)/Clips.cycle_distance(movement_response.sprint_weight,locomotion.crouch,local_travel),1)
 
  visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
  model.sprint_weight=movement_response.sprint_weight
