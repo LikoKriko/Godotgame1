@@ -18,10 +18,6 @@ func configure(owner_game) -> void:
  var graphics:=page("Gráficos")
  check(graphics,"Sincronización vertical",game.settings.values.vsync,func(value):game.settings.values.vsync=value;save())
  var show_fps:=check(graphics,"Mostrar FPS",game.settings.values.show_fps,func(value):game.settings.values.show_fps=value;save());show_fps.name="ShowFPS"
- var shadows:=check(graphics,"Sombras mejoradas (prueba)",game.settings.values.shadow_trial,func(value):game.settings.values.shadow_trial=value;save());shadows.name="ShadowTrial"
- shadows.tooltip_text="Mejora el contacto y la definición cercana. Desactiva para comparar con las sombras anteriores."
- var moon:=check(graphics,"Luz lunar (prueba)",game.settings.values.moon_light_trial,func(value):game.settings.values.moon_light_trial=value;save());moon.name="MoonLightTrial"
- moon.tooltip_text="Luz nocturna suave con sombras tenues. Desactiva para comparar con la noche anterior."
  var row:=HBoxContainer.new();graphics.add_child(row)
  var label:=Label.new();label.text="Límite de FPS";row.add_child(label)
  var fps:=OptionButton.new();fps.name="FPS";var limits:=[30,60,120,144,0]
@@ -31,12 +27,19 @@ func configure(owner_game) -> void:
  var aa:=OptionButton.new();aa.name="MSAA"
  for caption in ["Desactivado","2×","4×"]:aa.add_item(caption)
  aa.select(int(game.settings.values.msaa));aa.item_selected.connect(func(index):game.settings.values.msaa=index;save());row.add_child(aa)
- row=HBoxContainer.new();graphics.add_child(row);label=Label.new();label.text="Generación de mundo";row.add_child(label)
+ label=Label.new();label.text="Resolución y modo de pantalla: bloqueados temporalmente.";Style.set_font_size(label,13);graphics.add_child(label)
+ var trials_margin:=MarginContainer.new();trials_margin.add_theme_constant_override("margin_top",16);graphics.add_child(trials_margin)
+ var trials:=VBoxContainer.new();trials.name="Trials";trials.add_theme_constant_override("separation",20);trials_margin.add_child(trials)
+ var trials_title:=Label.new();trials_title.text="Pruebas";trials.add_child(trials_title)
+ var shadows:=check(trials,"Sombras mejoradas (prueba)",game.settings.values.shadow_trial,func(value):game.settings.values.shadow_trial=value;save());shadows.name="ShadowTrial"
+ shadows.tooltip_text="Mejora el contacto y la definición cercana. Desactiva para comparar con las sombras anteriores."
+ var moon:=check(trials,"Luz lunar (prueba)",game.settings.values.moon_light_trial,func(value):game.settings.values.moon_light_trial=value;save());moon.name="MoonLightTrial"
+ moon.tooltip_text="Luz nocturna suave con sombras tenues. Desactiva para comparar con la noche anterior."
+ row=HBoxContainer.new();trials.add_child(row);label=Label.new();label.text="Generación de mundo";row.add_child(label)
  var generation:=OptionButton.new();generation.name="WorldGeneration";var distances:=[100,200,400]
  for value in distances:generation.add_item("%d metros%s"%[value," (base)" if value==200 else ""])
  generation.select(distances.find(int(game.settings.values.world_generation)))
  generation.item_selected.connect(func(index):game.settings.values.world_generation=distances[index];save());row.add_child(generation)
- label=Label.new();label.text="Resolución y modo de pantalla: bloqueados temporalmente.";Style.set_font_size(label,13);graphics.add_child(label)
  var audio:=page("Audio")
  for key in ["master","music","effects"]:
   var caption:Dictionary={"master":"Volumen general","music":"Música","effects":"Efectos"}

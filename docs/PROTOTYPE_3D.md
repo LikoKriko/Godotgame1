@@ -93,6 +93,9 @@ Puede caminar durante esas acciones.
   mundo a 100, 200 o 400 metros; 200 es el valor predeterminado.
 - Audio: volumen general, música, efectos y silencio.
 
+El grupo **Pruebas** de Gráficos reúne sombras mejoradas, luz lunar y generación de mundo,
+en vertical y con mayor separación que los ajustes normales.
+
 Mostrar FPS está desactivado de inicio. Al activarlo aparece a la izquierda
 del nivel, con el mismo tamaño del HUD y lectura cada 0,25 s. Los ajustes
 se aplican y se guardan al cambiarlos. Resolución y modo de pantalla están
