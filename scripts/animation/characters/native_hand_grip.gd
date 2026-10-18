@@ -3,6 +3,11 @@ extends RefCounted
 const PROFILE=preload('res://data/animation/characters/hand_grips.tres')
 var fingers:Array=[]
 var shafts:Dictionary=PROFILE.get_meta('shafts')
+# Relaxed cascade: most flexion belongs to the knuckle and middle joint.
+# Keep the distal joints soft, rather than closing an empty fist into the palm.
+const RELAXED_DEGREES=[Vector3(16,26,7),Vector3(20,30,9),Vector3(24,34,11),Vector3(28,38,13),Vector3(8,14,7)]
+const RELAXED_STATES=[&'idle',&'walk',&'run',&'start',&'stop',&'start_run',&'stop_run',&'equip_walk',&'equip_run']
+var relaxed:Dictionary={}
 func configure(native:RefCounted) -> void:
  for side in 2:
   var label:='Right' if side==0 else 'Left'
@@ -10,6 +15,13 @@ func configure(native:RefCounted) -> void:
   for name in ['Index','Middle','Ring','Pinky','Thumb']:
    var chain:Array[int]=[]
    for segment in range(1,5):chain.append(native.binding.names['smartrig_'+label+'Hand'+name+str(segment)])
+   var finger:int=hand.size()
+   for segment in 3:
+    var bone:int=chain[segment]
+    var inward:=Vector3(0,-.6,-.8) if finger==4 else Vector3.DOWN
+    var axis:Vector3=native.rest[bone].basis.inverse()*(native.rest[bone].basis.y.normalized().cross(inward)).normalized()
+    relaxed[bone]=Basis(axis.normalized(),deg_to_rad(RELAXED_DEGREES[finger][segment]))
+   relaxed[chain[3]]=Basis.IDENTITY
    hand.append(chain)
   fingers.append(hand)
 func palm(family:StringName,side:int,tool:Basis,fallback:Basis) -> Basis:

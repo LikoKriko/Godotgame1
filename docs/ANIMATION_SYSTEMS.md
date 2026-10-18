@@ -274,7 +274,13 @@ La pista de columna compensa el contragiro amortiguado de la cadera, para
 conservar esas amplitudes visibles. La clavícula del mismo lado desciende
 hasta 2° en marcha y 4° en carrera; el brazo entero acompaña desde el hombro.
 Cuello y cabeza siguen suavemente: la cabeza añade un 25 % del giro cíclico
-del pecho a su orientación compartida y el cuello interpola entre ambos.
+del pecho a su orientación compartida, más una amplitud de 1° al caminar y
+2° al correr (`WALK_HEAD_EXTRA` / `RUN_HEAD_EXTRA`). Reutiliza la misma curva
+reducida del pecho para conservar fase y sentido. El giro visible de cabeza
+ronda ±2,35° en marcha y ±5,15° en carrera, inferior al del pecho (±3°/±7°).
+El peso de sprint interpola el aporte adicional y la velocidad visual atenúa
+el gesto al detenerse. El cuello interpola entre la rotación del pecho y
+la cabeza, manteniendo la unión y las longitudes del rig.
 Los brazos libres y los objetivos de agarre acompañan al pecho, manteniendo
 las longitudes y los contactos reales de las manos. El peso de sprint mezcla
 las curvas de pecho, columna, cabeza y hombros durante arranque y frenada;
@@ -282,6 +288,15 @@ la intensidad sigue la velocidad visual. El resto de gestos distribuye sus
 rotaciones entre pelvis y pecho con su postura propia.
 Las pistas `spine` y `shoulders` comparten el reloj y la reducción de claves
 con marcha/carrera, con error angular/peso máximo de 0,0004.
+Las manos libres mantienen dedos recogidos en reposo, marcha y carrera en
+todas las direcciones, incluidos sus arranques y frenadas. La curvatura nativa
+se precalcula en `native_hand_grip.gd`: nudillo/articulación media/punta de
+16°/26°/7° en índice, 20°/30°/9° en corazón, 24°/34°/11° en anular y
+28°/38°/13° en meñique; pulgar 8°/14°/7°, orientado suavemente hacia la palma.
+Las falanges conservan sus longitudes y espacio respecto a la palma. Esta
+pose no sustituye ataques, recogida, salto, deslizamiento ni manos ocupadas.
+Referencias de postura: [Hand Posing Basics](https://blog.animschool.edu/2025/05/09/hand-posing-basics/)
+y [Posing Hands for Animation](https://blog.animschool.edu/2025/06/13/posing-hands-for-animation-2/), de AnimSchool.
 Los dedos nativos de pico, hacha y espada envuelven el mango con pulgar opuesto,
 conservando la longitud de cada falange. El cierre usa el peso de equipamiento
 y el de la mano de apoyo. `data/animation/characters/hand_grips.tres` contiene

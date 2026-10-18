@@ -24,11 +24,19 @@ const RUN_TORSO_YAW:=deg_to_rad(7.0)
 const PELVIS_YAW:=.025
 const RUN_TWIST_SCALE:=2.0
 const HEAD_TWIST_SHARE:=.25
+const WALK_HEAD_EXTRA:=deg_to_rad(1.0)
+const RUN_HEAD_EXTRA:=deg_to_rad(2.0)
 
 # Rearward travel is slower without playing the whole gait in slow motion.
 const BACKWARD_SPEED:=.30
 const BACKWARD_CADENCE:=.80
 const DIAGONAL_ANGLE:=deg_to_rad(35.0)
+static func head_twist(torso_yaw:float,sprint_weight:float=0.0) -> float:
+ var weight:=clampf(sprint_weight,0,1)
+ var amplitude:=lerpf(TORSO_YAW,RUN_TORSO_YAW,weight)
+ var extra:=lerpf(WALK_HEAD_EXTRA,RUN_HEAD_EXTRA,weight)
+ # Reuse the reduced chest curve so the added head motion shares its phase.
+ return torso_yaw*(HEAD_TWIST_SHARE+extra/amplitude)
 static func backward_weight(direction:Vector3) -> float:
  return smoothstep(0,.35,-direction.normalized().z)
 static func backward_stride(direction:Vector3) -> float:

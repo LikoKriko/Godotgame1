@@ -154,7 +154,7 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   if running_posture:
    var walking_keys:=Clips.Controls.sample(&"walk",cycle)
    for key in [&"spine",&"chest",&"shoulders"]:keys[key]=(walking_keys[key] as Vector3).lerp(keys[key],sprint)
-  head_rotation=Basis(Vector3.UP,keys.chest.y*Clips.Gait.HEAD_TWIST_SHARE*pose.get("gait_weight",1.0))*head_rotation
+  head_rotation=Basis(Vector3.UP,Clips.Gait.head_twist(keys.chest.y,sprint if running_posture else 0.0)*pose.get("gait_weight",1.0))*head_rotation
   var angles:=chest_rotation.get_euler()
   angles.y=pelvis.basis.get_euler().y+keys.spine.y*pose.get("gait_weight",1.0)
   chest_rotation=Basis.from_euler(angles)
@@ -244,6 +244,9 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   var fold:float=.5*(1-cosine)*(1-smoothstep(deg_to_rad(115),deg_to_rad(145),acos(cosine)))
   mesh.set_blend_shape_value(knee_shapes[side],fold)
  # Native fingers, toes and end bones inherit their actual native parents.
+ var relaxed_pose:bool=pose.get("clip_state",&"") in grip.RELAXED_STATES
+ var relaxed_right:bool=relaxed_pose and Clips.arm_is_free(pose,0)
+ var relaxed_left:bool=relaxed_pose and Clips.arm_is_free(pose,1)
  for i in posed.size():
   if driven.has(i):continue
   posed[i]=posed[parents[i]]*inverse_rest[parents[i]]*rest[i]
@@ -251,6 +254,9 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   if "Hand" in label and ("Thumb" in label or "Index" in label or "Middle" in label or "Ring" in label or "Pinky" in label):
    var grip:float=.08
    var side:int=0 if "Right" in label else 1
+   if (side==0 and relaxed_right) or (side==1 and relaxed_left):
+    posed[i].basis=posed[i].basis*self.grip.relaxed[i]
+    continue
    if pose.get("family",&"")!=&"" and pose.get("clip_state",&"")!=&"death" and not Clips.arm_is_free(pose,side):grip=.8
    elif pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:grip=.08+.65*Clips.pickup_weight(pose.phase)
    elif pose.get("clip_state",&"")==&"action" and not (pose.get("family",&"")==&"sword" and side!=pose.active):grip=sin(clampf(pose.phase,0,1)*PI)

@@ -17,7 +17,6 @@ func unleaned(actor,bone:int,share:float=1.0) -> Basis:
 func run():
  var actor=load('res://scripts/prototype_3d/survivor_model.gd').new();root.add_child(actor)
  var n=actor.native
- var peak_head:=0.0
  for state in [&'walk',&'run']:
   var scale:=1.0 if state==&'walk' else 2.0
   for phase in [.25,.75]:
@@ -30,8 +29,7 @@ func run():
    var neck:float=unleaned(actor,n.neck).get_euler().y
    var head:float=unleaned(actor,n.head).get_euler().y
    require(head*sign>0 and neck*sign>head*sign and yaw*sign>neck*sign,'Neck and head follow with a progressively smaller twist')
-   if state==&'walk':peak_head=absf(head)
-   else:require(absf(absf(head)/peak_head-7.0/3.0)<.02,'Head accompaniment follows the requested walk/run torso amplitudes')
+   require(absf(rad_to_deg(head)-sign*(2.35 if state==&'walk' else 5.15))<.04,'Head adds one degree in walk and two in run while staying below torso amplitude')
    var upper:Transform3D=n.posed[n.spine[2]]*n.inverse_rest[n.spine[2]]
    var lowered:=0
    for side in 2:
@@ -58,6 +56,8 @@ func run():
   actor.animate(&'start_run',.6,false,0,.25,Vector3.BACK)
   var yaw:float=unleaned(actor,n.spine[2]).get_euler().y
   require(absf(rad_to_deg(yaw)-lerpf(3,7,weight))<.05,'Sprint startup interpolates the visible spine amplitude smoothly between three and seven degrees')
+  var head:float=unleaned(actor,n.head).get_euler().y
+  require(absf(rad_to_deg(head)-lerpf(2.35,5.15,weight))<.06,'Head accompaniment blends smoothly through every intermediate sprint weight')
   for side in 2:
    var ids:Array=n.arms[side].ids
    for segment in 3:

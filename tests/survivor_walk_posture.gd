@@ -24,7 +24,7 @@ func run():
     var angles:=chest.get_euler();angles.y=pelvis.basis.get_euler().y+actor.Clips.Controls.sample(&"walk",phase).spine.y
     chest=Basis.from_euler(angles)
     var bones:Array=native.spine.duplicate();bones.append_array([native.neck,native.head])
-    var head_follow:Basis=Basis(Vector3.UP,actor.Clips.Controls.sample(&"walk",phase).chest.y*actor.Clips.Gait.HEAD_TWIST_SHARE)*actor.rig.posed[3].basis.orthonormalized()
+    var head_follow:Basis=Basis(Vector3.UP,actor.Clips.Gait.head_twist(actor.Clips.Controls.sample(&"walk",phase).chest.y,0))*actor.rig.posed[3].basis.orthonormalized()
     for i in bones.size():
      var bone:int=bones[i]
      var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(head_follow,.35) if i==3 else head_follow)
@@ -54,7 +54,7 @@ func run():
   var angles:Vector3=pose.body.basis.get_euler();angles.y=pelvis.basis.get_euler().y+actor.Clips.Controls.sample(&"run",phase).spine.y
   var chest:=Basis.from_euler(angles)
   var bones:Array=native.spine.duplicate();bones.append_array([native.neck,native.head])
-  var head_follow:Basis=Basis(Vector3.UP,actor.Clips.Controls.sample(&"run",phase).chest.y*actor.Clips.Gait.HEAD_TWIST_SHARE)*actor.rig.posed[3].basis.orthonormalized()
+  var head_follow:Basis=Basis(Vector3.UP,actor.Clips.Gait.head_twist(actor.Clips.Controls.sample(&"run",phase).chest.y,1))*actor.rig.posed[3].basis.orthonormalized()
   for i in bones.size():
    var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(head_follow,.35) if i==3 else head_follow)
    var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad([2.0,3.4,4.8,6.2,6.2][i]))*base
