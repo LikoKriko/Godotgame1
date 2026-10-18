@@ -1,0 +1,34 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/animation/characters/humanoid_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rig_id = &"survivor_native"
+reference_height = 64.0
+reference_width = 14.0
+reference_depth = 8.0
+bones = {
+  "root": "smartrig_Hips",
+  "spine": "smartrig_Spine2",
+  "neck": "smartrig_Neck",
+  "head": "smartrig_Head",
+  "arm_root_l": "smartrig_LeftArm",
+  "arm_mid_l": "smartrig_LeftForeArm",
+  "arm_end_l": "smartrig_LeftHand",
+  "leg_root_l": "smartrig_LeftUpLeg",
+  "leg_mid_l": "smartrig_LeftLeg",
+  "leg_end_l": "smartrig_LeftFoot",
+  "arm_root_r": "smartrig_RightArm",
+  "arm_mid_r": "smartrig_RightForeArm",
+  "arm_end_r": "smartrig_RightHand",
+  "leg_root_r": "smartrig_RightUpLeg",
+  "leg_mid_r": "smartrig_RightLeg",
+  "leg_end_r": "smartrig_RightFoot"
+}
+chains = {
+"arm_l": PackedStringArray("arm_root_l", "arm_mid_l", "arm_end_l"),
+"leg_l": PackedStringArray("leg_root_l", "leg_mid_l", "leg_end_l"),
+"arm_r": PackedStringArray("arm_root_r", "arm_mid_r", "arm_end_r"),
+"leg_r": PackedStringArray("leg_root_r", "leg_mid_r", "leg_end_r")
+}

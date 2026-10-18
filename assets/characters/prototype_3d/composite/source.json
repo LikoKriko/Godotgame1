@@ -1,0 +1,41 @@
+{
+  "author_height": 64,
+  "body_albedo_sha256": "e94bc731994895ec407990036b5dc5cc457d8188a8f0e6f155e1ae650c4ce1b0",
+  "fbx_sha256": "38225f96a62affdc03d38d1741631fb71ee55cbefb8e1e7bdfb01c3240b54322",
+  "game_height_m": 1.75,
+  "ground_profile": "ground_supports.tres",
+  "head_material": "face_materials_v1",
+  "head_sha256": "dd3d3deb77ddb6c48b5397fa9db7cb9c6d01f36fc4e177c80df2093314256211",
+  "head_source": "entregables/personajes/personaje1/source/approved_head_source.glb",
+  "head_source_commit": "7c93acb",
+  "native_height_m": 1.72656273841858,
+  "neck": {
+    "body_cut_m": 1.39453125,
+    "boundary_vertices": [
+      91,
+      64
+    ],
+    "head_cut_m": 1.434375,
+    "method": "Conforming angular zipper; shared boundary skin; source color gradient"
+  },
+  "original_bones": 66,
+  "profile": "res://data/animation/characters/survivor_native.tres",
+  "rig_method": "Original T-pose hierarchy, rest axes and inverse binds; original body skin; approved head bound to native Neck/Head",
+  "scene": "model.scn",
+  "source_fbx": "entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx",
+  "surfaces": [
+    {
+      "triangles": 19987,
+      "vertices": 18149
+    },
+    {
+      "triangles": 10524,
+      "vertices": 12514
+    },
+    {
+      "triangles": 155,
+      "vertices": 155
+    }
+  ],
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/Personaje1_Renewed_3d/psnj1_3d_rigged.fbx"
+}

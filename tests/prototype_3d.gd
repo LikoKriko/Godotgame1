@@ -14,29 +14,33 @@ func run():
  require(axe_visual is MeshInstance3D and axe_visual.mesh==load("res://assets/models/meshy/axe/model.res"),"Axe renders the supplied Meshy geometry instead of the retired procedural parts")
  var bind_mesh: Mesh = world.player.model.mesh_node.mesh
  require(world.player.model.rig.skeleton.get_bone_count()==24,"Humanoid has articulated bones, four cloth controls and four joint-volume collars")
- require(absf(world.player.model.mesh_node.mesh.get_aabb().size.y*world.player.model.scale.y-1.75)<0.001,"Survivor standing height is exactly 1.75 metres")
+ require(absf(world.player.model.author_bounds().size.y*world.player.model.scale.y-1.75)<0.001,"Survivor standing height is exactly 1.75 metres")
  var arrays: Array = bind_mesh.surface_get_arrays(0)
  var weights: PackedFloat32Array = arrays[Mesh.ARRAY_WEIGHTS]
  var normalized_weights := not weights.is_empty()
- for i in range(0,weights.size(),4):
-  normalized_weights = normalized_weights and absf(weights[i]+weights[i+1]+weights[i+2]+weights[i+3]-1)<0.001
+ var slots:int=weights.size()/arrays[Mesh.ARRAY_VERTEX].size()
+ for i in range(0,weights.size(),slots):
+  var total:=0.0
+  for slot in slots:total+=weights[i+slot]
+  normalized_weights=normalized_weights and absf(total-1)<0.001
  require(normalized_weights,"Every skin vertex has normalized weights")
  var body_material:Material=world.player.model.body_material
  var albedo:Texture2D=body_material.get_shader_parameter("albedo_map") if body_material is ShaderMaterial else body_material.albedo_texture
- require(albedo is Texture2D and albedo.resource_path=="res://assets/characters/prototype_3d/meshy/albedo.png","Original Meshy albedo is imported and assigned")
+ require(albedo is Texture2D and albedo.resource_path=="res://assets/characters/prototype_3d/composite/body_albedo.png","Original Meshy albedo is imported and assigned")
  var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
  var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
  var outward_torso := false
  for i in vertices.size():
-  if absf(vertices[i].x)<0.2 and vertices[i].y>39 and vertices[i].y<44 and vertices[i].z>5:
-   outward_torso = normals[i].z>0.5
+  var point:Vector3=world.player.model.native.frame*vertices[i]
+  if absf(point.x)<1 and point.y>39 and point.y<44 and point.z>5:
+   outward_torso = (world.player.model.native.frame.basis*normals[i]).normalized().z>0.5
    break
  require(outward_torso,"Torso normals face outward for correct lighting")
  for state in [&"idle",&"walk",&"run",&"crouch",&"crouch_walk",&"slide",&"jump",&"slide_jump",&"equip_walk",&"action"]:
   for i in 12:
    world.player.model.animate(state,i/11.0,true)
    require(world.player.model.grip_error<0.04,"Both hands retain their anatomical grip")
-   require(world.player.model.mesh_node.mesh.get_aabb().size.y>30,"Whole character has nonzero volume")
+   require(world.player.model.author_bounds().size.y>30,"Whole character has nonzero volume")
    var bones: Array[Transform3D] = world.player.model.rig.posed
    for side in 2:
     var arm := 4+side*3; var leg := 10+side*3
@@ -44,7 +48,7 @@ func run():
     require(absf(bones[leg].origin.distance_to(bones[leg+1].origin)-preload("res://scripts/prototype_3d/survivor_anatomy.gd").THIGH)<0.001,"Thigh retains bone length")
  require(world.player.model.mesh_node.mesh==bind_mesh,"Animation never rebuilds the skin mesh")
  world.player.model.animate(&"walk",0.2,false,0,0.2,Vector3.RIGHT)
- require(world.player.model.last_pose.legs[0].end.x>-3.4,"Strafe gait moves feet sideways relative to the facing direction")
+ require(absf(world.player.model.last_pose.legs[0].end.x+3.6)>1,"Strafe gait moves feet sideways relative to the facing direction")
  world.player.model.animate(&"walk",0.2,false,0,0.2,Vector3.FORWARD)
  require(world.player.model.last_pose.legs[0].end.z<0,"Backward gait follows the actual travel direction")
  var original:float=world.camera_rig.yaw;world.camera_rig.look(Vector2(100,100000))

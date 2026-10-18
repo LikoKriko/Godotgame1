@@ -129,12 +129,14 @@ Consultar `docs/MESHY_ASSETS.md` y los manifiestos source.json de assets para
 la fuente actual de cada modelo. Conservar los FBX, PNG, UV, geometría y rigs
 originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
 
-- Superviviente: Rugged Castaway 1017215425, 31182 triángulos, 1,75 m,
-  24 huesos con tela y volumen de articulaciones. Mantener skin_seams_v1 y
-  face_materials_v1 (máscaras de pelo/barba y relieve facial sutil);
-  regenerar mediante transferencia de piel, no con ligadura automática.
-  El runtime muestra survivor_axilla.res, con soporte local del sobaco; conservar
-  survivor_skin.res como fuente y regenerar según docs/ANIMATION_SYSTEMS.md.
+- Superviviente: cuerpo y rig originales en T de `Personaje1_Renewed_3d`,
+  `psnj1_3d_rigged.fbx`; cabeza aprobada Rugged Castaway y material
+  face_materials_v1. Runtime en `assets/characters/prototype_3d/composite/model.scn`,
+  66 huesos originales y altura de 1,75 m. Mantener la transición cerrada del
+  cuello, sus pesos compartidos y los ejes/binds nativos. El perfil visible es
+  survivor_native.tres; survivor.tres mantiene los controles compartidos de
+  contactos. Las superficies de meshy/ son donantes de autoría, no el cuerpo
+  visible. Regenerar según docs/ANIMATION_SYSTEMS.md.
 - Enemigo1: Mossclaw Boar 1016001519, 4036 triángulos de superficie, 0,875 m,
   25 huesos originales SmartRigArmature de modelo1_rig. Mantener jerarquía,
   ejes de reposo y ligadura original, con pesos interpolados en la superficie

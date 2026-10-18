@@ -1,0 +1,145 @@
+extends RefCounted
+## Native T-pose skin driven by shared gameplay contacts, without reweighting it
+## onto the retired A-pose skeleton. Native bind axes and bone lengths stay fixed.
+const PROFILE=preload("res://data/animation/characters/survivor_native.tres")
+const Binding=preload("res://scripts/animation/shared/rig_binding.gd")
+const Solver=preload("res://scripts/continuous_body_pose.gd")
+const Frames=preload("res://scripts/prototype_3d/human_kinematics.gd")
+const Clips=preload("res://scripts/prototype_3d/survivor_animation.gd")
+const GROUND=preload("res://assets/characters/prototype_3d/composite/ground_supports.tres")
+var ground=preload("res://scripts/animation/characters/skin_ground.gd").new()
+var ground_enabled:=true
+var binding=Binding.new()
+var writer=preload("res://scripts/animation/shared/skeleton_pose.gd").new()
+var skeleton:Skeleton3D
+var mesh:MeshInstance3D
+var frame:Transform3D
+var inverse_frame:Transform3D
+var rest:Array[Transform3D]=[]
+var inverse_rest:Array[Transform3D]=[]
+var posed:Array[Transform3D]=[]
+var local_globals:Array[Transform3D]=[]
+var parents:Array[int]=[]
+var arms:Array[Dictionary]=[]
+var legs:Array[Dictionary]=[]
+var driven:Dictionary={}
+var head:int
+var neck:int
+var hand_error:=0.0
+var hand_errors:Array[float]=[0.0,0.0]
+func configure(actor:Node3D,model:Node3D) -> void:
+ skeleton=model.find_children("*","Skeleton3D",true,false)[0]
+ mesh=model.find_children("*","MeshInstance3D",true,false)[0]
+ assert(binding.configure(skeleton,PROFILE),str(binding.errors))
+ frame=Transform3D.IDENTITY
+ var ancestor:Node3D=skeleton
+ while ancestor!=actor:
+  frame=ancestor.transform*frame;ancestor=ancestor.get_parent()
+ inverse_frame=frame.affine_inverse()
+ # Keep the full action envelope visible when limbs leave the T-pose bounds.
+ mesh.custom_aabb=inverse_frame*AABB(Vector3(-35,-15,-45),Vector3(70,105,90))
+ parents.assign(binding.parents)
+ for i in skeleton.get_bone_count():
+  rest.append(frame*binding.globals[i]);inverse_rest.append(rest[i].affine_inverse());posed.append(rest[i]);local_globals.append(binding.globals[i])
+ head=binding.bone(&"head");neck=binding.bone(&"neck")
+ for name in ["Hips","Spine","Spine1","Spine2","Neck","Head"]:driven[binding.names["smartrig_"+name]]=true
+ for side in 2:
+  var label:="Right" if side==0 else "Left"
+  var arm:Array[int]=[];var leg:Array[int]=[]
+  for part in ["Shoulder","Arm","ForeArm","Hand"]:arm.append(binding.names["smartrig_"+label+part])
+  for part in ["UpLeg","Leg","Foot"]:leg.append(binding.names["smartrig_"+label+part])
+  var y:=rest[arm[2]].origin.direction_to(rest[arm[1]].origin)
+  var z:=Vector3.DOWN;var x:=y.cross(z).normalized();z=x.cross(y).normalized()
+  var knuckle:int=binding.names["smartrig_"+label+"HandMiddle1"]
+  arms.append({"ids":arm,"a":rest[arm[1]].origin.distance_to(rest[arm[2]].origin),"b":rest[arm[2]].origin.distance_to(rest[arm[3]].origin),"palm":Basis(x,y,z).inverse(),"contact":(rest[knuckle].origin-rest[arm[3]].origin)*.5})
+  legs.append({"ids":leg,"a":rest[leg[0]].origin.distance_to(rest[leg[1]].origin),"b":rest[leg[1]].origin.distance_to(rest[leg[2]].origin)})
+  for id in arm+leg:driven[id]=true
+  var arm_axes:Array[Basis]=[];var leg_axes:Array[Basis]=[]
+  var arm_normal:=Vector3.UP*(1 if side==0 else -1)
+  var leg_chain:Dictionary={"root":rest[leg[0]].origin,"joint":rest[leg[1]].origin,"end":rest[leg[2]].origin}
+  for segment in 2:
+   arm_axes.append(Frames.frame(rest[arm[segment+2]].origin-rest[arm[segment+1]].origin,arm_normal).inverse()*rest[arm[segment+1]].basis)
+   leg_axes.append(Frames.segment_frame(leg_chain,segment).inverse()*rest[leg[segment]].basis)
+  arms[side].axes=arm_axes;legs[side].axes=leg_axes
+ writer.configure(parents)
+ ground.configure(mesh.mesh,rest,GROUND,mesh.skin)
+func aim(bone:int,child:int,a:Vector3,b:Vector3) -> void:
+ var rotation:=Basis(Quaternion(rest[bone].origin.direction_to(rest[child].origin),a.direction_to(b)))
+ posed[bone]=Transform3D(rotation*rest[bone].basis,a)
+func orient_chain(ids:Array[int],offset:int,chain:Dictionary,axes:Array) -> void:
+ for segment in 2:
+  posed[ids[offset+segment]]=Transform3D(Frames.segment_frame(chain,segment)*axes[segment],chain.root if segment==0 else chain.joint)
+func sync(control:RefCounted,pose:Dictionary) -> void:
+ var body:Transform3D=pose.body
+ var pelvis:Transform3D=pose.get("pelvis",body)
+ if pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:
+  var lower:float=Clips.pickup_weight(pose.phase)
+  body.origin.y-=lower;pelvis.origin.y-=lower
+ var head_rotation:Basis=control.posed[3].basis.orthonormalized()
+ for i in posed.size():
+  var rotation:=pelvis.basis if parents[i]<0 else body.basis
+  if i==neck:rotation=body.basis.slerp(head_rotation,.35)
+  if i==head:rotation=head_rotation
+  var origin:Vector3=pelvis*rest[i].origin if parents[i]<0 else posed[parents[i]]*(inverse_rest[parents[i]]*rest[i].origin)
+  posed[i]=Transform3D(rotation*rest[i].basis,origin)
+ hand_error=0
+ for side in 2:
+  var chain:Dictionary=arms[side];var ids:Array[int]=chain.ids
+  var source:int=4+side*3
+  var goal:Vector3=control.posed[source+2].origin
+  var palm_basis:Basis=control.posed[source+2].basis.orthonormalized()
+  var pickup:bool=side==1 and pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]
+  if pickup:palm_basis=palm_basis.rotated(body.basis.x,-.4*Clips.pickup_weight(pose.phase))
+  var free:bool=Clips.arm_is_free(pose,side) and pose.get("clip_state",&"") not in [&"action",&"death"] and not (side==1 and pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"])
+  if free:
+   goal=body*rest[ids[1]].origin+(goal-control.posed[source].origin)*((chain.a+chain.b)/19.0)
+   if pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:goal.y+=Clips.pickup_weight(pose.phase)
+  elif pickup or pose.get("clip_state",&"")==&"action" or (pose.get("family",&"")!=&"" and pose.get("clip_state",&"")!=&"death"):
+   var contact:Vector3=chain.contact*(2.0 if pose.get("family",&"")==&"" and pose.get("clip_state",&"")==&"action" else 1.0)
+   goal-=palm_basis*chain.palm*contact
+  var core:Vector3=posed[ids[0]].origin
+  var offset:Vector3=body.basis*(rest[ids[1]].origin-rest[ids[0]].origin)
+  var shoulder:Vector3=core+offset
+  # Clavicular protraction accommodates held contacts while respecting the
+  # original clavicle and arm lengths. Free arms use native proportions.
+  if shoulder.distance_to(goal)>chain.a+chain.b-.04:
+   var desired:Vector3=(goal-core).normalized()*offset.length()
+   var max_angle:=minf(offset.angle_to(desired),deg_to_rad(60))
+   var axis:=offset.cross(desired).normalized()
+   if axis.length_squared()>.1:
+    for step in range(1,17):
+     shoulder=core+offset.rotated(axis,max_angle*step/16.0)
+     if shoulder.distance_to(goal)<chain.a+chain.b-.04:break
+  aim(ids[0],ids[1],core,shoulder)
+  var pole:Vector3=control.posed[source+1].origin-control.posed[source].origin
+  var solved:=Solver.joint(shoulder,goal,chain.a,chain.b,pole)
+  orient_chain(ids,1,solved,chain.axes)
+  posed[ids[3]]=Transform3D(palm_basis*chain.palm*rest[ids[3]].basis,solved.end)
+  hand_errors[side]=solved.end.distance_to(goal)
+  if not free:hand_error=maxf(hand_error,hand_errors[side])
+  chain=legs[side];ids=chain.ids;source=10+side*3
+  var hip:Vector3=pelvis*rest[ids[0]].origin
+  var foot_rotation:Basis=control.posed[source+2].basis.orthonormalized()
+  var foot:Vector3=control.posed[source+2].origin+foot_rotation*(rest[ids[2]].origin-control.rest[source+2].origin)
+  pole=control.posed[source+1].origin-control.posed[source].origin
+  solved=Solver.joint(hip,foot,chain.a,chain.b,pole)
+  orient_chain(ids,0,solved,chain.axes)
+  posed[ids[2]]=Transform3D(foot_rotation*rest[ids[2]].basis,solved.end)
+ # Native fingers, toes and end bones inherit their actual native parents.
+ for i in posed.size():
+  if driven.has(i):continue
+  posed[i]=posed[parents[i]]*inverse_rest[parents[i]]*rest[i]
+  var label:String=skeleton.get_bone_name(i)
+  if "Hand" in label and ("Thumb" in label or "Index" in label or "Middle" in label or "Ring" in label or "Pinky" in label):
+   var grip:float=.08
+   var side:int=0 if "Right" in label else 1
+   if pose.get("family",&"")!=&"" and pose.get("clip_state",&"")!=&"death" and not Clips.arm_is_free(pose,side):grip=.8
+   elif pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:grip=.08+.65*Clips.pickup_weight(pose.phase)
+   elif pose.get("clip_state",&"")==&"action":grip=sin(clampf(pose.phase,0,1)*PI)
+   var axis:Vector3=rest[i].basis.inverse()*(rest[i].basis.y.normalized().cross(Vector3.DOWN)).normalized()
+   if axis.length_squared()>.00001:posed[i].basis=posed[i].basis*Basis(axis.normalized(),grip*(.45 if "Thumb" in label else .8))
+ if ground_enabled and pose.get("clip_state",&"")==&"death":
+  var lift:float=ground.correction(posed)*smoothstep(0,.025,pose.phase)
+  for i in posed.size():posed[i].origin.y+=lift
+ for i in posed.size():local_globals[i]=inverse_frame*posed[i]
+ writer.apply(skeleton,local_globals)

@@ -57,7 +57,7 @@ func configure(owner_game) -> void:
  var collision := CollisionShape3D.new(); collision.shape = capsule; collision.position.y = 0.875; add_child(collision)
  collision_layer = 2; collision_mask = 9
  model = preload("res://scripts/prototype_3d/survivor_model.gd").new(); add_child(model)
- var bounds: AABB=model.mesh_node.mesh.get_aabb()
+ var bounds: AABB=model.author_bounds()
  var unit:=Anatomy.HEIGHT_METRES/bounds.size.y
  model.scale=Vector3.ONE*unit;model.position.y=-bounds.position.y*unit;model.rotation.y=PI
  model.animate(&"idle",0,equipped)

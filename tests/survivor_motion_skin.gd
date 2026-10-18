@@ -1,5 +1,6 @@
 extends SceneTree
-## Inspect all visible skin vertices, including toes and knees between keys.
+## Inspect the contact-authoring support skin; native_survivor_model.gd covers
+## the supplied T-pose rig and the visible composite.
 const Clips=preload("res://scripts/prototype_3d/survivor_animation.gd")
 var failures:=0
 var checks:=0
@@ -30,7 +31,7 @@ func anatomy(actor):
  for bone in [2,3]:require(absf(actor.rig.posed[bone].origin.distance_to(actor.rig.posed[bone-1].origin)-actor.rig.rest[bone].origin.distance_to(actor.rig.rest[bone-1].origin))<.0001,"Neck/head remain attached at the original length")
 func run():
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor)
- var arrays:Array=actor.mesh_node.mesh.surface_get_arrays(0);vertices=arrays[Mesh.ARRAY_VERTEX];bones=arrays[Mesh.ARRAY_BONES];weights=arrays[Mesh.ARRAY_WEIGHTS]
+ var arrays:Array=actor.AXILLA_SKIN.surface_get_arrays(0);vertices=arrays[Mesh.ARRAY_VERTEX];bones=arrays[Mesh.ARRAY_BONES];weights=arrays[Mesh.ARRAY_WEIGHTS]
  var worst:=INF
  for state in Clips.SLIDE_STATES+[&"death"]:
   for frame in 61:

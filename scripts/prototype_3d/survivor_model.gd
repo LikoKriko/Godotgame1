@@ -2,6 +2,8 @@ extends Node3D
 ## Original Meshy survivor supplied by the user; shared mesh, independent rig.
 const IMPORTED_SKIN=preload("res://assets/characters/prototype_3d/meshy/survivor_skin.res")
 const AXILLA_SKIN=preload("res://assets/characters/prototype_3d/meshy/survivor_axilla.res")
+const NATIVE_MODEL=preload("res://assets/characters/prototype_3d/composite/model.scn")
+var native=preload("res://scripts/animation/characters/native_survivor.gd").new()
 const Pose=preload("res://scripts/continuous_body_pose.gd")
 const Clips=preload("res://scripts/prototype_3d/survivor_animation.gd")
 const Anatomy=preload("res://scripts/prototype_3d/survivor_anatomy.gd")
@@ -46,10 +48,12 @@ func begin_equipment_transition() -> void:
  if displayed_pose.is_empty():equipment_from.clear();return
  equipment_from={"body":displayed_pose.body,"pelvis":displayed_pose.get("pelvis",displayed_pose.body),"hands":[rig.posed[6].origin,rig.posed[9].origin],"poles":[rig.posed[5].origin-rig.posed[4].origin,rig.posed[8].origin-rig.posed[7].origin],"palms":[rig.posed[6].basis.orthonormalized(),rig.posed[9].basis.orthonormalized()],"forearms":[rig.posed[5].basis.orthonormalized(),rig.posed[8].basis.orthonormalized()],"axes":[rig.posed[4].origin.direction_to(rig.posed[6].origin),rig.posed[7].origin.direction_to(rig.posed[9].origin)]}
 func _ready() -> void:
- mesh_node=MeshInstance3D.new();add_child(mesh_node)
- mesh_node.mesh=AXILLA_SKIN
- body_material=AXILLA_SKIN.surface_get_material(0)
- rig.initialize_imported(self,mesh_node)
+ # Keep the shared gameplay contact solver; only the supplied native rig skins
+ # the visible body. The contact skeleton has no mesh attached to it.
+ var control:=MeshInstance3D.new();add_child(control)
+ rig.initialize_imported(self,control);control.queue_free()
+ var model:=NATIVE_MODEL.instantiate();add_child(model);native.configure(self,model)
+ mesh_node=native.mesh;body_material=mesh_node.mesh.surface_get_material(0)
  ground.configure(AXILLA_SKIN,rig.rest)
  axe = preload("res://scripts/prototype_3d/stone_axe.gd").new(); add_child(axe)
  for socket in [grip_socket,support_socket,tip_socket]: add_child(socket)
@@ -210,6 +214,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   tip_socket.position=tool_tip
  rig.apply(last_pose,hands,delta)
  if state==&"death" and ground_enabled:ground_clearance(smoothstep(0,.025,phase) if delta>0 else 1.0)
+ native.sync(rig,last_pose)
  leaf_armor.transform=last_pose.body
  leaf_armor.update_pose(rig,last_pose.body)
  parry_pulse.update_hands([rig.posed[6].origin,rig.posed[9].origin])
@@ -230,6 +235,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
 func can_reach_contact(point: Vector3,family:StringName=&"axe") -> bool:
  var contact_pose := Clips.sample(family,&"action",0.5,0,Vector3.ZERO,point,{},action_crouch,punch_side)
  return contact_pose.get("contact_reachable",false)
+func author_bounds() -> AABB:return native.frame*mesh_node.mesh.get_aabb()
 func wear(item:Dictionary) -> void:leaf_armor.visible=item.get("id")==&"burdock_armor"
 func confirm_parry() -> void:
  parry_pulse.play()

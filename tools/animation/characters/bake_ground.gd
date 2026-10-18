@@ -2,7 +2,7 @@ extends SceneTree
 func _initialize():call_deferred("run")
 func run():
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor);actor.ground_enabled=false
- var arrays:Array=actor.mesh_node.mesh.surface_get_arrays(0);var v:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var ids:PackedInt32Array=arrays[Mesh.ARRAY_BONES];var w:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
+ var arrays:Array=actor.AXILLA_SKIN.surface_get_arrays(0);var v:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var ids:PackedInt32Array=arrays[Mesh.ARRAY_BONES];var w:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
  var chosen:Dictionary={}
  var entries:Array=load("res://scripts/prototype_3d/survivor_animation.gd").SLIDE_STATES.duplicate()
  entries.append_array([&"idle",&"run",&"crouch",&"action"])

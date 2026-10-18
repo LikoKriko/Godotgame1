@@ -22,7 +22,7 @@ func build_portrait() -> void:
  portrait_view.transparent_bg=true;portrait_view.own_world_3d=true
  portrait_view.render_target_update_mode=SubViewport.UPDATE_DISABLED;add_child(portrait_view)
  portrait_actor=preload("res://scripts/prototype_3d/survivor_model.gd").new();portrait_view.add_child(portrait_actor)
- var bounds:AABB=portrait_actor.mesh_node.mesh.get_aabb()
+ var bounds:AABB=portrait_actor.author_bounds()
  portrait_actor.scale=Vector3.ONE*(1.75/bounds.size.y);portrait_actor.position.y=-bounds.position.y*portrait_actor.scale.y
  portrait_actor.animate(&"idle",0,false)
  var camera:=Camera3D.new();camera.position=Vector3(0,0.96,3.1);camera.look_at_from_position(camera.position,Vector3(0,0.93,0));camera.fov=38;portrait_view.add_child(camera)

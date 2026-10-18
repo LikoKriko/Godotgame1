@@ -3,10 +3,24 @@ extends RefCounted
 ## no mesh rebuild, full-mesh scan or collision query occurs at runtime.
 const PROFILE=preload("res://assets/characters/prototype_3d/motion/ground_supports.res")
 var supports:Array[Array]=[]
-func configure(mesh:Mesh,rest:Array[Transform3D]) -> void:
-
+func configure(mesh:Mesh,rest:Array[Transform3D],profile:Resource=PROFILE,skin:Skin=null) -> void:
+ supports.clear()
+ if skin!=null:
+  var surfaces:Array=[]
+  for surface in mesh.get_surface_count():surfaces.append(mesh.surface_get_arrays(surface))
+  for record:Vector2i in profile.get_meta("vertices",[]):
+   var arrays:Array=surfaces[record.x];var index:int=record.y
+   var slots:int=arrays[Mesh.ARRAY_BONES].size()/arrays[Mesh.ARRAY_VERTEX].size()
+   var point:Array=[]
+   for slot in slots:
+    var weight:float=arrays[Mesh.ARRAY_WEIGHTS][index*slots+slot]
+    if weight<=0:continue
+    var bind:int=arrays[Mesh.ARRAY_BONES][index*slots+slot]
+    point.append([skin.get_bind_bone(bind),(skin.get_bind_pose(bind)*arrays[Mesh.ARRAY_VERTEX][index])*weight,weight])
+   supports.append(point)
+  return
  var arrays:Array=mesh.surface_get_arrays(0)
- for index in PROFILE.get_meta("vertices"):
+ for index in profile.get_meta("vertices"):
   if int(index)>=arrays[Mesh.ARRAY_VERTEX].size():continue
   var point:Array=[]
   for slot in 4:

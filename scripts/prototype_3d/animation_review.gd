@@ -25,7 +25,7 @@ func _ready() -> void:
  var ambient:=WorldEnvironment.new();var environment:=Environment.new();environment.background_mode=Environment.BG_COLOR
  environment.background_color=Color("444c51");environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;environment.ambient_light_color=Color("bbb4a6");environment.ambient_light_energy=0.7;ambient.environment=environment;add_child(ambient)
  actor=(preload("res://scripts/prototype_3d/young_model.gd") if species==&"young" else preload("res://scripts/prototype_3d/survivor_model.gd")).new();add_child(actor)
- var bounds: AABB=actor.mesh_node.mesh.get_aabb();actor.scale=Vector3.ONE*((0.875 if species==&"young" else 1.75)/bounds.size.y);actor.position.y=-bounds.position.y*actor.scale.y
+ var bounds: AABB=actor.mesh_node.mesh.get_aabb() if species==&"young" else actor.author_bounds();actor.scale=Vector3.ONE*((0.875 if species==&"young" else 1.75)/bounds.size.y);actor.position.y=-bounds.position.y*actor.scale.y
  add_child(camera);camera.current=true;camera.fov=48
  var floor_node:=MeshInstance3D.new();var plane:=PlaneMesh.new();plane.size=Vector2(10,10);floor_node.mesh=plane;add_child(floor_node)
  var layer:=CanvasLayer.new();add_child(layer);var column:=VBoxContainer.new();column.position=Vector2(20,20);layer.add_child(column)

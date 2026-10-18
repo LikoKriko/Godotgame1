@@ -1,5 +1,6 @@
 extends SceneTree
-## Regression coverage for the actual imported feet, fingers and falling skin.
+## Regression coverage for the shared contact-authoring donor. The visible
+## native skin and neck join are verified in native_survivor_model.gd.
 
 const Clips=preload("res://scripts/prototype_3d/survivor_animation.gd")
 var checks:=0
@@ -10,7 +11,8 @@ func require(value:bool,message:String):
 func _initialize():call_deferred("run")
 func run():
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor)
- var mesh:Mesh=actor.mesh_node.mesh
+ var mesh:Mesh=actor.AXILLA_SKIN
+ var native_mesh:Mesh=actor.mesh_node.mesh
  var arrays:Array=mesh.surface_get_arrays(0)
  var source_arrays:Array=actor.IMPORTED_SKIN.surface_get_arrays(0)
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
@@ -95,7 +97,7 @@ func run():
     if state==&"death":
      require(not actor.axe.visible,"Death releases the axe visual and its grasp constraint")
      for prop in actor.held_props.values():require(not prop.visible,"Death hides the carried prop while the hands settle")
- require(actor.mesh_node.mesh==mesh and mesh==actor.AXILLA_SKIN,"Every action shares the derived axillary surface")
+ require(actor.mesh_node.mesh==native_mesh and mesh==actor.AXILLA_SKIN,"Shared contacts and native rendering retain their separate immutable surfaces")
  actor.family_override=&"";actor.aim_contact=Vector3(4,3,20);actor.animate(&"pickup",.5,false)
  require(actor.rig.posed[9].origin.distance_to(actor.aim_contact)<.03,"Wrist rotation clears the fingers without moving the E contact")
  actor.free();print("%s: %d Meshy bind, visible skin support, pickup wrist and death equipment checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

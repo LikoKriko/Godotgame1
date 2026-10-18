@@ -1,5 +1,6 @@
 extends SceneTree
-## Tests the rendered skin (CPU skinning), not just reachable hand/foot targets.
+## Regression of the shared contact-authoring skin. Native rendering is covered
+## independently by native_survivor_model.gd.
 const Clips=preload("res://scripts/prototype_3d/survivor_animation.gd")
 const Kinematics=preload("res://scripts/prototype_3d/human_kinematics.gd")
 var checks:=0
@@ -16,7 +17,7 @@ func deform(point:Vector3,ids:PackedInt32Array,weights:PackedFloat32Array,index:
  return result
 func run():
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor)
- var arrays:Array=actor.mesh_node.mesh.surface_get_arrays(0)
+ var arrays:Array=actor.AXILLA_SKIN.surface_get_arrays(0)
  var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
  var ids:PackedInt32Array=arrays[Mesh.ARRAY_BONES]
  var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]

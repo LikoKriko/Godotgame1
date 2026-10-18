@@ -60,7 +60,7 @@ func run():
  var actor=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(actor)
  var other=load("res://scripts/prototype_3d/survivor_model.gd").new();root.add_child(other)
  require(actor.mesh_node.mesh==other.mesh_node.mesh,"World and portrait reuse the same immutable source mesh")
- require(actor.rig.skeleton!=other.rig.skeleton and actor.mesh_node.skin!=other.mesh_node.skin,"Each survivor owns an independent pose and skin binding")
+ require(actor.rig.skeleton!=other.rig.skeleton and actor.native.skeleton!=other.native.skeleton,"Shared immutable skin bindings retain independent control and native poses")
  var rest:Transform3D=other.rig.skeleton.get_bone_global_pose(7)
  actor.family_override=&"axe";actor.animate(&"action",0.5,true)
  require(other.rig.skeleton.get_bone_global_pose(7).is_equal_approx(rest),"Animating one character cannot move another")

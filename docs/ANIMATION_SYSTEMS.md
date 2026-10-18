@@ -2,18 +2,53 @@
 
 ## Personajes
 
-`scripts/animation/characters/humanoid_profile.gd` define una anatomía humanoide
-común: raíz, torso, cabeza, dos brazos y dos piernas. El recurso del superviviente
-está en `data/animation/characters/survivor.tres`; el rig real lo enlaza al
-prepararse y conserva sus 24 huesos, incluidos tela y volúmenes articulares.
+`scripts/animation/characters/humanoid_profile.gd` define la anatomía humanoide
+compartida. `data/animation/characters/survivor.tres` describe los 24 controles
+históricos de contactos y ropa, sin una malla visible. El cuerpo del jugador
+usa `survivor_native.tres`: los **66 huesos originales** de
+`psnj1_3d_rigged.fbx`, con referencia en T y pesos propios. Su escena está en
+`assets/characters/prototype_3d/composite/model.scn`.
 
-Los modelos humanoides compatibles pueden compartir clips y adaptar sus
-referencias de altura, anchura y profundidad. `adapt_contact(offset, target)`
-convierte un desplazamiento respecto de un anclaje corporal acordado a las
-proporciones del destino. Las medidas están en unidades del rig: el superviviente
-usa 64 unidades de altura, con conversión a 1,75 m en el juego. Los destinos
-conservan la longitud de sus propios huesos y sus anclajes de herramientas.
-No aplicar una deformación global del modelo para corregir una mano o un pie.
+`native_survivor.gd` enlaza ese rig mediante `RigBinding` y aplica las poses
+mediante `SkeletonPose`. Conserva las longitudes y ejes nativos; usa los planos
+articulares compartidos para orientar brazos y piernas. Las curvas existentes
+siguen proporcionando ritmo, cuerpo y contactos. Las extremidades libres
+adaptan su alcance a las proporciones nuevas; las manos ocupadas resuelven IK
+hacia los contactos, incluyendo proyección de clavículas y el centro real de
+la palma. El lado 0 de los controles corresponde a Right del rig suministrado;
+el lado 1 a Left. Los dedos originales acompañan los agarres. El modelo y el retrato
+comparten la malla y los binds inmutables, con esqueletos independientes.
+
+La cabeza aprobada conserva sus UV, normales, tangentes, máscaras y materiales.
+Se liga a Neck/Head del rig nuevo. Dos contornos del cuello se unen con
+triángulos conformes y los mismos pesos en sus bordes; el color de transición
+procede de ambas fuentes. No superponer dos cuellos ni dejar una cabeza rígida
+separada del cuerpo. La referencia completa mide 64 unidades de autoría y se
+convierte a 1,75 m; consultar `author_bounds()` para encuadrar o escalar instancias.
+
+Las fuentes originales y `approved_head_source.glb` están en
+`entregables/personajes/personaje1/source/`, excluidas de importación automática.
+La instantánea de cabeza conserva la aprobación anterior y permite regenerar
+sin depender de cambios posteriores del donante de sobacos. Para preparar la
+composición desde la raíz, con Blender 4.3+ y Godot 4.7:
+
+```sh
+blender -b -t 6 --python tools/meshy/build_composite.py -- \
+  entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx \
+  entregables/personajes/personaje1/source/approved_head_source.glb \
+  /tmp/survivor-composite/composite.glb
+cp /tmp/survivor-composite/body_albedo.png assets/characters/prototype_3d/composite/body_albedo.png
+godot --headless --editor --path . --import
+godot --headless --path . --script tools/meshy/bake_composite.gd -- /tmp/survivor-composite/composite.glb
+godot --headless --path . --script tools/animation/characters/bake_native_ground.gd
+```
+
+La preparación compara jerarquía, ejes de reposo y binds con una exportación
+independiente del FBX nuevo. `rig.json` y `source.json` contienen los parámetros
+vigentes. El apoyo durante la caída reutiliza `SkinGround` con un conjunto
+horneado de puntos reales de las tres superficies; no recorre la malla completa
+durante el juego. Si cambian las curvas de control, regenerar también estos
+apoyos nativos. No transferir los pesos antiguos del cuerpo al rig en T.
 
 ## Enemigos
 
@@ -100,19 +135,13 @@ La caída de 3 s apoya primero las rodillas y termina boca abajo, con brazos y
 piernas abiertos. Un conjunto reducido de apoyos de la piel real mantiene el
 contacto con el suelo, incluyendo interrupciones desde posturas bajas.
 
-La superficie `meshy/survivor_axilla.res` deriva de `survivor_skin.res`: añade
-bucles de soporte locales al pliegue del sobaco y suaviza la transición de
-pesos entre costillas y húmero. Conserva las posiciones y UV originales y los
-24 huesos; los archivos de origen y las texturas se mantienen intactos.
-La espalda interior queda ligada al tórax. No añade una lámina superpuesta.
-
-Después de actualizar la malla o los pesos del personaje, regenerar en orden:
-
-```sh
-godot --headless --path . --script tools/animation/characters/build_axilla.gd
-godot --headless --path . --script tools/animation/characters/bake_controls.gd
-godot --headless --path . --script tools/animation/characters/bake_ground.gd
-```
+La superficie `meshy/survivor_axilla.res` se conserva como donante del
+sistema de autoría de contactos y para sus verificaciones históricas. No es la
+malla visible del jugador. Sus bucles del sobaco y 24 controles pertenecen a
+ese sistema. `build_axilla.gd`, `bake_controls.gd` y `bake_ground.gd` regeneran
+esos recursos cuando cambia la autoría compartida; después de cambiar curvas,
+regenerar también `bake_native_ground.gd`. No reemplazar la composición visible
+por ese donante ni reconstruir su cabeza aprobada desde él.
 
 Referencias de autoría: [marcha](https://www.animationmentor.com/blog/tutorial-animating-human-walk-cycle/),
 [carrera](https://www.animationmentor.com/blog/animating-dynamic-run-cycles/),

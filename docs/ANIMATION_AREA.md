@@ -2,7 +2,8 @@
 
 ## Anatomía y continuidad
 
-El superviviente utiliza un esqueleto de 24 huesos; enemigo1, sus 25 huesos originales;
+El superviviente conserva el rig original en T de 66 huesos, guiado por los
+24 controles compartidos de contactos; enemigo1, sus 25 huesos originales;
 enemigo3 conserva sus 35 huesos originales. Las animaciones mantienen longitudes
 óseas, agarres y unión de piel y vestimenta. Los cambios de estado parten de la
 pose visible y mezclan de forma continua con la siguiente acción.
@@ -39,8 +40,8 @@ Los tiempos proceden de `survivor_animation.gd`. Las trayectorias de marcha,
 carrera, salto, deslizamiento, herramientas y caída usan las curvas compartidas
 reducidas de `motion/controls.res`. Ver [ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md)
 para tolerancias y regeneración. La muerte apoya rodillas y termina boca abajo.
-La superficie derivada del sobaco incorpora soporte local sin cambiar el rig.
- La orientación de mira usa
+El cuerpo nuevo y la cabeza aprobada comparten una transición cerrada de cuello
+y los pesos del rig nativo. La orientación de mira usa
 `facing_delay.gd`; la respuesta de movimiento, `movement_response.gd`.
 Los golpes fijan el objetivo al iniciarse; el arco sigue la mira al tensar.
 La velocidad base es 2 m/s caminando y 4,48 m/s corriendo, antes de modificadores.

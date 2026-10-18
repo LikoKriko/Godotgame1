@@ -57,7 +57,7 @@ func run():
   rotation_step=maxf(rotation_step,previous.get_rotation_quaternion().angle_to(current.get_rotation_quaternion()));previous=current
  require(excursion<reference.support.excursion*.75,"The supporting forearm rotates substantially less through the punch")
  require(rotation_step<reference.support.step*.5 and rotation_step<.12,"Support-arm entry and recovery are slower and avoid an initial forearm flip")
- var arrays:=actor.mesh_node.mesh.surface_get_arrays(0);var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var indices:PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
+ var arrays:=actor.AXILLA_SKIN.surface_get_arrays(0);var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var indices:PackedInt32Array=arrays[Mesh.ARRAY_INDEX]
  var bones:PackedInt32Array=arrays[Mesh.ARRAY_BONES];var weights:PackedFloat32Array=arrays[Mesh.ARRAY_WEIGHTS]
  var selected:Dictionary={};var edges:Dictionary={}
  for i in vertices.size():
