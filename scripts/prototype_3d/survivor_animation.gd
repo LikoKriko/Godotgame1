@@ -16,6 +16,8 @@ const RUN_PLAYBACK_RATE:=.60
 const ARM_SWING_SCALE:=0.9
 const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right"]
 const RUN_HIP_SCALE:=.7
+const GAIT_HIP_MOTION:=.45
+const SWORD_BALANCE_MOTION:=.80
 const FAMILIES: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow",&"bottle",&"food",&"carried"]
 const STATES: Array[StringName] = [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right",&"jump",&"slide_jump",&"equip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk",&"unequip",&"action",&"draw",&"bow_release",&"pickup",&"pickup_walk",&"eat",&"eat_walk",&"drink",&"drink_walk",&"parry",&"hurt",&"death"]
 
@@ -135,6 +137,9 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var reach:=cycle_distance(1.0 if gait_state==&"run" else 0.0)*support*.5/(Anatomy.HEIGHT_METRES/64)*stride*GAIT_STRIDE_LENGTH
   var lane:=maxf(Anatomy.HIP.x,Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*.5+absf(travel.dot(pose.leg_frame.x))*reach*1.04)
   pose.stance_lane=lane
+  # The run return arc briefly extends beyond the stance endpoints.
+  pose.gait_extent=reach*(1.18 if gait_state==&"run" else 1.05)
+  pose.gait_travel=travel
   for side in 2:
    var foot:Vector3=keys.foot_l if side==0 else keys.foot_r
    if gait_state==&"walk" and absf(travel.x)>.001:
@@ -191,7 +196,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var horizontal:=Vector2(outward.x,outward.z).normalized()*sqrt(maxf(0,18.3*18.3-lower_y*lower_y))
   var counterweight:Vector3=pose.shoulders[free_side]+body.basis*Vector3(horizontal.x,lower_y,horizontal.y)
   var relaxed:Dictionary=relaxed_arm(pose,free_side)
-  pose.hands[free_side]=relaxed.end.lerp(counterweight,opening)
+  pose.hands[free_side]=relaxed.end.lerp(counterweight,opening*SWORD_BALANCE_MOTION)
  if family==&"bow":Weapons.bow(pose,state,phase,contact)
  if family==&"bottle" and state in [&"idle",&"walk",&"run",&"crouch",&"crouch_walk"]:
   pose.grip=body*Vector3(-10 if pose.active==0 else 10,32,8)
@@ -397,6 +402,13 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
    pelvis.origin+=pelvis.basis*pivot-reduced*pivot
    pelvis.basis=reduced
    pelvis.origin.y+=(1-RUN_HIP_SCALE)*.65*cos(cycle*TAU*2)*amount
+  if striding:
+   # Reduce total gait rotation, retaining the constant forward lean. Scaling
+   # only the counter-rotation would actually increase the final hip swing.
+   var pivot_world:Vector3=pelvis*pivot
+   var calm:=Basis(Vector3.RIGHT,pelvis.basis.get_euler().x)
+   pelvis.basis=calm.slerp(pelvis.basis,GAIT_HIP_MOTION)
+   pelvis.origin=pivot_world-pelvis.basis*pivot
   var change:=chest*original.affine_inverse()
   pose.body=chest
   pose.pelvis=pelvis
@@ -422,6 +434,14 @@ static func lengthen_stride(pose:Dictionary,horizontal_scale:float=STRIDE_SCALE)
   var horizontal:=Vector2(ankle.x-hip.x,ankle.z-hip.z).length_squared()
   var vertical:=sqrt(maxf(0.01,pow(Anatomy.THIGH+Anatomy.SHIN-0.08,2)-horizontal))
   settle=maxf(settle,hip.y-ankle.y-vertical)
+  if pose.has("gait_extent"):
+   # Reserve reach for both ends of the whole step. Per-frame reach correction
+   # otherwise pumps the hips up/down by several units at each foot transfer.
+   for sign_value in [-1.0,1.0]:
+    var extreme:Vector3=neutral+pose.gait_travel*pose.gait_extent*sign_value
+    var distance_xz:=Vector2(extreme.x-hip.x,extreme.z-hip.z).length_squared()
+    var height:=sqrt(maxf(.01,pow(Anatomy.THIGH+Anatomy.SHIN-.08,2)-distance_xz))
+    settle=maxf(settle,hip.y-2.1-height)
  var down:=Vector3.DOWN*settle
  pose.body.origin+=down;pose.grip+=down
  for side in 2:
@@ -568,7 +588,8 @@ static func keyed_locomotion(pose:Dictionary,state:StringName,phase:float) -> vo
  var original:Transform3D=pose.body
  var basis:=Basis.from_euler(keys.chest)
  var pivot:=Vector3(0,Anatomy.HIP.y,0)
- var next:=Transform3D(basis,pivot-basis*pivot+keys.body)
+ var sway:Vector3=keys.body*GAIT_HIP_MOTION
+ var next:=Transform3D(basis,pivot-basis*pivot+sway)
  var change:=next*original.affine_inverse()
  pose.body=next;pose.grip=change*pose.grip;pose.shaft=change.basis*pose.shaft
  for side in 2:

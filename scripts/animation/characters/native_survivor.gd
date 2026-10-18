@@ -69,8 +69,20 @@ func aim(bone:int,child:int,a:Vector3,b:Vector3) -> void:
 func orient_chain(ids:Array[int],offset:int,chain:Dictionary,axes:Array) -> void:
  for segment in 2:
   posed[ids[offset+segment]]=Transform3D(Frames.segment_frame(chain,segment)*axes[segment],chain.root if segment==0 else chain.joint)
+func untwisted_chain(ids:Array[int],offset:int,chain:Dictionary,reference:Basis) -> void:
+ # Swing each native bone from its bind axis without importing the contact
+ # rig's axial roll into the trouser fabric or the relaxed upper arm.
+ for segment in 2:
+  var bone:int=ids[offset+segment];var child:int=ids[offset+segment+1]
+  var a:Vector3=chain.root if segment==0 else chain.joint
+  var b:Vector3=chain.joint if segment==0 else chain.end
+  var from:Vector3=reference*(rest[child].origin-rest[bone].origin).normalized()
+  var swing:=Basis(Quaternion(from,a.direction_to(b)))
+  posed[bone]=Transform3D(swing*reference*rest[bone].basis,a)
+
 func sync(control:RefCounted,pose:Dictionary) -> void:
  var body:Transform3D=pose.body
+ var gait:bool=pose.get("clip_state",&"") in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"]
  var pelvis:Transform3D=pose.get("pelvis",body)
  if pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:
   var lower:float=Clips.pickup_weight(pose.phase)
@@ -90,7 +102,8 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
   var palm_basis:Basis=control.posed[source+2].basis.orthonormalized()
   var pickup:bool=side==1 and pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]
   if pickup:palm_basis=palm_basis.rotated(body.basis.x,-.4*Clips.pickup_weight(pose.phase))
-  var free:bool=Clips.arm_is_free(pose,side) and pose.get("clip_state",&"") not in [&"action",&"death"] and not (side==1 and pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"])
+  var balancing:bool=pose.get("family",&"")==&"sword" and pose.get("clip_state",&"")==&"action" and side!=pose.active
+  var free:bool=balancing or Clips.arm_is_free(pose,side) and pose.get("clip_state",&"") not in [&"action",&"death"] and not (side==1 and pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"])
   if free:
    goal=body*rest[ids[1]].origin+(goal-control.posed[source].origin)*((chain.a+chain.b)/19.0)
    if pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:goal.y+=Clips.pickup_weight(pose.phase)
@@ -113,7 +126,8 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
   aim(ids[0],ids[1],core,shoulder)
   var pole:Vector3=control.posed[source+1].origin-control.posed[source].origin
   var solved:=Solver.joint(shoulder,goal,chain.a,chain.b,pole)
-  orient_chain(ids,1,solved,chain.axes)
+  if balancing:untwisted_chain(ids,1,solved,body.basis)
+  else:orient_chain(ids,1,solved,chain.axes)
   posed[ids[3]]=Transform3D(palm_basis*chain.palm*rest[ids[3]].basis,solved.end)
   hand_errors[side]=solved.end.distance_to(goal)
   if not free:hand_error=maxf(hand_error,hand_errors[side])
@@ -123,7 +137,8 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
   var foot:Vector3=control.posed[source+2].origin+foot_rotation*(rest[ids[2]].origin-control.rest[source+2].origin)
   pole=control.posed[source+1].origin-control.posed[source].origin
   solved=Solver.joint(hip,foot,chain.a,chain.b,pole)
-  orient_chain(ids,0,solved,chain.axes)
+  if gait:untwisted_chain(ids,0,solved,pelvis.basis)
+  else:orient_chain(ids,0,solved,chain.axes)
   posed[ids[2]]=Transform3D(foot_rotation*rest[ids[2]].basis,solved.end)
  # Native fingers, toes and end bones inherit their actual native parents.
  for i in posed.size():
@@ -135,7 +150,7 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
    var side:int=0 if "Right" in label else 1
    if pose.get("family",&"")!=&"" and pose.get("clip_state",&"")!=&"death" and not Clips.arm_is_free(pose,side):grip=.8
    elif pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:grip=.08+.65*Clips.pickup_weight(pose.phase)
-   elif pose.get("clip_state",&"")==&"action":grip=sin(clampf(pose.phase,0,1)*PI)
+   elif pose.get("clip_state",&"")==&"action" and not (pose.get("family",&"")==&"sword" and side!=pose.active):grip=sin(clampf(pose.phase,0,1)*PI)
    var axis:Vector3=rest[i].basis.inverse()*(rest[i].basis.y.normalized().cross(Vector3.DOWN)).normalized()
    if axis.length_squared()>.00001:posed[i].basis=posed[i].basis*Basis(axis.normalized(),grip*(.45 if "Thumb" in label else .8))
  if ground_enabled and pose.get("clip_state",&"")==&"death":

@@ -77,5 +77,30 @@ func run():
   for phase in [.25,.5,.75]:
    actor.animate(&"draw" if family==&"bow" else (&"drink" if family==&"bottle" else &"action"),phase,family==&"axe",0,phase)
    require(native.hand_error<.08,"Native palms reach held contacts: %s %.2f %.6f"%[family,phase,native.hand_error])
+ # Use the real directional gait, not only the zero-movement authoring poses.
+ actor.family_override=&""
+ for state in [&"walk",&"run"]:
+  for direction in [Vector3.BACK,Vector3.FORWARD,Vector3.LEFT,Vector3.RIGHT,Vector3(-1,0,1).normalized(),Vector3(1,0,1).normalized(),Vector3(-1,0,-1).normalized(),Vector3(1,0,-1).normalized()]:
+   var minimum:=INF;var maximum:=-INF
+   var previous:Array=[]
+   for frame in 65:
+    var phase:=frame/64.0
+    actor.animate(state,phase,false,0,phase,direction)
+    var hip:Vector3=actor.last_pose.pelvis*Vector3(0,31,0)
+    minimum=minf(minimum,hip.y);maximum=maxf(maximum,hip.y)
+    for side in 2:
+     var bone:int=native.legs[side].ids[0]
+     var rotation:Quaternion=native.posed[bone].basis.get_rotation_quaternion()
+     if not previous.is_empty():require(rotation.angle_to(previous[side])<.5,"Native trouser/thigh rotation stays continuous through support transfer")
+    previous=[native.posed[native.legs[0].ids[0]].basis.get_rotation_quaternion(),native.posed[native.legs[1].ids[0]].basis.get_rotation_quaternion()]
+   require(maximum-minimum<.8,"Walking/running hips avoid reach-induced pumping in every direction")
+ actor.family_override=&"sword"
+ for frame in 65:
+  var phase:=frame/64.0
+  actor.animate(&"action",phase,true,0,phase)
+  var side:int=1-actor.last_pose.active;var ids:Array=native.arms[side].ids
+  var rest_axis:Vector3=actor.last_pose.body.basis*(native.rest[ids[1]].origin-native.rest[ids[0]].origin)
+  var axis:Vector3=native.posed[ids[1]].origin-native.posed[ids[0]].origin
+  require(rest_axis.angle_to(axis)<deg_to_rad(5),"Sword counterweight uses native arm proportions without pulling the clavicle")
  print("%s: %d native rig, visible skin, neck seam and contact checks; seam %.6f bone %.6f floor %.6f"%["PASS" if failures==0 else "FAIL",checks,worst_seam,worst_bone,worst_floor])
  actor.free();await process_frame;quit(1 if failures else 0)

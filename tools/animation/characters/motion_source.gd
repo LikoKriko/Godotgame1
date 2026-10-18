@@ -9,15 +9,24 @@ static func foot(t:float,running:bool) -> Vector3:
  # Metres covered in one nominal cycle, converted to 64-unit author space.
  var stride:float=(3.2*.585 if running else 2.0*.78)/(1.75/64)*support*.5
  var p:=fposmod(t,1.0)
+ var heel:float=-.065 if running else -.05
+ var toe:float=.11 if running else .085
  if p<support:
-  return Vector3(lerpf(stride,-stride,p/support),0,0)
+  var planted:=p/support
+  # Settle heel-to-sole gently, then release through the toes. Both ends
+  # have zero angular velocity/acceleration instead of slapping flat.
+  var pitch:float=heel*(1-smooth5(0,.24,planted))+toe*smooth5(.62,1,planted)
+  return Vector3(lerpf(stride,-stride,planted),0,pitch)
  var u:float=(p-support)/(1-support)
  # Hermite end velocities match the planted foot's backward speed, avoiding
  # a stop/reversal pop at toe-off and heel contact. Lift softens on landing.
  var velocity:float=-2*stride/support*(1-support)
  var z:float=(2*u*u*u-3*u*u+1)*-stride+(u*u*u-2*u*u+u)*velocity+(-2*u*u*u+3*u*u)*stride+(u*u*u-u*u)*velocity
- var lift:float=pow(sin(u*PI),1.5)*(8.2 if running else 4.8)
- return Vector3(z,lift,-sin(u*PI)*(.26 if running else .14))
+ # Keep the same horizontal arc and peak clearance. A C2 landing spends
+ # more time close to the ground instead of accelerating into the contact.
+ var lift:float=64*pow(u,3)*pow(1-u,3)*(8.2 if running else 4.8)
+ var pitch:float=lerpf(toe,-.26 if running else -.14,smooth5(0,.50,u)) if u<.50 else lerpf(-.26 if running else -.14,heel,smooth5(.50,1,u))
+ return Vector3(z,lift,pitch)
 static func sample(clip:StringName,t:float) -> Dictionary:
  if clip in [&"walk",&"run"]:
   var run:=clip==&"run";var wave:=sin(t*TAU)

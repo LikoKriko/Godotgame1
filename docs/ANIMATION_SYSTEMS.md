@@ -134,6 +134,19 @@ permanece independiente, por lo que estos ajustes visuales permiten patinaje.
 El apoyo de marcha baja de 60 % frontal a 45 % lateral. Las calles de apoyo dejan
 espacio para la trayectoria completa antes de resolver IK, sin recortar su
 mitad interior. El pie levantado regresa en el sentido real de desplazamiento.
+La altura de apoyo reserva el alcance de ambos extremos del paso completo;
+la pelvis no sube al acortar momentáneamente la distancia a un pie. El balanceo
+lateral y la rotación total de cadera usan `GAIT_HIP_MOTION = 0.45`, manteniendo
+la inclinación constante de carrera. La ligadura nativa conserva ejes y longitudes:
+las piernas usan giro desde el reposo sin copiar la torsión axial del rig de
+contactos al pantalón. El brazo libre de espada usa `SWORD_BALANCE_MOTION = 0.80`,
+proporciones nativas y dedos relajados; su objetivo es de equilibrio, sin fijarlo
+a un contacto de herramienta ni forzar la clavícula para alcanzarlo.
+El apoyo de marcha/carrera rueda suavemente de talón a planta y despega por
+los dedos: −0,05/+0,085 rad caminando y −0,065/+0,11 rad corriendo. La bajada
+del pie usa un arco vertical C2 con velocidad y aceleración nulas al contactar;
+conserva el recorrido horizontal, la altura máxima y la cadencia. La rodilla
+acompaña la descarga progresiva del tobillo, con longitudes óseas constantes.
 Los pies suavizan la entrada durante 0,15 s; el ciclo posterior sigue las claves
 sin un filtro acumulativo que retrase el contacto. Los giros de marcha y carrera
 comparten el suavizado de dirección de 0,12 s.

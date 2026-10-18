@@ -31,4 +31,16 @@ func _initialize():
   var b:=Clips.sample(&"",state,.20,.20,Vector3.BACK)
   var speed:float=(a.legs[0].end.z-b.legs[0].end.z)*(1.75/64)/(.18*Clips.duration(state))
   require(absf(speed-(2.0 if state==&"walk" else 3.2)*Clips.GAIT_STRIDE_LENGTH)<.035,"Support foot retains the requested longer stride at the reference duration: %s %.4f"%[state,speed])
+ # Heel contact and toe release must not introduce a vertical/ankle snap.
+ for running in [false,true]:
+  var support:=.40 if running else .60
+  for contact in [0.0,support]:
+   var h:=.0001
+   var before:=Source.foot(contact-h,running)
+   var at:=Source.foot(contact,running)
+   var after:=Source.foot(contact+h,running)
+   require(absf((at.y-before.y)/h)<.05 and absf((after.y-at.y)/h)<.05,"Foot approaches/leaves contact with a soft vertical velocity")
+   require(absf((at.z-before.z)/h)<.01 and absf((after.z-at.z)/h)<.01,"Ankle roll has no sudden heel/toe contact rotation")
+  var highest:=Source.foot(support+(1-support)*.5,running)
+  require(absf(highest.y-(8.2 if running else 4.8))<.001,"Soft landing preserves the original peak foot clearance")
  print("%s: %d reduced-curve, cache, loop and gait-distance checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)
