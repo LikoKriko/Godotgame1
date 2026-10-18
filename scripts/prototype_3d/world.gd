@@ -34,6 +34,8 @@ var respawn_button:Button
 const ShadowProfile=preload("res://scripts/rendering/sun_shadow_profile.gd")
 const SHADOW_TRIAL=preload("res://data/rendering/sun_shadows_trial.tres")
 var original_shadows=ShadowProfile.new()
+const MOON_TRIAL=preload("res://data/rendering/moon_light_trial.tres")
+var moon_light:DirectionalLight3D
 var main_sun:DirectionalLight3D
 var world_ambient:Environment
 var map_holder:CenterContainer
@@ -87,6 +89,7 @@ func build_environment() -> void:
  environment_settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; environment_settings.ambient_light_color = Color("b2b59b"); environment_settings.ambient_light_energy = 0.6
  environment.environment = environment_settings;world_ambient=environment_settings; add_child(environment)
  var sun := DirectionalLight3D.new(); sun.rotation_degrees = Vector3(-52,-35,0); sun.light_color = Color("fff1d6"); sun.light_energy = 1.2; sun.shadow_enabled = true; add_child(sun);main_sun=sun
+ moon_light=DirectionalLight3D.new();moon_light.name="TrialMoonLight";MOON_TRIAL.configure(moon_light);add_child(moon_light)
  original_shadows.capture(main_sun);refresh_shadow_quality()
  var ground := StaticBody3D.new(); add_child(ground)
  if use_test_layout:
@@ -199,9 +202,12 @@ func _physics_process(delta:float) -> void:
 func refresh_shadow_quality() -> void:
  if settings.values.shadow_trial:SHADOW_TRIAL.apply(main_sun)
  else:original_shadows.apply(main_sun)
+ refresh_daylight()
 func refresh_daylight() -> void:
  var daylight:Dictionary=day_cycle.sun_state()
  main_sun.light_energy=daylight.elevation*1.2;main_sun.rotation_degrees=Vector3(-lerpf(18,76,daylight.elevation),lerpf(-70,70,daylight.progress),0)
+ MOON_TRIAL.update(moon_light,day_cycle.moon_state(),settings.values.moon_light_trial)
+ world_ambient.background_color=MOON_TRIAL.night_background.lerp(Color("809495"),smoothstep(0,0.18,daylight.elevation)) if settings.values.moon_light_trial else Color("809495")
  world_ambient.ambient_light_color=daylight.ambient;world_ambient.ambient_light_energy=lerpf(0.32,0.65,daylight.elevation)
 func respawn() -> void:
  player_health=20;level=1;nutrition.reset();parry.reset()

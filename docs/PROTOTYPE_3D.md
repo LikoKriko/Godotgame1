@@ -89,7 +89,7 @@ Puede caminar durante esas acciones.
 ## Configuración
 
 - Juego: correr automáticamente y cinco tamaños del HUD.
-- Gráficos: VSync, límite de FPS, Mostrar FPS, sombras mejoradas (prueba), antialiasing 3D y generación de
+- Gráficos: VSync, límite de FPS, Mostrar FPS, sombras mejoradas (prueba), luz lunar (prueba), antialiasing 3D y generación de
   mundo a 100, 200 o 400 metros; 200 es el valor predeterminado.
 - Audio: volumen general, música, efectos y silencio.
 
@@ -133,3 +133,19 @@ Compatibility para suavizar los bordes; no utiliza PCSS ni sombras de contacto
 en espacio de pantalla. La mayor calidad del filtro puede aumentar el coste
 por píxel; el alcance limitado reduce la zona incluida en los mapas de sombra.
 Se mantienen las excepciones de césped y otros elementos que no proyectan sombra.
+
+## Luz lunar: prueba ajustable
+
+Configuración → Gráficos → **Luz lunar (prueba)** está activada de inicio y se
+conserva como preferencia. Permite comparar con la iluminación nocturna anterior
+sin cambiar la hora ni la partida. El reloj compartido mantiene un ciclo lunar
+de 20:00 a 06:00, continuo al cruzar medianoche, con entrada y salida gradual.
+
+`data/rendering/moon_light_trial.tres` y
+`scripts/rendering/moon_light_profile.gd` definen una única luz direccional
+azulada: energía máxima 0,16 frente a 1,2 del sol, opacidad de sombra 0,18,
+dos cascadas hasta 40 m y desvanecimiento entre el 80 % y el 100 % del alcance.
+La prueba oscurece gradualmente el fondo del cielo al anochecer; conserva la
+iluminación ambiental, el sol y el filtrado global de sombras existente.
+Durante el día o al desactivar la prueba, la luz y sus sombras se deshabilitan.
+No añade geometría lunar, fases ni estrellas.

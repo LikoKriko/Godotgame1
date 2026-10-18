@@ -1,7 +1,7 @@
 extends RefCounted
 signal changed
 const PATH := "user://day_zero_settings.cfg"
-const DEFAULTS := {"auto_run": false,"sharp_camera": false,"hud_size": 1,"muted": false,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "show_fps": false, "shadow_trial": true, "msaa": 0, "world_generation": 200, "window_mode": 0, "resolution": Vector2i(1920,1080)}
+const DEFAULTS := {"auto_run": false,"sharp_camera": false,"hud_size": 1,"muted": false,"master": 0.8, "music": 0.6, "effects": 0.8, "vsync": true, "fps": 60, "show_fps": false, "shadow_trial": true, "moon_light_trial": true, "msaa": 0, "world_generation": 200, "window_mode": 0, "resolution": Vector2i(1920,1080)}
 var values: Dictionary = DEFAULTS.duplicate()
 var applied_display: Array = []
 var resolution_locked := OS.get_name() == "Windows"
@@ -16,6 +16,7 @@ func load_settings() -> void:
 	values["muted"] = bool(values["muted"])
 	values["show_fps"] = bool(values["show_fps"])
 	values["shadow_trial"] = bool(values["shadow_trial"])
+	values["moon_light_trial"] = bool(values["moon_light_trial"])
 	values["sharp_camera"] = bool(values["sharp_camera"])
 	values["hud_size"] = clampi(int(values["hud_size"]),1,6)
 	for key in ["master","music","effects"]:

@@ -14,8 +14,11 @@ func run():
  var previous:PackedByteArray=FileAccess.get_file_as_bytes(Settings.PATH) if existed else PackedByteArray()
  var config:=ConfigFile.new();config.set_value("settings","master",.4);config.save(Settings.PATH)
  var old:=Settings.new();old.load_settings()
- require(old.values.shadow_trial and old.values.master==.4,"Existing preferences acquire the trial without losing other settings")
+ require(old.values.shadow_trial and old.values.moon_light_trial and old.values.master==.4,"Existing preferences acquire the trial without losing other settings")
  var world=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();world.use_test_layout=true;root.add_child(world);world.paused=true
+ var moon:DirectionalLight3D=world.moon_light
+ var moon_button:CheckButton=world.settings_panel.find_child("MoonLightTrial",true,false)
+ require(moon_button!=null and moon_button.button_pressed,"Graphics page exposes the enabled lunar trial")
  var light:DirectionalLight3D=world.main_sun
  var button:CheckButton=world.settings_panel.find_child("ShadowTrial",true,false)
  require(button!=null and button.button_pressed,"Graphics page exposes the enabled trial")
@@ -36,7 +39,25 @@ func run():
   button.button_pressed=true;world.refresh_daylight()
   for property in Profile.PROPERTIES:require(light.get(property)==trial[property],"Daylight updates retain the trial profile: "+str(property))
   require(world.day_cycle.hour==hour and world.day_cycle.day==day and world.world_seed==seed,"Switching shadows preserves the clock and world")
- var loaded:=Settings.new();loaded.load_settings();require(loaded.values.shadow_trial and loaded.values.master==.4,"Enabled trial and unrelated preferences survive reload")
+ for hour in [0.,1.,5.,6.,8.,13.,19.,20.,21.,23.999]:
+  world.day_cycle.hour=hour;world.refresh_daylight()
+  var night:bool=hour<6 or hour>20
+  require(moon.visible==night and moon.shadow_enabled==night,"Lunar shadows only load at night: "+str(hour))
+  require(moon.light_energy>=0 and moon.light_energy<=0.16,"Moon remains faint: "+str(hour))
+  require(moon.shadow_opacity<light.shadow_opacity*0.25,"Moon shadows are much fainter than sunlight")
+  var solar_energy:float=light.light_energy;var solar_rotation:Vector3=light.rotation
+  var ambient:Color=world.world_ambient.ambient_light_color
+  moon_button.button_pressed=false
+  require(not moon.visible and not moon.shadow_enabled and moon.light_energy==0,"Switch completely disables the lunar light and shadows")
+  require(light.light_energy==solar_energy and light.rotation.is_equal_approx(solar_rotation) and world.world_ambient.ambient_light_color==ambient,"Lunar comparison preserves the sun and ambient light")
+  var preference:=Settings.new();preference.load_settings();require(not preference.values.moon_light_trial,"Lunar preference is saved")
+  moon_button.button_pressed=true
+ world.day_cycle.hour=23.999;world.refresh_daylight();var before:Vector3=moon.rotation
+ world.day_cycle.hour=0.001;world.refresh_daylight()
+ require(before.distance_to(moon.rotation)<0.01,"Moon follows continuously across midnight")
+ world.day_cycle.hour=13;world.refresh_daylight()
+ require(not moon.shadow_enabled,"Daytime avoids an extra lunar shadow pass")
+ var loaded:=Settings.new();loaded.load_settings();require(loaded.values.moon_light_trial and loaded.values.shadow_trial and loaded.values.master==.4,"Enabled trial and unrelated preferences survive reload")
  require(light.shadow_enabled and RenderingServer.get_current_rendering_method()=="gl_compatibility","Real sun shadows keep the existing Compatibility renderer")
  world.original_shadows.apply(light);world.free();await process_frame
  if existed:

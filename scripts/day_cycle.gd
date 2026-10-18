@@ -31,6 +31,12 @@ func sun_state() -> Dictionary:
 	var ambient := night.lerp(twilight,smoothstep(0,0.12,elevation)).lerp(daylight,smoothstep(0.06,0.65,elevation))
 	return {"progress": progress,"elevation": elevation,"visible": elevation > 0.001,"direction": direction,"stretch": stretch,"shadow_alpha": strength,"ambient": ambient,"energy": elevation*0.10,"warmth": 1-smoothstep(0.05,0.55,elevation)}
 
+func moon_state() -> Dictionary:
+	# Ten hours between sunset (20:00) and sunrise (06:00), continuous at midnight.
+	var progress := clampf(fposmod(hour-20.0,24.0)/10.0,0,1)
+	var elevation := maxf(0,sin(progress*PI)) if hour >= 20 or hour < 6 else 0.0
+	return {"progress": progress,"elevation": elevation,"strength": smoothstep(0,0.25,elevation)}
+
 func clock_text() -> String:
 	var minutes := floori(hour*60)
 	return "Día %d · %02d:%02d" % [day,floori(minutes/60.0),minutes%60]
