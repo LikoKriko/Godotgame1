@@ -25,6 +25,8 @@ var gait_active:=false
 var gait_entry_age:=0.0
 var gait_entry_offsets:Array[Vector3]=[Vector3.ZERO,Vector3.ZERO]
 var gait_direction=preload("res://scripts/prototype_3d/gait_direction.gd").new()
+# The live player supplies its actual, already eased physical travel.
+var steering_is_physical:=false
 var slide_launch_pose:Dictionary={}
 var equipment_from:Dictionary={}
 var death_from:Dictionary={}
@@ -74,7 +76,8 @@ func place_tool(_data: Dictionary, grip: Vector3, shaft: Vector3, actor_basis: B
  return {"grip":grip,"support":grip+shaft*Profiles.profile(_item).support}
 func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0, movement_phase: float = 0.0, movement: Vector3 = Vector3.ZERO, motion_amount:float=1.0) -> void:
  if state in [&"walk",&"run",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk",&"unequip"]:
-  movement=gait_direction.sample(movement,delta)
+  if not steering_is_physical:movement=gait_direction.sample(movement,delta)
+  else:gait_direction.reset()
  else:gait_direction.reset()
  var item: StringName = (&"axe" if equipped else &"") if family_override==&"default" else family_override
  var equipping:=String(state).begins_with("equip") or state==&"unequip"

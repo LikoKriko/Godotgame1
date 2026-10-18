@@ -32,10 +32,11 @@ func run():
    require(Response.valid(saved),'Rear running retains a valid save envelope')
    restored.advance(input,true,0,1.0/fps,scale)
    require(absf(response.speed-restored.speed)<.00001,'Saved rear running resumes at the same speed')
-   response.advance(Vector2.UP,true,0,0,1)
+   var front_turn:Vector2=input.rotated(PI/2)
+   response.advance(front_turn,true,0,0,1)
    var previous:float=response.speed
    for frame in fps:
-    response.advance(Vector2.UP,true,0,1.0/fps,1)
+    response.advance(front_turn,true,0,1.0/fps,1)
     require(response.speed>=previous-.00001 and response.speed-previous<.09,'Rear-to-front sprint changes its limit continuously')
     previous=response.speed
    require(absf(response.speed-Response.SPRINT_MULTIPLIER)<.00001,'Forward sprint still reaches its unchanged maximum')

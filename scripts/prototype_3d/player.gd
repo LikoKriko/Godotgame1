@@ -65,6 +65,7 @@ func configure(owner_game) -> void:
  var collision := CollisionShape3D.new(); collision.shape = capsule; collision.position.y = 0.875; add_child(collision)
  collision_layer = 2; collision_mask = 9
  model = preload("res://scripts/prototype_3d/survivor_model.gd").new(); add_child(model)
+ model.steering_is_physical=true
  var bounds: AABB=model.author_bounds()
  var unit:=Anatomy.HEIGHT_METRES/bounds.size.y
  model.scale=Vector3.ONE*unit;model.position.y=-bounds.position.y*unit;model.rotation.y=PI
@@ -229,7 +230,7 @@ func _physics_process(delta: float) -> void:
  var movement_multiplier:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-0.05*equip_recovery)
  movement_multiplier*=0.4 if preview_state==&"pickup" else 1-0.6*pickup_recovery/0.5
  var direction_scale:float=movement_response.direction_multiplier(input)
- var response:Vector2=movement_response.advance(Vector2(direction.x,direction.z),running,locomotion.crouch,delta,direction_scale)
+ var response:Vector2=movement_response.advance(Vector2(direction.x,direction.z),running,locomotion.crouch,delta,direction_scale,is_on_floor() and not locomotion.sliding() and not locomotion.airborne())
  var planar:Vector2=response*SPEED*movement_multiplier*attack_speed_scale(action_elapsed,action_family)
  if locomotion.sliding() or (locomotion.airborne() and locomotion.from_slide):planar=locomotion.velocity(planar,WORLD_SCALE)
  if locomotion.from_slide: planar *= WORLD_SCALE
@@ -258,7 +259,7 @@ func _physics_process(delta: float) -> void:
   # Visual gait tuning shares one clock for feet, arms and torso.
   phase=fposmod(phase+travelled*Clips.gait_playback_rate(movement_response.sprint_weight)/Clips.cycle_distance(movement_response.sprint_weight,locomotion.crouch,local_travel),1)
 
- visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*direction_scale*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
+ visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*movement_response.reference_scale*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
  model.sprint_weight=movement_response.sprint_weight
  model.sprint_crouch=locomotion.crouch
  if action_elapsed >= 0:
@@ -280,6 +281,11 @@ func _physics_process(delta: float) -> void:
    state = &"equip_crouch_walk" if locomotion.crouch>0.01 else (&"equip_run" if running else &"equip_walk")
   if unequipping:state=&"unequip"
   if equip_elapsed >= Clips.duration(&"equip",family()): equip_elapsed = -1
+ elif movement_response.stage==&"reverse_hold":state=&"crouch" if locomotion.crouch>0 else &"idle";progress=locomotion.crouch
+ elif movement_response.stage==&"reverse_brake":
+  state=&"crouch_walk" if locomotion.crouch>0 else &"stop_run"
+  progress=phase if state==&"crouch_walk" else movement_response.phase()
+ elif movement_response.stage==&"walk_start":state=&"crouch_walk" if locomotion.crouch>0 else &"walk";progress=phase
  elif movement_response.stage==&"start":state=&"start_run";progress=movement_response.phase()
  elif movement_response.stage==&"brake" and actual_speed>.01:state=&"stop_run";progress=movement_response.phase()
  elif input.length_squared() > 0:

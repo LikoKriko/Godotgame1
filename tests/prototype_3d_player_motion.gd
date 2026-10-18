@@ -74,7 +74,7 @@ func run():
    var encoded:=response.snapshot()
    require(Response.valid(encoded),"Directional walking envelopes retain valid saves")
    var before:float=response.speed
-   response.advance(Vector2.UP,false,0,0,1)
+   response.advance(input.rotated(PI/2),false,0,0,1)
    require(is_equal_approx(response.speed,before),"Changing walking direction preserves speed at the start of the transition")
    for frame in fps*2:response.advance(input,true,0,1.0/fps,scale)
    require(is_equal_approx(response.speed,Response.SPRINT_MULTIPLIER*scale),"Rearward running uses the same directional speed reduction as walking")

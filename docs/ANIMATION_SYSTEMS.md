@@ -131,6 +131,21 @@ y 0,0004 para ángulos y pesos de mezcla. Conserva las fases de contacto, impact
 entrada y salida, además de los extremos del ciclo. Las pistas constantes
 usan una sola clave. Los datos de autoría no se evalúan durante el juego.
 El reloj base usa el desplazamiento horizontal real en coordenadas del modelo.
+Los cambios ordinarios de dirección se suavizan en el desplazamiento físico:
+respuesta angular de 15/s y velocidad máxima de 540°/s. Los pies del jugador
+usan la dirección real recorrida, sin añadir otro filtro visual después.
+Una inversión de 180° mientras hay movimiento activa una frenada de 0,8 s en
+la dirección de salida, seguida de 0,1 s con velocidad horizontal exactamente
+cero. La detección admite una tolerancia angular de 0,1°. En carrera, los dos
+tiempos se multiplican por 2,24: 1,792 s de frenada y 0,224 s detenido; durante
+la aceleración se interpola este factor con el peso actual de sprint.
+El reinicio conserva el arranque físico de marcha de 0,24 s y el de carrera
+de 0,16 s más 1 s de aceleración. La dirección solicitada se actualiza durante
+frenada y pausa; soltar las teclas evita el reinicio. La inversión especial
+solo se aplica en el suelo. Saltos y deslizamientos conservan su control propio.
+El guardado conserva fase, tiempo restante, velocidad y dirección pendiente;
+las partidas anteriores siguen siendo válidas.
+
 La marcha erguida usa semizancada de apoyo de 8,8 unidades, contacto frontal
 del 25 % y elevación máxima de 2,8 unidades, definidos en `gait_parameters.gd`.
 La distancia efectiva por ciclo es `2 * 8.8 * (1.75 / 64) / 0.25`, 1,925 m:
