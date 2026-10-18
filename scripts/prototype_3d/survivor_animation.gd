@@ -54,7 +54,7 @@ static func cycle_distance(sprint_weight:float,crouch:float=0.0,direction:Vector
  var crouching:=duration(&"walk")*2.0*.68*directional_stride(direction)
  var walk:=lerpf(standing,crouching,clampf(crouch,0,1))
  var run:=2*Gait.RUN_HALF_STRIDE*(Anatomy.HEIGHT_METRES/64)/Gait.RUN_SUPPORT
- return lerpf(walk,run,clampf(sprint_weight,0,1))
+ return lerpf(walk,run,clampf(sprint_weight,0,1))*Gait.backward_stride(direction)
 
 static func gait_playback_rate(sprint_weight:float) -> float:
  return lerpf(GAIT_PLAYBACK_RATE,RUN_PLAYBACK_RATE,clampf(sprint_weight,0,1))
@@ -78,6 +78,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  pose.leg_frame=Basis.IDENTITY
  pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state in [&"walk",&"run",&"crouch_walk"] else movement_phase
  pose.look_contact=contact
+ pose.gait_travel=Vector3(movement.x,0,movement.z).normalized()
  pose.upright_attack=state==&"action" and family!=&"bow" and crouch_amount<1.0
  pose.attack_stance_weight=1-clampf(crouch_amount,0,1)
  if family==&"" and state==&"action":pose.active=clampi(punch_side,0,1)
@@ -134,7 +135,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   # Rotate the stance lanes and knee/foot frames together. Keeping the old
   # frontal lanes clips the inward half of a diagonal step into a sideways fan.
   var forward_travel:=travel if travel.z>=0 else -travel
-  var yaw:=clampf(atan2(forward_travel.x,forward_travel.z),-PI/4,PI/4)*smoothstep(0,0.35,absf(travel.z))
+  var yaw:=clampf(atan2(forward_travel.x,forward_travel.z),-Gait.DIAGONAL_ANGLE,Gait.DIAGONAL_ANGLE)*smoothstep(0,0.35,absf(travel.z))
   if state!=&"pickup_walk":
    pose.leg_frame=Basis(Vector3.UP,yaw)
    pose.leg_poles=[pose.leg_frame*Vector3.BACK,pose.leg_frame*Vector3.BACK]
@@ -150,6 +151,8 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   # before IK, rather than clipping the inward half against the other foot.
   var support:float=(Gait.RUN_SUPPORT if gait_state==&"run" else Gait.WALK_SUPPORT)*stride
   if crouched:support=lerpf(.60,.45,absf(travel.x))
+  var backward_stride:=Gait.backward_stride(travel)
+  stride*=backward_stride
   var reach:=duration(&"walk")*2.0*support*.5/(Anatomy.HEIGHT_METRES/64)*stride*GAIT_STRIDE_LENGTH
   if not crouched:reach=(Gait.RUN_HALF_STRIDE if gait_state==&"run" else Gait.WALK_HALF_STRIDE)*stride
   var lane:=maxf(Anatomy.HIP.x,Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*.5+absf(travel.dot(pose.leg_frame.x))*reach*(1.04 if crouched else 1.55))
@@ -172,8 +175,8 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     var mapped:float=p/support*base_support if p<support else base_support+(p-support)/(1-support)*(1-base_support)
     foot=Controls.sample(gait_state,mapped).foot_l
    var step:=foot.x*stride/STRIDE_SCALE
-   pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*lane,2.1+foot.y*(.70 if crouched else 1.0)*lerpf(1,LATERAL_LIFT_SCALE,lateral),0)+travel*step
-   pose.legs[side].pitch=foot.z*travel.z
+   pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*lane,2.1+foot.y*(.70 if crouched else 1.0)*lerpf(1,LATERAL_LIFT_SCALE,lateral)*backward_stride,0)+travel*step
+   pose.legs[side].pitch=foot.z*travel.z*backward_stride
 
  var striding:=state in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"] or (not movement.is_zero_approx() and state in [&"action",&"unequip",&"bow_release"])
  if striding:
@@ -708,7 +711,8 @@ static func walking_arm(pose:Dictionary,side:int,gait:float) -> Dictionary:
  if pose.get("clip_state",&"")!=&"walk" or not arm_is_free(pose,side):return {}
  var body:Transform3D=pose.body
  var phase:=gait+side*.5
- var seconds:=cycle_distance(0,0,pose.get("gait_travel",Vector3.BACK))/(2*GAIT_PLAYBACK_RATE)
+ var travel:Vector3=pose.get("torso_travel",pose.get("gait_travel",Vector3.BACK))
+ var seconds:=cycle_distance(0,0,travel)/(2*GAIT_PLAYBACK_RATE*Gait.backward_speed(travel))
  var lag:=WALK_ARM_LAG_SECONDS/seconds
  # The elbow initiates a small backward sweep opposite the swinging leg.
  # The forearm follows slightly later instead of moving as a rigid rod.

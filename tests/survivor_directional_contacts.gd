@@ -14,7 +14,7 @@ func run():
  var directions:Array[Vector3]=[]
  for x in [-1,0,1]:
   for z in [-1,0,1]:
-   if x!=0 or z!=0:directions.append(Vector3(x,0,z).normalized())
+   if x!=0 or z!=0:directions.append(Vector3(x*sin(Clips.Gait.DIAGONAL_ANGLE) if z!=0 else x,0,z*cos(Clips.Gait.DIAGONAL_ANGLE) if x!=0 else z).normalized())
  # Signed checks distinguish the support return from the lifted forward swing.
  # Test final rendered bones, with the runtime delta/blending enabled.
  for family in [&'',&'axe',&'bow']:
@@ -28,19 +28,20 @@ func run():
      actor.displayed_pose.clear();actor.gait_direction.reset();actor.gait_active=false
      var cycle:=Clips.cycle_distance(weight,crouch,direction)
      var rate:=Clips.gait_playback_rate(weight)
+     var speed:float=2.0*Clips.Gait.backward_speed(direction)
      var dt:float=1.0/fps
      var previous:Array=[]
-     for frame in int(ceil(cycle*.5*fps/rate))*3:
-      var phase:=fposmod(frame*dt*2.0/cycle*rate,1)
+     for frame in int(ceil(cycle/speed*fps/rate))*3:
+      var phase:=fposmod(frame*dt*speed/cycle*rate,1)
       actor.animate(state,phase,family!=&'',dt,phase,direction)
       var foot:Vector3=actor.rig.posed[12].origin
-      if frame*dt>cycle*.5/rate:
+      if frame*dt>cycle/speed/rate:
        var delta:Vector3=(foot-previous[0])*Anatomy.HEIGHT_METRES/64
        var support:float=Clips.Gait.RUN_SUPPORT*Clips.directional_stride(direction)*lerpf(1,Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x))) if state==&'run' else Clips.Gait.WALK_SUPPORT*Clips.directional_stride(direction)*lerpf(1,Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x)))
        if state==&'crouch_walk':support=.4
        if phase>support*.25 and phase<support*.75:
-        var expected_return:=direction*2.0*Clips.GAIT_STRIDE_LENGTH*rate
-        if state==&'run':expected_return=direction*2.0
+        var expected_return:=direction*speed*Clips.GAIT_STRIDE_LENGTH*rate
+        if state==&'run':expected_return=direction*speed
         var return_velocity:=delta/dt
         if state==&'crouch_walk':
          expected_return*=lerpf(1,Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x)))

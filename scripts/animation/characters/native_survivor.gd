@@ -118,9 +118,9 @@ static func diagonal_turn(direction:Vector3) -> float:
  # Backpedalling uses the same frontal body orientation as forward travel in
  # the opposite diagonal; never ask the spine to turn through 135 degrees.
  var forward:=travel if travel.z>=0 else -travel
- var angle:=clampf(atan2(forward.x,forward.z),-PI/4,PI/4)
+ var angle:=clampf(atan2(forward.x,forward.z),-Clips.Gait.DIAGONAL_ANGLE,Clips.Gait.DIAGONAL_ANGLE)
  var diagonal:=smoothstep(0,.35,absf(travel.x))*smoothstep(0,.35,absf(travel.z))
- return angle/(PI/4)*Clips.Gait.DIAGONAL_TORSO_TURN*diagonal
+ return angle/Clips.Gait.DIAGONAL_ANGLE*Clips.Gait.DIAGONAL_TORSO_TURN*diagonal
 
 func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
  var body:Transform3D=pose.body

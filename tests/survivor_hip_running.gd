@@ -51,9 +51,9 @@ func run():
  for side in 2:require(native.posed[native.legs[side].ids[2]].origin.distance_to(feet[side])<.5,"Native foot alignment blends with sprint instead of snapping on the first running frame")
  actor.sprint_weight=-1
  for fps in [30,60,120]:
-  for direction in [Vector3.BACK,Vector3.FORWARD,Vector3.RIGHT,Vector3.LEFT,Vector3(1,0,1).normalized()]:
+  for direction in [Vector3.BACK,Vector3.FORWARD,Vector3.RIGHT,Vector3.LEFT,Vector3(sin(actor.Clips.Gait.DIAGONAL_ANGLE),0,cos(actor.Clips.Gait.DIAGONAL_ANGLE))]:
    actor.displayed_pose.clear();actor.gait_active=false;actor.gait_direction.reset()
-   var speed:=4.48;var previous:=Vector3.ZERO;var sum:=0.0;var count:=0
+   var speed:float=4.48*actor.Clips.Gait.backward_speed(direction);var previous:=Vector3.ZERO;var sum:=0.0;var count:=0
    var distance:float=actor.Clips.cycle_distance(1,0,direction)
    var support:float=actor.Clips.Gait.RUN_SUPPORT*actor.Clips.directional_stride(direction)*lerpf(1,actor.Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x)))
    for frame in fps*2:

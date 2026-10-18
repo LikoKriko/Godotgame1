@@ -1,7 +1,8 @@
 extends RefCounted
 ## Physical speed and animation envelopes share the same interruptible clock.
 const SPRINT_MULTIPLIER:=1.6*1.4
-const BACKWARD_WALK_MULTIPLIER:=.30
+const Gait=preload("res://scripts/animation/characters/gait_parameters.gd")
+const BACKWARD_MULTIPLIER:=Gait.BACKWARD_SPEED
 const GAIT_MULTIPLIER:=1.6
 const START_SECONDS:=.16
 const MAXIMUM_SECONDS:=1.0
@@ -34,16 +35,20 @@ static func valid(data) -> bool:
 func restore(data:Dictionary) -> void:
  stage=StringName(data.stage);requested=data.requested;direction=Vector2(data.direction[0],data.direction[1])
  for key in VALUES:set(key,float(data[key]))
-static func walking_multiplier(camera_input:Vector2) -> float:
+static func direction_multiplier(camera_input:Vector2) -> float:
  # Camera-relative S, S+A and S+D share one speed; normalization must not
  # make either backward diagonal faster than walking straight backward.
- return BACKWARD_WALK_MULTIPLIER if camera_input.y>0 else 1.0
-func advance(travel:Vector2,sprint:bool,crouch:float,delta:float,walk_scale:float=1.0) -> Vector2:
+ return BACKWARD_MULTIPLIER if camera_input.y>0 else 1.0
+func advance(travel:Vector2,sprint:bool,crouch:float,delta:float,direction_scale:float=1.0) -> Vector2:
  var moving:=not travel.is_zero_approx()
  sprint=sprint and moving and crouch<.01
- var target:=lerpf(1,.48,crouch)*clampf(walk_scale,0,1) if moving else 0.0
+ var target:=lerpf(1,.48,crouch)*clampf(direction_scale,0,1) if moving else 0.0
  if sprint and not requested:
   stage=&"start";elapsed=0;entry_speed=speed;entry_weight=sprint_weight
+ elif sprint and requested and not is_equal_approx(target,destination):
+  # Retarget the running envelope from its current speed when W/A/D changes
+  # to S (or back again); do not jump straight to the other speed limit.
+  stage=&"maximum";elapsed=0;maximum_from=speed;maximum_weight=sprint_weight
  elif not sprint and (requested or not is_equal_approx(target,destination)):
   stage=&"brake";elapsed=0;entry_speed=speed;entry_weight=sprint_weight
  destination=target;requested=sprint
@@ -52,12 +57,12 @@ func advance(travel:Vector2,sprint:bool,crouch:float,delta:float,walk_scale:floa
   var used:=minf(remaining,START_SECONDS-elapsed)
   elapsed+=used;remaining-=used
   var t:=smoothstep(0,START_SECONDS,elapsed)
-  speed=lerpf(entry_speed,maxf(1,entry_speed),t);sprint_weight=entry_weight
+  speed=lerpf(entry_speed,maxf(direction_scale,entry_speed),t);sprint_weight=entry_weight
   if elapsed>=START_SECONDS-.000001:stage=&"maximum";elapsed=0;maximum_from=speed;maximum_weight=sprint_weight
  if stage==&"maximum":
   elapsed=minf(MAXIMUM_SECONDS,elapsed+remaining)
   var t:=smoothstep(0,MAXIMUM_SECONDS,elapsed)
-  sprint_weight=lerpf(maximum_weight,1,t);speed=lerpf(maximum_from,SPRINT_MULTIPLIER,t)
+  sprint_weight=lerpf(maximum_weight,1,t);speed=lerpf(maximum_from,SPRINT_MULTIPLIER*direction_scale,t)
  elif stage==&"brake":
   elapsed=minf(BRAKE_SECONDS,elapsed+remaining)
   var t:=smoothstep(0,BRAKE_SECONDS,elapsed)

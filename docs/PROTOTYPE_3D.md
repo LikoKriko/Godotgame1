@@ -11,7 +11,9 @@ El menú inicial permite iniciar una partida, continuar, configurar y salir.
 | Peso de referencia | 60 kg |
 | Velocidad de caminar hacia delante y de lado | 2 m/s |
 | Velocidad de caminar hacia atrás y ambas diagonales traseras | 0,6 m/s (30 % de la marcha hacia delante) |
-| Velocidad de correr | 4,48 m/s |
+| Velocidad de correr hacia delante y de lado | 4,48 m/s |
+| Velocidad de correr hacia atrás y ambas diagonales traseras | 1,344 m/s (30 % de la carrera hacia delante) |
+| Ángulo de las cuatro diagonales de marcha y carrera | 35° respecto al avance o retroceso |
 | Distancia de cámara | 3,6 m |
 | Desplazamiento al hombro | 0,30 m |
 | Campo de visión | 75° |

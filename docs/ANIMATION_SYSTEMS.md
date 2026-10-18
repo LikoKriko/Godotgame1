@@ -136,15 +136,30 @@ del 25 % y elevación máxima de 2,8 unidades, definidos en `gait_parameters.gd`
 La distancia efectiva por ciclo es `2 * 8.8 * (1.75 / 64) / 0.25`, 1,925 m:
 a 2 m/s dura 0,9625 segundos, unos 2,08 pasos por segundo. El retorno de la
 pierna ocupa el 75 % del ciclo frontal, con aceleración continua y aterrizaje
-suave. El reloj conserva esta duración también en diagonales y laterales;
+suave. El reloj conserva esta duración en diagonales delanteras y laterales;
 la amplitud y el tiempo de contacto se ajustan juntos a cada dirección para
 mantener la velocidad del pie apoyado respecto al terreno. La altura de apoyo
 ronda 29,8 unidades y el objetivo nativo se centra bajo su propia cadera,
-con entrada y salida suavizadas. La marcha hacia delante y de lado es de 2 m/s. Hacia atrás y en ambas
+con entrada y salida suavizadas. La marcha hacia delante y de lado es de
+2 m/s. Hacia atrás y en ambas
 diagonales traseras es el 30 %, 0,6 m/s, con frenada progresiva; la marcha
 agachada conserva el mismo factor direccional respecto a su avance frontal.
-La carrera mantiene su máximo propio. El reloj de animación sigue la distancia
-real también a estas velocidades, sin reducir dos veces la amplitud del paso.
+La carrera hacia delante y de lado alcanza 4,48 m/s; hacia atrás y en ambas
+diagonales traseras alcanza 1,344 m/s. Los límites de marcha y carrera cambian
+con una transición de velocidad desde el valor actual.
+La cadencia trasera es el 80 % de su equivalente frontal, tanto andando como
+corriendo. La zancada trasera se multiplica por `0.30 / 0.80 = 0.375`, junto
+con su elevación y giro de tobillo; la duración relativa del apoyo se mantiene.
+El ciclo completo de marcha trasera recorre 0,721875 m y dura 1,203125 s a
+0,6 m/s. La carrera trasera recorre aproximadamente 0,7271 m por ciclo. El reloj
+sigue la distancia real con esta zancada reducida, sin aplicar otra reducción
+a la amplitud por la menor velocidad. El factor entra suavemente al pasar del
+desplazamiento lateral al trasero.
+Las cuatro diagonales de marcha y carrera usan 35° respecto al eje frontal o
+trasero: la entrada horizontal combina `sin(35°)` lateral y `cos(35°)` longitudinal,
+con módulo normalizado. Los carriles de pies y los planos de rodillas comparten
+ese ángulo; el giro progresivo de espalda conserva su límite de 20°. Los
+controles de deslizamiento conservan sus trayectorias propias de 45°.
 La marcha agachada conserva su curva propia `crouch_walk`, su distancia base
 `1.56 * 0.68 * lerp(1, 0.44, abs(direccion.x))` y sus apoyos del 60–45 %.
 El reloj mezcla ambas distancias durante la transición de postura y conserva
@@ -161,13 +176,15 @@ continua, con liberación del pie, avance y entrada al siguiente apoyo. El
 retorno vertical es C2 y las claves cercanas al contacto se conservan al reducir
 las curvas. La altura de apoyo de carrera ronda 29,8 unidades, sin añadir
 rebote a la pelvis. El rig nativo centra el apoyo bajo sus propias caderas y
-mantiene un margen de suela de 0,30 unidades. La velocidad física no cambia.
-Las calles de apoyo dejan espacio para la trayectoria completa antes de resolver IK, sin recortar su
+mantiene un margen de suela de 0,30 unidades. El apoyo se ajusta a la velocidad
+física definida para cada dirección.
+Las calles de apoyo dejan espacio para la trayectoria completa antes de
+resolver IK, sin recortar su
 mitad interior. El pie levantado regresa en el sentido real de desplazamiento.
 El paso lateral usa `LATERAL_STEP_SCALE = 0.45` y
 `LATERAL_LIFT_SCALE = 0.40`: reduce apertura y elevación de la pierna para
 recoger el paso bajo la cadera y evitar tirones del pantalón. Entra suavemente
-al pasar de diagonales de 45° al desplazamiento lateral puro, sin cambiar
+al pasar de diagonales de 35° al desplazamiento lateral puro, sin cambiar
 la cadencia global ni la velocidad física.
 La altura de apoyo calcula el alcance de ambos extremos del paso completo.
 En marcha y carrera erguidas, `GAIT_LOWERING = 0.15` conserva solo el 15 % del

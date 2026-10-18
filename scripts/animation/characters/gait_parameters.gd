@@ -17,3 +17,15 @@ const DIAGONAL_TORSO_RESPONSE:=14.0
 const RUN_LEAN:=deg_to_rad(6.2)
 const RUN_SPINE_LEAN:Array[float]=[2.0/6.2,3.4/6.2,4.8/6.2]
 const DIAGONAL_TORSO_SPEED:=deg_to_rad(120.0)
+
+# Rearward travel is slower without playing the whole gait in slow motion.
+const BACKWARD_SPEED:=.30
+const BACKWARD_CADENCE:=.80
+const DIAGONAL_ANGLE:=deg_to_rad(35.0)
+static func backward_weight(direction:Vector3) -> float:
+ return smoothstep(0,.35,-direction.normalized().z)
+static func backward_stride(direction:Vector3) -> float:
+ var weight:=backward_weight(direction)
+ return lerpf(1,BACKWARD_SPEED,weight)/lerpf(1,BACKWARD_CADENCE,weight)
+static func backward_speed(direction:Vector3) -> float:
+ return lerpf(1,BACKWARD_SPEED,backward_weight(direction))

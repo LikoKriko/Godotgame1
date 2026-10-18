@@ -68,7 +68,7 @@ func run():
  for fps in [30,60,120]:
   for input in [Vector2.UP,Vector2.LEFT,Vector2.RIGHT,Vector2.DOWN,Vector2(-1,1),Vector2(1,1)]:
    var response:=Response.new()
-   var scale:float=Response.walking_multiplier(input)
+   var scale:float=Response.direction_multiplier(input)
    for frame in fps:response.advance(input,false,0,1.0/fps,scale)
    require(absf(response.speed-(.3 if input.y>0 else 1.0))<.00001,"Backward walking and both diagonals are seventy percent slower than forward walking")
    var encoded:=response.snapshot()
@@ -77,7 +77,7 @@ func run():
    response.advance(Vector2.UP,false,0,0,1)
    require(is_equal_approx(response.speed,before),"Changing walking direction preserves speed at the start of the transition")
    for frame in fps*2:response.advance(input,true,0,1.0/fps,scale)
-   require(is_equal_approx(response.speed,Response.SPRINT_MULTIPLIER),"Walking slowdown preserves the existing sprint maximum")
+   require(is_equal_approx(response.speed,Response.SPRINT_MULTIPLIER*scale),"Rearward running uses the same directional speed reduction as walking")
  var distance:Array[float]=[]
  for scale in [1.0,.6]:
   var slide:=Motion.new();slide.slide(Vector2.UP,scale);var total:=0.0
@@ -179,10 +179,24 @@ func run():
   var previous_position:Vector3=player.position
   player._physics_process(1.0/60)
   var moved:=Vector2(player.position.x-previous_position.x,player.position.z-previous_position.z).length()
-  var expected_phase:float=fposmod(previous_phase+moved*Clips.gait_playback_rate(0)/Clips.cycle_distance(0),1)
+  var actual_direction:Vector3=player.model.global_basis.inverse()*(player.position-previous_position)
+  var expected_phase:float=fposmod(previous_phase+moved*Clips.gait_playback_rate(0)/Clips.cycle_distance(0,0,actual_direction),1)
   require(absf(wrapf(player.phase-expected_phase,-.5,.5))<.00001,"Walking animation follows actual travel at both forward and reduced backward speeds")
   await physics_frame
- for code in [KEY_W,KEY_A,KEY_S,KEY_D]:key(code,false)
+ for codes in [[KEY_S],[KEY_S,KEY_A],[KEY_S,KEY_D]]:
+  for code in [KEY_W,KEY_A,KEY_S,KEY_D,KEY_SHIFT]:key(code,false)
+  await physics_frame;await process_frame
+  player.reset_motion_state();player.position=Vector3(12,.01,12)
+  for code in codes:key(code,true)
+  key(KEY_SHIFT,true);await physics_frame;await process_frame
+  for frame in 75:
+   player._physics_process(1.0/60);await physics_frame
+  var rear_factors:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-.05*player.equip_recovery)
+  require(absf(Vector2(player.velocity.x,player.velocity.z).length()-player.SPEED*Response.SPRINT_MULTIPLIER*rear_factors*.3)<.01,"Live Shift+S and both rear diagonals reach the reduced running speed")
+  require(player.model.last_pose.clip_state==&"run" and player.visual_motion>.99,"Reduced rear sprint retains a complete running stride")
+  var camera_local:Vector3=Basis(Vector3.UP,-game.camera_rig.yaw)*Vector3(player.velocity.x,0,player.velocity.z).normalized()
+  require(absf(rad_to_deg(atan2(absf(camera_local.x),absf(camera_local.z)))-(0 if codes.size()==1 else 35))<.01,"Live backward running follows the new 35-degree diagonal direction")
+ for code in [KEY_W,KEY_A,KEY_S,KEY_D,KEY_SHIFT]:key(code,false)
  await physics_frame;await process_frame
  player.reset_motion_state();player.position=Vector3(12,.01,12)
  key(KEY_W,true);key(KEY_SHIFT,true);await physics_frame

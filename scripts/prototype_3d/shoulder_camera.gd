@@ -1,5 +1,6 @@
 extends Node3D
 ## Deadlock-style right shoulder orbit. A sphere cast prevents camera clipping.
+const Gait=preload("res://scripts/animation/characters/gait_parameters.gd")
 const DISTANCE := 3.6
 const SHOULDER := 0.30
 const SENSITIVITY := 0.0025
@@ -48,9 +49,11 @@ func look(relative: Vector2) -> void:
   free_look_offset-=relative.x*SENSITIVITY;constrain_free_look();return
  yaw=wrapf(yaw-relative.x*SENSITIVITY,-PI,PI)
  pitch=clampf(pitch-relative.y*SENSITIVITY,-PITCH_LIMIT,PITCH_LIMIT)
-func movement_direction(input: Vector2) -> Vector3:
+func movement_direction(input: Vector2,diagonal_angle:float=Gait.DIAGONAL_ANGLE) -> Vector3:
  var basis := Basis(Vector3.UP,yaw)
- return (basis*Vector3(input.x,0,input.y)).normalized()
+ var travel:=Vector3(input.x,0,input.y)
+ if absf(input.x)>.00001 and absf(input.y)>.00001:travel.x*=tan(diagonal_angle)
+ return (basis*travel).normalized()
 func facing() -> Vector3:
  return -Basis(Vector3.UP,yaw).z
 func update(delta: float) -> void:

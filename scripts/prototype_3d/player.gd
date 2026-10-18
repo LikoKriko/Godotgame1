@@ -208,7 +208,8 @@ func _physics_process(delta: float) -> void:
  if preview_state in [&"eat",&"eat_walk",&"drink",&"drink_walk"]:running=false
  if control and not control_was_pressed and running and is_on_floor():
   var backward:=input.y>0
-  if locomotion.slide(Vector2(direction.x,direction.z),.6 if backward else 1.0):
+  var slide_direction:Vector3=game.camera_rig.movement_direction(input,PI/4)
+  if locomotion.slide(Vector2(slide_direction.x,slide_direction.z),.6 if backward else 1.0):
    slide_backward=backward
    slide_side=int(signf(input.x));slide_forward_axis=-int(signf(input.y))
    var forward:Vector3=game.camera_rig.movement_direction(Vector2.UP)
@@ -220,14 +221,15 @@ func _physics_process(delta: float) -> void:
    velocity.y = 5.5
    if action_elapsed>=0 and action_family!=&"bow":cancel_action()
  jump_was_pressed = jump_pressed
- locomotion.steer_air(Vector2(direction.x,direction.z),delta)
+ var air_direction:Vector3=game.camera_rig.movement_direction(input,PI/4) if locomotion.from_slide else direction
+ locomotion.steer_air(Vector2(air_direction.x,air_direction.z),delta)
  locomotion.advance(delta,control and not locomotion.sliding())
  model.action_crouch=locomotion.crouch if is_on_floor() else 0.0
  running = running and locomotion.crouch < 0.01
  var movement_multiplier:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-0.05*equip_recovery)
  movement_multiplier*=0.4 if preview_state==&"pickup" else 1-0.6*pickup_recovery/0.5
- var walk_scale:float=movement_response.walking_multiplier(input)
- var response:Vector2=movement_response.advance(Vector2(direction.x,direction.z),running,locomotion.crouch,delta,walk_scale)
+ var direction_scale:float=movement_response.direction_multiplier(input)
+ var response:Vector2=movement_response.advance(Vector2(direction.x,direction.z),running,locomotion.crouch,delta,direction_scale)
  var planar:Vector2=response*SPEED*movement_multiplier*attack_speed_scale(action_elapsed,action_family)
  if locomotion.sliding() or (locomotion.airborne() and locomotion.from_slide):planar=locomotion.velocity(planar,WORLD_SCALE)
  if locomotion.from_slide: planar *= WORLD_SCALE
@@ -256,7 +258,7 @@ func _physics_process(delta: float) -> void:
   # Visual gait tuning shares one clock for feet, arms and torso.
   phase=fposmod(phase+travelled*Clips.gait_playback_rate(movement_response.sprint_weight)/Clips.cycle_distance(movement_response.sprint_weight,locomotion.crouch,local_travel),1)
 
- visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*walk_scale*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
+ visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*direction_scale*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
  model.sprint_weight=movement_response.sprint_weight
  model.sprint_crouch=locomotion.crouch
  if action_elapsed >= 0:
