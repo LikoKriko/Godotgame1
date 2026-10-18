@@ -24,14 +24,14 @@ func run():
    actor.animate(state,phase,false,0,phase,Vector3.BACK)
    var sign:float=1 if phase==.25 else -1
    var yaw:float=unleaned(actor,n.spine[2]).get_euler().y
-   require(absf(rad_to_deg(yaw)-sign*2*scale)<.04,'Visible torso matches the previous two-degree running reference in walk and doubles it in run')
+   require(absf(rad_to_deg(yaw)-sign*(3 if state==&'walk' else 7))<.04,'Visible torso reaches three degrees in walk and seven in run')
    var hip:float=actor.last_pose.pelvis.basis.get_euler().y
    require(hip*sign<0 and absf(rad_to_deg(hip))<.31*scale,'Pelvis counter-rotates gently instead of cancelling or amplifying the chest turn')
    var neck:float=unleaned(actor,n.neck).get_euler().y
    var head:float=unleaned(actor,n.head).get_euler().y
    require(head*sign>0 and neck*sign>head*sign and yaw*sign>neck*sign,'Neck and head follow with a progressively smaller twist')
    if state==&'walk':peak_head=absf(head)
-   else:require(absf(absf(head)/peak_head-2)<.02,'Head accompaniment follows the doubled run amplitude')
+   else:require(absf(absf(head)/peak_head-7.0/3.0)<.02,'Head accompaniment follows the requested walk/run torso amplitudes')
    var upper:Transform3D=n.posed[n.spine[2]]*n.inverse_rest[n.spine[2]]
    var lowered:=0
    for side in 2:
@@ -40,22 +40,24 @@ func run():
     var rest_offset:Vector3=n.rest[ids[1]].origin-n.rest[ids[0]].origin
     if offset.y<rest_offset.y-.1:lowered+=1
    require(lowered==1,'The active shoulder lowers one entire arm while the opposite shoulder balances')
- # Reduced keys retain the same phase and twice the authored twist, with
- # their independent angular approximation tolerances.
+ # Reduced keys retain phase and angular approximation tolerances.
  for frame in 121:
   var phase:=frame/120.0
   var walking:=Clips.Controls.sample(&'walk',phase)
   var running:=Clips.Controls.sample(&'run',phase)
-  for field in [&'chest',&'pelvis',&'spine']:
-   require(absf(running[field].y-2*walking[field].y)<.0012,'All cyclic yaw channels share phase and double in run')
-  require((running.shoulders-walking.shoulders*2).length()<.0012,'Shoulder accompaniment doubles with the run torso')
+  require(absf(running.chest.y-walking.chest.y*7.0/3.0)<.0012,'Chest curves preserve the requested three-to-seven-degree ratio')
+  require(absf(running.pelvis.y-2*walking.pelvis.y)<.0012,'The existing pelvis counter-turn stays separate from the extra spine rotation')
+  var walk_twist:float=walking.spine.y+walking.pelvis.y*Clips.Gait.HIP_MOTION*Clips.Gait.HIP_REDUCTION
+  var run_twist:float=running.spine.y+running.pelvis.y*Clips.Gait.HIP_MOTION*Clips.Gait.HIP_REDUCTION
+  require(absf(run_twist-walk_twist*7.0/3.0)<.0012,'Spine compensation preserves the requested total torso rotation')
+  require((running.shoulders-walking.shoulders*2).length()<.0012,'Shoulders retain their existing gentle accompaniment')
  # Sprint startup must interpolate the new amplitudes, even while its
  # selected clip is already run and its physical envelope is still walk.
  for step in 21:
   var weight:=step/20.0;actor.sprint_weight=weight
   actor.animate(&'start_run',.6,false,0,.25,Vector3.BACK)
   var yaw:float=unleaned(actor,n.spine[2]).get_euler().y
-  require(absf(rad_to_deg(yaw)-lerpf(2,4,weight))<.05,'Sprint startup interpolates the visible spine amplitude without a two-to-four-degree snap')
+  require(absf(rad_to_deg(yaw)-lerpf(3,7,weight))<.05,'Sprint startup interpolates the visible spine amplitude smoothly between three and seven degrees')
   for side in 2:
    var ids:Array=n.arms[side].ids
    for segment in 3:

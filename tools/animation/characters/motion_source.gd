@@ -60,7 +60,8 @@ static func sample(clip:StringName,t:float) -> Dictionary:
  if clip in [&"walk",&"run"]:
   var run:=clip==&"run";var wave:=sin(t*TAU)
   var twist:float=Gait.RUN_TWIST_SCALE if run else 1.0
-  return {&"foot_l":foot(t,run),&"foot_r":foot(t+.5,run),&"body":Vector3(-wave*(.17 if run else .25),-(.85 if run else .55)*(1-cos(t*TAU*2))*.5,0),&"chest":Vector3(.14 if run else .015,wave*Gait.TORSO_YAW*twist,-wave*.008*twist),&"pelvis":Vector3(0,-wave*Gait.PELVIS_YAW*twist,wave*.009*twist),&"arms":Vector3(cos(t*TAU)*(.36 if run else .20),cos((t+.5)*TAU)*(.36 if run else .20),0),&"spine":Vector3(0,wave*(Gait.TORSO_YAW+Gait.PELVIS_YAW*Gait.HIP_MOTION*Gait.HIP_REDUCTION)*twist,0),&"shoulders":Vector3(smoothstep(0,1,-wave),smoothstep(0,1,wave),0)*twist}
+  var torso_yaw:float=Gait.RUN_TORSO_YAW if run else Gait.TORSO_YAW
+  return {&"foot_l":foot(t,run),&"foot_r":foot(t+.5,run),&"body":Vector3(-wave*(.17 if run else .25),-(.85 if run else .55)*(1-cos(t*TAU*2))*.5,0),&"chest":Vector3(.14 if run else .015,wave*torso_yaw,-wave*.008*twist),&"pelvis":Vector3(0,-wave*Gait.PELVIS_YAW*twist,wave*.009*twist),&"arms":Vector3(cos(t*TAU)*(.36 if run else .20),cos((t+.5)*TAU)*(.36 if run else .20),0),&"spine":Vector3(0,wave*(torso_yaw+Gait.PELVIS_YAW*Gait.HIP_MOTION*Gait.HIP_REDUCTION*twist),0),&"shoulders":Vector3(smoothstep(0,1,-wave),smoothstep(0,1,wave),0)*twist}
  if clip==&"jump":
   var compress:=smooth5(.0,.10,t)*(1-smooth5(.10,.23,t))
   var flight:=smooth5(.08,.35,t)*(1-smooth5(.70,.96,t))

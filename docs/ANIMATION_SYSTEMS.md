@@ -266,8 +266,10 @@ al acercarse a una dirección cardinal o al detenerse, con respuesta exponencial
 La pelvis conserva su postura y la cabeza mantiene la orientación de mirada con compensación en el cuello.
 La columna visible distribuye la rotación total entre `Spine`, `Spine1` y
 `Spine2` con pesos acumulados de 25 %, 60 % y 100 %. El giro cíclico del pecho
-ronda ±2° al caminar y ±4° al correr, siguiendo la pierna que recupera.
-`gait_parameters.gd` define `TORSO_YAW = 2°` y `RUN_TWIST_SCALE = 2.0`.
+ronda ±3° al caminar y ±7° al correr, siguiendo la pierna que recupera.
+`gait_parameters.gd` define `TORSO_YAW = 3°` y `RUN_TORSO_YAW = 7°`.
+El reparto acumulado 25/60/100 % conserva los aportes locales de 25/35/40 %.
+`RUN_TWIST_SCALE = 2.0` regula cadera y hombros.
 La pista de columna compensa el contragiro amortiguado de la cadera, para
 conservar esas amplitudes visibles. La clavícula del mismo lado desciende
 hasta 2° en marcha y 4° en carrera; el brazo entero acompaña desde el hombro.
