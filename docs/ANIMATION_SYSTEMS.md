@@ -131,16 +131,22 @@ y 0,0004 para ángulos y pesos de mezcla. Conserva las fases de contacto, impact
 entrada y salida, además de los extremos del ciclo. Las pistas constantes
 usan una sola clave. Los datos de autoría no se evalúan durante el juego.
 El reloj base usa el desplazamiento horizontal real en coordenadas del modelo.
-Su distancia de referencia por ciclo mezcla marcha/carrera: 1,56–1,872 m,
-multiplicada por `lerp(1, 0.44, abs(direccion.x))` y por
-`lerp(1, 0.68, agachado)`. Los ajustes visuales independientes de
-`survivor_animation.gd` son `GAIT_STRIDE_LENGTH = 1.10`,
-`GAIT_PLAYBACK_RATE = 0.90` y `RUN_PLAYBACK_RATE = 0.60`.
-La longitud horizontal de la zancada aumenta sin escalar huesos. El reloj
-avanza a `0.90 * lerp(1, 0.60, sprint_weight)` de su ritmo base y alimenta
-piernas, brazos y torso juntos. La marcha conserva un 99 % de la velocidad
-relativa de los apoyos; en carrera máxima queda un 59,4 %. La velocidad física
-permanece independiente, por lo que estos ajustes visuales permiten patinaje.
+La distancia de marcha por ciclo es 1,56 m, multiplicada por
+`lerp(1, 0.44, abs(direccion.x))` y por `lerp(1, 0.68, agachado)`.
+Su ritmo visual conserva `GAIT_PLAYBACK_RATE = 0.90` y la zancada
+`GAIT_STRIDE_LENGTH = 1.10`. La carrera usa los parámetros compartidos de
+`gait_parameters.gd`: semizancada de apoyo de 7,8 unidades, contacto frontal
+del 22 % del ciclo y elevación máxima de 5,6 unidades. El ciclo recorre
+`2 * 7.8 * (1.75 / 64) / 0.22`, aproximadamente 1,939 m. Su reloj sigue la
+distancia real con `RUN_PLAYBACK_RATE = 1.0`; la transición mezcla el reloj
+de marcha y el de carrera. A 4,48 m/s son unos 4,62 pasos por segundo.
+La carrera adapta la duración del contacto al recorrido lateral, conservando
+la velocidad relativa del apoyo. La recuperación horizontal usa aceleración
+continua, con liberación del pie, avance y entrada al siguiente apoyo. El
+retorno vertical es C2 y las claves cercanas al contacto se conservan al reducir
+las curvas. La altura de apoyo de carrera ronda 29,8 unidades, sin añadir
+rebote a la pelvis. El rig nativo centra el apoyo bajo sus propias caderas y
+mantiene un margen de suela de 0,30 unidades. La velocidad física no cambia.
 El apoyo de marcha baja de 60 % frontal a 45 % lateral. Las calles de apoyo dejan
 espacio para la trayectoria completa antes de resolver IK, sin recortar su
 mitad interior. El pie levantado regresa en el sentido real de desplazamiento.
@@ -175,6 +181,13 @@ a la pierna que recupera inicia un pequeño gesto del codo hacia atrás, con
 0,10 rad de amplitud; antebrazo y muñeca lo siguen 0,025 s después al ritmo
 nominal de cada dirección. La muñeca añade solo 0,025 rad de giro. Las manos
 ocupadas mantienen sus agarres y la carrera mantiene su gesto propio.
+La piel visible de la pelvis conserva el 40 % de su deformación anterior
+respecto al hueso de cadera. `hip_skin.gd` mezcla el 60 % restante hacia ese
+hueso entre alturas 30–36, con transición suave de 24–30 y 36–40 unidades.
+La malla GPU se prepara una sola vez y se comparte: no se recalculan vértices
+durante el juego. Conserva los vértices de reposo, UV, materiales, morfos de
+rodilla y ligaduras originales de las fuentes; solo la copia de pesos de la
+piel visible recibe esta corrección. Cabeza, cuello y zonas exteriores no cambian.
 La ligadura nativa conserva ejes y longitudes: las piernas usan giro desde el
 reposo sin copiar la torsión axial del rig de contactos al pantalón.
 El brazo libre de espada usa `SWORD_BALANCE_MOTION = 0.80`, proporciones nativas
@@ -197,7 +210,7 @@ se regenera con `bake_grips.gd`. Esa orientación estable evita inversiones del
 agarre al cambiar el plano del golpe. La geometría
 de herramientas se consulta únicamente en esa herramienta de autoría.
 El apoyo de marcha/carrera rueda suavemente de talón a planta y despega por
-los dedos: −0,05/+0,085 rad caminando y −0,065/+0,11 rad corriendo. La bajada
+los dedos: −0,05/+0,085 rad caminando y −0,035/+0,085 rad corriendo. La bajada
 del pie usa un arco vertical C2 con velocidad y aceleración nulas al contactar;
 conserva el recorrido horizontal, la altura máxima y la cadencia. La rodilla
 acompaña la descarga progresiva del tobillo, con longitudes óseas constantes.

@@ -8,11 +8,12 @@ const Weapons=preload("res://scripts/prototype_3d/weapon_motion.gd")
 const Fall=preload("res://scripts/prototype_3d/fall_motion.gd")
 const Slide=preload("res://scripts/prototype_3d/slide_pose.gd")
 const Controls=preload("res://scripts/animation/characters/survivor_controls.gd")
+const Gait=preload("res://scripts/animation/characters/gait_parameters.gd")
 const STRIDE_SCALE:=1.3
 # Independent visual adjustments; they never change CharacterBody velocity.
-const GAIT_STRIDE_LENGTH:=1.10
+const GAIT_STRIDE_LENGTH:=Gait.STRIDE_LENGTH
 const GAIT_PLAYBACK_RATE:=.90
-const RUN_PLAYBACK_RATE:=.60
+const RUN_PLAYBACK_RATE:=1.0
 const ARM_SWING_SCALE:=0.9
 const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right"]
 const RUN_HIP_SCALE:=.7
@@ -49,10 +50,12 @@ static func directional_stride(direction:Vector3) -> float:
  return lerpf(1.0,.44,absf(direction.normalized().x))
 
 static func cycle_distance(sprint_weight:float,crouch:float=0.0,direction:Vector3=Vector3.BACK) -> float:
- return lerpf(duration(&"walk")*2.0,duration(&"run")*3.2,clampf(sprint_weight,0,1))*lerpf(1.0,.68,crouch)*directional_stride(direction)
+ var walk:=duration(&"walk")*2.0*lerpf(1.0,.68,crouch)*directional_stride(direction)
+ var run:=2*Gait.RUN_HALF_STRIDE*(Anatomy.HEIGHT_METRES/64)/Gait.RUN_SUPPORT
+ return lerpf(walk,run,clampf(sprint_weight,0,1))
 
 static func gait_playback_rate(sprint_weight:float) -> float:
- return GAIT_PLAYBACK_RATE*lerpf(1.0,RUN_PLAYBACK_RATE,clampf(sprint_weight,0,1))
+ return lerpf(GAIT_PLAYBACK_RATE,RUN_PLAYBACK_RATE,clampf(sprint_weight,0,1))
 
 static func sample(family: StringName,state: StringName,phase: float,movement_phase: float = 0.0,movement: Vector3 = Vector3.ZERO,contact: Vector3 = Vector3.INF,slide_launch:Dictionary={},crouch_amount:float=0.0,punch_side:int=1) -> Dictionary:
  if String(state).begins_with("equip") or state==&"unequip":
@@ -143,12 +146,13 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var stride:=directional_stride(travel)*(.68 if crouched else 1.0)*lerpf(1,LATERAL_STEP_SCALE,lateral)
   # A lateral step needs room to open and close. Reserve the complete path
   # before IK, rather than clipping the inward half against the other foot.
-  var support:=.40 if gait_state==&"run" else lerpf(.60,.45,absf(travel.x))
+  var support:float=Gait.RUN_SUPPORT*stride if gait_state==&"run" else lerpf(.60,.45,absf(travel.x))
   var reach:=cycle_distance(1.0 if gait_state==&"run" else 0.0)*support*.5/(Anatomy.HEIGHT_METRES/64)*stride*GAIT_STRIDE_LENGTH
-  var lane:=maxf(Anatomy.HIP.x,Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*.5+absf(travel.dot(pose.leg_frame.x))*reach*1.04)
+  if gait_state==&"run":reach=Gait.RUN_HALF_STRIDE*stride
+  var lane:=maxf(Anatomy.HIP.x,Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*.5+absf(travel.dot(pose.leg_frame.x))*reach*(1.55 if gait_state==&"run" else 1.04))
   pose.stance_lane=lane
   # The run return arc briefly extends beyond the stance endpoints.
-  pose.gait_extent=reach*(1.18 if gait_state==&"run" else 1.05)
+  pose.gait_extent=reach*(1.55 if gait_state==&"run" else 1.05)
   pose.gait_travel=travel
   for side in 2:
    var foot:Vector3=keys.foot_l if side==0 else keys.foot_r
@@ -159,6 +163,10 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     var mapped:=p/support*.60 if p<support else .60+(p-support)/(1-support)*.40
     foot=Controls.sample(&"walk",mapped).foot_l
     foot.x*=support/.60
+   if gait_state==&"run":
+    var p:=fposmod(gait_phase+side*.5,1.0)
+    var mapped:float=p/support*Gait.RUN_SUPPORT if p<support else Gait.RUN_SUPPORT+(p-support)/(1-support)*(1-Gait.RUN_SUPPORT)
+    foot=Controls.sample(&"run",mapped).foot_l
    var step:=foot.x*stride/STRIDE_SCALE
    pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*lane,2.1+foot.y*(.70 if crouched else 1.0)*lerpf(1,LATERAL_LIFT_SCALE,lateral),0)+travel*step
    pose.legs[side].pitch=foot.z*travel.z
@@ -466,6 +474,9 @@ static func lengthen_stride(pose:Dictionary,horizontal_scale:float=STRIDE_SCALE)
     var end:Vector3=lane+pose.gait_travel*pose.gait_extent*sign_value
     var horizontal:=Vector2(end.x-centre_hip.x,end.z-centre_hip.z).length_squared()
     centre_height=minf(centre_height,2.1+sqrt(maxf(.01,pow(Anatomy.THIGH+Anatomy.SHIN-.08,2)-horizontal)))
+ if pose.get("clip_state",&"") in [&"run",&"start_run",&"stop_run",&"equip_run"]:
+  var reserve:float=(Anatomy.HIP.y-Gait.RUN_HIP_HEIGHT)/GAIT_LOWERING
+  settle=maxf(settle,reserve);centre_height=minf(centre_height,Anatomy.HIP.y-reserve)
  pose.gait_center_height=lerpf(Anatomy.HIP.y,centre_height,GAIT_LOWERING)
  var down:=Vector3.DOWN*settle
  pose.body.origin+=down;pose.grip+=down
@@ -508,7 +519,7 @@ static func calm_gait(pose:Dictionary) -> void:
   pose.hips[side]=pelvis*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
   pose.shoulders[side]+=shift;pose.hands[side]+=shift
 
-static func grounded_reach(hip:Vector3,ankle:Vector3,a:float,b:float) -> Vector3:
+static func grounded_reach(hip:Vector3,ankle:Vector3,a:float,b:float,softness:float=.35) -> Vector3:
  # Keep the sole height when a more upright pelvis makes the old extreme
  # unreachable. Smoothly limit horizontal reach instead of lifting the foot
  # or extending a thigh/shin; the IK knee remains softly flexed.
@@ -516,7 +527,7 @@ static func grounded_reach(hip:Vector3,ankle:Vector3,a:float,b:float) -> Vector3
  var limit:=sqrt(maxf(.01,pow(a+b-.08,2)-pow(hip.y-ankle.y,2)))
  var length:=planar.length()
  if length>.0001:
-  var soft:=maxf(0,minf(length,limit)-.35*log(1+exp(-absf(length-limit)/.35)))
+  var soft:=maxf(0,minf(length,limit)-softness*log(1+exp(-absf(length-limit)/softness)))
   planar*=soft/length
   ankle.x=hip.x+planar.x;ankle.z=hip.z+planar.y
  return ankle
@@ -531,7 +542,7 @@ static func solve_legs(pose: Dictionary) -> Dictionary:
    var lateral:=ankle.dot(across)
    var safe:=minf(lateral,-boundary) if side==0 else maxf(lateral,boundary)
    ankle+=across*(safe-lateral)
-  if upright_gait(pose):ankle=grounded_reach(pose.hips[side],ankle,Anatomy.THIGH,Anatomy.SHIN)
+  if upright_gait(pose):ankle=grounded_reach(pose.hips[side],ankle,Anatomy.THIGH,Anatomy.SHIN,.12 if pose.get("clip_state",&"") in [&"run",&"start_run",&"stop_run",&"equip_run"] else .35)
   var pitch: float=pose.legs[side].pitch
   pose.legs[side]=Pose.joint(pose.hips[side],ankle,Anatomy.THIGH,Anatomy.SHIN,pose.get("leg_poles",[Vector3.BACK,Vector3.BACK])[side])
   pose.legs[side].pitch=pitch

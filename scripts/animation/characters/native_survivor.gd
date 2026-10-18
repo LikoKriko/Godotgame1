@@ -13,6 +13,7 @@ var binding=Binding.new()
 var writer=preload("res://scripts/animation/shared/skeleton_pose.gd").new()
 var skeleton:Skeleton3D
 var mesh:MeshInstance3D
+var source_mesh:Mesh
 var frame:Transform3D
 var inverse_frame:Transform3D
 var rest:Array[Transform3D]=[]
@@ -69,6 +70,8 @@ func configure(actor:Node3D,model:Node3D) -> void:
  for name in ["Spine","Spine1","Spine2"]:spine.append(binding.names["smartrig_"+name])
  grip.configure(self)
  writer.configure(parents)
+ source_mesh=mesh.mesh
+ mesh.mesh=preload("res://scripts/animation/characters/hip_skin.gd").stable_mesh(source_mesh,mesh.skin,frame,binding.names["smartrig_Hips"])
  ground.configure(mesh.mesh,rest,GROUND,mesh.skin)
 func aim(bone:int,child:int,a:Vector3,b:Vector3) -> void:
  var rotation:=Basis(Quaternion(rest[bone].origin.direction_to(rest[child].origin),a.direction_to(b)))
@@ -161,9 +164,16 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
   chain=legs[side];ids=chain.ids;source=10+side*3
   var hip:Vector3=pelvis*rest[ids[0]].origin
   var foot_rotation:Basis=control.posed[source+2].basis.orthonormalized()
-  var foot:Vector3=control.posed[source+2].origin+foot_rotation*(rest[ids[2]].origin-control.rest[source+2].origin)
+  var foot_offset:Vector3=rest[ids[2]].origin-control.rest[source+2].origin
+  var running:bool=pose.get("clip_state",&"") in [&"run",&"start_run",&"stop_run",&"equip_run"]
+  var foot:Vector3=control.posed[source+2].origin+foot_rotation*foot_offset
+  if running:
+   # Centre the run under the native hip, rather than inheriting the donor
+   # ankle's forward/back bind offset and clipping one half of the support.
+   var run_foot:Vector3=control.posed[source+2].origin+pelvis.basis*Vector3(foot_offset.x,foot_offset.y,rest[ids[0]].origin.z-control.rest[source].origin.z)+Vector3.UP*.30
+   foot=foot.lerp(run_foot,pose.get("run_weight",1.0))
   pole=control.posed[source+1].origin-control.posed[source].origin
-  if Clips.upright_gait(pose):foot=Clips.grounded_reach(hip,foot,chain.a,chain.b)
+  if Clips.upright_gait(pose):foot=Clips.grounded_reach(hip,foot,chain.a,chain.b,.12 if running else .35)
   solved=Solver.joint(hip,foot,chain.a,chain.b,pole)
   if gait:untwisted_chain(ids,0,solved,pelvis.basis)
   else:orient_chain(ids,0,solved,chain.axes)

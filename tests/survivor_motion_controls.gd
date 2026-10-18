@@ -33,10 +33,11 @@ func _initialize():
   var raw_b:Vector3=Controls.sample(state,.20).foot_l
   var speed:float=(raw_a.x-raw_b.x)*Clips.GAIT_STRIDE_LENGTH*(1.75/64)/(.18*Clips.duration(state))
   require(a.legs[0].end.y>=2.09 and b.legs[0].end.y>=2.09,"Upright reach correction keeps the support sole above ground")
-  require(absf(speed-(2.0 if state==&"walk" else 3.2)*Clips.GAIT_STRIDE_LENGTH)<.035,"Authoring preserves the reference stride before the upright anatomical reach limit: %s %.4f"%[state,speed])
+  var reference:float=2.0*Clips.GAIT_STRIDE_LENGTH if state==&"walk" else 2*Clips.Gait.RUN_HALF_STRIDE*(1.75/64)/(Clips.Gait.RUN_SUPPORT*Clips.duration(&"run"))
+  require(absf(speed-reference)<.035,"Authoring preserves the reference stride before the upright anatomical reach limit: %s %.4f"%[state,speed])
  # Heel contact and toe release must not introduce a vertical/ankle snap.
  for running in [false,true]:
-  var support:=.40 if running else .60
+  var support:float=Clips.Gait.RUN_SUPPORT if running else .60
   for contact in [0.0,support]:
    var h:=.0001
    var before:=Source.foot(contact-h,running)
@@ -45,5 +46,5 @@ func _initialize():
    require(absf((at.y-before.y)/h)<.05 and absf((after.y-at.y)/h)<.05,"Foot approaches/leaves contact with a soft vertical velocity")
    require(absf((at.z-before.z)/h)<.01 and absf((after.z-at.z)/h)<.01,"Ankle roll has no sudden heel/toe contact rotation")
   var highest:=Source.foot(support+(1-support)*.5,running)
-  require(absf(highest.y-(8.2 if running else 4.8))<.001,"Soft landing preserves the original peak foot clearance")
+  require(absf(highest.y-(Clips.Gait.RUN_FOOT_LIFT if running else 4.8))<.001,"Soft landing preserves the original peak foot clearance")
  print("%s: %d reduced-curve, cache, loop and gait-distance checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

@@ -14,6 +14,7 @@ func _initialize():
    var pinned:Array[int]=[0,SAMPLES]
    var contacts:Array=[0.0,.28,.5,.52,.65,.90,1.0]
    if name in [&"walk",&"run"]:contacts=[0.0,.5,1.0,.4 if name==&"run" else .6,.9 if name==&"run" else .1]
+   if name==&"run":contacts=[0.0,.01,.21,.22,.23,.49,.50,.51,.71,.72,.73,.99,1.0]
    elif name==&"jump":contacts=[0.0,.1,.23,.35,.70,.87,.96,1.0]
    elif String(name).begins_with("slide"):contacts=[0.0,.34,.72,1.0]
    elif name==&"death":contacts=[0.0,.38,.40,.62,.84,1.0]

@@ -36,15 +36,19 @@ func run():
       var foot:Vector3=actor.rig.posed[12].origin
       if frame*dt>cycle*.5/rate:
        var delta:Vector3=(foot-previous[0])*Anatomy.HEIGHT_METRES/64
-       if phase>.18 and phase<.30:
+       var support:float=Clips.Gait.RUN_SUPPORT*Clips.directional_stride(direction)*lerpf(1,Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x))) if state==&'run' else .4
+       if phase>support*.25 and phase<support*.75:
         var expected_return:=direction*2.0*Clips.GAIT_STRIDE_LENGTH*rate
+        if state==&'run':expected_return=direction*2.0
         var return_velocity:=delta/dt
         if state==&'crouch_walk':
          expected_return*=lerpf(1,Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x)))
          require(Vector2((return_velocity+expected_return).x,(return_velocity+expected_return).z).length()<.09,'Crouching retains its grounded support rate')
         else:
          require(return_velocity.dot(direction)<.06 and Vector2(return_velocity.x,return_velocity.z).length()<=expected_return.length()+.12,'Upright support keeps the return direction and limits its rate within anatomical reach')
-       if phase>.74 and phase<.86:
+       var swing_start:float=support+(1-support)*.30 if state==&'run' else .74
+       var swing_end:float=support+(1-support)*.70 if state==&'run' else .86
+       if phase>swing_start and phase<swing_end:
         require(delta.dot(direction)>.0001,'Lifted foot returns in the signed travel direction: %s %s %s'%[family,state,direction])
       for side in 2:
        var leg:Dictionary=actor.last_pose.legs[side]
@@ -54,7 +58,7 @@ func run():
       previous=[foot]
  require(is_equal_approx(Clips.GAIT_STRIDE_LENGTH,1.10),'Stride grows by ten percent')
  require(is_equal_approx(Clips.gait_playback_rate(0),.90),'Walking cadence slows by ten percent')
- require(is_equal_approx(Clips.gait_playback_rate(1)/Clips.gait_playback_rate(0),.60),'Entire run cycle receives the additional forty percent slowdown')
+ require(is_equal_approx(Clips.gait_playback_rate(1),1.0),'Running contact clock follows travelled distance without the former visual slowdown')
  # Walk/run acceleration retains a continuous reference distance.
  require(Clips.cycle_distance(.5)==(Clips.cycle_distance(0)+Clips.cycle_distance(1))*.5,'Acceleration shares the visual stride metric')
  require(Clips.directional_stride(Vector3.RIGHT)<.5,'Lateral steps recover faster than the previous .65 stride')

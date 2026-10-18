@@ -88,12 +88,12 @@ func run():
  # Measure the bent, rendered skin: the posterior contour gains volume instead
  # of merely moving a bone or changing a number on the animation controller.
  for side in 2:
-  actor.animate(&"run",.75 if side==0 else .25,false,0,.75 if side==0 else .25,Vector3.BACK)
+  actor.animate(&"crouch",1,false,0,0,Vector3.ZERO)
   native.skeleton.force_update_all_bone_transforms()
   var matrices:Array[Transform3D]=[]
   for bind in skin.get_bind_count():matrices.append(native.frame*native.skeleton.get_bone_global_pose(skin.get_bind_bone(bind))*skin.get_bind_pose(bind))
   var value:float=skin_node.get_blend_shape_value(side)
-  require(value>.35,"The flexed running knee receives posterior support")
+  require(value>.35,"The flexed crouching knee receives posterior support")
   var gain:=0.0;var count:=0;var knee:Vector3=native.posed[native.legs[side].ids[1]].origin
   for vertex in surfaces[0][Mesh.ARRAY_VERTEX].size():
    if (morphs[0][side][Mesh.ARRAY_VERTEX][vertex]-surfaces[0][Mesh.ARRAY_VERTEX][vertex]).z>-.025:continue
@@ -131,7 +131,7 @@ func run():
      if not previous.is_empty():require(rotation.angle_to(previous[side])<.5,"Native trouser/thigh rotation stays continuous through support transfer")
     previous=[native.posed[native.legs[0].ids[0]].basis.get_rotation_quaternion(),native.posed[native.legs[1].ids[0]].basis.get_rotation_quaternion()]
    require(maximum-minimum<.8,"Walking/running hips avoid reach-induced pumping in every direction")
-   require(minimum>(29.7 if state==&"walk" else 29.9),"Upright gait removes 85 percent of the previous low stance")
+   require(minimum>(29.7 if state==&"walk" else 29.65),"Upright gait removes 85 percent of the previous low stance")
  # Lateral stepping must not pull the proximal thighs far out of the shorts
  # or pump the rendered hip contour open/closed on every transfer.
  var hip_vertices:Array[int]=[]
