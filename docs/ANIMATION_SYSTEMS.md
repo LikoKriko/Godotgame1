@@ -131,9 +131,24 @@ y 0,0004 para ángulos y pesos de mezcla. Conserva las fases de contacto, impact
 entrada y salida, además de los extremos del ciclo. Las pistas constantes
 usan una sola clave. Los datos de autoría no se evalúan durante el juego.
 El reloj base usa el desplazamiento horizontal real en coordenadas del modelo.
-La distancia de marcha por ciclo es 1,56 m, multiplicada por
-`lerp(1, 0.44, abs(direccion.x))` y por `lerp(1, 0.68, agachado)`.
-Su ritmo visual conserva `GAIT_PLAYBACK_RATE = 0.90` y la zancada
+La marcha erguida usa semizancada de apoyo de 8,8 unidades, contacto frontal
+del 25 % y elevación máxima de 2,8 unidades, definidos en `gait_parameters.gd`.
+La distancia efectiva por ciclo es `2 * 8.8 * (1.75 / 64) / 0.25`, 1,925 m:
+a 2 m/s dura 0,9625 segundos, unos 2,08 pasos por segundo. El retorno de la
+pierna ocupa el 75 % del ciclo frontal, con aceleración continua y aterrizaje
+suave. El reloj conserva esta duración también en diagonales y laterales;
+la amplitud y el tiempo de contacto se ajustan juntos a cada dirección para
+mantener la velocidad del pie apoyado respecto al terreno. La altura de apoyo
+ronda 29,8 unidades y el objetivo nativo se centra bajo su propia cadera,
+con entrada y salida suavizadas. La marcha hacia delante y de lado es de 2 m/s. Hacia atrás y en ambas
+diagonales traseras es el 30 %, 0,6 m/s, con frenada progresiva; la marcha
+agachada conserva el mismo factor direccional respecto a su avance frontal.
+La carrera mantiene su máximo propio. El reloj de animación sigue la distancia
+real también a estas velocidades, sin reducir dos veces la amplitud del paso.
+La marcha agachada conserva su curva propia `crouch_walk`, su distancia base
+`1.56 * 0.68 * lerp(1, 0.44, abs(direccion.x))` y sus apoyos del 60–45 %.
+El reloj mezcla ambas distancias durante la transición de postura y conserva
+`GAIT_PLAYBACK_RATE = 0.90`. La escala de autoría es
 `GAIT_STRIDE_LENGTH = 1.10`. La carrera usa los parámetros compartidos de
 `gait_parameters.gd`: semizancada de apoyo de 7,8 unidades, contacto frontal
 del 22 % del ciclo y elevación máxima de 5,6 unidades. El ciclo recorre
@@ -147,8 +162,7 @@ retorno vertical es C2 y las claves cercanas al contacto se conservan al reducir
 las curvas. La altura de apoyo de carrera ronda 29,8 unidades, sin añadir
 rebote a la pelvis. El rig nativo centra el apoyo bajo sus propias caderas y
 mantiene un margen de suela de 0,30 unidades. La velocidad física no cambia.
-El apoyo de marcha baja de 60 % frontal a 45 % lateral. Las calles de apoyo dejan
-espacio para la trayectoria completa antes de resolver IK, sin recortar su
+Las calles de apoyo dejan espacio para la trayectoria completa antes de resolver IK, sin recortar su
 mitad interior. El pie levantado regresa en el sentido real de desplazamiento.
 El paso lateral usa `LATERAL_STEP_SCALE = 0.45` y
 `LATERAL_LIFT_SCALE = 0.40`: reduce apertura y elevación de la pierna para

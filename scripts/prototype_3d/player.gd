@@ -226,7 +226,8 @@ func _physics_process(delta: float) -> void:
  running = running and locomotion.crouch < 0.01
  var movement_multiplier:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-0.05*equip_recovery)
  movement_multiplier*=0.4 if preview_state==&"pickup" else 1-0.6*pickup_recovery/0.5
- var response:Vector2=movement_response.advance(Vector2(direction.x,direction.z),running,locomotion.crouch,delta)
+ var walk_scale:float=movement_response.walking_multiplier(input)
+ var response:Vector2=movement_response.advance(Vector2(direction.x,direction.z),running,locomotion.crouch,delta,walk_scale)
  var planar:Vector2=response*SPEED*movement_multiplier*attack_speed_scale(action_elapsed,action_family)
  if locomotion.sliding() or (locomotion.airborne() and locomotion.from_slide):planar=locomotion.velocity(planar,WORLD_SCALE)
  if locomotion.from_slide: planar *= WORLD_SCALE
@@ -255,7 +256,7 @@ func _physics_process(delta: float) -> void:
   # Visual gait tuning shares one clock for feet, arms and torso.
   phase=fposmod(phase+travelled*Clips.gait_playback_rate(movement_response.sprint_weight)/Clips.cycle_distance(movement_response.sprint_weight,locomotion.crouch,local_travel),1)
 
- visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
+ visual_motion=clampf(actual_speed/maxf(SPEED*movement_multiplier*walk_scale*(.48 if locomotion.crouch>.99 else 1.0),.01),0,1)
  model.sprint_weight=movement_response.sprint_weight
  model.sprint_crouch=locomotion.crouch
  if action_elapsed >= 0:

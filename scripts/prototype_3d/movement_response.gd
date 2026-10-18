@@ -1,6 +1,7 @@
 extends RefCounted
 ## Physical speed and animation envelopes share the same interruptible clock.
 const SPRINT_MULTIPLIER:=1.6*1.4
+const BACKWARD_WALK_MULTIPLIER:=.30
 const GAIT_MULTIPLIER:=1.6
 const START_SECONDS:=.16
 const MAXIMUM_SECONDS:=1.0
@@ -33,10 +34,14 @@ static func valid(data) -> bool:
 func restore(data:Dictionary) -> void:
  stage=StringName(data.stage);requested=data.requested;direction=Vector2(data.direction[0],data.direction[1])
  for key in VALUES:set(key,float(data[key]))
-func advance(travel:Vector2,sprint:bool,crouch:float,delta:float) -> Vector2:
+static func walking_multiplier(camera_input:Vector2) -> float:
+ # Camera-relative S, S+A and S+D share one speed; normalization must not
+ # make either backward diagonal faster than walking straight backward.
+ return BACKWARD_WALK_MULTIPLIER if camera_input.y>0 else 1.0
+func advance(travel:Vector2,sprint:bool,crouch:float,delta:float,walk_scale:float=1.0) -> Vector2:
  var moving:=not travel.is_zero_approx()
  sprint=sprint and moving and crouch<.01
- var target:=lerpf(1,.48,crouch) if moving else 0.0
+ var target:=lerpf(1,.48,crouch)*clampf(walk_scale,0,1) if moving else 0.0
  if sprint and not requested:
   stage=&"start";elapsed=0;entry_speed=speed;entry_weight=sprint_weight
  elif not sprint and (requested or not is_equal_approx(target,destination)):

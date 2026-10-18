@@ -63,6 +63,21 @@ func run():
    require(absf(response.speed-target)<.00001,"Braking reaches idle, walk or crouch-walk")
    response.advance(Vector2.UP,true,0,0)
    require(is_equal_approx(response.speed,previous),"Restarting during braking also preserves current speed")
+ # Directional walking speed belongs to the physical envelope, so changing
+ # between W/A/D and S does not multiply the final velocity discontinuously.
+ for fps in [30,60,120]:
+  for input in [Vector2.UP,Vector2.LEFT,Vector2.RIGHT,Vector2.DOWN,Vector2(-1,1),Vector2(1,1)]:
+   var response:=Response.new()
+   var scale:float=Response.walking_multiplier(input)
+   for frame in fps:response.advance(input,false,0,1.0/fps,scale)
+   require(absf(response.speed-(.3 if input.y>0 else 1.0))<.00001,"Backward walking and both diagonals are seventy percent slower than forward walking")
+   var encoded:=response.snapshot()
+   require(Response.valid(encoded),"Directional walking envelopes retain valid saves")
+   var before:float=response.speed
+   response.advance(Vector2.UP,false,0,0,1)
+   require(is_equal_approx(response.speed,before),"Changing walking direction preserves speed at the start of the transition")
+   for frame in fps*2:response.advance(input,true,0,1.0/fps,scale)
+   require(is_equal_approx(response.speed,Response.SPRINT_MULTIPLIER),"Walking slowdown preserves the existing sprint maximum")
  var distance:Array[float]=[]
  for scale in [1.0,.6]:
   var slide:=Motion.new();slide.slide(Vector2.UP,scale);var total:=0.0
@@ -146,6 +161,30 @@ func run():
  var player=game.player;player.position=Vector3(12,.01,12);player.equipped=false
  for frame in 12:
   player._physics_process(1.0/60);await physics_frame
+ # Real camera-relative input verifies the physical movement and the visual
+ # stride amplitude together; a slow walk must not shrink the stride twice.
+ for codes in [[KEY_W],[KEY_A],[KEY_D],[KEY_W,KEY_A],[KEY_W,KEY_D],[KEY_S],[KEY_S,KEY_A],[KEY_S,KEY_D]]:
+  for code in [KEY_W,KEY_A,KEY_S,KEY_D]:key(code,false)
+  await physics_frame;await process_frame
+  player.reset_motion_state();player.position=Vector3(12,.01,12)
+  for code in codes:key(code,true)
+  await physics_frame;await process_frame
+  for frame in 24:
+   player._physics_process(1.0/60);await physics_frame
+  var scale:float=.3 if KEY_S in codes else 1.0
+  var walking_factors:float=game.nutrition.speed_multiplier()*game.progression.speed_multiplier()*(1-.05*player.equip_recovery)
+  require(absf(Vector2(player.velocity.x,player.velocity.z).length()-player.SPEED*walking_factors*scale)<.01,"Live backward and diagonal input uses thirty percent of the forward walking speed")
+  require(player.visual_motion>.99,"Steady backward walking keeps a full stride synchronized to the travelled distance")
+  var previous_phase:float=player.phase
+  var previous_position:Vector3=player.position
+  player._physics_process(1.0/60)
+  var moved:=Vector2(player.position.x-previous_position.x,player.position.z-previous_position.z).length()
+  var expected_phase:float=fposmod(previous_phase+moved*Clips.gait_playback_rate(0)/Clips.cycle_distance(0),1)
+  require(absf(wrapf(player.phase-expected_phase,-.5,.5))<.00001,"Walking animation follows actual travel at both forward and reduced backward speeds")
+  await physics_frame
+ for code in [KEY_W,KEY_A,KEY_S,KEY_D]:key(code,false)
+ await physics_frame;await process_frame
+ player.reset_motion_state();player.position=Vector3(12,.01,12)
  key(KEY_W,true);key(KEY_SHIFT,true);await physics_frame
  await process_frame
  for frame in 72:

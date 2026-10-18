@@ -9,7 +9,8 @@ El menú inicial permite iniciar una partida, continuar, configurar y salir.
 | --- | --- |
 | Altura | 1,75 m |
 | Peso de referencia | 60 kg |
-| Velocidad de caminar | 2 m/s |
+| Velocidad de caminar hacia delante y de lado | 2 m/s |
+| Velocidad de caminar hacia atrás y ambas diagonales traseras | 0,6 m/s (30 % de la marcha hacia delante) |
 | Velocidad de correr | 4,48 m/s |
 | Distancia de cámara | 3,6 m |
 | Desplazamiento al hombro | 0,30 m |

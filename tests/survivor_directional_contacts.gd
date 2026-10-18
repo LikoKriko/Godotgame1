@@ -36,7 +36,8 @@ func run():
       var foot:Vector3=actor.rig.posed[12].origin
       if frame*dt>cycle*.5/rate:
        var delta:Vector3=(foot-previous[0])*Anatomy.HEIGHT_METRES/64
-       var support:float=Clips.Gait.RUN_SUPPORT*Clips.directional_stride(direction)*lerpf(1,Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x))) if state==&'run' else .4
+       var support:float=Clips.Gait.RUN_SUPPORT*Clips.directional_stride(direction)*lerpf(1,Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x))) if state==&'run' else Clips.Gait.WALK_SUPPORT*Clips.directional_stride(direction)*lerpf(1,Clips.LATERAL_STEP_SCALE,smoothstep(sqrt(.5),1,absf(direction.x)))
+       if state==&'crouch_walk':support=.4
        if phase>support*.25 and phase<support*.75:
         var expected_return:=direction*2.0*Clips.GAIT_STRIDE_LENGTH*rate
         if state==&'run':expected_return=direction*2.0
@@ -46,8 +47,8 @@ func run():
          require(Vector2((return_velocity+expected_return).x,(return_velocity+expected_return).z).length()<.09,'Crouching retains its grounded support rate')
         else:
          require(return_velocity.dot(direction)<.06 and Vector2(return_velocity.x,return_velocity.z).length()<=expected_return.length()+.12,'Upright support keeps the return direction and limits its rate within anatomical reach')
-       var swing_start:float=support+(1-support)*.30 if state==&'run' else .74
-       var swing_end:float=support+(1-support)*.70 if state==&'run' else .86
+       var swing_start:float=support+(1-support)*.30 if state!=&'crouch_walk' else .74
+       var swing_end:float=support+(1-support)*.70 if state!=&'crouch_walk' else .86
        if phase>swing_start and phase<swing_end:
         require(delta.dot(direction)>.0001,'Lifted foot returns in the signed travel direction: %s %s %s'%[family,state,direction])
       for side in 2:

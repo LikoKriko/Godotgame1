@@ -50,7 +50,9 @@ static func directional_stride(direction:Vector3) -> float:
  return lerpf(1.0,.44,absf(direction.normalized().x))
 
 static func cycle_distance(sprint_weight:float,crouch:float=0.0,direction:Vector3=Vector3.BACK) -> float:
- var walk:=duration(&"walk")*2.0*lerpf(1.0,.68,crouch)*directional_stride(direction)
+ var standing:=2*Gait.WALK_HALF_STRIDE*(Anatomy.HEIGHT_METRES/64)/Gait.WALK_SUPPORT*GAIT_PLAYBACK_RATE
+ var crouching:=duration(&"walk")*2.0*.68*directional_stride(direction)
+ var walk:=lerpf(standing,crouching,clampf(crouch,0,1))
  var run:=2*Gait.RUN_HALF_STRIDE*(Anatomy.HEIGHT_METRES/64)/Gait.RUN_SUPPORT
  return lerpf(walk,run,clampf(sprint_weight,0,1))
 
@@ -146,27 +148,29 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   var stride:=directional_stride(travel)*(.68 if crouched else 1.0)*lerpf(1,LATERAL_STEP_SCALE,lateral)
   # A lateral step needs room to open and close. Reserve the complete path
   # before IK, rather than clipping the inward half against the other foot.
-  var support:float=Gait.RUN_SUPPORT*stride if gait_state==&"run" else lerpf(.60,.45,absf(travel.x))
-  var reach:=cycle_distance(1.0 if gait_state==&"run" else 0.0)*support*.5/(Anatomy.HEIGHT_METRES/64)*stride*GAIT_STRIDE_LENGTH
-  if gait_state==&"run":reach=Gait.RUN_HALF_STRIDE*stride
-  var lane:=maxf(Anatomy.HIP.x,Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*.5+absf(travel.dot(pose.leg_frame.x))*reach*(1.55 if gait_state==&"run" else 1.04))
+  var support:float=(Gait.RUN_SUPPORT if gait_state==&"run" else Gait.WALK_SUPPORT)*stride
+  if crouched:support=lerpf(.60,.45,absf(travel.x))
+  var reach:=duration(&"walk")*2.0*support*.5/(Anatomy.HEIGHT_METRES/64)*stride*GAIT_STRIDE_LENGTH
+  if not crouched:reach=(Gait.RUN_HALF_STRIDE if gait_state==&"run" else Gait.WALK_HALF_STRIDE)*stride
+  var lane:=maxf(Anatomy.HIP.x,Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*.5+absf(travel.dot(pose.leg_frame.x))*reach*(1.04 if crouched else 1.55))
   pose.stance_lane=lane
-  # The run return arc briefly extends beyond the stance endpoints.
-  pose.gait_extent=reach*(1.55 if gait_state==&"run" else 1.05)
+  # The return arc briefly extends beyond the stance endpoints.
+  pose.gait_extent=reach*(1.05 if crouched else 1.55)
   pose.gait_travel=travel
   for side in 2:
    var foot:Vector3=keys.foot_l if side==0 else keys.foot_r
-   if gait_state==&"walk" and absf(travel.x)>.001:
+   if crouched:
     # Shorter lateral contact gives a quicker, less spread side step while
     # preserving planted speed. Resample the same reduced control curve.
     var p:=fposmod(gait_phase+side*.5,1.0)
     var mapped:=p/support*.60 if p<support else .60+(p-support)/(1-support)*.40
-    foot=Controls.sample(&"walk",mapped).foot_l
+    foot=Controls.sample(&"crouch_walk",mapped).foot_l
     foot.x*=support/.60
-   if gait_state==&"run":
+   if not crouched:
+    var base_support:float=Gait.RUN_SUPPORT if gait_state==&"run" else Gait.WALK_SUPPORT
     var p:=fposmod(gait_phase+side*.5,1.0)
-    var mapped:float=p/support*Gait.RUN_SUPPORT if p<support else Gait.RUN_SUPPORT+(p-support)/(1-support)*(1-Gait.RUN_SUPPORT)
-    foot=Controls.sample(&"run",mapped).foot_l
+    var mapped:float=p/support*base_support if p<support else base_support+(p-support)/(1-support)*(1-base_support)
+    foot=Controls.sample(gait_state,mapped).foot_l
    var step:=foot.x*stride/STRIDE_SCALE
    pose.legs[side].end=pose.leg_frame*Vector3((-1 if side==0 else 1)*lane,2.1+foot.y*(.70 if crouched else 1.0)*lerpf(1,LATERAL_LIFT_SCALE,lateral),0)+travel*step
    pose.legs[side].pitch=foot.z*travel.z
@@ -291,6 +295,11 @@ static func reduce_attack_knees(pose:Dictionary,phase:float,gait:float,movement:
  # stance beneath the attack. Fixed bone lengths determine the new hip height.
  var state:StringName=(&"crouch_walk" if crouch>0 else &"walk") if not movement.is_zero_approx() else (&"crouch" if crouch>0 else &"idle")
  var base:=sample(&"",state,crouch if state==&"crouch" else gait,gait,movement)
+ if not movement.is_zero_approx() and crouch>0:
+  # The reference stance must also blend: switching a fully crouched gait
+  # to standing only at zero caused a pop on the last Ctrl-release frame.
+  base=mix_motion(sample(&"",&"walk",gait,gait,movement),base,clampf(crouch,0,1))
+  for side in 2:base.hips[side]=base.pelvis*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
  var rise:=INF
  var a:=Anatomy.THIGH;var b:=Anatomy.SHIN
  for side in 2:
@@ -474,8 +483,12 @@ static func lengthen_stride(pose:Dictionary,horizontal_scale:float=STRIDE_SCALE)
     var end:Vector3=lane+pose.gait_travel*pose.gait_extent*sign_value
     var horizontal:=Vector2(end.x-centre_hip.x,end.z-centre_hip.z).length_squared()
     centre_height=minf(centre_height,2.1+sqrt(maxf(.01,pow(Anatomy.THIGH+Anatomy.SHIN-.08,2)-horizontal)))
- if pose.get("clip_state",&"") in [&"run",&"start_run",&"stop_run",&"equip_run"]:
-  var reserve:float=(Anatomy.HIP.y-Gait.RUN_HIP_HEIGHT)/GAIT_LOWERING
+ if pose.get("clip_state",&"") in [&"walk",&"start",&"stop",&"equip_walk",&"run",&"start_run",&"stop_run",&"equip_run"] or (pose.get("upright_attack",false) and pose.has("gait_extent")):
+  # A moving strike shares the upright walking height; changing the foot
+  # recovery must not introduce a vertical pop when interrupting a sprint.
+  var running:bool=pose.get("clip_state",&"") in [&"run",&"start_run",&"stop_run",&"equip_run"]
+  var reserve:float=(Anatomy.HIP.y-(Gait.RUN_HIP_HEIGHT if running else Gait.WALK_HIP_HEIGHT))/GAIT_LOWERING
+  if pose.get("upright_attack",false):reserve*=smoothstep(0,1,pose.get("attack_stance_weight",1.0))
   settle=maxf(settle,reserve);centre_height=minf(centre_height,Anatomy.HIP.y-reserve)
  pose.gait_center_height=lerpf(Anatomy.HIP.y,centre_height,GAIT_LOWERING)
  var down:=Vector3.DOWN*settle

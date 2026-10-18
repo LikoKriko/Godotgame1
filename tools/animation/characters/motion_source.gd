@@ -1,18 +1,19 @@
 extends RefCounted
 ## Authoring only. Runtime samples the reduced native Animation tracks.
 const Gait=preload("res://scripts/animation/characters/gait_parameters.gd")
-const CLIPS:Array[StringName]=[&"walk",&"run",&"jump",&"slide",&"slide_back",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right",&"slide_back_left",&"slide_back_right",&"death",&"axe",&"pickaxe",&"sword"]
+const CLIPS:Array[StringName]=[&"walk",&"crouch_walk",&"run",&"jump",&"slide",&"slide_back",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right",&"slide_back_left",&"slide_back_right",&"death",&"axe",&"pickaxe",&"sword"]
 static func smooth5(a:float,b:float,t:float) -> float:
  var x:=clampf((t-a)/(b-a),0,1)
  return x*x*x*(x*(x*6-15)+10)
 static func foot(t:float,running:bool) -> Vector3:
- if running:return run_foot(t)
- var support:=.40 if running else .60
+ return grounded_foot(t,running)
+static func crouch_foot(t:float) -> Vector3:
+ var support:=.60
  # Metres covered in one nominal cycle, converted to 64-unit author space.
- var stride:float=(3.2*.585 if running else 2.0*.78)/(1.75/64)*support*.5
+ var stride:float=(2.0*.78)/(1.75/64)*support*.5
  var p:=fposmod(t,1.0)
- var heel:float=-.065 if running else -.05
- var toe:float=.11 if running else .085
+ var heel:float=-.05
+ var toe:float=.085
  if p<support:
   var planted:=p/support
   # Settle heel-to-sole gently, then release through the toes. Both ends
@@ -26,16 +27,16 @@ static func foot(t:float,running:bool) -> Vector3:
  var z:float=(2*u*u*u-3*u*u+1)*-stride+(u*u*u-2*u*u+u)*velocity+(-2*u*u*u+3*u*u)*stride+(u*u*u-u*u)*velocity
  # Keep the same horizontal arc and peak clearance. A C2 landing spends
  # more time close to the ground instead of accelerating into the contact.
- var lift:float=64*pow(u,3)*pow(1-u,3)*(8.2 if running else 4.8)
- var pitch:float=lerpf(toe,-.26 if running else -.14,smooth5(0,.50,u)) if u<.50 else lerpf(-.26 if running else -.14,heel,smooth5(.50,1,u))
+ var lift:float=64*pow(u,3)*pow(1-u,3)*4.8
+ var pitch:float=lerpf(toe,-.14,smooth5(0,.50,u)) if u<.50 else lerpf(-.14,heel,smooth5(.50,1,u))
  return Vector3(z,lift,pitch)
 static func integrated_smooth5(x:float) -> float:
  return pow(x,6)-3*pow(x,5)+2.5*pow(x,4)
-static func run_foot(t:float) -> Vector3:
+static func grounded_foot(t:float,running:bool) -> Vector3:
  var p:=fposmod(t,1.0)
- var half:float=Gait.RUN_HALF_STRIDE/Gait.STRIDE_LENGTH
- var support:float=Gait.RUN_SUPPORT
- var heel:=-.035;var toe:=.085
+ var half:float=(Gait.RUN_HALF_STRIDE if running else Gait.WALK_HALF_STRIDE)/Gait.STRIDE_LENGTH
+ var support:float=Gait.RUN_SUPPORT if running else Gait.WALK_SUPPORT
+ var heel:float=-.035 if running else -.05;var toe:=.085
  if p<support:
   var u:=p/support
   return Vector3(lerpf(half,-half,u),0,heel*(1-smooth5(0,.32,u))+toe*smooth5(.65,1,u))
@@ -51,10 +52,11 @@ static func run_foot(t:float) -> Vector3:
   z=half-velocity*landing*(q-integrated_smooth5(q))
  else:
   z=lerpf(-half+velocity*release*.5,half-velocity*landing*.5,smooth5(release,1-landing,u))
- var lift:float=64*pow(u,3)*pow(1-u,3)*Gait.RUN_FOOT_LIFT
+ var lift:float=64*pow(u,3)*pow(1-u,3)*(Gait.RUN_FOOT_LIFT if running else Gait.WALK_FOOT_LIFT)
  var pitch:float=lerpf(toe,-.16,smooth5(0,.45,u)) if u<.45 else lerpf(-.16,heel,smooth5(.45,1,u))
  return Vector3(z,lift,pitch)
 static func sample(clip:StringName,t:float) -> Dictionary:
+ if clip==&"crouch_walk":return {&"foot_l":crouch_foot(t),&"foot_r":crouch_foot(t+.5)}
  if clip in [&"walk",&"run"]:
   var run:=clip==&"run";var wave:=sin(t*TAU)
   return {&"foot_l":foot(t,run),&"foot_r":foot(t+.5,run),&"body":Vector3(-wave*(.17 if run else .25),-(.85 if run else .55)*(1-cos(t*TAU*2))*.5,0),&"chest":Vector3(.14 if run else .015,-wave*(.025 if run else .035),-wave*.008),&"pelvis":Vector3(0,wave*(.025 if run else .015),wave*.009),&"arms":Vector3(cos(t*TAU)*(.36 if run else .20),cos((t+.5)*TAU)*(.36 if run else .20),0),&"spine":Vector3(0,wave*deg_to_rad(2),0),&"shoulders":Vector3(smoothstep(0,1,-wave),smoothstep(0,1,wave),0)}

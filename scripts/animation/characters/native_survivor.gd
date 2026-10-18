@@ -220,13 +220,13 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   var foot_offset:Vector3=rest[ids[2]].origin-control.rest[source+2].origin
   var running:bool=pose.get("clip_state",&"") in [&"run",&"start_run",&"stop_run",&"equip_run"]
   var foot:Vector3=control.posed[source+2].origin+foot_rotation*foot_offset
-  if running:
-   # Centre the run under the native hip, rather than inheriting the donor
-   # ankle's forward/back bind offset and clipping one half of the support.
-   var run_foot:Vector3=control.posed[source+2].origin+pelvis.basis*Vector3(foot_offset.x,foot_offset.y,rest[ids[0]].origin.z-control.rest[source].origin.z)+Vector3.UP*.30
-   foot=foot.lerp(run_foot,pose.get("run_weight",1.0))
+  var grounded_walk:bool=walking and not running
+  # Centre upright locomotion under the native hip. The posture weights
+  # also fade this bind correction when stopping, crouching or jumping.
+  var aligned_foot:Vector3=control.posed[source+2].origin+pelvis.basis*Vector3(foot_offset.x,foot_offset.y,rest[ids[0]].origin.z-control.rest[source].origin.z)+Vector3.UP*.30
+  foot=foot.lerp(aligned_foot,clampf(walk_posture+run_posture,0,1))
   pole=control.posed[source+1].origin-control.posed[source].origin
-  if Clips.upright_gait(pose):foot=Clips.grounded_reach(hip,foot,chain.a,chain.b,.12 if running else .35)
+  if Clips.upright_gait(pose):foot=Clips.grounded_reach(hip,foot,chain.a,chain.b,.12 if running or grounded_walk else .35)
   solved=Solver.joint(hip,foot,chain.a,chain.b,pole)
   solved=spread_knee(solved,pelvis,clampf(walk_posture+run_posture,0,1))
   if gait:untwisted_chain(ids,0,solved,pelvis.basis)
