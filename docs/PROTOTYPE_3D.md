@@ -169,3 +169,33 @@ y los parámetros ambientales constantes no se reasignan cada tick. El reloj,
 las transiciones, la intensidad y el filtrado conservan su funcionamiento;
 los personajes y objetos siguen actualizando sus sombras en cada fotograma.
 Esta gestión se aplica tanto al activar como al desactivar las sombras de prueba.
+
+## Acabado natural de iluminación: prueba ajustable
+
+Configuración → Gráficos → Pruebas → **Acabado de iluminación (prueba)**
+permite comparar el acabado natural estilizado con el anterior en la misma
+hora y posición. Está activado de inicio y se guarda como preferencia gráfica.
+Al desactivarlo se recuperan el color e intensidad solar anteriores y los
+parámetros originales de cielo y niebla. El reloj, los perfiles de sombras,
+la luz lunar y los materiales de los modelos conservan su funcionamiento.
+
+`data/rendering/lighting_finish_trial.tres` define la paleta y sus intensidades;
+`scripts/rendering/lighting_finish_profile.gd` la evalúa con la elevación solar.
+La energía máxima del sol es 1,02 y la del relleno ambiental diurno, 0,55.
+El sol pasa de cálido junto al horizonte a casi neutro al mediodía; el relleno
+ambiental diurno es ligeramente azulado para separar las formas en sombra.
+La noche conserva su iluminación ambiental y la luz lunar configurada.
+
+`scripts/rendering/lighting_finish.gd` mantiene un cielo en degradado independiente
+por mundo con `assets/shaders/lighting_sky.gdshader`. El cielo se utiliza como
+fondo: el ambiente procede del color configurado y los reflejos del cielo están
+desactivados, evitando actualizar cubemaps de radiancia. La atmósfera es niebla
+de profundidad no volumétrica: empieza a 35 m, termina su transición a 220 m,
+tiene curva 1,6 y opacidad máxima diurna de 0,12, atenuada hasta cero de noche.
+La niebla se desactiva cuando su opacidad es despreciable.
+Conserva nítida la zona cercana al jugador. No añade luces ni pasadas de sombra;
+el fondo en degradado añade su dibujo y la niebla se evalúa en los materiales.
+
+La dirección visual es un ambiente natural estilizado, profundo e inmersivo,
+con identidad de hora y lugar y coherencia con el contexto narrativo y la tensión.
+El perfil actual proporciona el acabado global dependiente de la hora.

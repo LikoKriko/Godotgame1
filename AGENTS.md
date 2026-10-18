@@ -60,6 +60,16 @@ Las herramientas no deben dibujarse a través del torso o la cabeza al mirar hac
 
 Si una decisión visual o de comportamiento no está especificada, presentar opciones al usuario antes de escogerla. Las decisiones de implementación que cumplen el resultado ya definido no necesitan consultas repetidas.
 
+## Dirección de iluminación y ambiente
+
+Mantener un acabado natural estilizado que conserve la paleta del juego y
+favorezca la lectura del volumen y los detalles. La ambientación debe resultar
+bonita, interesante e inmersiva, con identidad según el momento del día y la
+zona, y capacidad de acompañar las misiones, la tensión y el contexto narrativo.
+Usar perfiles reutilizables para definir luz, relleno ambiental, cielo y
+atmósfera; mantener coherencia entre sus transiciones y cuidar el rendimiento.
+Consultar los perfiles actuales de `data/rendering/` y `docs/PROTOTYPE_3D.md`.
+
 ## Animación y anatomía compartidas
 
 Usar los modelos y rigs de `scripts/prototype_3d/` y la cinemática de

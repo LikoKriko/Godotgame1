@@ -35,6 +35,8 @@ func configure(owner_game) -> void:
  shadows.tooltip_text="Mejora el contacto y la definición cercana. Desactiva para comparar con las sombras anteriores."
  var moon:=check(trials,"Luz lunar (prueba)",game.settings.values.moon_light_trial,func(value):game.settings.values.moon_light_trial=value;save());moon.name="MoonLightTrial"
  moon.tooltip_text="Luz nocturna suave con sombras tenues. Desactiva para comparar con la noche anterior."
+ var finish:=check(trials,"Acabado de iluminación (prueba)",game.settings.values.lighting_finish_trial,func(value):game.settings.values.lighting_finish_trial=value;save());finish.name="LightingFinishTrial"
+ finish.tooltip_text="Luz natural equilibrada, cielo en degradado y atmósfera suave a distancia. Desactiva para comparar."
  row=HBoxContainer.new();trials.add_child(row);label=Label.new();label.text="Generación de mundo";row.add_child(label)
  var generation:=OptionButton.new();generation.name="WorldGeneration";var distances:=[100,200,400]
  for value in distances:generation.add_item("%d metros%s"%[value," (base)" if value==200 else ""])

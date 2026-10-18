@@ -38,6 +38,7 @@ const MOON_TRIAL=preload("res://data/rendering/moon_light_trial.tres")
 var moon_light:DirectionalLight3D
 var main_sun:DirectionalLight3D
 var world_ambient:Environment
+var lighting_finish=preload("res://scripts/rendering/lighting_finish.gd").new()
 var map_holder:CenterContainer
 var inventory_panel:Control
 var item_catalog:Control
@@ -90,6 +91,7 @@ func build_environment() -> void:
  environment.environment = environment_settings;world_ambient=environment_settings; add_child(environment)
  var sun := DirectionalLight3D.new(); sun.rotation_degrees = Vector3(-52,-35,0); sun.light_color = Color("fff1d6"); sun.light_energy = 1.2; sun.shadow_enabled = true; add_child(sun);main_sun=sun
  moon_light=DirectionalLight3D.new();moon_light.name="TrialMoonLight";MOON_TRIAL.configure(moon_light);add_child(moon_light)
+ lighting_finish.configure(world_ambient,main_sun)
  original_shadows.capture(main_sun);refresh_shadow_quality()
  var ground := StaticBody3D.new(); add_child(ground)
  if use_test_layout:
@@ -205,23 +207,29 @@ func refresh_shadow_quality() -> void:
  refresh_daylight()
 func refresh_daylight() -> void:
  var daylight:Dictionary=day_cycle.sun_state()
+ var night_background:Color=MOON_TRIAL.night_background if settings.values.moon_light_trial else Color("809495")
+ var finish:Dictionary=lighting_finish.sample(daylight,night_background,settings.values.lighting_finish_trial)
+ var sun_color:Color=finish.get("sun_color",lighting_finish.original_sun_color)
+ if main_sun.light_color!=sun_color:main_sun.light_color=sun_color
  # Zero energy alone still leaves a visible directional light in the shadow
  # caster list. Hide the sun outside its actual daylight interval.
  var solar_active:bool=day_cycle.hour>6.0 and day_cycle.hour<20.0
  if main_sun.visible!=solar_active:main_sun.visible=solar_active
  if solar_active:
-  main_sun.light_energy=daylight.elevation*1.2
+  main_sun.light_energy=finish.get("sun_energy",daylight.elevation*1.2)
   main_sun.rotation_degrees=Vector3(-lerpf(18,76,daylight.elevation),lerpf(-70,70,daylight.progress),0)
  elif main_sun.light_energy!=0:main_sun.light_energy=0
  var lunar_active:bool=settings.values.moon_light_trial and not solar_active
  MOON_TRIAL.update(moon_light,day_cycle.moon_state() if lunar_active else {},lunar_active)
  var background:Color=MOON_TRIAL.night_background.lerp(Color("809495"),smoothstep(0,0.18,daylight.elevation)) if settings.values.moon_light_trial else Color("809495")
- var ambient_energy:float=lerpf(0.32,0.65,daylight.elevation)
+ var ambient_energy:float=finish.get("ambient_energy",lerpf(0.32,0.65,daylight.elevation))
+ var ambient_color:Color=finish.get("ambient",daylight.ambient)
  # Avoid invalidating unchanged environment parameters throughout the night
  # and the constant daytime sky; animated objects still cast shadows each frame.
  if world_ambient.background_color!=background:world_ambient.background_color=background
- if world_ambient.ambient_light_color!=daylight.ambient:world_ambient.ambient_light_color=daylight.ambient
+ if world_ambient.ambient_light_color!=ambient_color:world_ambient.ambient_light_color=ambient_color
  if not is_equal_approx(world_ambient.ambient_light_energy,ambient_energy):world_ambient.ambient_light_energy=ambient_energy
+ lighting_finish.apply(world_ambient,finish)
 
 func respawn() -> void:
  player_health=20;level=1;nutrition.reset();parry.reset()

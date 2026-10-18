@@ -1,0 +1,18 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/rendering/lighting_finish_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+noon_sun = Color(1, 0.975, 0.93, 1)
+low_sun = Color(1, 0.73, 0.49, 1)
+sun_energy = 1.02
+noon_fill = Color(0.8, 0.86, 0.92, 1)
+low_fill = Color(0.56, 0.57, 0.63, 1)
+fill_energy = 0.55
+sky_zenith = Color(0.28, 0.46, 0.66, 1)
+sky_horizon = Color(0.68, 0.78, 0.82, 1)
+twilight_horizon = Color(0.69, 0.49, 0.38, 1)
+haze_begin = 35.0
+haze_end = 220.0
+haze_opacity = 0.12
