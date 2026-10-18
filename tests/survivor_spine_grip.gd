@@ -23,7 +23,7 @@ func run():
     var unleaned:Basis=Basis(pelvis.x.normalized(),-lean)*actual
     var relative:float=wrapf(unleaned.get_euler().y-pelvis.get_euler().y,-PI,PI)
     var expected:float=Clips.Controls.sample(state,phase).spine.y*[.25,.60,1.0][segment]
-    require(absf(relative-expected)<.0003,'The 2-degree leg-side twist is distributed along all three spine bones')
+    require(absf(relative-expected)<.0003,'The gait twist is distributed along all three spine bones')
     if not previous.is_empty():require(actual.get_rotation_quaternion().angle_to(previous[segment])<.025,'Spine rotation stays fluid across the reduced keys and loop')
    previous=[]
    for bone in n.spine:previous.append((n.posed[bone].basis*n.rest[bone].basis.inverse()).get_rotation_quaternion())

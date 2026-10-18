@@ -24,9 +24,10 @@ func run():
     var angles:=chest.get_euler();angles.y=pelvis.basis.get_euler().y+actor.Clips.Controls.sample(&"walk",phase).spine.y
     chest=Basis.from_euler(angles)
     var bones:Array=native.spine.duplicate();bones.append_array([native.neck,native.head])
+    var head_follow:Basis=Basis(Vector3.UP,actor.Clips.Controls.sample(&"walk",phase).chest.y*actor.Clips.Gait.HEAD_TWIST_SHARE)*actor.rig.posed[3].basis.orthonormalized()
     for i in bones.size():
      var bone:int=bones[i]
-     var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(actor.rig.posed[3].basis.orthonormalized(),.35) if i==3 else actor.rig.posed[3].basis.orthonormalized())
+     var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(head_follow,.35) if i==3 else head_follow)
      var share:float=[.4,.6,.8,1.0,1.0][i]
      var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad(3)*share)*base
      var diagonal:float=signf(direction.x*direction.z)*deg_to_rad(20) if absf(direction.x)>.1 and absf(direction.z)>.1 else 0.0
@@ -53,8 +54,9 @@ func run():
   var angles:Vector3=pose.body.basis.get_euler();angles.y=pelvis.basis.get_euler().y+actor.Clips.Controls.sample(&"run",phase).spine.y
   var chest:=Basis.from_euler(angles)
   var bones:Array=native.spine.duplicate();bones.append_array([native.neck,native.head])
+  var head_follow:Basis=Basis(Vector3.UP,actor.Clips.Controls.sample(&"run",phase).chest.y*actor.Clips.Gait.HEAD_TWIST_SHARE)*actor.rig.posed[3].basis.orthonormalized()
   for i in bones.size():
-   var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(actor.rig.posed[3].basis.orthonormalized(),.35) if i==3 else actor.rig.posed[3].basis.orthonormalized())
+   var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(head_follow,.35) if i==3 else head_follow)
    var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad([2.0,3.4,4.8,6.2,6.2][i]))*base
    var actual:Basis=native.posed[bones[i]].basis*native.rest[bones[i]].basis.inverse()
    require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Running adds 0.8 degrees at each spine/neck joint and the head follows the accumulated 6.2 degrees")

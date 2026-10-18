@@ -17,6 +17,12 @@ const DIAGONAL_TORSO_RESPONSE:=14.0
 const RUN_LEAN:=deg_to_rad(6.2)
 const RUN_SPINE_LEAN:Array[float]=[2.0/6.2,3.4/6.2,4.8/6.2]
 const DIAGONAL_TORSO_SPEED:=deg_to_rad(120.0)
+const HIP_MOTION:=.45
+const HIP_REDUCTION:=.40
+const TORSO_YAW:=deg_to_rad(2.0)
+const PELVIS_YAW:=.025
+const RUN_TWIST_SCALE:=2.0
+const HEAD_TWIST_SHARE:=.25
 
 # Rearward travel is slower without playing the whole gait in slow motion.
 const BACKWARD_SPEED:=.30

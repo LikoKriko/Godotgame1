@@ -19,8 +19,8 @@ const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",
 const RUN_HIP_SCALE:=.7
 const LATERAL_STEP_SCALE:=.45
 const LATERAL_LIFT_SCALE:=.40
-const GAIT_HIP_REDUCTION:=.40
-const GAIT_HIP_MOTION:=.45
+const GAIT_HIP_REDUCTION:=Gait.HIP_REDUCTION
+const GAIT_HIP_MOTION:=Gait.HIP_MOTION
 const GAIT_LOWERING:=.15
 const WALK_ARM_LAG_SECONDS:=.025
 const SWORD_BALANCE_MOTION:=.80
@@ -345,11 +345,16 @@ static func natural_motion(pose:Dictionary,state:StringName,phase:float,gait:flo
   offset.x=-wave*0.32*hip_scale
   pelvis_rotation=Vector3(0,wave*0.035*hip_scale+pose.leg_frame.get_euler().y*0.5,wave*0.012*hip_scale)
   chest_rotation=Vector3(0,-wave*0.025,-wave*0.014)
-  if state in [&"walk",&"run"]:
-   var keyed:=Controls.sample(state,cycle)
-   offset=Vector3.ZERO
-   pelvis_rotation=keyed.pelvis
-   chest_rotation=Vector3.ZERO
+  if state in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run"]:
+   var keyed:=Controls.sample(&"run" if state in [&"run",&"start_run",&"stop_run"] else &"walk",cycle)
+   if state in [&"walk",&"run"]:
+    offset=Vector3.ZERO;pelvis_rotation=keyed.pelvis;chest_rotation=Vector3.ZERO
+   else:
+    pelvis_rotation=keyed.pelvis*amount
+    chest_rotation.y=keyed.chest.y*amount-original.basis.get_euler().y
+   # Resolve the pelvis in the character frame. Adding its counter-rotation
+   # to the chest yaw made the previous run cancel its own hip twist.
+   pelvis_rotation.y=keyed.pelvis.y*amount-original.basis.get_euler().y
  elif state==&"idle":
   var breath:=sin(phase*TAU)
   chest_rotation.x=breath*0.004
@@ -689,9 +694,6 @@ static func keyed_locomotion(pose:Dictionary,state:StringName,phase:float) -> vo
  var keys:=Controls.sample(state,phase)
  var original:Transform3D=pose.body
  var chest:Vector3=keys.chest
- if state==&"walk":
-  chest.y=-sin(phase*TAU)*.025
-  chest.z=-sin(phase*TAU)*.004
  var basis:=Basis.from_euler(chest)
  var pivot:=Vector3(0,Anatomy.HIP.y,0)
  var sway:Vector3=keys.body*GAIT_HIP_MOTION

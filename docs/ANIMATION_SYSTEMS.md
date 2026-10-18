@@ -207,8 +207,10 @@ y de sus giros respecto a la inclinación
 media del torso. Se aplica también a la oscilación vertical y de inclinación
 de carrera, sin alterar el reloj de las piernas.
 Al caminar, la pelvis mantiene un giro leve opuesto al de la espalda visible;
-los contactos conservan un balanceo suave de 0,004 rad. El brazo libre opuesto
-a la pierna que recupera inicia un pequeño gesto del codo hacia atrás, con
+el giro de cadera se resuelve respecto al personaje para conservar el
+contragiro de 0,025 rad de autoría, amortiguado al 18 % (0,45 × 0,40).
+La carrera usa el doble de este giro y los balanceos laterales compartidos.
+El brazo libre opuesto a la pierna que recupera inicia un pequeño gesto del codo hacia atrás, con
 0,10 rad de amplitud; antebrazo y muñeca lo siguen 0,025 s después al ritmo
 nominal de cada dirección. La muñeca añade solo 0,025 rad de giro. Las manos
 ocupadas mantienen sus agarres y la carrera mantiene su gesto propio.
@@ -248,12 +250,19 @@ al acercarse a una dirección cardinal o al detenerse, con respuesta exponencial
 14/s, velocidad de giro máxima de 120°/s y el filtrado direccional de los pasos.
 La pelvis conserva su postura y la cabeza mantiene la orientación de mirada con compensación en el cuello.
 La columna visible distribuye la rotación total entre `Spine`, `Spine1` y
-`Spine2` con pesos acumulados de 25 %, 60 % y 100 %. En locomoción añade un giro
-total de 2° hacia la pierna que recupera y deprime suavemente la clavícula del
-mismo lado hasta 2°; los brazos libres acompañan esa bajada y las manos ocupadas
-conservan sus contactos. La intensidad sigue la velocidad visual al arrancar y
-frenar. En el resto de gestos se distribuyen las rotaciones ya existentes entre
-pelvis y pecho, sin sumar el giro cíclico a una caída o un reposo.
+`Spine2` con pesos acumulados de 25 %, 60 % y 100 %. El giro cíclico del pecho
+ronda ±2° al caminar y ±4° al correr, siguiendo la pierna que recupera.
+`gait_parameters.gd` define `TORSO_YAW = 2°` y `RUN_TWIST_SCALE = 2.0`.
+La pista de columna compensa el contragiro amortiguado de la cadera, para
+conservar esas amplitudes visibles. La clavícula del mismo lado desciende
+hasta 2° en marcha y 4° en carrera; el brazo entero acompaña desde el hombro.
+Cuello y cabeza siguen suavemente: la cabeza añade un 25 % del giro cíclico
+del pecho a su orientación compartida y el cuello interpola entre ambos.
+Los brazos libres y los objetivos de agarre acompañan al pecho, manteniendo
+las longitudes y los contactos reales de las manos. El peso de sprint mezcla
+las curvas de pecho, columna, cabeza y hombros durante arranque y frenada;
+la intensidad sigue la velocidad visual. El resto de gestos distribuye sus
+rotaciones entre pelvis y pecho con su postura propia.
 Las pistas `spine` y `shoulders` comparten el reloj y la reducción de claves
 con marcha/carrera, con error angular/peso máximo de 0,0004.
 Los dedos nativos de pico, hacha y espada envuelven el mango con pulgar opuesto,

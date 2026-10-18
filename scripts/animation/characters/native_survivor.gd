@@ -151,6 +151,10 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   var cycle:float=pose.get("gait_phase",0.0)
   var state:StringName=&"run" if pose.get("clip_state",&"") in [&"run",&"start_run",&"stop_run",&"equip_run"] else &"walk"
   var keys:=Clips.Controls.sample(state,cycle)
+  if running_posture:
+   var walking_keys:=Clips.Controls.sample(&"walk",cycle)
+   for key in [&"spine",&"chest",&"shoulders"]:keys[key]=(walking_keys[key] as Vector3).lerp(keys[key],sprint)
+  head_rotation=Basis(Vector3.UP,keys.chest.y*Clips.Gait.HEAD_TWIST_SHARE*pose.get("gait_weight",1.0))*head_rotation
   var angles:=chest_rotation.get_euler()
   angles.y=pelvis.basis.get_euler().y+keys.spine.y*pose.get("gait_weight",1.0)
   chest_rotation=Basis.from_euler(angles)
