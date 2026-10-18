@@ -193,6 +193,13 @@ reposo sin copiar la torsión axial del rig de contactos al pantalón.
 El brazo libre de espada usa `SWORD_BALANCE_MOTION = 0.80`, proporciones nativas
 y dedos relajados; su objetivo es de equilibrio, sin fijarlo a un contacto
 de herramienta ni forzar la clavícula para alcanzarlo.
+La caminata separa las rodillas un 10 % mediante el plano de flexión de cada
+pierna, con `WALK_KNEE_SPREAD = 1.10`. Conserva pies, cadera y longitudes de
+muslo/pantorrilla; limita el ajuste al círculo alcanzable de la articulación.
+Añade `WALK_LEAN = 3°` hacia delante: `Spine` aporta 1,2° (40 %),
+`Spine1`, `Spine2` y `Neck` aportan 0,6° cada uno. La cabeza sigue los 3°
+acumulados del cuello. La entrada/salida se suaviza y se reduce con la velocidad
+visual y la transición a carrera. La marcha agachada mantiene su postura propia.
 La columna visible distribuye la rotación total entre `Spine`, `Spine1` y
 `Spine2` con pesos acumulados de 25 %, 60 % y 100 %. En locomoción añade un giro
 total de 2° hacia la pierna que recupera y deprime suavemente la clavícula del

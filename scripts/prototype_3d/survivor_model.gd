@@ -215,7 +215,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   tip_socket.position=tool_tip
  rig.apply(last_pose,hands,delta)
  if state==&"death" and ground_enabled:ground_clearance(smoothstep(0,.025,phase) if delta>0 else 1.0)
- native.sync(rig,last_pose)
+ native.sync(rig,last_pose,delta)
  leaf_armor.transform=last_pose.body
  leaf_armor.update_pose(rig,last_pose.body)
  parry_pulse.update_hands([rig.posed[6].origin,rig.posed[9].origin])
