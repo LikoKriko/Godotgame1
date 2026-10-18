@@ -17,7 +17,7 @@ func _initialize():
    var phase:float=(frame+.37)/1202.0
    var expected:=Source.sample(name,phase);var actual:=Controls.sample(name,phase)
    for control in expected:
-    var angular:=String(control) in ["chest","pelvis","arms","angles","curl","wind_axis","hit_axis","foot_angles_l","foot_angles_r","effort","timing","recovery"]
+    var angular:=String(control) in ["chest","pelvis","spine","shoulders","arms","angles","curl","wind_axis","hit_axis","foot_angles_l","foot_angles_r","effort","timing","recovery"]
     var error:float=expected[control].distance_to(actual[control])
     require(error<(.00065 if angular else .022),"Reduced control stays within positional/angular error budget: %s %s %.6f"%[name,control,error])
   var mutable:=Controls.sample(name,.42);mutable.clear()
@@ -29,8 +29,11 @@ func _initialize():
  for state in [&"walk",&"run"]:
   var a:=Clips.sample(&"",state,.02,.02,Vector3.BACK)
   var b:=Clips.sample(&"",state,.20,.20,Vector3.BACK)
-  var speed:float=(a.legs[0].end.z-b.legs[0].end.z)*(1.75/64)/(.18*Clips.duration(state))
-  require(absf(speed-(2.0 if state==&"walk" else 3.2)*Clips.GAIT_STRIDE_LENGTH)<.035,"Support foot retains the requested longer stride at the reference duration: %s %.4f"%[state,speed])
+  var raw_a:Vector3=Controls.sample(state,.02).foot_l
+  var raw_b:Vector3=Controls.sample(state,.20).foot_l
+  var speed:float=(raw_a.x-raw_b.x)*Clips.GAIT_STRIDE_LENGTH*(1.75/64)/(.18*Clips.duration(state))
+  require(a.legs[0].end.y>=2.09 and b.legs[0].end.y>=2.09,"Upright reach correction keeps the support sole above ground")
+  require(absf(speed-(2.0 if state==&"walk" else 3.2)*Clips.GAIT_STRIDE_LENGTH)<.035,"Authoring preserves the reference stride before the upright anatomical reach limit: %s %.4f"%[state,speed])
  # Heel contact and toe release must not introduce a vertical/ankle snap.
  for running in [false,true]:
   var support:=.40 if running else .60

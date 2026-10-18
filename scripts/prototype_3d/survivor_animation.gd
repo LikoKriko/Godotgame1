@@ -17,6 +17,8 @@ const ARM_SWING_SCALE:=0.9
 const SLIDE_STATES:Array[StringName]=[&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right"]
 const RUN_HIP_SCALE:=.7
 const GAIT_HIP_MOTION:=.45
+const GAIT_LOWERING:=.15
+const WALK_ARM_LAG_SECONDS:=.025
 const SWORD_BALANCE_MOTION:=.80
 const FAMILIES: Array[StringName] = [&"",&"axe",&"pickaxe",&"sword",&"bow",&"bottle",&"food",&"carried"]
 const STATES: Array[StringName] = [&"idle",&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch",&"crouch_walk",&"slide",&"slide_back",&"slide_back_left",&"slide_back_right",&"slide_left",&"slide_right",&"slide_forward_left",&"slide_forward_right",&"jump",&"slide_jump",&"equip",&"equip_walk",&"equip_run",&"equip_crouch",&"equip_crouch_walk",&"unequip",&"action",&"draw",&"bow_release",&"pickup",&"pickup_walk",&"eat",&"eat_walk",&"drink",&"drink_walk",&"parry",&"hurt",&"death"]
@@ -66,7 +68,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  var pose := Pose.sample(&"food" if state in [&"drink",&"drink_walk"] else family,source_state,movement_phase if state in SLIDE_STATES or state==&"bow_release" else phase,1.0 if source_state==&"equip_crouch" else movement_phase,1.0,-1)
  pose.leg_poles=[Vector3.BACK,Vector3.BACK]
  pose.leg_frame=Basis.IDENTITY
- pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state==&"run" else movement_phase
+ pose.family=family;pose.clip_state=state;pose.gait_phase=phase if state in [&"walk",&"run",&"crouch_walk"] else movement_phase
  pose.look_contact=contact
  if family==&"" and state==&"action":pose.active=clampi(punch_side,0,1)
  var original_body: Transform3D = pose.body
@@ -164,6 +166,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
     local.z=lerpf(3.5*Anatomy.BODY_DEPTH,local.z,ARM_SWING_SCALE)
     pose.hands[side]=body*local
  natural_motion(pose,state,phase,movement_phase,movement,contact,striding)
+ if upright_gait(pose):raise_gait(pose)
  if state in [&"action",&"draw"] and family in [&"axe",&"pickaxe",&"sword",&"bow"]:reduce_weapon_pitch(pose,crouch_amount)
  if state==&"action" and family!=&"bow":reduce_attack_knees(pose,phase,movement_phase,movement,crouch_amount)
  body=pose.body
@@ -447,6 +450,32 @@ static func lengthen_stride(pose:Dictionary,horizontal_scale:float=STRIDE_SCALE)
  for side in 2:
   pose.hips[side]+=down;pose.shoulders[side]+=down;pose.hands[side]+=down
 
+static func upright_gait(pose:Dictionary) -> bool:
+ return pose.get("clip_state",&"") in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"equip_walk",&"equip_run"]
+
+static func raise_gait(pose:Dictionary) -> void:
+ # Reduce the complete descent, including authored bob and reach compensation,
+ # rather than just one term of the pelvis motion.
+ var pelvis:Transform3D=pose.get("pelvis",pose.body)
+ var height:float=(pelvis*Vector3(0,Anatomy.HIP.y,0)).y
+ var up:=Vector3.UP*(Anatomy.HIP.y-height)*(1-GAIT_LOWERING)
+ pose.body.origin+=up;pose.pelvis.origin+=up;pose.grip+=up
+ for side in 2:
+  pose.hips[side]+=up;pose.shoulders[side]+=up;pose.hands[side]+=up
+
+static func grounded_reach(hip:Vector3,ankle:Vector3,a:float,b:float) -> Vector3:
+ # Keep the sole height when a more upright pelvis makes the old extreme
+ # unreachable. Smoothly limit horizontal reach instead of lifting the foot
+ # or extending a thigh/shin; the IK knee remains softly flexed.
+ var planar:=Vector2(ankle.x-hip.x,ankle.z-hip.z)
+ var limit:=sqrt(maxf(.01,pow(a+b-.08,2)-pow(hip.y-ankle.y,2)))
+ var length:=planar.length()
+ if length>.0001:
+  var soft:=maxf(0,minf(length,limit)-.35*log(1+exp(-absf(length-limit)/.35)))
+  planar*=soft/length
+  ankle.x=hip.x+planar.x;ankle.z=hip.z+planar.y
+ return ankle
+
 static func solve_legs(pose: Dictionary) -> Dictionary:
  # Keep each foot in its own stance lane, rotated with diagonal travel.
  var boundary:=Anatomy.FOOT_HALF_WIDTH+Anatomy.FOOT_GAP*0.5
@@ -457,6 +486,7 @@ static func solve_legs(pose: Dictionary) -> Dictionary:
    var lateral:=ankle.dot(across)
    var safe:=minf(lateral,-boundary) if side==0 else maxf(lateral,boundary)
    ankle+=across*(safe-lateral)
+  if upright_gait(pose):ankle=grounded_reach(pose.hips[side],ankle,Anatomy.THIGH,Anatomy.SHIN)
   var pitch: float=pose.legs[side].pitch
   pose.legs[side]=Pose.joint(pose.hips[side],ankle,Anatomy.THIGH,Anatomy.SHIN,pose.get("leg_poles",[Vector3.BACK,Vector3.BACK])[side])
   pose.legs[side].pitch=pitch
@@ -586,7 +616,11 @@ static func mix_motion(a:Dictionary,b:Dictionary,weight:float) -> Dictionary:
 static func keyed_locomotion(pose:Dictionary,state:StringName,phase:float) -> void:
  var keys:=Controls.sample(state,phase)
  var original:Transform3D=pose.body
- var basis:=Basis.from_euler(keys.chest)
+ var chest:Vector3=keys.chest
+ if state==&"walk":
+  chest.y=-sin(phase*TAU)*.025
+  chest.z=-sin(phase*TAU)*.004
+ var basis:=Basis.from_euler(chest)
  var pivot:=Vector3(0,Anatomy.HIP.y,0)
  var sway:Vector3=keys.body*GAIT_HIP_MOTION
  var next:=Transform3D(basis,pivot-basis*pivot+sway)
@@ -599,10 +633,23 @@ static func keyed_locomotion(pose:Dictionary,state:StringName,phase:float) -> vo
   var foot:Vector3=keys.foot_l if side==0 else keys.foot_r
   pose.legs[side].end=Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,2.1+foot.y,foot.x/STRIDE_SCALE)
   pose.legs[side].pitch=foot.z
-  if arm_is_free(pose,side) and state==&"walk":
-   var upper:Vector3=next.basis*(Basis(Vector3.RIGHT,keys.arms[side])*Vector3((-.16 if side==0 else .16),-1,0)).normalized()
-   var hinge:Vector3=(next.basis.x-upper*upper.dot(next.basis.x)).normalized()
-   pose.hands[side]=pose.shoulders[side]+upper*Pose.UPPER_ARM+upper.rotated(hinge,-deg_to_rad(12))*Pose.FOREARM
+  if arm_is_free(pose,side) and state==&"walk":pose.hands[side]=walking_arm(pose,side,phase).end
+
+static func walking_arm(pose:Dictionary,side:int,gait:float) -> Dictionary:
+ if pose.get("clip_state",&"")!=&"walk" or not arm_is_free(pose,side):return {}
+ var body:Transform3D=pose.body
+ var phase:=gait+side*.5
+ var seconds:=cycle_distance(0,0,pose.get("gait_travel",Vector3.BACK))/(2*GAIT_PLAYBACK_RATE)
+ var lag:=WALK_ARM_LAG_SECONDS/seconds
+ # The elbow initiates a small backward sweep opposite the swinging leg.
+ # The forearm follows slightly later instead of moving as a rigid rod.
+ var elbow_angle:=sin(phase*TAU)*.10
+ var following_angle:=sin((phase-lag)*TAU)*.10
+ var upper:Vector3=body.basis*(Basis(Vector3.RIGHT,elbow_angle)*Vector3((-.16 if side==0 else .16),-1,0)).normalized()
+ var hinge:=body.basis.x-upper*upper.dot(body.basis.x);hinge=hinge.normalized()
+ var forearm:=upper.rotated(hinge,-deg_to_rad(12)+following_angle-elbow_angle)
+ var shoulder:Vector3=pose.shoulders[side];var elbow:=shoulder+upper*Pose.UPPER_ARM
+ return {"root":shoulder,"joint":elbow,"end":elbow+forearm*Pose.FOREARM,"wrist":sin((phase-lag)*TAU)*.025}
 
 static func keyed_jump(pose:Dictionary,phase:float) -> void:
  var keys:=Controls.sample(&"jump",phase)

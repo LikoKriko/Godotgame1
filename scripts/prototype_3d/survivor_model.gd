@@ -98,6 +98,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
   var sprinting:=Clips.sample(item,&"run",movement_phase,movement_phase,movement)
   target=Clips.mix_motion(walking,sprinting,sprint_weight)
   target.clip_state=state;target.state=state;target.phase=phase;target.run_weight=sprint_weight
+ target.gait_weight=motion_amount
  if equipping and delta>0 and not equipment_from.is_empty():
   var entry:=smoothstep(0,.65,phase)
   target.body=(equipment_from.body as Transform3D).interpolate_with(target.body,entry)
@@ -161,7 +162,7 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
    displayed_pose.legs[side].end=target.legs[side].end+gait_entry_offsets[side]*entry
    displayed_pose.legs[side].pitch=target.legs[side].pitch
  if state==&"death":displayed_pose=target.duplicate(true)
- for key in ["run_weight","head_basis","arm_poles","foot_bases","equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
+ for key in ["gait_weight","run_weight","head_basis","arm_poles","foot_bases","equipment_weight","support_weight","equipment_poles","equipment_palms","equipment_forearms","equipment_axes"]:
   if target.has(key):displayed_pose[key]=target[key]
   else:displayed_pose.erase(key)
  displayed_pose.tool_basis=target.get("tool_basis",Aim.frame(target.shaft))

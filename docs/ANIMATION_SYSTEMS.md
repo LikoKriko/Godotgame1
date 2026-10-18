@@ -134,14 +134,41 @@ permanece independiente, por lo que estos ajustes visuales permiten patinaje.
 El apoyo de marcha baja de 60 % frontal a 45 % lateral. Las calles de apoyo dejan
 espacio para la trayectoria completa antes de resolver IK, sin recortar su
 mitad interior. El pie levantado regresa en el sentido real de desplazamiento.
-La altura de apoyo reserva el alcance de ambos extremos del paso completo;
-la pelvis no sube al acortar momentáneamente la distancia a un pie. El balanceo
-lateral y la rotación total de cadera usan `GAIT_HIP_MOTION = 0.45`, manteniendo
-la inclinación constante de carrera. La ligadura nativa conserva ejes y longitudes:
-las piernas usan giro desde el reposo sin copiar la torsión axial del rig de
-contactos al pantalón. El brazo libre de espada usa `SWORD_BALANCE_MOTION = 0.80`,
-proporciones nativas y dedos relajados; su objetivo es de equilibrio, sin fijarlo
-a un contacto de herramienta ni forzar la clavícula para alcanzarlo.
+La altura de apoyo calcula el alcance de ambos extremos del paso completo.
+En marcha y carrera erguidas, `GAIT_LOWERING = 0.15` conserva solo el 15 % del
+descenso total anterior, incluido el rebote y la compensación de alcance.
+Las rodillas se resuelven con longitudes constantes y los objetivos de pie
+limitan suavemente el alcance horizontal a la altura de la suela, evitando
+alargar huesos o levantar los apoyos para alcanzar una zancada imposible.
+La marcha agachada mantiene su altura propia.
+El balanceo lateral y la rotación total de cadera usan `GAIT_HIP_MOTION = 0.45`.
+Al caminar, la pelvis mantiene un giro leve opuesto al de la espalda visible;
+los contactos conservan un balanceo suave de 0,004 rad. El brazo libre opuesto
+a la pierna que recupera inicia un pequeño gesto del codo hacia atrás, con
+0,10 rad de amplitud; antebrazo y muñeca lo siguen 0,025 s después al ritmo
+nominal de cada dirección. La muñeca añade solo 0,025 rad de giro. Las manos
+ocupadas mantienen sus agarres y la carrera mantiene su gesto propio.
+La ligadura nativa conserva ejes y longitudes: las piernas usan giro desde el
+reposo sin copiar la torsión axial del rig de contactos al pantalón.
+El brazo libre de espada usa `SWORD_BALANCE_MOTION = 0.80`, proporciones nativas
+y dedos relajados; su objetivo es de equilibrio, sin fijarlo a un contacto
+de herramienta ni forzar la clavícula para alcanzarlo.
+La columna visible distribuye la rotación total entre `Spine`, `Spine1` y
+`Spine2` con pesos acumulados de 25 %, 60 % y 100 %. En locomoción añade un giro
+total de 2° hacia la pierna que recupera y deprime suavemente la clavícula del
+mismo lado hasta 2°; los brazos libres acompañan esa bajada y las manos ocupadas
+conservan sus contactos. La intensidad sigue la velocidad visual al arrancar y
+frenar. En el resto de gestos se distribuyen las rotaciones ya existentes entre
+pelvis y pecho, sin sumar el giro cíclico a una caída o un reposo.
+Las pistas `spine` y `shoulders` comparten el reloj y la reducción de claves
+con marcha/carrera, con error angular/peso máximo de 0,0004.
+Los dedos nativos de pico, hacha y espada envuelven el mango con pulgar opuesto,
+conservando la longitud de cada falange. El cierre usa el peso de equipamiento
+y el de la mano de apoyo. `data/animation/characters/hand_grips.tres` contiene
+las secciones medidas y las orientaciones de palma relativas a cada mango;
+se regenera con `bake_grips.gd`. Esa orientación estable evita inversiones del
+agarre al cambiar el plano del golpe. La geometría
+de herramientas se consulta únicamente en esa herramienta de autoría.
 El apoyo de marcha/carrera rueda suavemente de talón a planta y despega por
 los dedos: −0,05/+0,085 rad caminando y −0,065/+0,11 rad corriendo. La bajada
 del pie usa un arco vertical C2 con velocidad y aceleración nulas al contactar;

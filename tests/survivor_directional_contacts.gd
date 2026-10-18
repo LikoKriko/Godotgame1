@@ -38,8 +38,11 @@ func run():
        var delta:Vector3=(foot-previous[0])*Anatomy.HEIGHT_METRES/64
        if phase>.18 and phase<.30:
         var expected_return:=direction*2.0*Clips.GAIT_STRIDE_LENGTH*rate
-        var world_velocity:=delta/dt+expected_return
-        require(Vector2(world_velocity.x,world_velocity.z).length()<.09,'Support return follows the chosen visual rate: %s %s %s %s'%[family,state,direction,world_velocity])
+        var return_velocity:=delta/dt
+        if state==&'crouch_walk':
+         require(Vector2((return_velocity+expected_return).x,(return_velocity+expected_return).z).length()<.09,'Crouching retains its grounded support rate')
+        else:
+         require(return_velocity.dot(direction)<.06 and Vector2(return_velocity.x,return_velocity.z).length()<=expected_return.length()+.12,'Upright support keeps the return direction and limits its rate within anatomical reach')
        if phase>.74 and phase<.86:
         require(delta.dot(direction)>.0001,'Lifted foot returns in the signed travel direction: %s %s %s'%[family,state,direction])
       for side in 2:

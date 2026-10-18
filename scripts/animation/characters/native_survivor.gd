@@ -23,6 +23,8 @@ var parents:Array[int]=[]
 var arms:Array[Dictionary]=[]
 var legs:Array[Dictionary]=[]
 var driven:Dictionary={}
+var spine:Array[int]=[]
+var grip=preload("res://scripts/animation/characters/native_hand_grip.gd").new()
 var head:int
 var neck:int
 var hand_error:=0.0
@@ -61,6 +63,8 @@ func configure(actor:Node3D,model:Node3D) -> void:
    arm_axes.append(Frames.frame(rest[arm[segment+2]].origin-rest[arm[segment+1]].origin,arm_normal).inverse()*rest[arm[segment+1]].basis)
    leg_axes.append(Frames.segment_frame(leg_chain,segment).inverse()*rest[leg[segment]].basis)
   arms[side].axes=arm_axes;legs[side].axes=leg_axes
+ for name in ["Spine","Spine1","Spine2"]:spine.append(binding.names["smartrig_"+name])
+ grip.configure(self)
  writer.configure(parents)
  ground.configure(mesh.mesh,rest,GROUND,mesh.skin)
 func aim(bone:int,child:int,a:Vector3,b:Vector3) -> void:
@@ -88,12 +92,25 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
   var lower:float=Clips.pickup_weight(pose.phase)
   body.origin.y-=lower;pelvis.origin.y-=lower
  var head_rotation:Basis=control.posed[3].basis.orthonormalized()
+ var chest_rotation:Basis=body.basis
+ var shoulder_motion:=Vector3.ZERO
+ if gait:
+  var cycle:float=pose.get("gait_phase",0.0)
+  var state:StringName=&"run" if pose.get("clip_state",&"") in [&"run",&"start_run",&"stop_run",&"equip_run"] else &"walk"
+  var keys:=Clips.Controls.sample(state,cycle)
+  var angles:=chest_rotation.get_euler()
+  angles.y=pelvis.basis.get_euler().y+keys.spine.y*pose.get("gait_weight",1.0)
+  chest_rotation=Basis.from_euler(angles)
+  shoulder_motion=keys.shoulders*pose.get("gait_weight",1.0)
  for i in posed.size():
-  var rotation:=pelvis.basis if parents[i]<0 else body.basis
-  if i==neck:rotation=body.basis.slerp(head_rotation,.35)
+  var rotation:=pelvis.basis if parents[i]<0 else chest_rotation
+  var segment:int=spine.find(i)
+  if segment>=0:rotation=pelvis.basis.slerp(chest_rotation,[.25,.60,1.0][segment])
+  if i==neck:rotation=chest_rotation.slerp(head_rotation,.35)
   if i==head:rotation=head_rotation
   var origin:Vector3=pelvis*rest[i].origin if parents[i]<0 else posed[parents[i]]*(inverse_rest[parents[i]]*rest[i].origin)
   posed[i]=Transform3D(rotation*rest[i].basis,origin)
+ body=posed[spine[2]]*inverse_rest[spine[2]]
  hand_error=0
  for side in 2:
   var chain:Dictionary=arms[side];var ids:Array[int]=chain.ids
@@ -104,6 +121,10 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
   if pickup:palm_basis=palm_basis.rotated(body.basis.x,-.4*Clips.pickup_weight(pose.phase))
   var balancing:bool=pose.get("family",&"")==&"sword" and pose.get("clip_state",&"")==&"action" and side!=pose.active
   var free:bool=balancing or Clips.arm_is_free(pose,side) and pose.get("clip_state",&"") not in [&"action",&"death"] and not (side==1 and pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"])
+  if not free and pose.get("family",&"") in [&"axe",&"pickaxe",&"sword"] and pose.get("clip_state",&"")!=&"death":
+   var closed:Basis=grip.palm(pose.family,side,pose.get("tool_basis",Basis.IDENTITY),palm_basis)
+   var amount:float=pose.get("equipment_weight",1.0)*(pose.get("support_weight",1.0) if side!=pose.active else 1.0)
+   palm_basis=palm_basis.slerp(closed,clampf(amount,0,1))
   if free:
    goal=body*rest[ids[1]].origin+(goal-control.posed[source].origin)*((chain.a+chain.b)/19.0)
    if pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:goal.y+=Clips.pickup_weight(pose.phase)
@@ -112,7 +133,10 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
    goal-=palm_basis*chain.palm*contact
   var core:Vector3=posed[ids[0]].origin
   var offset:Vector3=body.basis*(rest[ids[1]].origin-rest[ids[0]].origin)
+  var relaxed_offset:=offset
+  if gait:offset=offset.rotated(body.basis.z,(-1 if side==1 else 1)*deg_to_rad(2)*shoulder_motion[side])
   var shoulder:Vector3=core+offset
+  if free:goal+=offset-relaxed_offset
   # Clavicular protraction accommodates held contacts while respecting the
   # original clavicle and arm lengths. Free arms use native proportions.
   if shoulder.distance_to(goal)>chain.a+chain.b-.04:
@@ -136,6 +160,7 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
   var foot_rotation:Basis=control.posed[source+2].basis.orthonormalized()
   var foot:Vector3=control.posed[source+2].origin+foot_rotation*(rest[ids[2]].origin-control.rest[source+2].origin)
   pole=control.posed[source+1].origin-control.posed[source].origin
+  if Clips.upright_gait(pose):foot=Clips.grounded_reach(hip,foot,chain.a,chain.b)
   solved=Solver.joint(hip,foot,chain.a,chain.b,pole)
   if gait:untwisted_chain(ids,0,solved,pelvis.basis)
   else:orient_chain(ids,0,solved,chain.axes)
@@ -153,6 +178,7 @@ func sync(control:RefCounted,pose:Dictionary) -> void:
    elif pose.get("clip_state",&"")==&"action" and not (pose.get("family",&"")==&"sword" and side!=pose.active):grip=sin(clampf(pose.phase,0,1)*PI)
    var axis:Vector3=rest[i].basis.inverse()*(rest[i].basis.y.normalized().cross(Vector3.DOWN)).normalized()
    if axis.length_squared()>.00001:posed[i].basis=posed[i].basis*Basis(axis.normalized(),grip*(.45 if "Thumb" in label else .8))
+ grip.apply(self,control,pose)
  if ground_enabled and pose.get("clip_state",&"")==&"death":
   var lift:float=ground.correction(posed)*smoothstep(0,.025,pose.phase)
   for i in posed.size():posed[i].origin.y+=lift

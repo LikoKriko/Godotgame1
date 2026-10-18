@@ -94,6 +94,16 @@ func run():
      if not previous.is_empty():require(rotation.angle_to(previous[side])<.5,"Native trouser/thigh rotation stays continuous through support transfer")
     previous=[native.posed[native.legs[0].ids[0]].basis.get_rotation_quaternion(),native.posed[native.legs[1].ids[0]].basis.get_rotation_quaternion()]
    require(maximum-minimum<.8,"Walking/running hips avoid reach-induced pumping in every direction")
+   require(minimum>(29.7 if state==&"walk" else 29.9),"Upright gait removes 85 percent of the previous low stance")
+ actor.animate(&"walk",.25,false,0,.25,Vector3.BACK)
+ var visible:Basis=native.posed[native.spine[2]].basis*native.rest[native.spine[2]].basis.inverse()
+ require(visible.get_euler().y*actor.last_pose.pelvis.basis.get_euler().y<0,"The visible walking back counter-rotates gently against the hips")
+ var left:Dictionary=clips.walking_arm(actor.last_pose,0,.25)
+ var right:Dictionary=clips.walking_arm(actor.last_pose,1,.25)
+ require((left.joint-left.root).dot(actor.last_pose.body.basis.z)<0 and (right.joint-right.root).dot(actor.last_pose.body.basis.z)>0,"Left elbow moves back during right-leg recovery; the other arm counterbalances")
+ require(absf(left.wrist)<.026,"Walking wrist follow-through remains subtle")
+ actor.animate(&"run",.25,false,0,.25,Vector3.BACK)
+ require(clips.walking_arm(actor.last_pose,0,.25).is_empty(),"Walking follow-through does not alter running arms")
  actor.family_override=&"sword"
  for frame in 65:
   var phase:=frame/64.0

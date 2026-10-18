@@ -118,6 +118,8 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   if clip!=&"death" and family in [&"axe",&"pickaxe",&"sword",&"bow"] and (side==pose.active or Clips.Profiles.profile(family).two_hands):
    held=pose.get("equipment_weight",1.0)
   var arm := Kinematics.arm(pose.shoulders[side],hands[side],torso.basis,side,swinging,draw_amount,held)
+  var walking:Dictionary=Clips.walking_arm(pose,side,pose.get("gait_phase",0.0))
+  if not walking.is_empty():arm=walking
   if family==&"sword" and clip==&"action" and side==pose.active:
    arm=Pose.joint(arm.root,arm.end,Pose.UPPER_ARM,Pose.FOREARM,arm.joint-arm.root-torso.basis.y*2.0)
   if pose.has("arm_poles"):arm=Pose.joint(arm.root,arm.end,Pose.UPPER_ARM,Pose.FOREARM,pose.arm_poles[side])
@@ -154,6 +156,7 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   var balancing:bool=pose.get("family",&"")==&"sword" and clip==&"action" and side!=pose.active
   var bare_action:bool=family==&"" and clip==&"action"
   var palm:=Kinematics.hand_frame(arm,torso.basis,side,not swinging and not balancing and not bare_action)
+  if not walking.is_empty():palm=palm.rotated(torso.basis.x,walking.wrist*(1-run_arm_blend[side])*(1-relaxed_arm_blend[side]))
   if held>0 or pose.has("equipment_forearms"):
    var roll:=Kinematics.grip_roll(arm,torso.basis,side,pose.shaft)*held
    palm=palm.rotated(palm.y,roll)

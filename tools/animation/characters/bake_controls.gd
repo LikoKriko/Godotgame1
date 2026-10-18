@@ -23,7 +23,7 @@ func _initialize():
    for phase in contacts:pinned.append(roundi(phase*SAMPLES))
    if constant:pinned=[0,0]
    pinned.sort();var kept:Dictionary={}
-   var angular:=String(control) in ["chest","pelvis","arms","angles","curl","wind_axis","hit_axis","foot_angles_l","foot_angles_r","effort","timing","recovery"]
+   var angular:=String(control) in ["chest","pelvis","spine","shoulders","arms","angles","curl","wind_axis","hit_axis","foot_angles_l","foot_angles_r","effort","timing","recovery"]
    var tolerance:=.0004 if angular else .018
    for index in range(pinned.size()-1):reduce(values,control,pinned[index],pinned[index+1],tolerance,kept)
    var indices:=kept.keys();indices.sort()
