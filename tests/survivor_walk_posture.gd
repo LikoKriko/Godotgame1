@@ -29,6 +29,8 @@ func run():
      var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(actor.rig.posed[3].basis.orthonormalized(),.35) if i==3 else actor.rig.posed[3].basis.orthonormalized())
      var share:float=[.4,.6,.8,1.0,1.0][i]
      var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad(3)*share)*base
+     var diagonal:float=signf(direction.x*direction.z)*deg_to_rad(20) if absf(direction.x)>.1 and absf(direction.z)>.1 else 0.0
+     expected=Basis(pelvis.basis.y.normalized(),diagonal*([.25,.60,1.0,.65,0.0][i]))*expected
      var actual:Basis=native.posed[bone].basis*native.rest[bone].basis.inverse()
      require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Walking adds 1.2/0.6/0.6/0.6 degrees along the spine and neck; head follows the neck")
     var original:Array[float]=[];var widened:Array[float]=[]
@@ -43,6 +45,26 @@ func run():
     require(absf(widened[1]-widened[0])>=absf(original[1]-original[0])-.001,"Walking knees open outward rather than collapsing inward")
     require(native.hand_error<.08,"Walking lean preserves native tool grips")
  require(exact>800,"Ten-percent knee widening is attained throughout the walking cycle and directions")
+ # Running adds 0.8 degrees to every local walking contribution.
+ actor.family_override=&""
+ for sample in 33:
+  var phase:=sample/32.0;actor.animate(&"run",phase,false,0,phase,Vector3.BACK)
+  var pose:Dictionary=actor.last_pose;var pelvis:Transform3D=pose.pelvis
+  var angles:Vector3=pose.body.basis.get_euler();angles.y=pelvis.basis.get_euler().y+actor.Clips.Controls.sample(&"run",phase).spine.y
+  var chest:=Basis.from_euler(angles)
+  var bones:Array=native.spine.duplicate();bones.append_array([native.neck,native.head])
+  for i in bones.size():
+   var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(actor.rig.posed[3].basis.orthonormalized(),.35) if i==3 else actor.rig.posed[3].basis.orthonormalized())
+   var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad([2.0,3.4,4.8,6.2,6.2][i]))*base
+   var actual:Basis=native.posed[bones[i]].basis*native.rest[bones[i]].basis.inverse()
+   require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Running adds 0.8 degrees at each spine/neck joint and the head follows the accumulated 6.2 degrees")
+  for side in 2:
+   var ids:Array=native.legs[side].ids
+   var pole:Vector3=actor.rig.posed[11+side*3].origin-actor.rig.posed[10+side*3].origin
+   var base:=Solver.joint(native.posed[ids[0]].origin,native.posed[ids[2]].origin,native.legs[side].a,native.legs[side].b,pole)
+   var centre:float=(pelvis*Vector3(0,31,0)).dot(pelvis.basis.x)
+   var expected:float=centre+1.1*(base.joint.dot(pelvis.basis.x)-centre)
+   require(absf(native.posed[ids[1]].origin.dot(pelvis.basis.x)-expected)<.01,"Running applies the same ten-percent knee separation")
  actor.family_override=&""
  for state in [&"run",&"idle",&"crouch_walk",&"action",&"jump"]:
   actor.animate(state,.3,false,0,.3,Vector3.BACK)

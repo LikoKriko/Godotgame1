@@ -19,7 +19,9 @@ func run():
    for segment in 3:
     var bone:int=n.spine[segment]
     var actual:Basis=n.posed[bone].basis*n.rest[bone].basis.inverse()
-    var relative:float=wrapf(actual.get_euler().y-pelvis.get_euler().y,-PI,PI)
+    var lean:float=Clips.Gait.WALK_LEAN*Clips.Gait.WALK_SPINE_LEAN[segment] if state==&'walk' else Clips.Gait.RUN_LEAN*Clips.Gait.RUN_SPINE_LEAN[segment]
+    var unleaned:Basis=Basis(pelvis.x.normalized(),-lean)*actual
+    var relative:float=wrapf(unleaned.get_euler().y-pelvis.get_euler().y,-PI,PI)
     var expected:float=Clips.Controls.sample(state,phase).spine.y*[.25,.60,1.0][segment]
     require(absf(relative-expected)<.0003,'The 2-degree leg-side twist is distributed along all three spine bones')
     if not previous.is_empty():require(actual.get_rotation_quaternion().angle_to(previous[segment])<.025,'Spine rotation stays fluid across the reduced keys and loop')

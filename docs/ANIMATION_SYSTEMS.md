@@ -200,6 +200,17 @@ Añade `WALK_LEAN = 3°` hacia delante: `Spine` aporta 1,2° (40 %),
 `Spine1`, `Spine2` y `Neck` aportan 0,6° cada uno. La cabeza sigue los 3°
 acumulados del cuello. La entrada/salida se suaviza y se reduce con la velocidad
 visual y la transición a carrera. La marcha agachada mantiene su postura propia.
+La carrera aplica la misma separación de rodillas. Añade 0,8° a cada aporte
+de inclinación de caminata: `Spine` 2°, `Spine1` 1,4°, `Spine2` 1,4° y
+`Neck` 1,4°, para `RUN_LEAN = 6,2°`. La cabeza acompaña al cuello; la mezcla
+marcha/carrera interpola los aportes por hueso junto con el peso de sprint.
+El torso acompaña las diagonales con hasta 20° de giro adicional, repartidos
+acumulativamente al 25/60/100 % entre los tres huesos de la espalda.
+Las diagonales de retirada invierten el giro respecto a las de avance del
+mismo lado, manteniendo la orientación frontal. El giro desaparece suavemente
+al acercarse a una dirección cardinal o al detenerse, con respuesta exponencial
+14/s, velocidad de giro máxima de 120°/s y el filtrado direccional de los pasos.
+La pelvis conserva su postura y la cabeza mantiene la orientación de mirada con compensación en el cuello.
 La columna visible distribuye la rotación total entre `Spine`, `Spine1` y
 `Spine2` con pesos acumulados de 25 %, 60 % y 100 %. En locomoción añade un giro
 total de 2° hacia la pierna que recupera y deprime suavemente la clavícula del

@@ -30,6 +30,8 @@ var grip=preload("res://scripts/animation/characters/native_hand_grip.gd").new()
 var head:int
 var neck:int
 var walk_posture:=0.0
+var run_posture:=0.0
+var torso_turn:=0.0
 var hand_error:=0.0
 var hand_errors:Array[float]=[0.0,0.0]
 func configure(actor:Node3D,model:Node3D) -> void:
@@ -110,13 +112,34 @@ func spread_knee(chain:Dictionary,pelvis:Transform3D,weight:float) -> Dictionary
  chain.joint=centre+u*x+v*y
  return chain
 
+static func diagonal_turn(direction:Vector3) -> float:
+ var travel:=Vector3(direction.x,0,direction.z).normalized()
+ if travel.is_zero_approx():return 0.0
+ # Backpedalling uses the same frontal body orientation as forward travel in
+ # the opposite diagonal; never ask the spine to turn through 135 degrees.
+ var forward:=travel if travel.z>=0 else -travel
+ var angle:=clampf(atan2(forward.x,forward.z),-PI/4,PI/4)
+ var diagonal:=smoothstep(0,.35,absf(travel.x))*smoothstep(0,.35,absf(travel.z))
+ return angle/(PI/4)*Clips.Gait.DIAGONAL_TORSO_TURN*diagonal
+
 func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
  var body:Transform3D=pose.body
  var gait:bool=pose.get("clip_state",&"") in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk",&"pickup_walk",&"eat_walk",&"drink_walk"]
- var walking:bool=pose.get("clip_state",&"") in [&"walk",&"equip_walk",&"eat_walk",&"drink_walk",&"start",&"stop",&"start_run",&"stop_run"]
- var target_posture:float=pose.get("gait_weight",1.0)*(1-pose.get("run_weight",0.0)) if walking else 0.0
+ var walking:bool=pose.get("clip_state",&"") in [&"walk",&"run",&"equip_walk",&"equip_run",&"eat_walk",&"drink_walk",&"start",&"stop",&"start_run",&"stop_run"]
+ var running_posture:bool=pose.get("clip_state",&"") in [&"run",&"equip_run",&"start_run",&"stop_run"]
+ var sprint:float=pose.get("run_weight",1.0 if running_posture else 0.0)
+ var target_posture:float=pose.get("gait_weight",1.0)*(1-sprint) if walking else 0.0
+ var target_run:float=pose.get("gait_weight",1.0)*sprint if running_posture else 0.0
  walk_posture=lerpf(walk_posture,target_posture,1-exp(-delta*18)) if delta>0 else target_posture
+ run_posture=lerpf(run_posture,target_run,1-exp(-delta*18)) if delta>0 else target_run
  var lean:float=Clips.Gait.WALK_LEAN*walk_posture
+ var running_lean:float=Clips.Gait.RUN_LEAN*run_posture
+ var turning:bool=pose.get("clip_state",&"") in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk"]
+ var turn_target:float=diagonal_turn(pose.get("torso_travel",Vector3.ZERO))*pose.get("gait_weight",1.0) if turning else 0.0
+ if delta>0:
+  var eased:=lerpf(torso_turn,turn_target,1-exp(-delta*Clips.Gait.DIAGONAL_TORSO_RESPONSE))
+  torso_turn=move_toward(torso_turn,eased,Clips.Gait.DIAGONAL_TORSO_SPEED*delta)
+ else:torso_turn=turn_target
  var pelvis:Transform3D=pose.get("pelvis",body)
  if pose.get("clip_state",&"") in [&"pickup",&"pickup_walk"]:
   var lower:float=Clips.pickup_weight(pose.phase)
@@ -139,7 +162,11 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   if i==neck:rotation=chest_rotation.slerp(head_rotation,.35)
   if i==head:rotation=head_rotation
   var lean_share:float=Clips.Gait.WALK_SPINE_LEAN[segment] if segment>=0 else (1.0 if i in [neck,head] else .80)
-  if parents[i]>=0:rotation=Basis(pelvis.basis.x.normalized(),lean*lean_share)*rotation
+  if parents[i]>=0:
+   var run_share:float=Clips.Gait.RUN_SPINE_LEAN[segment] if segment>=0 else (1.0 if i in [neck,head] else Clips.Gait.RUN_SPINE_LEAN[2])
+   rotation=Basis(pelvis.basis.x.normalized(),lean*lean_share+running_lean*run_share)*rotation
+   var turn_share:float=[.25,.60,1.0][segment] if segment>=0 else (.65 if i==neck else (0.0 if i==head else 1.0))
+   rotation=Basis(pelvis.basis.y.normalized(),torso_turn*turn_share)*rotation
   var origin:Vector3=pelvis*rest[i].origin if parents[i]<0 else posed[parents[i]]*(inverse_rest[parents[i]]*rest[i].origin)
   posed[i]=Transform3D(rotation*rest[i].basis,origin)
  body=posed[spine[2]]*inverse_rest[spine[2]]
@@ -201,7 +228,7 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   pole=control.posed[source+1].origin-control.posed[source].origin
   if Clips.upright_gait(pose):foot=Clips.grounded_reach(hip,foot,chain.a,chain.b,.12 if running else .35)
   solved=Solver.joint(hip,foot,chain.a,chain.b,pole)
-  solved=spread_knee(solved,pelvis,walk_posture)
+  solved=spread_knee(solved,pelvis,clampf(walk_posture+run_posture,0,1))
   if gait:untwisted_chain(ids,0,solved,pelvis.basis)
   else:orient_chain(ids,0,solved,chain.axes)
   posed[ids[2]]=Transform3D(foot_rotation*rest[ids[2]].basis,solved.end)
