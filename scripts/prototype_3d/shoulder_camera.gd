@@ -78,10 +78,15 @@ func update(delta: float) -> void:
   boom_query.motion=aim_basis*BOOM_OFFSET
   var aim_fractions:=get_world_3d().direct_space_state.cast_motion(boom_query)
   aim_camera.global_transform=Transform3D(aim_basis,global_position+aim_basis*BOOM_OFFSET*aim_fractions[0])
+func projection_camera() -> Camera3D:
+ # Outside free look, use the live render camera, including external camera
+ # adjustments and shoulder offsets. Only a diverted view needs a separate ray.
+ return aim_camera if not is_zero_approx(free_look_offset) else camera
 func target(max_distance: float = 100.0) -> Dictionary:
+ var view:=projection_camera()
  var center := get_viewport().get_visible_rect().size/2
- var from := aim_camera.project_ray_origin(center)
- var direction := aim_camera.project_ray_normal(center)
+ var from := view.project_ray_origin(center)
+ var direction := view.project_ray_normal(center)
  var query := PhysicsRayQueryParameters3D.create(from,from+direction*max_distance,25,[player.get_rid()])
  query.collide_with_areas=true
  return get_world_3d().direct_space_state.intersect_ray(query)
@@ -89,6 +94,7 @@ func target(max_distance: float = 100.0) -> Dictionary:
 # at every resolution/aspect ratio. The bow retains the exact center ray.
 const ACTION_RADIUS := 0.018
 func action_sample(interaction:bool=false) -> Dictionary:
+ var view:=projection_camera()
  var exact:=aim_sample()
  var best:Dictionary={}
  var best_score:=INF
@@ -99,8 +105,8 @@ func action_sample(interaction:bool=false) -> Dictionary:
   for sector in count:
    var offset:=Vector2.ZERO if ring==0 else Vector2.from_angle(sector*TAU/count)*radius*ring/2.0
    var pixel:=center+offset
-   var from:=aim_camera.project_ray_origin(pixel)
-   var ray:=PhysicsRayQueryParameters3D.create(from,from+aim_camera.project_ray_normal(pixel)*100.0,25,[player.get_rid()])
+   var from:=view.project_ray_origin(pixel)
+   var ray:=PhysicsRayQueryParameters3D.create(from,from+view.project_ray_normal(pixel)*100.0,25,[player.get_rid()])
    ray.collide_with_areas=true
    var hit:=get_world_3d().direct_space_state.intersect_ray(ray)
    if hit.is_empty():continue
@@ -120,10 +126,11 @@ func action_candidate(node,interaction:bool) -> bool:
   return node.is_in_group("prototype_drops") or node.is_in_group("prototype_workbenches") or node.is_in_group("prototype_water") or (node.is_in_group("prototype_enemies") and node.health<=0) or (node.is_in_group("prototype_burdock") and node.health>0) or (node.is_in_group("prototype_rocks") and node.hand_collectable and node.health>0)
  return (node.is_in_group("prototype_enemies") or node.is_in_group("prototype_trees") or node.is_in_group("prototype_rocks") or node.is_in_group("prototype_saplings")) and node.health>0
 func aim_sample() -> Dictionary:
+ var view:=projection_camera()
  # One camera ray supplies both the visible contact and the object to hit.
  # Do not raycast twice at click time or use a parallel ray from the player.
  var result:=target()
  var center:=get_viewport().get_visible_rect().size/2
- var point:Vector3=result.position if not result.is_empty() else aim_camera.project_ray_origin(center)+aim_camera.project_ray_normal(center)*100.0
+ var point:Vector3=result.position if not result.is_empty() else view.project_ray_origin(center)+view.project_ray_normal(center)*100.0
  return {"hit":result,"point":point}
 func aim_point() -> Vector3:return aim_sample().point

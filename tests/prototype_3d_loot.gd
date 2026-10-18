@@ -27,6 +27,11 @@ func run():
  var drops=get_nodes_in_group("prototype_drops")
  require(drops.size()==1 and enemy.loot_slots[1].is_empty(),"Tirar moves complete item into world without duplicating it")
  require(drops[0].item.water_ml==250,"Dropped bottle preserves its content")
+ var corpse_shape:CollisionShape3D=enemy.corpse_area.get_child(0)
+ var corpse_bounds:AABB=corpse_shape.global_transform*AABB(-corpse_shape.shape.size*.5,corpse_shape.shape.size)
+ var drop_shape:CollisionShape3D=drops[0].find_children("*","CollisionShape3D",true,false)[0]
+ var drop_bounds:AABB=drop_shape.global_transform*AABB(-drop_shape.shape.size*.5,drop_shape.shape.size)
+ require(not corpse_bounds.intersects(drop_bounds),"Dropped item's interaction volume stays outside the actual corpse bounds")
  game.corpse_loot.close_window();game.player.position=drops[0].global_position+Vector3(0,0,0.8)
  game.camera_rig.update(1);game.camera_rig.camera.look_at(drops[0].global_position+Vector3.UP*0.15)
  for i in 2:await physics_frame

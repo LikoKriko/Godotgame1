@@ -90,4 +90,4 @@ func run():
  require(not rig.is_free_looking(),"Respawn and loading clear temporary free look without changing saved camera angles")
  rig.update(0);rig.look(Vector2(0,1e6));require(is_equal_approx(rig.pitch,-PI/2),"Normal downward aiming keeps its full range")
  rig.look(Vector2(0,-2e6));require(is_equal_approx(rig.pitch,PI/2),"Normal upward aiming keeps its full range")
- game.free();print("%s: %d ALT head-limit, steering, aim, return-time and collision checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)
+ game.free();await RenderingServer.frame_post_draw;print("%s: %d ALT head-limit, steering, aim, return-time and collision checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

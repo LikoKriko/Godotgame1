@@ -49,8 +49,11 @@ func run():
  require(world.player.model.mesh_node.mesh==bind_mesh,"Animation never rebuilds the skin mesh")
  world.player.model.animate(&"walk",0.2,false,0,0.2,Vector3.RIGHT)
  require(absf(world.player.model.last_pose.legs[0].end.x+3.6)>1,"Strafe gait moves feet sideways relative to the facing direction")
- world.player.model.animate(&"walk",0.2,false,0,0.2,Vector3.FORWARD)
- require(world.player.model.last_pose.legs[0].end.z<0,"Backward gait follows the actual travel direction")
+ world.player.model.animate(&"walk",0.05,false,0,0.05,Vector3.FORWARD)
+ var backward_start:Vector3=world.player.model.last_pose.legs[0].end
+ world.player.model.animate(&"walk",0.20,false,0,0.20,Vector3.FORWARD)
+ var backward_end:Vector3=world.player.model.last_pose.legs[0].end
+ require((backward_end-backward_start).dot(Vector3.FORWARD)<-1,"Backward stance pushes the planted foot opposite travel throughout contact")
  var original:float=world.camera_rig.yaw;world.camera_rig.look(Vector2(100,100000))
  require(world.camera_rig.yaw!=original and absf(world.camera_rig.pitch+PI/2)<0.00001,"Mouse orbit reaches the full downward pole without inverting")
  world.camera_rig.pitch = -0.12; world.camera_rig.yaw = 0

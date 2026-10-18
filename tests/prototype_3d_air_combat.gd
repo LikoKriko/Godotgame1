@@ -5,7 +5,7 @@ func require(value:bool,message:String) -> void:
  checks+=1
  if not value:failures+=1;push_error(message)
 func key(code:int,pressed:bool) -> void:
- var event:=InputEventKey.new();event.keycode=code;event.physical_keycode=code;event.pressed=pressed;Input.parse_input_event(event)
+ var event:=InputEventKey.new();event.keycode=code;event.physical_keycode=code;event.pressed=pressed;Input.parse_input_event(event);Input.flush_buffered_events()
 func _initialize():call_deferred("run")
 func run():
  var game=load("res://scenes/prototype_3d/day_zero_3d.tscn").instantiate();game.use_test_layout=true;root.add_child(game)

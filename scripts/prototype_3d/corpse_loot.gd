@@ -65,7 +65,17 @@ func drop_selected() -> void:
  var item:Dictionary=corpse.loot_slots[selected]
  if item.is_empty():return
  var point:Vector3=corpse.global_position+Vector3(0.55,0,0.4)
- spawn_drop(item,point);corpse.loot_slots[selected]={};selected=-1;refresh()
+ var drop:=spawn_drop(item,point,false)
+ # Native creatures have different corpse sizes. Keep the item's complete
+ # interaction box outside the remains so E can select it independently.
+ var item_margin:Vector3=-drop.visual_bounds.position+Vector3.ONE*.12
+ for child in corpse.corpse_area.get_children():
+  if child is CollisionShape3D and child.shape is BoxShape3D:
+   var bounds:AABB=child.global_transform*AABB(-child.shape.size*.5,child.shape.size)
+   point.x=maxf(point.x,bounds.end.x+item_margin.x)
+   point.z=maxf(point.z,bounds.end.z+item_margin.z)
+ drop.global_position=point;drop.settle_on_ground()
+ corpse.loot_slots[selected]={};selected=-1;refresh()
 func spawn_drop(item:Dictionary,point:Vector3,settle:bool=true) -> Node3D:
  var drop:=preload("res://scripts/prototype_3d/world_item.gd").new();game.add_child(drop);drop.configure(item);drop.global_position=point
  if settle:drop.settle_on_ground()

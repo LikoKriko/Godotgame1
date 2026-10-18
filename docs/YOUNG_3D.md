@@ -67,7 +67,9 @@ ni ojos. El hocico recibe una elevación leve. La cara se cierra gradualmente
 al interrumpirse la acción.
 
 La muerte dura 2 s: apoyo de rodillas, pérdida de equilibrio y caída. Después
-queda un cadáver con inventario interactivo. El nodo desaparece al alcanzar
+queda un cadáver con inventario interactivo. Los objetos tirados desde ese
+inventario se colocan fuera de su volumen de selección, conservan su contenido
+y pueden recogerse con las manos libres. El nodo desaparece al alcanzar
 182 s desde el inicio de la muerte. La posición, acciones, temporizadores,
 memoria, daño recibido y botín se conservan en el guardado.
 
