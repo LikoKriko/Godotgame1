@@ -87,7 +87,7 @@ Puede caminar durante esas acciones.
 ## Configuración
 
 - Juego: correr automáticamente y cinco tamaños del HUD.
-- Gráficos: VSync, límite de FPS, Mostrar FPS, antialiasing 3D y generación de
+- Gráficos: VSync, límite de FPS, Mostrar FPS, sombras mejoradas (prueba), antialiasing 3D y generación de
   mundo a 100, 200 o 400 metros; 200 es el valor predeterminado.
 - Audio: volumen general, música, efectos y silencio.
 
@@ -112,3 +112,22 @@ o cancelarse antes de guardar. Continuar prepara directamente la zona guardada.
 - [Modelos, tamaños y materiales](MESHY_ASSETS.md).
 - [Animación](ANIMATION_AREA.md) y [armas](WEAPON_ANIMATIONS_3D.md).
 - [Árboles](TREES_3D.md) y [recursos compartidos](SHARED_RESOURCES.md).
+
+## Sombras del sol: prueba ajustable
+
+Configuración → Gráficos → **Sombras mejoradas (prueba)** permite comparar
+las sombras ajustadas con las anteriores sin reiniciar. Está activado de
+inicio y se guarda como preferencia gráfica, independiente de la partida.
+Desactivarlo restaura los parámetros originales de la luz y el filtrado
+configurado del proyecto; no cambia la hora, la intensidad ni el color del sol.
+
+`data/rendering/sun_shadows_trial.tres` agrupa los parámetros aplicados mediante
+`scripts/rendering/sun_shadow_profile.gd`. Se mantienen Compatibility y el
+atlas de sombras del proyecto, de 4096 px en escritorio. La prueba usa cuatro
+cascadas hasta 60 m, cortes relativos de 0,12 / 0,30 / 0,60, mezcla entre
+cascadas y desvanecimiento del 80 % al 100 % del alcance. El sesgo de profundidad
+es 0,08 y el de normales, 1,5. El filtrado HIGH usa trece muestras PCF en
+Compatibility para suavizar los bordes; no utiliza PCSS ni sombras de contacto
+en espacio de pantalla. La mayor calidad del filtro puede aumentar el coste
+por píxel; el alcance limitado reduce la zona incluida en los mapas de sombra.
+Se mantienen las excepciones de césped y otros elementos que no proyectan sombra.

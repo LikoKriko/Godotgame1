@@ -31,6 +31,9 @@ var settings_from_pause:=false
 var pause_title:Label
 var continue_button:Button
 var respawn_button:Button
+const ShadowProfile=preload("res://scripts/rendering/sun_shadow_profile.gd")
+const SHADOW_TRIAL=preload("res://data/rendering/sun_shadows_trial.tres")
+var original_shadows=ShadowProfile.new()
 var main_sun:DirectionalLight3D
 var world_ambient:Environment
 var map_holder:CenterContainer
@@ -75,6 +78,7 @@ func _ready() -> void:
  var enemy:=preload("res://scripts/prototype_3d/young_enemy.gd").new();add_child(enemy);enemy.position=Vector3(7,0.2,-4);enemy.configure(self)
  distance_optimization=preload("res://scripts/prototype_3d/distance_optimization.gd").new();add_child(distance_optimization);distance_optimization.configure(self)
  settings.changed.connect(refresh_generation_distance)
+ settings.changed.connect(refresh_shadow_quality)
  refresh_generation_distance()
  if not use_test_layout:call_deferred("generate_content")
 func build_environment() -> void:
@@ -83,6 +87,7 @@ func build_environment() -> void:
  environment_settings.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR; environment_settings.ambient_light_color = Color("b2b59b"); environment_settings.ambient_light_energy = 0.6
  environment.environment = environment_settings;world_ambient=environment_settings; add_child(environment)
  var sun := DirectionalLight3D.new(); sun.rotation_degrees = Vector3(-52,-35,0); sun.light_color = Color("fff1d6"); sun.light_energy = 1.2; sun.shadow_enabled = true; add_child(sun);main_sun=sun
+ original_shadows.capture(main_sun);refresh_shadow_quality()
  var ground := StaticBody3D.new(); add_child(ground)
  if use_test_layout:
   var shape := CollisionShape3D.new(); var box := BoxShape3D.new(); box.size = Vector3(world_bounds.size.x,0.4,world_bounds.size.y); shape.shape = box; shape.position.y = -0.2; ground.add_child(shape)
@@ -191,6 +196,9 @@ func _physics_process(delta:float) -> void:
  if day_cycle.advance(delta)>0:nutrition.new_day()
  nutrition.advance(delta,day_cycle.day_seconds)
  refresh_daylight()
+func refresh_shadow_quality() -> void:
+ if settings.values.shadow_trial:SHADOW_TRIAL.apply(main_sun)
+ else:original_shadows.apply(main_sun)
 func refresh_daylight() -> void:
  var daylight:Dictionary=day_cycle.sun_state()
  main_sun.light_energy=daylight.elevation*1.2;main_sun.rotation_degrees=Vector3(-lerpf(18,76,daylight.elevation),lerpf(-70,70,daylight.progress),0)
