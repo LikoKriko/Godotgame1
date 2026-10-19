@@ -24,11 +24,11 @@ func run():
       var base:Array[Basis]=[]
       for bone in n.spine:base.append(n.posed[bone].basis*n.inverse_rest[bone].basis)
       n.sync(actor.rig,pose)
-      require(absf(n.torso_turn-x*z*deg_to_rad(20))<.0001,"Forward/back diagonals choose the correct bounded turn sign")
+      require(absf(n.torso_turn-x*z*deg_to_rad(35))<.0001,"Forward/back diagonals choose the correct bounded turn sign")
       for segment in 3:
        var bone:int=n.spine[segment]
        var actual:Basis=n.posed[bone].basis*n.inverse_rest[bone].basis
-       var expected:=Basis(pose.pelvis.basis.y.normalized(),x*z*deg_to_rad(20)*[.25,.60,1.0][segment])*base[segment]
+       var expected:=Basis(pose.pelvis.basis.y.normalized(),x*z*deg_to_rad([31.5,30.5,30.0][segment]))*base[segment]
        require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Diagonal twist accumulates progressively through all three spine bones")
       require(n.hand_error<.08,"Diagonal torso turn preserves native tool/weapon contacts")
       for side in 2:
@@ -42,12 +42,13 @@ func run():
   actor.gait_direction.reset();actor.animate(&"idle",0,false)
   var previous:=0.0
   for direction in [Vector3(1,0,1).normalized(),Vector3(1,0,-1).normalized(),Vector3(-1,0,-1).normalized(),Vector3.ZERO]:
-   for frame in fps:
+   # Allow the bounded 70-degree reversal and both steering filters to settle.
+   for frame in fps*2:
     actor.animate(&"walk" if not direction.is_zero_approx() else &"idle",.3,false,1.0/fps,.3,direction)
     require(absf(n.torso_turn-previous)<deg_to_rad(8),"Changing direction or stopping eases the torso without a diagonal/backward snap")
-    require(absf(n.torso_turn)<=deg_to_rad(20.001),"Smoothed torso twist stays within its anatomical bound")
+    require(absf(n.torso_turn)<=deg_to_rad(35.001),"Smoothed torso twist stays within its anatomical bound")
     previous=n.torso_turn
-   var expected:float=0.0 if direction.is_zero_approx() else signf(direction.x*direction.z)*deg_to_rad(20)
+   var expected:float=0.0 if direction.is_zero_approx() else signf(direction.x*direction.z)*deg_to_rad(35)
    require(absf(n.torso_turn-expected)<.0002,"Continuous movement converges to the requested direction at every frame rate")
  for family in [&"axe",&"pickaxe",&"sword",&"bow"]:
   actor.family_override=family;actor.aim_contact=Vector3(0,34,20)

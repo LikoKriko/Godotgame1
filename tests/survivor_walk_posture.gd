@@ -31,7 +31,7 @@ func run():
      var share:float=[.4,.6,.8,1.0,1.0][i]
      var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad(4)*share)*base
      var diagonal:float=signf(direction.x*direction.z)*deg_to_rad(35) if absf(direction.x)>.1 and absf(direction.z)>.1 else 0.0
-     expected=Basis(pelvis.basis.y.normalized(),diagonal*([43.0/35.0,53.0/35.0,63.0/35.0,50.75/35.0,28.0/35.0][i]))*expected
+     expected=Basis(pelvis.basis.y.normalized(),diagonal*([31.5/35.0,30.5/35.0,30.0/35.0,29.0/35.0,28.0/35.0][i]))*expected
      var actual:Basis=native.posed[bone].basis*native.rest[bone].basis.inverse()
      require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Walking distributes four degrees along the spine and neck; head follows the neck")
     var original:Array[float]=[];var widened:Array[float]=[]

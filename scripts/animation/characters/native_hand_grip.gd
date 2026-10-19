@@ -7,7 +7,7 @@ var shafts:Dictionary=PROFILE.get_meta('shafts')
 # Relaxed cascade: most flexion belongs to the knuckle and middle joint.
 # Keep the distal joints soft, rather than closing an empty fist into the palm.
 const RELAXED_DEGREES=[Vector3(16,26,7),Vector3(20,30,9),Vector3(24,34,11),Vector3(28,38,13),Vector3(8,14,7)]
-const RELAXED_STATES=[&'idle',&'walk',&'run',&'start',&'stop',&'start_run',&'stop_run',&'equip_walk',&'equip_run']
+const RELAXED_STATES=[&'idle',&'walk',&'run',&'start',&'stop',&'start_run',&'stop_run',&'equip_walk',&'equip_run',&'crouch',&'crouch_walk',&'equip_crouch',&'equip_crouch_walk']
 var relaxed:Dictionary={}
 func configure(native:RefCounted) -> void:
  for side in 2:

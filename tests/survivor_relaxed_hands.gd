@@ -23,7 +23,7 @@ func run():
   for chain in n.grip.fingers[side]:
    for bone in chain:shapes.append(n.posed[n.arms[side].ids[3]].affine_inverse()*n.posed[bone])
   reference.append(shapes)
- for state in [&'idle',&'walk',&'run']:
+ for state in [&'idle',&'walk',&'run',&'crouch',&'crouch_walk']:
   for direction in [Vector3.BACK,Vector3.FORWARD,Vector3.LEFT,Vector3.RIGHT,Vector3(-.574,0,.819),Vector3(.574,0,.819),Vector3(-.574,0,-.819),Vector3(.574,0,-.819)]:
    for phase in [0.,.25,.5,.75,1.]:
     actor.animate(state,phase,false,0,phase,direction if state!=&'idle' else Vector3.ZERO)

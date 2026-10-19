@@ -38,6 +38,7 @@ var head:int
 var neck:int
 var walk_posture:=0.0
 var run_posture:=0.0
+var crouch_posture:=0.0
 var torso_turn:=0.0
 var upper_transform:=Transform3D.IDENTITY
 var hand_error:=0.0
@@ -112,7 +113,7 @@ func untwisted_chain(ids:Array[int],offset:int,chain:Dictionary,reference:Basis)
   var swing:=Basis(Quaternion(from,a.direction_to(b)))
   posed[bone]=Transform3D(swing*reference*rest[bone].basis,a)
 
-func spread_knee(chain:Dictionary,pelvis:Transform3D,weight:float,spread:float=Clips.Gait.WALK_KNEE_SPREAD) -> Dictionary:
+func spread_knee(chain:Dictionary,pelvis:Transform3D,weight:float,spread:float=Clips.Gait.WALK_KNEE_SPREAD,alignment:float=0.0) -> Dictionary:
  if weight<=0:return chain
  var axis:Vector3=(chain.end-chain.root).normalized()
  var bend:Vector3=chain.joint-chain.root
@@ -127,6 +128,10 @@ func spread_knee(chain:Dictionary,pelvis:Transform3D,weight:float,spread:float=C
  var origin:float=(pelvis*Vector3(0,Clips.Anatomy.HIP.y,0)).dot(lateral)
  var target:float=origin+(chain.joint.dot(lateral)-origin)*lerpf(1,spread,weight)
  var x:=clampf((target-centre.dot(lateral))/freedom,-radius,radius)
+ # Near extension the requested spacing can consume the whole knee circle,
+ # leaving no forward bend. Bound this only for the leading forward diagonal.
+ var limit:=radius*lerpf(1.0,sin(Clips.Gait.DIAGONAL_KNEE_LIMIT),alignment)
+ x=clampf(x,-limit,limit)
  var y:=sqrt(maxf(0,radius*radius-x*x))*(-1 if radial.dot(v)<0 else 1)
  chain.joint=centre+u*x+v*y
  return chain
@@ -152,11 +157,15 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
  var target_posture:float=pose.get("gait_weight",1.0)*(1-sprint) if walking else 0.0
  var target_run:float=pose.get("gait_weight",1.0)*sprint if running_posture else 0.0
  var posture_response:=1-exp(-delta*18) if delta>0 else 1.0
+ var crouch_target:float=clampf(pose.phase,0,1) if clip==&"crouch" else (1.0 if clip in [&"crouch_walk",&"equip_crouch",&"equip_crouch_walk"] else 0.0)
+ if clip in [&"action",&"draw",&"bow_release"]:crouch_target=1-clampf(pose.get("attack_stance_weight",1.0),0,1)
+ crouch_posture=lerpf(crouch_posture,crouch_target,posture_response) if delta>0 else crouch_target
  walk_posture=lerpf(walk_posture,target_posture,posture_response) if delta>0 else target_posture
  run_posture=lerpf(run_posture,target_run,posture_response) if delta>0 else target_run
  var lean:float=Clips.Gait.WALK_LEAN*walk_posture
  var running_lean:float=Clips.Gait.RUN_LEAN*run_posture
  var running_curve:float=Clips.Gait.RUN_BACK_CURVE*run_posture
+ var crouching_curve:float=Clips.Gait.CROUCH_BACK_CURVE*crouch_posture
  var turning:bool=clip in [&"walk",&"run",&"start",&"stop",&"start_run",&"stop_run",&"crouch_walk",&"equip_walk",&"equip_run",&"equip_crouch_walk"]
  var turn_target:float=diagonal_turn(pose.get("torso_travel",Vector3.ZERO))*pose.get("gait_weight",1.0) if turning else 0.0
  if delta>0:
@@ -192,8 +201,9 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   if parents[i]>=0:
    var run_share:float=Clips.Gait.RUN_SPINE_LEAN[segment] if segment>=0 else (1.0 if i in [neck,head] else Clips.Gait.RUN_SPINE_LEAN[2])
    var curve_share:float=Clips.Gait.RUN_BACK_CURVE_SHARES[segment] if segment>=0 else 1.0
-   rotation=Basis(pelvis.basis.x.normalized(),lean*lean_share+running_lean*run_share+running_curve*curve_share)*rotation
-   var turn_share:float=Clips.Gait.DIAGONAL_SPINE_SHARES[segment] if segment>=0 else (.65 if i==neck else (0.0 if i==head else 1.0))
+   var crouch_share:float=Clips.Gait.CROUCH_SPINE_CURVE[segment] if segment>=0 else 1.0
+   rotation=Basis(pelvis.basis.x.normalized(),lean*lean_share+running_lean*run_share+running_curve*curve_share+crouching_curve*crouch_share)*rotation
+   var turn_share:float=Clips.Gait.DIAGONAL_SPINE_SHARES[segment] if segment>=0 else (Clips.Gait.DIAGONAL_NECK_SHARE if i==neck else (0.0 if i==head else Clips.Gait.DIAGONAL_SPINE_SHARES[2]))
    rotation=Basis(pelvis.basis.y.normalized(),torso_turn*turn_share)*rotation
   else:
    rotation=Basis(pelvis.basis.y.normalized(),torso_turn*Clips.Gait.DIAGONAL_PELVIS_SHARE)*rotation
@@ -268,11 +278,17 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   var aligned_foot:Vector3=control.posed[source+2].origin+leg_pelvis.basis*Vector3(foot_offset.x,foot_offset.y,rest[ids[0]].origin.z-control.rest[source].origin.z)+Vector3.UP*.30
   foot=foot.lerp(aligned_foot,clampf(walk_posture+run_posture,0,1))
   pole=control.posed[source+1].origin-control.posed[source].origin
+  var travel:Vector3=pose.get("torso_travel",Vector3.ZERO).normalized()
+  var alignment:float=smoothstep(0,.35,travel.z)*smoothstep(0,.35,travel.x*(-1 if side==0 else 1))*clampf(walk_posture+run_posture,0,1)
+  # Use the native stance's forward hinge, rather than the displaced control
+  # thigh (which includes its downward component and can invert the knee).
+  var forward:Vector3=pose.get("leg_frame",Basis.IDENTITY).z
+  pole=pole.normalized().lerp(forward.normalized(),alignment)
   if Clips.upright_gait(pose):foot=Clips.grounded_reach(hip,foot,chain.a,chain.b,.12 if running or grounded_walk else .35)
   solved=Solver.joint(hip,foot,chain.a,chain.b,pole)
   var posture_weight:=clampf(walk_posture+run_posture,0,1)
   var knee_spread:float=lerpf(Clips.Gait.WALK_KNEE_SPREAD,Clips.Gait.RUN_KNEE_SPREAD,run_posture/maxf(walk_posture+run_posture,.000001))
-  solved=spread_knee(solved,leg_pelvis,posture_weight,knee_spread)
+  solved=spread_knee(solved,leg_pelvis,posture_weight,knee_spread,alignment)
   if gait:untwisted_chain(ids,0,solved,leg_pelvis.basis)
   else:orient_chain(ids,0,solved,chain.axes)
   posed[ids[2]]=Transform3D(foot_rotation*rest[ids[2]].basis,solved.end)

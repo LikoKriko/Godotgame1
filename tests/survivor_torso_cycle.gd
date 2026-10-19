@@ -13,6 +13,7 @@ func unleaned(actor,bone:int,share:float=1.0) -> Basis:
  var pelvis:Basis=actor.last_pose.pelvis.basis
  var lean:float=Clips.Gait.WALK_LEAN*n.walk_posture*Clips.Gait.WALK_SPINE_LEAN[2]+Clips.Gait.RUN_LEAN*n.run_posture*Clips.Gait.RUN_SPINE_LEAN[2]
  if bone==n.neck or bone==n.head:lean=Clips.Gait.WALK_LEAN*n.walk_posture+Clips.Gait.RUN_LEAN*n.run_posture
+ lean+=Clips.Gait.RUN_BACK_CURVE*n.run_posture+Clips.Gait.CROUCH_BACK_CURVE*n.crouch_posture
  return Basis(pelvis.x.normalized(),-lean*share)*(n.posed[bone].basis*n.inverse_rest[bone].basis)
 func run():
  var actor=load('res://scripts/prototype_3d/survivor_model.gd').new();root.add_child(actor)

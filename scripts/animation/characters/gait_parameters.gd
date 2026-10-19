@@ -20,8 +20,13 @@ const DIAGONAL_PELVIS_SHARE:=5.0/35.0
 const DIAGONAL_PELVIS_TURN:=deg_to_rad(33.0)
 # Preserve the authored upper-body locals; inherit the added pelvis rotation.
 const DIAGONAL_PELVIS_INHERIT_SHARE:=DIAGONAL_PELVIS_TURN/DIAGONAL_TORSO_TURN-DIAGONAL_PELVIS_SHARE
-# Absolute directional offsets: pelvis 5 degrees, then 10 per back bone.
-const DIAGONAL_SPINE_SHARES:Array[float]=[15.0/35.0,25.0/35.0,1.0]
+# Subtract inherited pelvis rotation: final spine yaw is 31.5/30.5/30 degrees.
+const DIAGONAL_SPINE_SHARES:Array[float]=[31.5/35.0-DIAGONAL_PELVIS_INHERIT_SHARE,30.5/35.0-DIAGONAL_PELVIS_INHERIT_SHARE,30.0/35.0-DIAGONAL_PELVIS_INHERIT_SHARE]
+const DIAGONAL_NECK_SHARE:=29.0/35.0-DIAGONAL_PELVIS_INHERIT_SHARE
+const DIAGONAL_KNEE_LIMIT:=deg_to_rad(25.0)
+const CROUCH_BACK_CURVE:=deg_to_rad(5.0)
+# Local contributions 1.5/1.5/2 degrees; scapular Spine2 receives forty percent.
+const CROUCH_SPINE_CURVE:Array[float]=[.30,.60,1.0]
 const DIAGONAL_TORSO_RESPONSE:=14.0
 const RUN_LEAN:=deg_to_rad(7.2)
 const RUN_SPINE_LEAN:Array[float]=[2.0/6.2,3.4/6.2,4.8/6.2]

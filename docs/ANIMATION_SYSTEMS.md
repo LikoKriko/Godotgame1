@@ -284,6 +284,11 @@ La carrera usa `RUN_KNEE_SPREAD = 1.32`: aumenta un 20 % la separación lateral
 que produce el factor de caminata 1,10, respetando el círculo alcanzable de
 cada rodilla. La entrada y salida del sprint mezclan ambos factores sin
 desplazar los pies ni cambiar las longitudes de muslo y pantorrilla.
+En las diagonales delanteras, la rodilla del lado de avance usa el plano
+frontal de la postura nativa como guía de flexión. Su corrección lateral se
+limita a 25° en el círculo de rodilla, conservando flexión hacia delante
+cuando la pierna está casi extendida. La corrección entra suavemente con
+la dirección y el peso de marcha/carrera; mantiene pie, cadera y longitudes.
 Usa `RUN_LEAN = 7,2°` con su distribución proporcional propia:
 `Spine` aporta aproximadamente 2,323° y `Spine1`, `Spine2` y `Neck`
 aportan aproximadamente 1,626° cada uno. La cabeza acompaña al cuello; la mezcla
@@ -294,12 +299,20 @@ en cada uno; acumulados 0,667°/1,333°/2°). Cuello y cabeza acompañan los 2°
 acumulados sin añadir flexión propia; su inclinación total de carrera es 9,2°.
 La curva sigue el peso suavizado de carrera durante el arranque, la frenada
 y la transición con caminata. No añade curvatura a la caminata ni a la pelvis.
+Al agacharse, `CROUCH_BACK_CURVE = 5°` añade flexión hacia delante en la
+espalda: 1,5° en `Spine`, 1,5° en `Spine1` y 2° en `Spine2`, situado en la
+zona de omóplatos y receptor del 40 % de la curva. Cuello y cabeza acompañan
+los 5° acumulados sin añadir flexión propia ni cambiar escala o longitudes.
+La curva sigue la entrada de agacharse y se suaviza al cambiar de postura;
+la marcha y los gestos realizados agachado la conservan según su peso de postura.
 La pelvis acompaña las diagonales con `DIAGONAL_PELVIS_TURN = 33°` totales.
-La espalda conserva los 10° locales por hueso de su pose diagonal; sus
-acumulados respecto al personaje son 43°/53°/63° en `Spine`/`Spine1`/`Spine2`.
+La espalda contragira suavemente respecto a la pelvis: `Spine` resta 1,5°,
+`Spine1` resta 1° y `Spine2` resta 0,5°. Sus acumulados respecto al personaje
+son 31,5°/30,5°/30°, frente a los 33° de pelvis.
 El giro adicional de pelvis se hereda como una transformación común del
-tren superior alrededor de la articulación de cadera, conservando las poses
-locales de columna, cuello, cabeza, brazos, manos y dedos.
+tren superior alrededor de la articulación de cadera; la compensación local
+de columna conserva la misma dirección de avance sin sobrepasar el giro de
+pelvis. Hombros y brazos acompañan los 30° de la espalda alta.
 Los anclajes nativos de muslo acompañan el giro de pelvis conservando los
 objetivos de apoyo y las longitudes de pierna. El giro cíclico de la zancada
 se suma a esta orientación direccional y conserva su reparto propio.
@@ -307,9 +320,9 @@ Las diagonales de retirada invierten el giro respecto a las de avance del
 mismo lado, manteniendo la orientación frontal. El giro desaparece suavemente
 al acercarse a una dirección cardinal o al detenerse, con respuesta exponencial
 14/s, velocidad de giro máxima de 120°/s y el filtrado direccional de los pasos.
-Cuello y cabeza mantienen su compensación relativa previa y acompañan el
-giro heredado de pelvis: en una diagonal completa, sin oscilación cíclica,
-sus giros acumulados son 50,75° y 28° respectivamente. La cabeza conserva
+Cuello y cabeza compensan progresivamente el giro heredado de pelvis:
+en una diagonal completa, sin oscilación cíclica, sus giros acumulados
+son 29° y 28° respectivamente. La cabeza conserva
 su pequeño giro cíclico y no adopta toda la torsión de la espalda.
 La columna visible distribuye la rotación total entre `Spine`, `Spine1` y
 `Spine2` con pesos acumulados de 25 %, 60 % y 100 %. El giro cíclico del pecho
@@ -335,8 +348,9 @@ la intensidad sigue la velocidad visual. El resto de gestos distribuye sus
 rotaciones entre pelvis y pecho con su postura propia.
 Las pistas `spine` y `shoulders` comparten el reloj y la reducción de claves
 con marcha/carrera, con error angular/peso máximo de 0,0004.
-Las manos libres mantienen dedos recogidos en reposo, marcha y carrera en
-todas las direcciones, incluidos sus arranques y frenadas. La curvatura nativa
+Las manos libres mantienen dedos recogidos en reposo, marcha, carrera y
+postura/marcha agachada en todas las direcciones, incluidos los arranques,
+frenadas y las manos libres durante equipamiento agachado. La curvatura nativa
 se precalcula en `native_hand_grip.gd`: nudillo/articulación media/punta de
 16°/26°/7° en índice, 20°/30°/9° en corazón, 24°/34°/11° en anular y
 28°/38°/13° en meñique; pulgar 8°/14°/7°, orientado suavemente hacia la palma.
