@@ -29,11 +29,11 @@ func run():
      var bone:int=bones[i]
      var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(head_follow,.35) if i==3 else head_follow)
      var share:float=[.4,.6,.8,1.0,1.0][i]
-     var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad(3)*share)*base
+     var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad(4)*share)*base
      var diagonal:float=signf(direction.x*direction.z)*deg_to_rad(20) if absf(direction.x)>.1 and absf(direction.z)>.1 else 0.0
      expected=Basis(pelvis.basis.y.normalized(),diagonal*([.25,.60,1.0,.65,0.0][i]))*expected
      var actual:Basis=native.posed[bone].basis*native.rest[bone].basis.inverse()
-     require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Walking adds 1.2/0.6/0.6/0.6 degrees along the spine and neck; head follows the neck")
+     require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Walking distributes four degrees along the spine and neck; head follows the neck")
     var original:Array[float]=[];var widened:Array[float]=[]
     for side in 2:
      var ids:Array=native.legs[side].ids
@@ -57,9 +57,9 @@ func run():
   var head_follow:Basis=Basis(Vector3.UP,actor.Clips.Gait.head_twist(actor.Clips.Controls.sample(&"run",phase).chest.y,1))*actor.rig.posed[3].basis.orthonormalized()
   for i in bones.size():
    var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(head_follow,.35) if i==3 else head_follow)
-   var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad([2.0,3.4,4.8,6.2,6.2][i]))*base
+   var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad(7.2)*[2.0/6.2,3.4/6.2,4.8/6.2,1.0,1.0][i])*base
    var actual:Basis=native.posed[bones[i]].basis*native.rest[bones[i]].basis.inverse()
-   require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Running adds 0.8 degrees at each spine/neck joint and the head follows the accumulated 6.2 degrees")
+   require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Running distributes 7.2 degrees with the existing spine proportions; the head follows the neck")
   for side in 2:
    var ids:Array=native.legs[side].ids
    var pole:Vector3=actor.rig.posed[11+side*3].origin-actor.rig.posed[10+side*3].origin

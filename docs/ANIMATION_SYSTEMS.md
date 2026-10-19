@@ -268,17 +268,17 @@ de herramienta ni forzar la clavícula para alcanzarlo.
 La caminata separa las rodillas un 10 % mediante el plano de flexión de cada
 pierna, con `WALK_KNEE_SPREAD = 1.10`. Conserva pies, cadera y longitudes de
 muslo/pantorrilla; limita el ajuste al círculo alcanzable de la articulación.
-Añade `WALK_LEAN = 3°` hacia delante: `Spine` aporta 1,2° (40 %),
-`Spine1`, `Spine2` y `Neck` aportan 0,6° cada uno. La cabeza sigue los 3°
+Añade `WALK_LEAN = 4°` hacia delante: `Spine` aporta 1,6° (40 %),
+`Spine1`, `Spine2` y `Neck` aportan 0,8° cada uno. La cabeza sigue los 4°
 acumulados del cuello. La entrada/salida se suaviza y se reduce con la velocidad
 visual y la transición a carrera. La marcha agachada mantiene su postura propia.
 La carrera usa `RUN_KNEE_SPREAD = 1.32`: aumenta un 20 % la separación lateral
 que produce el factor de caminata 1,10, respetando el círculo alcanzable de
 cada rodilla. La entrada y salida del sprint mezclan ambos factores sin
 desplazar los pies ni cambiar las longitudes de muslo y pantorrilla.
-Añade 0,8° a cada aporte
-de inclinación de caminata: `Spine` 2°, `Spine1` 1,4°, `Spine2` 1,4° y
-`Neck` 1,4°, para `RUN_LEAN = 6,2°`. La cabeza acompaña al cuello; la mezcla
+Usa `RUN_LEAN = 7,2°` con su distribución proporcional propia:
+`Spine` aporta aproximadamente 2,323° y `Spine1`, `Spine2` y `Neck`
+aportan aproximadamente 1,626° cada uno. La cabeza acompaña al cuello; la mezcla
 marcha/carrera interpola los aportes por hueso junto con el peso de sprint.
 El torso acompaña las diagonales con hasta 20° de giro adicional, repartidos
 acumulativamente al 25/60/100 % entre los tres huesos de la espalda.
