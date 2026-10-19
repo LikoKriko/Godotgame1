@@ -1,0 +1,13 @@
+{
+  "profile": "mossy_stone_surface_v1",
+  "resolution": 2048,
+  "seed": 19090447,
+  "moss_hue_degrees": [43, 58, 115, 145],
+  "moss_saturation": [0.25, 0.45],
+  "source_normal_strength": {"stone": 1.8, "moss": 1.25},
+  "stone_roughness": [0.72, 0.84],
+  "moss_roughness": [0.91, 0.98],
+  "stone_detail": {"frequency_per_metre": 70, "height_metres": 0.00009},
+  "moss_detail": {"frequency_per_metre": 160, "height_metres": 0.00022},
+  "padding_pixels": 12
+}

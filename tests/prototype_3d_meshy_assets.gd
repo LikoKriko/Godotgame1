@@ -49,9 +49,19 @@ func run():
    require(original.cull_mode==BaseMaterial3D.CULL_DISABLED,"Open hair planes remain visible from both sides")
   var material:Material=mesh.get_meta("source_material",mesh.surface_get_material(0))
   require(material is StandardMaterial3D and material.next_pass==null,"Source UV material replaces procedural projection and outline passes")
-  var filter:int=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC if mesh.has_meta("face_surface_profile") else BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+  var rock_surface:bool=folder.ends_with("rock1/")
+  var filter:int=BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC if mesh.has_meta("face_surface_profile") or rock_surface else BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
   require(material.texture_filter==filter,"Sampling and mipmaps follow the current material finish")
-  require(material.albedo_texture!=null and material.normal_texture!=null and material.roughness_texture!=null and material.metallic_texture!=null,"All four supplied texture maps are assigned")
+  if rock_surface:
+   require(material==load(folder+"surface_material.tres") and material.albedo_texture==load(folder+"albedo.png"),"World rock and item model share the authored material and original albedo")
+   require(material.normal_enabled and material.normal_texture==load(folder+provenance.surface_material.normal) and material.roughness_texture==load(folder+provenance.surface_material.roughness),"Rock uses the derived normal and moss roughness maps")
+   require(material.metallic==0 and material.roughness_texture_channel==BaseMaterial3D.TEXTURE_CHANNEL_RED,"Stone and moss remain nonmetallic with red-channel roughness")
+   for name in provenance.surface_material.derived_sha256:
+    require(FileAccess.get_sha256(folder+name)==provenance.surface_material.derived_sha256[name],"Derived rock map matches its provenance: "+name)
+   for texture in [material.normal_texture,material.roughness_texture]:
+    require(texture.get_width()==2048 and texture.get_height()==2048 and texture.get_image().has_mipmaps(),"Rock surface maps retain resolution and mipmaps")
+  else:
+   require(material.albedo_texture!=null and material.normal_texture!=null and material.roughness_texture!=null and material.metallic_texture!=null,"All four supplied texture maps are assigned")
   var points:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX];var uv:PackedVector2Array=arrays[Mesh.ARRAY_TEX_UV]
   var normals:PackedVector3Array=arrays[Mesh.ARRAY_NORMAL]
   var valid:=uv.size()==points.size() and normals.size()==points.size()

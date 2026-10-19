@@ -72,6 +72,7 @@ func bake_one(definition:Dictionary) -> void:
  material.roughness_texture=load(folder+"roughness.png");material.roughness_texture_channel=BaseMaterial3D.TEXTURE_CHANNEL_RED
  material.metallic_texture=load(folder+"metallic.png");material.metallic_texture_channel=BaseMaterial3D.TEXTURE_CHANNEL_RED
  material.metallic=1;material.roughness=1;material.texture_filter=BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+ if definition.id=="rock1":material=load(folder+"surface_material.tres")
  mesh.surface_set_material(0,material)
  assert((arrays[Mesh.ARRAY_INDEX] as PackedInt32Array).size()/3==int(definition.triangles))
  mesh.set_meta("source_triangles",int(definition.triangles));mesh.set_meta("source_zip_sha256",definition.zip_sha256)

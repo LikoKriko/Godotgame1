@@ -12,5 +12,17 @@
     "normal": "cfda545d0212fa54cc5128d8ac1e639bbea6977b8ca1943d40785261dfc1b82b",
     "roughness": "f485e77664559190642c8562896f9ef30ca7af0bdc1fb79e4d303079b0b598b4",
     "metallic": "e0cc7d6472dd104013837bb3eacf45a78b3fb8dcb7b3973e109ec5b55a379cea"
+  },
+  "surface_material": {
+    "profile": "mossy_stone_surface_v1",
+    "configuration": "surface_profile.json",
+    "material": "surface_material.tres",
+    "normal": "surface_normal.png",
+    "roughness": "surface_roughness.png",
+    "bake_tool": "tools/meshy/bake_rock_surface.py",
+    "derived_sha256": {
+      "surface_normal.png": "8b4fb09a4342257aa0f7c955eb48e1b0a36987475445bef4ec48a877afc676d8",
+      "surface_roughness.png": "da62a8e2a6f6998e16977311ed445fa26166ef30b1637768d6043b2d470ab395"
+    }
   }
 }

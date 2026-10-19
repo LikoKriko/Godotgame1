@@ -56,6 +56,13 @@ Roca1 usa `Meshy_AI_Mossy_Stone_Outcrop_1019090447_texture.fbx`, de
 todas las instancias del mundo. Se extrae con pico. No aplicar variantes de
 escala a esta familia; otras dimensiones requieren sus propios modelos.
 
+El material compartido de roca1 es `rock1/surface_material.tres`: conserva el
+albedo original, usa normal y rugosidad derivados de 2048 px y metal nulo.
+La piedra tiene rugosidad de 0,72–0,84 y el musgo de 0,91–0,98, con filtrado
+lineal anisotrópico y mipmaps. Parámetros y regeneración en
+[rock1/README.md](../assets/models/meshy/rock1/README.md) y `surface_profile.json`;
+`source.json` conserva las huellas de las fuentes y de los mapas derivados.
+
 ## Materiales y preparación
 
 Se mantienen los PNG originales. Enemigo1 usa un normal tangente derivado
