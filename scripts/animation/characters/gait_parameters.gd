@@ -6,14 +6,22 @@ const WALK_HALF_STRIDE:=8.8
 const WALK_FOOT_LIFT:=2.8
 const WALK_HIP_HEIGHT:=29.8
 const RUN_SUPPORT:=.22
-const RUN_HALF_STRIDE:=8.58
+const RUN_HALF_STRIDE:=12.33375
 const RUN_FOOT_LIFT:=5.6
+# Halfway to/from the native knee peak (nominal forward cycle near .688).
+const RUN_SWING_KEYS:Array[float]=[272.0/600.0,.845]
 const RUN_HIP_HEIGHT:=29.8
 const WALK_KNEE_SPREAD:=1.10
 const RUN_KNEE_SPREAD:=WALK_KNEE_SPREAD*1.20
 const WALK_LEAN:=deg_to_rad(4.0)
 const WALK_SPINE_LEAN:Array[float]=[.40,.60,.80]
-const DIAGONAL_TORSO_TURN:=deg_to_rad(20.0)
+const DIAGONAL_TORSO_TURN:=deg_to_rad(35.0)
+const DIAGONAL_PELVIS_SHARE:=5.0/35.0
+const DIAGONAL_PELVIS_TURN:=deg_to_rad(33.0)
+# Preserve the authored upper-body locals; inherit the added pelvis rotation.
+const DIAGONAL_PELVIS_INHERIT_SHARE:=DIAGONAL_PELVIS_TURN/DIAGONAL_TORSO_TURN-DIAGONAL_PELVIS_SHARE
+# Absolute directional offsets: pelvis 5 degrees, then 10 per back bone.
+const DIAGONAL_SPINE_SHARES:Array[float]=[15.0/35.0,25.0/35.0,1.0]
 const DIAGONAL_TORSO_RESPONSE:=14.0
 const RUN_LEAN:=deg_to_rad(7.2)
 const RUN_SPINE_LEAN:Array[float]=[2.0/6.2,3.4/6.2,4.8/6.2]
@@ -22,7 +30,7 @@ const RUN_BACK_CURVE:=deg_to_rad(2.0)
 const RUN_BACK_CURVE_SHARES:Array[float]=[1.0/3.0,2.0/3.0,1.0]
 const DIAGONAL_TORSO_SPEED:=deg_to_rad(120.0)
 const HIP_MOTION:=.45
-const HIP_REDUCTION:=.40
+const HIP_REDUCTION:=.30
 const TORSO_YAW:=deg_to_rad(3.0)
 const RUN_TORSO_YAW:=deg_to_rad(7.0)
 const PELVIS_YAW:=.025

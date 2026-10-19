@@ -224,15 +224,22 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
  rig.apply(last_pose,hands,delta)
  if state==&"death" and ground_enabled:ground_clearance(smoothstep(0,.025,phase) if delta>0 else 1.0)
  native.sync(rig,last_pose,delta)
- leaf_armor.transform=last_pose.body
+ var inherited:Transform3D=native.upper_transform
+ if item!=&"" and state!=&"death":
+  axe.transform=inherited*axe.transform
+  grip_socket.transform=inherited*grip_socket.transform
+  support_socket.position=inherited*support_socket.position
+  tip_socket.position=inherited*tip_socket.position
+  tool_tip=inherited*tool_tip;tool_cutting_axis=inherited.basis*tool_cutting_axis
+ leaf_armor.transform=inherited*last_pose.body
  leaf_armor.update_pose(rig,last_pose.body)
- parry_pulse.update_hands([rig.posed[6].origin,rig.posed[9].origin])
+ parry_pulse.update_hands([inherited*rig.posed[6].origin,inherited*rig.posed[9].origin])
  axe.visible = equipped and item==&"axe" and state!=&"death"
  for family in held_props:
   var prop:Node3D=held_props[family];prop.visible=family==item and state!=&"death"
   if prop.visible:
    prop.show_item(displayed_item,item_water_ml)
-   var support_hand:Vector3=rig.posed[6 if last_pose.active==1 else 9].origin
+   var support_hand:Vector3=inherited*rig.posed[6 if last_pose.active==1 else 9].origin
    prop.update_pose(state,phase,grip_socket.transform.affine_inverse()*support_hand,nock_visible,grip_socket.transform.affine_inverse()*aim_contact if aim_contact.is_finite() else Vector3.INF)
  if state in Clips.SLIDE_STATES:
   # Capture after IK and grips, so take-off uses the pose actually rendered.

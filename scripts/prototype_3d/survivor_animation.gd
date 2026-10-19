@@ -160,6 +160,7 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   pose.stance_lane=lane
   # The return arc briefly extends beyond the stance endpoints.
   pose.gait_extent=reach*(1.05 if crouched else 1.55)
+  pose.gait_contact_extent=reach
   pose.gait_travel=travel
   for side in 2:
    var foot:Vector3=keys.foot_l if side==0 else keys.foot_r
@@ -485,6 +486,7 @@ static func lengthen_stride(pose:Dictionary,horizontal_scale:float=STRIDE_SCALE)
  # Phase-independent support height: damp vertical motion around the gait's
  # existing stance, rather than raising its mean and clipping the swing arc.
  var centre_height:=Anatomy.HIP.y
+ var contact_height:=INF
  if pose.has("gait_extent"):
   for side in 2:
    var centre_hip:=Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
@@ -493,11 +495,19 @@ static func lengthen_stride(pose:Dictionary,horizontal_scale:float=STRIDE_SCALE)
     var end:Vector3=lane+pose.gait_travel*pose.gait_extent*sign_value
     var horizontal:=Vector2(end.x-centre_hip.x,end.z-centre_hip.z).length_squared()
     centre_height=minf(centre_height,2.1+sqrt(maxf(.01,pow(Anatomy.THIGH+Anatomy.SHIN-.08,2)-horizontal)))
+    if pose.has("gait_contact_extent"):
+     var contact_end:Vector3=lane+pose.gait_travel*pose.gait_contact_extent*sign_value
+     var contact_horizontal:=Vector2(contact_end.x-centre_hip.x,contact_end.z-centre_hip.z).length_squared()
+     contact_height=minf(contact_height,2.1+sqrt(maxf(.01,pow(Anatomy.THIGH+Anatomy.SHIN-.08,2)-contact_horizontal)))
  if pose.get("clip_state",&"") in [&"walk",&"start",&"stop",&"equip_walk",&"run",&"start_run",&"stop_run",&"equip_run"] or (pose.get("upright_attack",false) and pose.has("gait_extent")):
   # A moving strike shares the upright walking height; changing the foot
   # recovery must not introduce a vertical pop when interrupting a sprint.
   var running:bool=pose.get("clip_state",&"") in [&"run",&"start_run",&"stop_run",&"equip_run"]
-  var reserve:float=(Anatomy.HIP.y-(Gait.RUN_HIP_HEIGHT if running else Gait.WALK_HIP_HEIGHT))/GAIT_LOWERING
+  # Longer sprint contacts need a slightly lower, phase-independent stance.
+  # Reserve both planted endpoints once, rather than clipping the foot arc or
+  # pumping the pelvis whenever the supporting leg changes.
+  var support_height:float=minf(Gait.RUN_HIP_HEIGHT,contact_height-.25) if running else Gait.WALK_HIP_HEIGHT
+  var reserve:float=(Anatomy.HIP.y-support_height)/GAIT_LOWERING
   if pose.get("upright_attack",false):reserve*=smoothstep(0,1,pose.get("attack_stance_weight",1.0))
   settle=maxf(settle,reserve);centre_height=minf(centre_height,Anatomy.HIP.y-reserve)
  pose.gait_center_height=lerpf(Anatomy.HIP.y,centre_height,GAIT_LOWERING)

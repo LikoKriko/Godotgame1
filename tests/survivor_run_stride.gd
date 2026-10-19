@@ -15,15 +15,25 @@ func run():
  var native=actor.native
  var directions=[Vector3.BACK,Vector3.FORWARD,Vector3.RIGHT,Vector3.LEFT,Vector3(.574,0,.819),Vector3(-.574,0,.819),Vector3(.574,0,-.819),Vector3(-.574,0,-.819)]
  for direction in directions:
-  var previous_distance:float=2*7.8*(1.75/64)/.22*Clips.Gait.backward_stride(direction)
+  var previous_distance:float=2*9.867*(1.75/64)/.22*Clips.Gait.backward_stride(direction)
   var distance:float=Clips.cycle_distance(1,0,direction)
-  require(absf(distance/previous_distance-1.10)<.000001,'Every running direction travels ten percent farther per cycle')
-  require(absf(previous_distance/distance-1.0/1.10)<.000001,'The longer cycle slows cadence by the reciprocal amount, preserving speed')
+  require(absf(distance/previous_distance-1.25)<.000001,'Every running direction travels twenty-five percent farther per cycle')
+  require(absf(previous_distance/distance-.80)<.000001,'The longer cycle slows cadence twenty percent, preserving speed')
  require(absf(Response.SPRINT_MULTIPLIER*2-4.48)<.000001,'Forward sprint speed stays at 4.48 metres per second')
  var animation:Animation=Clips.Controls.LIBRARY.get_animation(&'run')
  var keys:=0
  for track in animation.get_track_count():keys+=animation.track_get_key_count(track)
  require(keys<601*animation.get_track_count()*.2,'The longer running clip keeps fewer than twenty percent of dense authoring keys')
+ for track in animation.get_track_count():
+  var control:StringName=StringName(animation.track_get_path(track))
+  if control not in [&'foot_l',&'foot_r']:continue
+  var offset:float=.5 if control==&'foot_r' else 0.0
+  for phase in Clips.Gait.RUN_SWING_KEYS:
+   var time:=fposmod(phase+offset,1.0)
+   var found:=false
+   for key in animation.track_get_key_count(track):
+    if absf(animation.track_get_key_time(track,key)-time)<.000001:found=true;break
+   require(found,'Each leg retains its ascent and landing recovery keyframes')
  for frame in 1201:
   var phase:float=(frame+.37)/1202.0
   var expected:=Source.sample(&'run',phase);var actual:=Clips.Controls.sample(&'run',phase)

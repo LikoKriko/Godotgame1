@@ -28,6 +28,11 @@ func _initialize():
    var angular:=String(control) in ["chest","pelvis","spine","shoulders","arms","angles","curl","wind_axis","hit_axis","foot_angles_l","foot_angles_r","effort","timing","recovery"]
    var tolerance:=.0004 if angular else .018
    for index in range(pinned.size()-1):reduce(values,control,pinned[index],pinned[index+1],tolerance,kept)
+   if name==&"run" and control in [&"foot_l",&"foot_r"]:
+    # Keep two authored recovery landmarks per leg after reducing the curve.
+    # The opposite leg uses the same motion half a cycle later.
+    var offset:float=.5 if control==&"foot_r" else 0.0
+    for phase in Source.Gait.RUN_SWING_KEYS:kept[roundi(fposmod(phase+offset,1.0)*SAMPLES)]=true
    var indices:=kept.keys();indices.sort()
    for index in indices:clip.position_track_insert_key(track,index/float(SAMPLES),values[index][control])
    dense+=values.size();total+=indices.size()

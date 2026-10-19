@@ -32,7 +32,8 @@ func run():
    require(Response.valid(saved),'Rear running retains a valid save envelope')
    restored.advance(input,true,0,1.0/fps,scale)
    require(absf(response.speed-restored.speed)<.00001,'Saved rear running resumes at the same speed')
-   var front_turn:Vector2=input.rotated(PI/2)
+   # Inspect the speed-limit blend without invoking the separate 90-degree stop.
+   var front_turn:Vector2=input.rotated(deg_to_rad(35))
    response.advance(front_turn,true,0,0,1)
    var previous:float=response.speed
    for frame in fps:

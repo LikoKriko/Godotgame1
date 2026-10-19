@@ -175,26 +175,26 @@ La cadencia trasera es el 80 % de su equivalente frontal, tanto andando como
 corriendo. La zancada trasera se multiplica por `0.30 / 0.80 = 0.375`, junto
 con su elevación y giro de tobillo; la duración relativa del apoyo se mantiene.
 El ciclo completo de marcha trasera recorre 0,721875 m y dura 1,203125 s a
-0,6 m/s. La carrera trasera recorre aproximadamente 0,7998 m por ciclo. El reloj
+0,6 m/s. La carrera trasera recorre aproximadamente 1,1497 m por ciclo. El reloj
 sigue la distancia real con esta zancada reducida, sin aplicar otra reducción
 a la amplitud por la menor velocidad. El factor entra suavemente al pasar del
 desplazamiento lateral al trasero.
 Las cuatro diagonales de marcha y carrera usan 35° respecto al eje frontal o
 trasero: la entrada horizontal combina `sin(35°)` lateral y `cos(35°)` longitudinal,
 con módulo normalizado. Los carriles de pies y los planos de rodillas comparten
-ese ángulo; el giro progresivo de espalda conserva su límite de 20°. Los
+ese ángulo; la pelvis gira 33° y la espalda conserva su articulación relativa. Los
 controles de deslizamiento conservan sus trayectorias propias de 45°.
 La marcha agachada conserva su curva propia `crouch_walk`, su distancia base
 `1.56 * 0.68 * lerp(1, 0.44, abs(direccion.x))` y sus apoyos del 60–45 %.
 El reloj mezcla ambas distancias durante la transición de postura y conserva
 `GAIT_PLAYBACK_RATE = 0.90`. La escala de autoría es
 `GAIT_STRIDE_LENGTH = 1.10`. La carrera usa los parámetros compartidos de
-`gait_parameters.gd`: semizancada de apoyo de 8,58 unidades, contacto frontal
+`gait_parameters.gd`: semizancada de apoyo de 12,33375 unidades, contacto frontal
 del 22 % del ciclo y elevación máxima de 5,6 unidades. El ciclo recorre
-`2 * 8.58 * (1.75 / 64) / 0.22`, aproximadamente 2,133 m. Su reloj sigue la
+`2 * 12.33375 * (1.75 / 64) / 0.22`, aproximadamente 3,066 m. Su reloj sigue la
 distancia real con `RUN_PLAYBACK_RATE = 1.0`; la transición mezcla el reloj
-de marcha y el de carrera. A 4,48 m/s dura aproximadamente 0,4761 s, unos
-4,20 pasos por segundo. El recorrido y la duración del ciclo se calculan
+de marcha y el de carrera. A 4,48 m/s dura aproximadamente 0,6844 s, unos
+2,92 pasos por segundo. El recorrido y la duración del ciclo se calculan
 desde la misma semizancada: la frecuencia de las piernas es proporcional
 al inverso de la distancia por ciclo y la velocidad física se mantiene.
 Torso, brazos, hombros, cabeza y cadera comparten esa fase de recorrido,
@@ -208,10 +208,18 @@ La carrera adapta la duración del contacto al recorrido lateral, conservando
 la velocidad relativa del apoyo. La recuperación horizontal usa aceleración
 continua, con liberación del pie, avance y entrada al siguiente apoyo. El
 retorno vertical es C2 y las claves cercanas al contacto se conservan al reducir
-las curvas. La altura de apoyo de carrera ronda 29,8 unidades, sin añadir
-rebote a la pelvis. El rig nativo centra el apoyo bajo sus propias caderas y
+las curvas. La altura de apoyo de carrera se calcula con ambos extremos
+del contacto y un margen de 0,25 unidades, con límite superior de 29,8.
+En la carrera frontal ronda 28 unidades para admitir la zancada completa;
+el ajuste depende de la dirección y permanece constante a lo largo del ciclo,
+sin añadir rebote a la pelvis. El rig nativo centra el apoyo bajo sus propias caderas y
 mantiene un margen de suela de 0,30 unidades. El apoyo se ajusta a la velocidad
 física definida para cada dirección.
+`RUN_SWING_KEYS` conserva dos claves intermedias por pierna tras reducir
+las curvas: entre despegue y máxima elevación de rodilla, y entre esa elevación
+y el siguiente apoyo. Sus fases frontales nominales son 0,4533 y 0,845 para
+`foot_l`, desplazadas medio ciclo para `foot_r`; la altura máxima de rodilla
+ronda la fase 0,688. El remapeo del apoyo adapta estos puntos a cada dirección.
 Las calles de apoyo dejan espacio para la trayectoria completa antes de
 resolver IK, sin recortar su
 mitad interior. El pie levantado regresa en el sentido real de desplazamiento.
@@ -235,14 +243,14 @@ de desactivar el sprint. La entrada tarda 0,08 s y la recuperación ocupa los
 últimos 0,12 s del gesto, con interpolación suave; no cambia el tiempo del golpe
 ni la velocidad normal de marcha/carrera. El arco conserva su comportamiento.
 El balanceo y giro base usan `GAIT_HIP_MOTION = 0.45`; después de resolver
-la postura completa, `GAIT_HIP_REDUCTION = 0.40` conserva el 40 % del
+la postura completa, `GAIT_HIP_REDUCTION = 0.30` conserva el 30 % del
 desplazamiento final de pelvis alrededor de su altura de apoyo habitual
 y de sus giros respecto a la inclinación
 media del torso. Se aplica también a la oscilación vertical y de inclinación
 de carrera, sin alterar el reloj de las piernas.
 Al caminar, la pelvis mantiene un giro leve opuesto al de la espalda visible;
 el giro de cadera se resuelve respecto al personaje para conservar el
-contragiro de 0,025 rad de autoría, amortiguado al 18 % (0,45 × 0,40).
+contragiro de 0,025 rad de autoría, amortiguado al 13,5 % (0,45 × 0,30).
 La carrera usa el doble de este giro y los balanceos laterales compartidos.
 El brazo libre opuesto a la pierna que recupera inicia un pequeño gesto del codo hacia atrás, con
 0,10 rad de amplitud; antebrazo y muñeca lo siguen 0,025 s después al ritmo
@@ -286,13 +294,23 @@ en cada uno; acumulados 0,667°/1,333°/2°). Cuello y cabeza acompañan los 2°
 acumulados sin añadir flexión propia; su inclinación total de carrera es 9,2°.
 La curva sigue el peso suavizado de carrera durante el arranque, la frenada
 y la transición con caminata. No añade curvatura a la caminata ni a la pelvis.
-El torso acompaña las diagonales con hasta 20° de giro adicional, repartidos
-acumulativamente al 25/60/100 % entre los tres huesos de la espalda.
+La pelvis acompaña las diagonales con `DIAGONAL_PELVIS_TURN = 33°` totales.
+La espalda conserva los 10° locales por hueso de su pose diagonal; sus
+acumulados respecto al personaje son 43°/53°/63° en `Spine`/`Spine1`/`Spine2`.
+El giro adicional de pelvis se hereda como una transformación común del
+tren superior alrededor de la articulación de cadera, conservando las poses
+locales de columna, cuello, cabeza, brazos, manos y dedos.
+Los anclajes nativos de muslo acompañan el giro de pelvis conservando los
+objetivos de apoyo y las longitudes de pierna. El giro cíclico de la zancada
+se suma a esta orientación direccional y conserva su reparto propio.
 Las diagonales de retirada invierten el giro respecto a las de avance del
 mismo lado, manteniendo la orientación frontal. El giro desaparece suavemente
 al acercarse a una dirección cardinal o al detenerse, con respuesta exponencial
 14/s, velocidad de giro máxima de 120°/s y el filtrado direccional de los pasos.
-La pelvis conserva su postura y la cabeza mantiene la orientación de mirada con compensación en el cuello.
+Cuello y cabeza mantienen su compensación relativa previa y acompañan el
+giro heredado de pelvis: en una diagonal completa, sin oscilación cíclica,
+sus giros acumulados son 50,75° y 28° respectivamente. La cabeza conserva
+su pequeño giro cíclico y no adopta toda la torsión de la espalda.
 La columna visible distribuye la rotación total entre `Spine`, `Spine1` y
 `Spine2` con pesos acumulados de 25 %, 60 % y 100 %. El giro cíclico del pecho
 ronda ±3° al caminar y ±7° al correr, siguiendo la pierna que recupera.

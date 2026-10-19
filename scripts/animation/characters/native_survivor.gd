@@ -28,6 +28,7 @@ var knee_shapes:Array[int]=[]
 var driven:Dictionary={}
 var spine:Array[int]=[]
 var spine_segments:PackedInt32Array=[]
+var upper_bones:PackedInt32Array=[]
 var finger_sides:PackedInt32Array=[]
 var finger_axes:Array[Vector3]=[]
 var finger_angles:Array[float]=[]
@@ -38,6 +39,7 @@ var neck:int
 var walk_posture:=0.0
 var run_posture:=0.0
 var torso_turn:=0.0
+var upper_transform:=Transform3D.IDENTITY
 var hand_error:=0.0
 var hand_errors:Array[float]=[0.0,0.0]
 func configure(actor:Node3D,model:Node3D) -> void:
@@ -78,7 +80,10 @@ func configure(actor:Node3D,model:Node3D) -> void:
   arms[side].axes=arm_axes;legs[side].axes=leg_axes
  for name in ["Spine","Spine1","Spine2"]:spine.append(binding.names["smartrig_"+name])
  grip.configure(self)
+ var lower_bones:Dictionary={}
  for i in rest.size():
+  if i==legs[0].ids[0] or i==legs[1].ids[0] or lower_bones.has(parents[i]):lower_bones[i]=true
+  else:upper_bones.append(i)
   spine_segments.append(spine.find(i))
   var label:String=skeleton.get_bone_name(i)
   var finger:bool="Hand" in label and ("Thumb" in label or "Index" in label or "Middle" in label or "Ring" in label or "Pinky" in label)
@@ -188,11 +193,23 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
    var run_share:float=Clips.Gait.RUN_SPINE_LEAN[segment] if segment>=0 else (1.0 if i in [neck,head] else Clips.Gait.RUN_SPINE_LEAN[2])
    var curve_share:float=Clips.Gait.RUN_BACK_CURVE_SHARES[segment] if segment>=0 else 1.0
    rotation=Basis(pelvis.basis.x.normalized(),lean*lean_share+running_lean*run_share+running_curve*curve_share)*rotation
-   var turn_share:float=SPINE_TWIST_SHARES[segment] if segment>=0 else (.65 if i==neck else (0.0 if i==head else 1.0))
+   var turn_share:float=Clips.Gait.DIAGONAL_SPINE_SHARES[segment] if segment>=0 else (.65 if i==neck else (0.0 if i==head else 1.0))
    rotation=Basis(pelvis.basis.y.normalized(),torso_turn*turn_share)*rotation
+  else:
+   rotation=Basis(pelvis.basis.y.normalized(),torso_turn*Clips.Gait.DIAGONAL_PELVIS_SHARE)*rotation
   var origin:Vector3=pelvis*rest[i].origin if parents[i]<0 else posed[parents[i]]*(inverse_rest[parents[i]]*rest[i].origin)
   posed[i]=Transform3D(rotation*rest[i].basis,origin)
  body=posed[spine[2]]*inverse_rest[spine[2]]
+ # Rotate the native hip sockets with the pelvis, retaining fixed foot goals.
+ var hip_bone:int=parents[spine[0]]
+ var leg_pelvis:Transform3D=posed[hip_bone]*inverse_rest[hip_bone]
+ var inherited_rotation:=Basis(pelvis.basis.y.normalized(),torso_turn*Clips.Gait.DIAGONAL_PELVIS_INHERIT_SHARE)
+ var pivot:Vector3=posed[hip_bone].origin
+ var inherited_turn:=Transform3D(inherited_rotation,pivot-inherited_rotation*pivot)
+ upper_transform=inherited_turn
+ # Solve legs once from the final hip sockets. Upper-body local poses stay
+ # unchanged and receive the same inherited transform after hands/fingers.
+ leg_pelvis=inherited_turn*leg_pelvis
  hand_error=0
  for side in 2:
   var chain:Dictionary=arms[side];var ids:Array[int]=chain.ids
@@ -240,7 +257,7 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   hand_errors[side]=solved.end.distance_to(goal)
   if not free:hand_error=maxf(hand_error,hand_errors[side])
   chain=legs[side];ids=chain.ids;source=10+side*3
-  var hip:Vector3=pelvis*rest[ids[0]].origin
+  var hip:Vector3=leg_pelvis*rest[ids[0]].origin
   var foot_rotation:Basis=control.posed[source+2].basis.orthonormalized()
   var foot_offset:Vector3=rest[ids[2]].origin-control.rest[source+2].origin
   var running:bool=clip in [&"run",&"start_run",&"stop_run",&"equip_run"]
@@ -248,15 +265,15 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   var grounded_walk:bool=walking and not running
   # Centre upright locomotion under the native hip. The posture weights
   # also fade this bind correction when stopping, crouching or jumping.
-  var aligned_foot:Vector3=control.posed[source+2].origin+pelvis.basis*Vector3(foot_offset.x,foot_offset.y,rest[ids[0]].origin.z-control.rest[source].origin.z)+Vector3.UP*.30
+  var aligned_foot:Vector3=control.posed[source+2].origin+leg_pelvis.basis*Vector3(foot_offset.x,foot_offset.y,rest[ids[0]].origin.z-control.rest[source].origin.z)+Vector3.UP*.30
   foot=foot.lerp(aligned_foot,clampf(walk_posture+run_posture,0,1))
   pole=control.posed[source+1].origin-control.posed[source].origin
   if Clips.upright_gait(pose):foot=Clips.grounded_reach(hip,foot,chain.a,chain.b,.12 if running or grounded_walk else .35)
   solved=Solver.joint(hip,foot,chain.a,chain.b,pole)
   var posture_weight:=clampf(walk_posture+run_posture,0,1)
   var knee_spread:float=lerpf(Clips.Gait.WALK_KNEE_SPREAD,Clips.Gait.RUN_KNEE_SPREAD,run_posture/maxf(walk_posture+run_posture,.000001))
-  solved=spread_knee(solved,pelvis,posture_weight,knee_spread)
-  if gait:untwisted_chain(ids,0,solved,pelvis.basis)
+  solved=spread_knee(solved,leg_pelvis,posture_weight,knee_spread)
+  if gait:untwisted_chain(ids,0,solved,leg_pelvis.basis)
   else:orient_chain(ids,0,solved,chain.axes)
   posed[ids[2]]=Transform3D(foot_rotation*rest[ids[2]].basis,solved.end)
   var upper:Vector3=solved.joint-solved.root;var lower_leg:Vector3=solved.end-solved.joint
@@ -285,6 +302,8 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
    var axis:Vector3=finger_axes[i]
    if axis.length_squared()>.00001:posed[i].basis=posed[i].basis*Basis(axis,grip*finger_angles[i])
  grip.apply(self,control,pose)
+ if not is_zero_approx(torso_turn):
+  for i in upper_bones:posed[i]=inherited_turn*posed[i]
  if ground_enabled and clip==&"death":
   var lift:float=ground.correction(posed)*smoothstep(0,.025,pose.phase)
   for i in posed.size():posed[i].origin.y+=lift

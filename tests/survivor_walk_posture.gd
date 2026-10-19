@@ -30,8 +30,8 @@ func run():
      var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(head_follow,.35) if i==3 else head_follow)
      var share:float=[.4,.6,.8,1.0,1.0][i]
      var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad(4)*share)*base
-     var diagonal:float=signf(direction.x*direction.z)*deg_to_rad(20) if absf(direction.x)>.1 and absf(direction.z)>.1 else 0.0
-     expected=Basis(pelvis.basis.y.normalized(),diagonal*([.25,.60,1.0,.65,0.0][i]))*expected
+     var diagonal:float=signf(direction.x*direction.z)*deg_to_rad(35) if absf(direction.x)>.1 and absf(direction.z)>.1 else 0.0
+     expected=Basis(pelvis.basis.y.normalized(),diagonal*([43.0/35.0,53.0/35.0,63.0/35.0,50.75/35.0,28.0/35.0][i]))*expected
      var actual:Basis=native.posed[bone].basis*native.rest[bone].basis.inverse()
      require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Walking distributes four degrees along the spine and neck; head follows the neck")
     var original:Array[float]=[];var widened:Array[float]=[]
@@ -40,7 +40,10 @@ func run():
      var hip:Vector3=native.posed[ids[0]].origin;var foot:Vector3=native.posed[ids[2]].origin
      var pole:Vector3=actor.rig.posed[11+side*3].origin-actor.rig.posed[10+side*3].origin
      var base:=Solver.joint(hip,foot,native.legs[side].a,native.legs[side].b,pole)
-     original.append(base.joint.dot(pelvis.basis.x));widened.append(native.posed[ids[1]].origin.dot(pelvis.basis.x))
+     var hip_bone:int=native.parents[native.spine[0]]
+     var leg_pelvis:Transform3D=native.posed[hip_bone]*native.inverse_rest[hip_bone]
+     var lateral:Vector3=leg_pelvis.basis.x.normalized()
+     original.append(base.joint.dot(lateral));widened.append(native.posed[ids[1]].origin.dot(lateral))
      require(absf(native.posed[ids[1]].origin.distance_to(hip)-native.legs[side].a)<.0001 and absf(native.posed[ids[1]].origin.distance_to(foot)-native.legs[side].b)<.0001,"Knee separation preserves thigh/shin lengths and the foot support")
     if absf((widened[1]-widened[0])/(original[1]-original[0])-1.1)<.002:exact+=1
     require(absf(widened[1]-widened[0])>=absf(original[1]-original[0])-.001,"Walking knees open outward rather than collapsing inward")
