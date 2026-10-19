@@ -30,6 +30,21 @@ al menos 400 × 400 metros. Los bordes se redondean a chunks y se conserva una
 corona de retención para evitar descargas y recargas al oscilar en un borde;
 por eso puede permanecer algo más de terreno que la distancia nominal.
 
+La cámara de juego y la de apuntado ajustan su plano lejano con esta opción.
+El alcance cubre la diagonal de la ventana, los chunks de retención, 32 m de
+elevación y la separación de la cámara respecto al personaje. Se calcula como
+`longitud(Vector3(radio + 96, 32, radio + 96)) + longitud(BOOM_OFFSET) + 1,45`.
+Así comparten cobertura terreno, árboles, rocas, plantas, césped, objetos,
+criaturas, zonas de historia y efectos, también cuando se crean durante la
+partida. Los visores de inventario conservan sus propias cámaras.
+
+El acabado de iluminación conserva el comienzo de bruma a 35 m y limita su
+final al menor valor entre 220 m y el radio elegido: 100 / 200 / 220 m para las
+tres opciones. El ajuste se aplica incluso en pausa. Al desactivar ese acabado
+se restauran los parámetros ambientales anteriores. La calidad cercana, los
+umbrales de LOD, las sombras locales y el radio propio de las ráfagas de viento
+mantienen sus valores; ampliar la ventana permite representar más distancia.
+
 ## Generación y descarga
 
 - `stream_layout.gd`: semilla independiente por coordenada de chunk. La zona

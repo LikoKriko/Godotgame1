@@ -233,7 +233,7 @@ func refresh_daylight() -> void:
  if world_ambient.background_color!=background:world_ambient.background_color=background
  if world_ambient.ambient_light_color!=ambient_color:world_ambient.ambient_light_color=ambient_color
  if not is_equal_approx(world_ambient.ambient_light_energy,ambient_energy):world_ambient.ambient_light_energy=ambient_energy
- lighting_finish.apply(world_ambient,finish)
+ lighting_finish.apply(world_ambient,finish,float(settings.values.world_generation))
 
 func respawn() -> void:
  player_health=20;level=1;nutrition.reset();parry.reset()
@@ -534,5 +534,7 @@ func can_cross_jump(point:Vector3,motion:Vector3,actor_rid:RID) -> bool:
 func generation_radius() -> int:
  return 14 if use_test_layout else int(settings.values.world_generation)
 func refresh_generation_distance() -> void:
+ if camera_rig!=null:camera_rig.set_world_radius(float(settings.values.world_generation))
+ refresh_daylight()
  if terrain!=null and is_instance_valid(player):terrain.update_observer(player.global_position,Vector2.ONE*generation_radius()*2)
  if environment_content!=null and environment_content.has_method("set_radius"):environment_content.set_radius(generation_radius())

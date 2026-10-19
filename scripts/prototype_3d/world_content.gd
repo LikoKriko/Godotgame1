@@ -44,10 +44,7 @@ func update_observer(point:Vector3,force:bool=false) -> void:
  var cell:=Layout.coordinate(Vector2(point.x,point.z))
  if not force and cell==last_cell:return
  last_cell=cell;wanted.clear()
- # Center on a cell, adding half its size to cover the full configured distance
- # even just before the player crosses the next cell boundary.
- var center:Vector2=Layout.rect(cell).get_center()
- var area:=Rect2(center-Vector2.ONE*(radius+Layout.CHUNK_SIZE*.5),Vector2.ONE*(radius*2+Layout.CHUNK_SIZE))
+ var area:=Layout.window(point,radius)
  story_zones.update_window(area)
  var first:=Layout.coordinate(area.position);var last:=Layout.coordinate(area.end-Vector2.ONE*.001)
  for y in range(first.y,last.y+1):
