@@ -51,6 +51,7 @@ var experience:=0
 var pending_consumption:Dictionary={}
 var terrain:Node3D
 var combat_effects:Node3D
+var wind:Node3D
 var use_test_layout:=false
 var world_bounds:=Rect2(-24,-24,48,48)
 var environment_content:Node3D
@@ -77,11 +78,13 @@ func _ready() -> void:
  player = preload("res://scripts/prototype_3d/player.gd").new(); add_child(player); player.configure(self); player.position = Vector3(0,0.2,2.0)
  if not initial_state.is_empty():player.position=Save.point(initial_state.player.position)
  camera_rig = preload("res://scripts/prototype_3d/shoulder_camera.gd").new(); add_child(camera_rig); camera_rig.configure(self,player); camera_rig.update(1.0)
+ wind=preload("res://scripts/weather/wind.gd").new();add_child(wind);wind.configure(self)
  build_ui()
  var enemy:=preload("res://scripts/prototype_3d/young_enemy.gd").new();add_child(enemy);enemy.position=Vector3(7,0.2,-4);enemy.configure(self)
  distance_optimization=preload("res://scripts/prototype_3d/distance_optimization.gd").new();add_child(distance_optimization);distance_optimization.configure(self)
  settings.changed.connect(refresh_generation_distance)
  settings.changed.connect(refresh_shadow_quality)
+ settings.changed.connect(refresh_wind)
  refresh_generation_distance()
  if not use_test_layout:call_deferred("generate_content")
 func build_environment() -> void:
@@ -201,6 +204,7 @@ func _physics_process(delta:float) -> void:
  if day_cycle.advance(delta)>0:nutrition.new_day()
  nutrition.advance(delta,day_cycle.day_seconds)
  refresh_daylight()
+func refresh_wind() -> void:wind.set_enabled(settings.values.wind_trial)
 func refresh_shadow_quality() -> void:
  if settings.values.shadow_trial:SHADOW_TRIAL.apply(main_sun)
  else:original_shadows.apply(main_sun)

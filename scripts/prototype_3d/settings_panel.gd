@@ -37,6 +37,8 @@ func configure(owner_game) -> void:
  moon.tooltip_text="Luz nocturna suave con sombras tenues. Desactiva para comparar con la noche anterior."
  var finish:=check(trials,"Acabado de iluminación (prueba)",game.settings.values.lighting_finish_trial,func(value):game.settings.values.lighting_finish_trial=value;save());finish.name="LightingFinishTrial"
  finish.tooltip_text="Luz natural equilibrada, cielo en degradado y atmósfera suave a distancia. Desactiva para comparar."
+ var wind:=check(trials,"Viento suave (prueba)",game.settings.values.wind_trial,func(value):game.settings.values.wind_trial=value;save());wind.name="WindTrial"
+ wind.tooltip_text="Ráfagas casi imperceptibles hacia el norte alrededor del personaje."
  row=HBoxContainer.new();trials.add_child(row);label=Label.new();label.text="Generación de mundo";row.add_child(label)
  var generation:=OptionButton.new();generation.name="WorldGeneration";var distances:=[100,200,400]
  for value in distances:generation.add_item("%d metros%s"%[value," (base)" if value==200 else ""])

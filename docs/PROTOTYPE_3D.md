@@ -202,3 +202,34 @@ el fondo en degradado añade su dibujo y la niebla se evalúa en los materiales.
 La dirección visual es un ambiente natural estilizado, profundo e inmersivo,
 con identidad de hora y lugar y coherencia con el contexto narrativo y la tensión.
 El perfil actual proporciona el acabado global dependiente de la hora.
+
+## Viento suave: prueba ajustable
+
+Configuración → Gráficos → Pruebas → **Viento suave (prueba)** está activado
+de inicio y se guarda como preferencia. Desactivarlo oculta inmediatamente
+las ráfagas y devuelve velocidad y respuesta nulas a sus consumidores.
+
+`data/weather/soft_north_wind.tres` y `scripts/weather/wind_profile.gd` definen
+un campo común hacia el norte: `Vector3(0, 0, -1)`, la parte superior del mapa.
+La velocidad oscila suavemente entre 0,55 y 0,75 m/s, con periodo de ráfaga de
+7 s y longitud de onda de 16 m. El tiempo se detiene con la pausa y durante
+la carga. El viento no modifica la física de movimiento del jugador.
+
+`scripts/weather/wind.gd` mantiene un único grupo de hasta 18 partículas CPU,
+actualizado internamente a 30 Hz, con vida de 3,5 s. Se emiten en coordenadas
+del mundo y avanzan hacia el norte, sin arrastrarse con la cámara. Las ráfagas
+son trazos suaves de 0,65 m × 0,012 m, con opacidad máxima 0,018 y entrada y
+salida gradual. El shader `assets/shaders/wind_streak.gdshader` las atenúa entre
+6 y 10 m del jugador y las hace invisibles fuera de ese radio: **20 m de diámetro**.
+Su brillo disminuye de noche; respetan la profundidad de la escena, no generan
+sombras ni usan colisiones, luces o texturas adicionales. Al teletransportarse
+el observador más de 10 m se reinicia el grupo en la nueva posición.
+
+El campo existe fuera del círculo visual. `game.wind.sample_velocity(posicion)`
+permite consultarlo y `game.wind.shader_inputs(posicion)` proporciona dirección,
+velocidad, intensidad relativa, tiempo y desplazamiento de referencia para
+pelo, hojas, césped y ropa. La amplitud máxima prevista en las puntas es de
+0,015 m: unos pocos píxeles con la cámara habitual. Esta entrega establece el
+viento y sus ráfagas; la deformación de esos modelos requiere preparar sus
+máscaras o ligaduras y conectar sus materiales. No se alteran sus mallas, UV,
+rigs ni animaciones originales.

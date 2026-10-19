@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/weather/wind_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+direction = Vector3(0, 0, -1)
+base_speed = 0.55
+gust_speed = 0.2
+gust_period = 7.0
+gust_wavelength = 16.0
+response_amplitude = 0.015
+visible_radius = 10.0
+particle_count = 18
+particle_lifetime = 3.5
+streak_length = 0.65
+streak_width = 0.012
+opacity = 0.018
+tint = Color(0.78, 0.82, 0.8, 1)
