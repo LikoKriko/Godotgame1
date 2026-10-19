@@ -23,8 +23,8 @@ func run() -> void:
  var rock=preload("res://scripts/prototype_3d/rock.gd").new();root.add_child(rock);rock.configure()
  var visual:MeshInstance3D=rock.visual.get_child(0)
  require(absf(visual.mesh.get_aabb().size.y*visual.scale.y*rock.scale.y-1)<.000001,"Native mesh and world instance are exactly one metre high")
- require((visual.mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX] as PackedInt32Array).size()/3==5163,"Runtime uses the optimized source")
- require(rock.get_child(0).shape.size.is_equal_approx(visual.mesh.get_aabb().size*Vector3(.86,.94,.86)),"Collision follows the optimized geometry at its only world size")
+ require((visual.mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX] as PackedInt32Array).size()/3==11931,"Runtime uses the supplied Mossy Stone Outcrop source")
+ require(rock.get_child(0).shape.size.is_equal_approx(visual.mesh.get_aabb().size*Vector3(.86,.94,.86)),"Collision follows the supplied geometry at its only world size")
  var hits:int=rock.health
  for i in hits:require(rock.hit(),"Mining still accepts valid hits")
  require(rock.health==0 and not rock.visible and rock.collision_layer==0,"Depleted rock stops rendering and blocking")

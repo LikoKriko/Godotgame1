@@ -163,8 +163,8 @@ originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
   Usar assets/models/meshy/{axe,pickaxe}/anchors.gd sin duplicar la escala.
 - Botella, arco y armadura: conservar sus fuentes Meshy, anclajes y materiales;
   la armadura acompaña torso y articulaciones y el arco deforma su cuerda nativa.
-- Roca1: Wild Wanderer 1016215008 de modelo_roca1_3d/piedra1_3d.zip,
-  5163 triángulos y altura única de 1 m, sin variantes de escala.
+- Roca1: Mossy Stone Outcrop 1019090447 de modelo_roca1_3d/roca1.zip,
+  11931 triángulos y altura única de 1 m, sin variantes de escala.
   Los afloramientos se minan con pico. Conservar IDs, posiciones, resistencia
   y rendimientos para cargar partidas existentes.
 

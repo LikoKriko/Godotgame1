@@ -16,7 +16,7 @@ func run() -> void:
  var hero=load("res://scripts/prototype_3d/survivor_model.gd").new();world.add_child(hero);hero.scale=Vector3.ONE*1.75/64;hero.position=Vector3(-2.4,0,0);hero.animate(&"idle",0,true)
  var plane:=MeshInstance3D.new();plane.mesh=PlaneMesh.new();plane.mesh.size=Vector2(10,8);plane.position.y=-.005;world.add_child(plane)
  camera.size=5.5;camera.position=Vector3(4,3.1,7);camera.look_at(Vector3(-.8,.65,0))
- var title:=Label.new();title.text="Roca1 optimizada · 1 metro de altura · 5.163 triángulos";title.position=Vector2(22,18);title.add_theme_font_size_override("font_size",25);root.add_child(title)
+ var title:=Label.new();title.text="Roca1 · 1 metro de altura · 11.931 triángulos";title.position=Vector2(22,18);title.add_theme_font_size_override("font_size",25);root.add_child(title)
  await frames()
  assert(root.get_texture().get_image().save_png("res://docs/previews/rock1_optimized.png")==OK)
  world.queue_free();await process_frame;quit()

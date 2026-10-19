@@ -1,23 +1,16 @@
 {
   "release": "modelo_roca1_3d",
-  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_roca1_3d/piedra1_3d.zip",
-  "zip_sha256": "0b9acc62bb6d2599a548c7ad2fb097ac18a00cdcfe513fcc367472b2a32d4ed4",
-  "source_fbx": "entregables/modelos/rock1/source/Meshy_AI_Wild_Wanderer_1016215008_texture.fbx",
-  "fbx_sha256": "bcf0eba0d0faa12a2ebb3d0f09649ddacf02eb5262d3371962a25b57f0d6de64",
-  "triangles": 5163,
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_roca1_3d/roca1.zip",
+  "zip_sha256": "88c469c91c26f9fb85a024ade44f0ad29ab8053ab3c3faedc2d5d92cb6664cb1",
+  "source_fbx": "entregables/modelos/rock1/source/Meshy_AI_Mossy_Stone_Outcrop_1019090447_texture.fbx",
+  "fbx_sha256": "98b23895355329d722bd5df51cfe940d0142e33da662ad17251d87707cbda231",
+  "triangles": 11931,
+  "vertices": 12918,
+  "height_metres": 1.0,
   "textures_sha256": {
-    "albedo": "d7fd49cf79b88f6af4076d3e2e0073d7c881e69b7bf625fb557e7cbb5d4b82ff",
-    "normal": "e23f2a6db65c10e1932db01997db0615fc94e96b276688d27995772a4fee029a",
-    "roughness": "d2f151f2af2874f02f46746ef6d49b2deb37829e5f5381d0f7c50216f82b003a",
-    "metallic": "991ea94f2bddbde71f8cbccff6074bbf6c03b53d87990cf10f03c9f62da497f0",
-    "metallic_roughness": "362548b9d07f01474702efa6bb4b398850f7a554ca791b2a49b0b03694a2635a"
-  },
-  "previous_source": {
-    "zip_sha256": "eb322dea39c26d02e55a3b8780708ee00e08d19b5e3e9bda937cfcc21bfc8b8e",
-    "fbx_sha256": "9c9e42765be9b0640dcc99a0fd74d1a3941fb02b452eb9ab72883e456612dc35",
-    "source_fbx": "entregables/modelos/rock1/source/Meshy_AI_Wild_Wanderer_1015205921_texture.fbx",
-    "triangles": 755810
-  },
-  "vertices": 2526,
-  "height_metres": 1.0
+    "albedo": "9b9a81d46c067dcbef950bcc8e8bcd71c73cc1831dbce268a3a06673cbf686c7",
+    "normal": "cfda545d0212fa54cc5128d8ac1e639bbea6977b8ca1943d40785261dfc1b82b",
+    "roughness": "f485e77664559190642c8562896f9ef30ca7af0bdc1fb79e4d303079b0b598b4",
+    "metallic": "e0cc7d6472dd104013837bb3eacf45a78b3fb8dcb7b3973e109ec5b55a379cea"
+  }
 }

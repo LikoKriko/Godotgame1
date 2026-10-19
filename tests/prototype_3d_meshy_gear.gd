@@ -64,6 +64,6 @@ func run():
  require(visual.mesh==load("res://assets/models/meshy/rock1/model.res"),"World outcrop uses the supplied rock geometry")
  require(absf(visual.mesh.get_aabb().size.y*visual.scale.y-rock.height)<.001,"Rock height preserves the resource's physical scale")
  var hitbox:CollisionShape3D=rock.get_child(0)
- require(hitbox.shape.size.x>rock.height*2 and hitbox.shape.size.z>rock.height*2,"Physical footprint follows the wide imported outcrop")
+ require(hitbox.shape.size.distance_to(Vector3(1.178981,.94,1.125192))<.001,"Physical footprint follows Mossy Stone Outcrop at one metre tall")
  rock.free();actor.free();other.free()
  print("%s: %d imported gear geometry, draw-string, independent armor and rock volume checks"%["PASS" if failures==0 else "FAIL",checks]);quit(1 if failures else 0)

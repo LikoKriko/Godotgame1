@@ -51,8 +51,8 @@ de 4,95 unidades de autoría. Usar los anclajes generados sin duplicar esa escal
 El arco conserva la cuerda original deformable. La armadura de hojas acompaña
 el torso y las articulaciones, con huecos para brazos y cuello.
 
-Roca1 usa `Meshy_AI_Wild_Wanderer_1016215008_texture.fbx`, de
-`modelo_roca1_3d/piedra1_3d.zip`: 5163 triángulos y **un metro de alto** en
+Roca1 usa `Meshy_AI_Mossy_Stone_Outcrop_1019090447_texture.fbx`, de
+`modelo_roca1_3d/roca1.zip`: 11931 triángulos y **un metro de alto** en
 todas las instancias del mundo. Se extrae con pico. No aplicar variantes de
 escala a esta familia; otras dimensiones requieren sus propios modelos.
 
