@@ -93,3 +93,12 @@ El superviviente muestra `meshy/survivor_axilla.res`, una derivación local de
 de pesos. El recurso fuente conserva su geometría y UV; el manifiesto distingue
 la superficie de ejecución. Al actualizar el modelo, regenerar el soporte y
 los apoyos según [ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md).
+
+## Árboles
+
+Twisted Oak 1019091539 de `modelo_arbol3d/arbol1.zip` sustituye los árboles
+adultos. La edición conserva las raíces y el tronco inferior originales y
+añade ramificación radial: 15 ramas principales, 73 secundarias y 182 ramitas;
+22976 triángulos, sin hojas. Una malla compartida de altura normalizada 1 m se
+escala a la altura existente de cada recurso. Ver [TREES_3D.md](TREES_3D.md)
+para materiales, reglas de curvas y regeneración.

@@ -163,6 +163,10 @@ originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
   Usar assets/models/meshy/{axe,pickaxe}/anchors.gd sin duplicar la escala.
 - Botella, arco y armadura: conservar sus fuentes Meshy, anclajes y materiales;
   la armadura acompaña torso y articulaciones y el arco deforma su cuerda nativa.
+- Árboles adultos: Twisted Oak 1019091539 de modelo_arbol3d/arbol1.zip,
+  edición radial de 22976 triángulos, 15 ramas principales, 73 secundarias y
+  182 ramitas, sin hojas. Mantener alturas, IDs, posiciones y estados de tala.
+  Perfil en data/world/trees/twisted_oak.json; regenerar según docs/TREES_3D.md.
 - Roca1: Mossy Stone Outcrop 1019090447 de modelo_roca1_3d/roca1.zip,
   11931 triángulos y altura única de 1 m, sin variantes de escala.
   Los afloramientos se minan con pico. Conservar IDs, posiciones, resistencia

@@ -1,5 +1,5 @@
 extends Node3D
-## F6: rotate around each reference silhouette and inspect roots/crown from above.
+## F6: orbit the edited oak and inspect roots/branches at the retained heights.
 var tree:Node3D
 var camera:=Camera3D.new()
 var orbit:=0.0
@@ -15,9 +15,9 @@ func _ready() -> void:
  var ui:=CanvasLayer.new();add_child(ui);var column:=VBoxContainer.new();column.position=Vector2(20,20);ui.add_child(column)
  var title:=Label.new();title.text="Árboles · botón derecho: girar · rueda: acercar/alejar";column.add_child(title)
  var designs:=OptionButton.new();column.add_child(designs)
- for i in 9:designs.add_item("Diseño %d"%(i+1))
+ for i in 9:designs.add_item("Altura %.4g m"%preload("res://scripts/prototype_3d/tree_geometry.gd").HEIGHTS[i])
  var variations:=OptionButton.new();column.add_child(variations)
- for i in 4:variations.add_item("Variante %d"%(i+1))
+ for i in 4:variations.add_item("Orientación %d°"%(i*90))
  designs.item_selected.connect(func(_index):show_design(designs.selected,variations.selected))
  variations.item_selected.connect(func(_index):show_design(designs.selected,variations.selected))
  show_design(0,0)

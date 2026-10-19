@@ -1,0 +1,27 @@
+{
+  "authoring": "tools/trees/build_twisted_oak.py",
+  "derived_textures_sha256": {
+    "bark_albedo": "2009beb16cc2b9145225101387e4844a312809c4876cbdd3352fa31ec0502e42",
+    "bark_metallic": "f4bbdb2e08e063382351b67a3f6ad27d81c7c292e092b1a97211528a1272d4a9",
+    "bark_normal": "b0f27675df367d4b4bd64c3bfc5e75242af348909dee795db24b6b614501fdcb",
+    "bark_roughness": "7acc57b07d4ce3790cb343e9d686efc69646722988226fe520077df4f6e94251"
+  },
+  "fbx_sha256": "ce30cb8141f38b8ddd55b6b8a10b378c8cc97f68116bec622f6b433f8f9d3f61",
+  "foliage": false,
+  "profile": "data/world/trees/twisted_oak.json",
+  "release": "modelo_arbol3d",
+  "runtime_height": 1.0,
+  "runtime_triangles": 22976,
+  "runtime_vertices": 17728,
+  "source_fbx": "entregables/modelos/twisted_oak/source/Meshy_AI_Twisted_Oak_1019091539_texture.fbx",
+  "source_triangles": 14742.0,
+  "source_vertices": 7363.0,
+  "textures_sha256": {
+    "albedo": "7fe765e03bc7cc97e5834d2a7011d4057287513a406c7b805368d82d01fb2bda",
+    "metallic": "d41bd51a7b76a386538feea6b7c51a1f80544e679609ad7f114a202ab97cfd93",
+    "normal": "372c5f207a2836a8d73f79d38ccb51684503303414396b5bd2beb64e37e7d3ed",
+    "roughness": "86deb008d1f2ea289ed4bc94b0791152653e7d5353adf2944b4157b31f4f47f9"
+  },
+  "url": "https://github.com/LikoKriko/Godotgame1/releases/download/modelo_arbol3d/arbol1.zip",
+  "zip_sha256": "9600e0613fc4f9cba81636af08d80d0353272e4e6178d8beb3c1d61d1180ad3a"
+}

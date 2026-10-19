@@ -6,6 +6,7 @@ Los perfiles actuales conservan el terreno, las especies y los rigs originales.
 | Área | Definiciones editables | Herramientas compartidas |
 | --- | --- | --- |
 | Biomas | `data/world/biomes/`, `data/world/terrain/` | Densidad, población, texturas, muestreo determinista y copias para workers |
+| Árboles Twisted Oak | `data/world/trees/twisted_oak.json` | Edición radial offline, corteza transferida, malla y colisiones compartidas; ver [TREES_3D.md](TREES_3D.md) |
 | Modelado de mundo | `data/world/recipes/` | Caminos, rampas, montículos, baches, apoyos y escenas existentes |
 | Personajes | `data/animation/characters/` | Anatomía humanoide, adaptación de proporciones y contactos |
 | Enemigos | `data/animation/enemies/` | Anatomía por especie, cadenas de extremidades y fases de apoyo |
