@@ -45,6 +45,9 @@ var slide_forward_axis:=1
 var slide_facing:=0.0
 var punch_side:=1
 var next_punch_side:=1
+var walking_sound=preload("res://scripts/audio/player_walk.gd").new()
+func _init() -> void:
+ walking_sound.name="WalkingSound";add_child(walking_sound)
 static func attack_speed_scale(elapsed:float,attack_family:StringName) -> float:
  if elapsed<0 or attack_family==&"bow":return 1.0
  var seconds:=Clips.duration(&"action",attack_family)
@@ -53,6 +56,7 @@ static func attack_speed_scale(elapsed:float,attack_family:StringName) -> float:
  return lerpf(1.0,.5,effort)
 
 func reset_motion_state() -> void:
+ walking_sound.set_walking(false)
  if game.camera_rig!=null:game.camera_rig.reset_free_look()
  locomotion.reset();velocity=Vector3.ZERO;visual_motion=0
  movement_response=preload("res://scripts/prototype_3d/movement_response.gd").new()
@@ -191,13 +195,16 @@ func slide_clip() -> StringName:
   return &"slide_forward_left" if slide_side<0 else &"slide_forward_right"
  return &"slide_back_left" if slide_side<0 else (&"slide_back_right" if slide_side>0 else &"slide_back")
 func _physics_process(delta: float) -> void:
- if game == null or game.paused: return
+ if game == null or game.paused:
+  walking_sound.set_walking(false);return
  if game.player_health<=0:
+  walking_sound.set_walking(false)
   death_elapsed=maxf(0,death_elapsed)+delta;model.family_override=&"";model.aim_contact=Vector3.INF
   model.animate(&"death",minf(1,death_elapsed/3),false,delta);game.camera_rig.update(delta)
   if death_elapsed>=3 and not game.paused:game.toggle_pause()
   return
  if game.workbenches!=null and game.workbenches.placing():
+  walking_sound.set_walking(false)
   velocity=Vector3.ZERO;model.family_override=&"carried";model.animate(&"idle",0,false,delta);game.camera_rig.update(delta);return
  parry_cooldown=maxf(0,parry_cooldown-delta)
  equip_recovery=maxf(0,equip_recovery-delta)
@@ -252,6 +259,7 @@ func _physics_process(delta: float) -> void:
  var state: StringName = &"idle"; var progress := 0.0
  var travelled:=Vector2(global_position.x-before_move.x,global_position.z-before_move.z).length()
  var actual_speed:=travelled/maxf(delta,.00001)
+ walking_sound.set_walking(walking_sound.is_walking(actual_speed,is_on_floor(),locomotion.airborne() or locomotion.sliding(),movement_response.sprint_weight))
  var local_travel:Vector3=model.global_basis.inverse()*(global_position-before_move)
  local_travel.y=0
  local_travel=local_travel.normalized()

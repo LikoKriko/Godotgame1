@@ -103,6 +103,13 @@ Puede caminar durante esas acciones.
   mundo a 100, 200 o 400 metros; 200 es el valor predeterminado.
 - Audio: volumen general, música, efectos y silencio.
 
+La caminata del jugador reproduce en bucle `caminata_personaje1.mp3`, con
+entrada y salida suaves de volumen de 0,2 s mediante el canal `Effects`.
+Se activa por desplazamiento real en el suelo, también al caminar agachado;
+se desvanece al detenerse, correr, saltar, deslizarse, pausar o morir.
+La fuente se conserva en `entregables/personajes/` y su copia exportable
+está en `assets/audio/characters/`.
+
 El grupo **Pruebas** de Gráficos reúne sombras mejoradas, luz lunar y generación de mundo,
 en vertical y con mayor separación que los ajustes normales.
 
