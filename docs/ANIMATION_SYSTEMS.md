@@ -175,7 +175,7 @@ La cadencia trasera es el 80 % de su equivalente frontal, tanto andando como
 corriendo. La zancada trasera se multiplica por `0.30 / 0.80 = 0.375`, junto
 con su elevación y giro de tobillo; la duración relativa del apoyo se mantiene.
 El ciclo completo de marcha trasera recorre 0,721875 m y dura 1,203125 s a
-0,6 m/s. La carrera trasera recorre aproximadamente 0,7271 m por ciclo. El reloj
+0,6 m/s. La carrera trasera recorre aproximadamente 0,7998 m por ciclo. El reloj
 sigue la distancia real con esta zancada reducida, sin aplicar otra reducción
 a la amplitud por la menor velocidad. El factor entra suavemente al pasar del
 desplazamiento lateral al trasero.
@@ -189,11 +189,21 @@ La marcha agachada conserva su curva propia `crouch_walk`, su distancia base
 El reloj mezcla ambas distancias durante la transición de postura y conserva
 `GAIT_PLAYBACK_RATE = 0.90`. La escala de autoría es
 `GAIT_STRIDE_LENGTH = 1.10`. La carrera usa los parámetros compartidos de
-`gait_parameters.gd`: semizancada de apoyo de 7,8 unidades, contacto frontal
+`gait_parameters.gd`: semizancada de apoyo de 8,58 unidades, contacto frontal
 del 22 % del ciclo y elevación máxima de 5,6 unidades. El ciclo recorre
-`2 * 7.8 * (1.75 / 64) / 0.22`, aproximadamente 1,939 m. Su reloj sigue la
+`2 * 8.58 * (1.75 / 64) / 0.22`, aproximadamente 2,133 m. Su reloj sigue la
 distancia real con `RUN_PLAYBACK_RATE = 1.0`; la transición mezcla el reloj
-de marcha y el de carrera. A 4,48 m/s son unos 4,62 pasos por segundo.
+de marcha y el de carrera. A 4,48 m/s dura aproximadamente 0,4761 s, unos
+4,20 pasos por segundo. El recorrido y la duración del ciclo se calculan
+desde la misma semizancada: la frecuencia de las piernas es proporcional
+al inverso de la distancia por ciclo y la velocidad física se mantiene.
+Torso, brazos, hombros, cabeza y cadera comparten esa fase de recorrido,
+incluidos arranque, desaceleración y mezcla entre marcha y carrera. El ritmo
+más lento conserva los giros y la oscilación contenida de pelvis existentes;
+no añade rebote ni amplía la cadera para compensar el recorrido de los pies.
+Los brazos conservan el último peso explícito de sprint al entrar en una pose
+de marcha o reposo que no lo incluya; la mezcla de salida se desvanece desde
+ese valor, sin recuperar de golpe una postura de carrera al terminar de frenar.
 La carrera adapta la duración del contacto al recorrido lateral, conservando
 la velocidad relativa del apoyo. La recuperación horizontal usa aceleración
 continua, con liberación del pie, avance y entrada al siguiente apoyo. El

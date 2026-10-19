@@ -21,6 +21,7 @@ var cloth_velocity: Array[float] = [0.0,0.0]
 var previous_leg_angle: Array[float] = [0.0,0.0]
 var run_arm_blend:Array[float]=[0.0,0.0]
 var relaxed_arm_blend:Array[float]=[0.0,0.0]
+var last_run_weight:=0.0
 
 func initialize_imported(actor:Node3D,mesh_instance:MeshInstance3D) -> void:
  setup(actor,mesh_instance)
@@ -93,6 +94,11 @@ func hinge_collar(index:int,chain:Dictionary) -> void:
 
 func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
  var torso: Transform3D = pose.body
+ # Idle/walk do not carry a sprint weight. Retain the last explicit weight
+ # while the arm blend fades instead of restoring a full running pose.
+ if pose.has("run_weight"):last_run_weight=clampf(pose.run_weight,0,1)
+ elif pose.get("clip_state",&"") in [&"run",&"start_run",&"equip_run"]:last_run_weight=1.0
+ elif delta<=0:last_run_weight=0.0
  for i in 3: posed[i] = Transform3D(torso.basis,torso*rest[i].origin)
  var pelvis:Transform3D=pose.get("pelvis",torso)
  posed[0]=Transform3D(pelvis.basis,pelvis*rest[0].origin)
@@ -146,7 +152,7 @@ func apply(pose: Dictionary,hands: Array[Vector3],delta: float = 0.0) -> void:
   elif delta<=0:run_arm_blend[side]=1.0 if running else 0.0
   else:run_arm_blend[side]=move_toward(run_arm_blend[side],1.0 if running else 0.0,delta/(0.14 if running else 0.18))
   if run_arm_blend[side]>0:
-   var amount:float=run_arm_blend[side]*pose.get("run_weight",1.0)
+   var amount:float=run_arm_blend[side]*last_run_weight
    var upper:Vector3=(arm.joint-arm.root).normalized().lerp((running_pose.joint-running_pose.root).normalized(),amount).normalized()
    var forearm:Vector3=(arm.end-arm.joint).normalized().lerp((running_pose.end-running_pose.joint).normalized(),amount).normalized()
    arm.joint=arm.root+upper*Pose.UPPER_ARM;arm.end=arm.joint+forearm*Pose.FOREARM
