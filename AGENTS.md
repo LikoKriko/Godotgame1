@@ -5,6 +5,11 @@ El runtime 2D ha sido retirado; conservar los sprites y sistemas compartidos
 que se detallan en `docs/SHARED_RESOURCES.md`. Actualizar las ramas de departamento
 antes de trabajar para evitar restaurar archivos obsoletos.
 
+## Acceso al entorno y Git
+
+Si Git falla al conectar con el proxy desde la ejecución aislada, reintentar con ejecución autorizada (`sandbox_permissions: "require_escalated"`), cuando esté disponible y permitida por el entorno.
+Mantener el proxy configurado y la verificación TLS activa; ese error de conectividad no implica falta de autorización de GitHub.
+
 ## Autorización de publicación de animación
 
 El usuario autoriza al departamento de animación a crear commits y hacer push
