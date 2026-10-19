@@ -6,10 +6,13 @@ const BACKWARD_MULTIPLIER:=Gait.BACKWARD_SPEED
 const GAIT_MULTIPLIER:=1.6
 const START_SECONDS:=.16
 const MAXIMUM_SECONDS:=1.0
-const BRAKE_SECONDS:=.24
-const REVERSE_BRAKE_SECONDS:=.8
+const WALK_START_SECONDS:=.24
+const BRAKE_SECONDS:=.12
+const REVERSE_BRAKE_SECONDS:=.4
+const CORNER_BRAKE_SECONDS:=.2
 const REVERSE_HOLD_SECONDS:=.1
 const REVERSE_DOT:=-.999998477 # 0.1-degree tolerance for an opposite direction.
+const CORNER_DOT_TOLERANCE:=.001745328 # Same tolerance around ninety degrees.
 const STEER_RESPONSE:=15.0
 const STEER_SPEED:=deg_to_rad(540.0)
 var stage:StringName=&"idle"
@@ -26,7 +29,13 @@ var requested:=false
 var reverse_scale:=1.0
 var reference_scale:=1.0
 var pending_direction:=Vector2.ZERO
-const VALUES:=["elapsed","speed","sprint_weight","entry_speed","entry_weight","destination","maximum_from","maximum_weight","reverse_scale","reference_scale"]
+var turn_brake_seconds:=REVERSE_BRAKE_SECONDS
+var turn_hold_seconds:=REVERSE_HOLD_SECONDS
+const VALUES:=["elapsed","speed","sprint_weight","entry_speed","entry_weight","destination","maximum_from","maximum_weight","reverse_scale","reference_scale","turn_brake_seconds","turn_hold_seconds"]
+static func legacy_default(key:String):
+ if key=="turn_brake_seconds":return REVERSE_BRAKE_SECONDS
+ if key=="turn_hold_seconds":return REVERSE_HOLD_SECONDS
+ return 1.0 if key in ["reverse_scale","reference_scale"] else null
 func snapshot() -> Dictionary:
  var data:Dictionary={"stage":String(stage),"requested":requested,"direction":[direction.x,direction.y],"pending_direction":[pending_direction.x,pending_direction.y]}
  for key in VALUES:data[key]=get(key)
@@ -34,7 +43,7 @@ func snapshot() -> Dictionary:
 static func valid(data) -> bool:
  if not data is Dictionary or data.get("stage") not in ["idle","start","maximum","brake","walk_start","reverse_brake","reverse_hold"] or not data.get("requested") is bool:return false
  for key in VALUES:
-  var value=data.get(key,1.0 if key in ["reverse_scale","reference_scale"] else null)
+  var value=data.get(key,legacy_default(key))
   if not (value is float or value is int) or not is_finite(value) or value<0 or value>SPRINT_MULTIPLIER+.000001:return false
  for key in ["direction","pending_direction"]:
   var vector=data.get(key,[0.0,0.0] if key=="pending_direction" else null)
@@ -42,10 +51,11 @@ static func valid(data) -> bool:
   for value in vector:
    if not (value is float or value is int) or not is_finite(value) or absf(value)>1.000001:return false
  if data.get("reverse_scale",1.0)<1 or data.get("reference_scale",1.0)>1:return false
+ if data.get("turn_brake_seconds",REVERSE_BRAKE_SECONDS)<=0:return false
  return true
 func restore(data:Dictionary) -> void:
  stage=StringName(data.stage);requested=data.requested;direction=Vector2(data.direction[0],data.direction[1])
- for key in VALUES:set(key,float(data.get(key,1.0)))
+ for key in VALUES:set(key,float(data.get(key,legacy_default(key))))
  var pending:Array=data.get("pending_direction",[0.0,0.0])
  pending_direction=Vector2(pending[0],pending[1])
 static func direction_multiplier(camera_input:Vector2) -> float:
@@ -63,7 +73,7 @@ func steer(travel:Vector2,delta:float) -> void:
 func reverse_motion(delta:float,sprint:bool,direction_scale:float) -> float:
  var remaining:=maxf(0,delta)
  if stage==&"reverse_brake":
-  var duration:=REVERSE_BRAKE_SECONDS*reverse_scale
+  var duration:=turn_brake_seconds*reverse_scale
   var used:=minf(remaining,maxf(0,duration-elapsed))
   elapsed+=used;remaining-=used
   var t:=smoothstep(0,duration,elapsed)
@@ -71,7 +81,7 @@ func reverse_motion(delta:float,sprint:bool,direction_scale:float) -> float:
   if elapsed>=duration-.00000001:
    stage=&"reverse_hold";elapsed=0;speed=0;sprint_weight=0;direction=Vector2.ZERO
  if stage==&"reverse_hold":
-  var duration:=REVERSE_HOLD_SECONDS*reverse_scale
+  var duration:=turn_hold_seconds*reverse_scale
   var used:=minf(remaining,maxf(0,duration-elapsed))
   elapsed+=used;remaining-=used
   speed=0;sprint_weight=0;direction=Vector2.ZERO
@@ -88,9 +98,14 @@ func advance(travel:Vector2,sprint:bool,crouch:float,delta:float,direction_scale
  var remaining:=maxf(0,delta)
  if reversing() and not allow_reversal:
   stage=&"brake";elapsed=0;entry_speed=speed;entry_weight=sprint_weight;requested=false
- if not reversing() and allow_reversal and moving and speed>.03 and not direction.is_zero_approx() and direction.dot(travel.normalized())<=REVERSE_DOT:
-  reverse_scale=lerpf(1,SPRINT_MULTIPLIER,clampf(sprint_weight,0,1))
-  stage=&"reverse_brake";elapsed=0;entry_speed=speed;entry_weight=sprint_weight
+ if not reversing() and allow_reversal and moving and speed>.03 and not direction.is_zero_approx():
+  var alignment:=direction.dot(travel.normalized())
+  var opposite:=alignment<=REVERSE_DOT
+  if opposite or absf(alignment)<=CORNER_DOT_TOLERANCE:
+   turn_brake_seconds=REVERSE_BRAKE_SECONDS if opposite else CORNER_BRAKE_SECONDS
+   turn_hold_seconds=REVERSE_HOLD_SECONDS if opposite else 0.0
+   reverse_scale=lerpf(1,SPRINT_MULTIPLIER,clampf(sprint_weight,0,1))
+   stage=&"reverse_brake";elapsed=0;entry_speed=speed;entry_weight=sprint_weight
  if reversing():
   pending_direction=travel.normalized() if moving else Vector2.ZERO
   requested=sprint;destination=target
@@ -104,7 +119,8 @@ func advance(travel:Vector2,sprint:bool,crouch:float,delta:float,direction_scale
   # to S (or back again); do not jump straight to the other speed limit.
   stage=&"maximum";elapsed=0;maximum_from=speed;maximum_weight=sprint_weight
  elif not sprint and (requested or not is_equal_approx(target,destination)):
-  stage=&"brake";elapsed=0;entry_speed=speed;entry_weight=sprint_weight
+  stage=&"walk_start" if target>speed and sprint_weight==0 else &"brake"
+  elapsed=0;entry_speed=speed;entry_weight=sprint_weight
  destination=target;requested=sprint
  if stage==&"start":
   var used:=minf(remaining,START_SECONDS-elapsed)
@@ -117,9 +133,9 @@ func advance(travel:Vector2,sprint:bool,crouch:float,delta:float,direction_scale
   var t:=smoothstep(0,MAXIMUM_SECONDS,elapsed)
   sprint_weight=lerpf(maximum_weight,1,t);speed=lerpf(maximum_from,SPRINT_MULTIPLIER*direction_scale,t)
  elif stage==&"walk_start":
-  elapsed=minf(BRAKE_SECONDS,elapsed+remaining)
-  speed=lerpf(entry_speed,destination,smoothstep(0,BRAKE_SECONDS,elapsed));sprint_weight=0
-  if elapsed>=BRAKE_SECONDS:stage=&"idle"
+  elapsed=minf(WALK_START_SECONDS,elapsed+remaining)
+  speed=lerpf(entry_speed,destination,smoothstep(0,WALK_START_SECONDS,elapsed));sprint_weight=0
+  if elapsed>=WALK_START_SECONDS:stage=&"idle"
  elif stage==&"brake":
   elapsed=minf(BRAKE_SECONDS,elapsed+remaining)
   var t:=smoothstep(0,BRAKE_SECONDS,elapsed)
@@ -133,6 +149,7 @@ func advance(travel:Vector2,sprint:bool,crouch:float,delta:float,direction_scale
  return direction*speed
 func phase() -> float:
  var seconds:=START_SECONDS if stage==&"start" else (MAXIMUM_SECONDS if stage==&"maximum" else BRAKE_SECONDS)
- if stage==&"reverse_brake":seconds=REVERSE_BRAKE_SECONDS*reverse_scale
- elif stage==&"reverse_hold":seconds=REVERSE_HOLD_SECONDS*reverse_scale
- return clampf(elapsed/seconds,0,1)
+ if stage==&"walk_start":seconds=WALK_START_SECONDS
+ elif stage==&"reverse_brake":seconds=turn_brake_seconds*reverse_scale
+ elif stage==&"reverse_hold":seconds=turn_hold_seconds*reverse_scale
+ return clampf(elapsed/maxf(seconds,.00000001),0,1)

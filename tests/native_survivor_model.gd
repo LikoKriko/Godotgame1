@@ -155,7 +155,7 @@ func run():
     for side in 2:
      var ids:Array=native.legs[side].ids
      var thigh:Vector3=native.posed[ids[1]].origin-native.posed[ids[0]].origin
-     var limit:float=12*clips.Gait.WALK_KNEE_SPREAD
+     var limit:float=12*(clips.Gait.RUN_KNEE_SPREAD if state==&"run" else clips.Gait.WALK_KNEE_SPREAD)
      require(absf(atan2(thigh.x,-thigh.y))<deg_to_rad(limit),"Lateral shuffle bounds thigh abduction instead of stretching the hip")
    require(widest-narrowest<2.5,"Rendered lateral hip/short contour avoids the previous broad expansion")
  actor.animate(&"walk",.25,false,0,.25,Vector3.BACK)

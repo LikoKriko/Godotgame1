@@ -25,7 +25,7 @@ func run():
      response.advance(reverse,sprint,0,0,reverse_scale)
      require(response.stage==&'reverse_brake' and response.speed==old_speed,'Opposite input begins braking without changing speed or direction on its first sample')
      var factor:float=Response.SPRINT_MULTIPLIER if sprint else 1.0
-     var duration:=.8*factor
+     var duration:=.4*factor
      require(absf(response.reverse_scale-factor)<.00001,'Running reversal duration scales by the same 2.24 speed multiplier')
      var elapsed:=0.0;var previous:float=response.speed
      while elapsed<duration-.00000001:
@@ -56,13 +56,13 @@ func run():
      require(absf(response.speed-reverse_scale*(Response.SPRINT_MULTIPLIER if sprint else 1))<.00001,'The restarted walk or sprint eventually reaches its proper directional limit')
   var response:=Response.new()
   for frame in fps:response.advance(Vector2.UP,false,0,dt)
-  response.advance(Vector2.RIGHT,false,0,dt)
-  require(not response.reversing() and response.direction.dot(Vector2.UP)>0 and response.direction.dot(Vector2.RIGHT)>0,'A ninety-degree turn steers smoothly without requesting a reversal stop')
+  response.advance(Vector2(1,-1).normalized(),false,0,dt)
+  require(not response.reversing() and response.direction.dot(Vector2.UP)>0 and response.direction.dot(Vector2.RIGHT)>0,'A forty-five-degree turn retains ordinary smooth steering')
   var saved:=response.snapshot();var restored:=Response.new();restored.restore(saved)
   for frame in fps:
-   response.advance(Vector2.RIGHT,false,0,dt);restored.advance(Vector2.RIGHT,false,0,dt)
+   response.advance(Vector2(1,-1).normalized(),false,0,dt);restored.advance(Vector2(1,-1).normalized(),false,0,dt)
    require(response.direction.distance_to(restored.direction)<.00001,'Saving during ordinary steering preserves the physical trajectory')
-  require(response.direction.dot(Vector2.RIGHT)>.9999,'Ordinary steering converges to the selected direction')
+  require(response.direction.dot(Vector2(1,-1).normalized())>.9999,'Ordinary steering converges to the selected direction')
  for sprint in [false,true]:
   var braking:=Response.new();braking.advance(Vector2.UP,sprint,0,2)
   braking.advance(Vector2.DOWN,sprint,0,.2,.3)
@@ -85,8 +85,40 @@ func run():
  var near_turn:=Response.new();near_turn.advance(Vector2.UP,false,0,1)
  near_turn.advance(Vector2.UP.rotated(deg_to_rad(179)),false,0,.01)
  require(not near_turn.reversing(),'A turn of 179 degrees remains ordinary steering rather than the special 180-degree stop')
- var legacy:=Response.new().snapshot();legacy.erase('pending_direction');legacy.erase('reverse_scale');legacy.erase('reference_scale')
+ var legacy:=Response.new().snapshot();legacy.erase('pending_direction');legacy.erase('reverse_scale');legacy.erase('reference_scale');legacy.erase('turn_brake_seconds');legacy.erase('turn_hold_seconds')
  require(Response.valid(legacy),'Older save envelopes remain compatible')
+ for fps in [30,60,120]:
+  for sprint in [false,true]:
+   for index in 8:
+    for sign_side in [-1,1]:
+     var outgoing:=Vector2.UP.rotated(index*PI/4)
+     var incoming:=outgoing.rotated(sign_side*PI/2)
+     var response:=Response.new();response.advance(outgoing,sprint,0,2)
+     var previous:float=response.speed
+     response.advance(incoming,sprint,0,0)
+     var duration:float=.2*(2.24 if sprint else 1.0)
+     require(response.reversing() and response.turn_hold_seconds==0,'Ninety-degree turns brake without adding a stationary hold')
+     var elapsed:=0.0
+     while elapsed<duration-.00000001:
+      var dt:=minf(1.0/fps,duration-elapsed)
+      response.advance(incoming,sprint,0,dt);elapsed+=dt
+      require(response.speed<=previous+.00001,'Corner braking reduces speed monotonically')
+      if response.speed>.00001:require(response.direction.dot(outgoing)>.9999,'A corner retains its outgoing trajectory until fully braked')
+      previous=response.speed
+     require(response.speed==0 and not response.reversing(),'Corner braking ends after a quarter of the original reversal duration')
+     response.advance(incoming,sprint,0,1.0/fps)
+     require(response.speed>0 and response.direction.dot(incoming)>.9999,'A corner starts along the new direction immediately after braking')
+ var corner:=Response.new();corner.advance(Vector2.UP,true,0,2)
+ corner.advance(Vector2.RIGHT,true,0,.1)
+ var restored_corner:=Response.new();restored_corner.restore(corner.snapshot())
+ require(Response.valid(corner.snapshot()),'A saved corner retains its distinct braking duration and zero hold')
+ corner.advance(Vector2.RIGHT,true,0,.5);restored_corner.advance(Vector2.RIGHT,true,0,.5)
+ require(corner.snapshot()==restored_corner.snapshot(),'Loading during a corner preserves its speed, timing and direction')
+ var interrupted:=Response.new();interrupted.advance(Vector2.UP,false,0,1);interrupted.advance(Vector2.RIGHT,false,0,.1)
+ interrupted.advance(Vector2.ZERO,false,0,1)
+ require(interrupted.speed==0 and interrupted.stage==&'idle','Releasing input during a corner does not restart movement')
+ var normal:=Response.new();normal.advance(Vector2.UP,true,0,2);normal.advance(Vector2.ZERO,false,0,.12)
+ require(normal.speed==0 and normal.sprint_weight==0,'Normal stopping takes half of the previous 0.24 seconds')
  await live_run()
  print('%s: %d reversal timing, steering, sprint ratio, interrupt and save checks'%['PASS' if failures==0 else 'FAIL',checks]);quit(1 if failures else 0)
 
@@ -106,10 +138,10 @@ func live_run():
  var outgoing:=Vector2(player.velocity.x,player.velocity.z).normalized()
  require(player.movement_response.speed>.99,'Live walking reaches full speed before requesting the opposite direction')
  key(KEY_W,false);key(KEY_S,true)
- for frame in 48:
+ for frame in 24:
   player._physics_process(1.0/60);await physics_frame
   require(Vector2(player.velocity.x,player.velocity.z).dot(outgoing)>=-.0001,'Live reversal never moves backward during its outgoing braking phase')
- require(player.movement_response.stage==&'reverse_hold','Live walking enters its hold after exactly 0.8 seconds')
+ require(player.movement_response.stage==&'reverse_hold','Live walking enters its hold after exactly 0.4 seconds')
  var position:Vector3=player.position
  game.environment_content=load('res://scripts/prototype_3d/world_content.gd').new();game.add_child(game.environment_content)
  var Save=load('res://scripts/prototype_3d/save_game.gd')
@@ -129,4 +161,16 @@ func live_run():
  player._physics_process(1.0/60);await physics_frame
  require(player.movement_response.stage==&'reverse_brake' and player.model.last_pose.clip_state==&'crouch_walk','Crouched reversal retains its own walking pose during braking')
  require((player.model.last_pose.pelvis*Vector3(0,31,0)).y<28,'Reversal braking never raises a crouched player into a standing pose')
- key(KEY_W,false);key(KEY_CTRL,false);game.free()
+ key(KEY_W,false);key(KEY_CTRL,false)
+ for frame in 60:
+  player._physics_process(1.0/60);await physics_frame
+ key(KEY_W,true)
+ for frame in 30:
+  player._physics_process(1.0/60);await physics_frame
+ key(KEY_W,false);key(KEY_D,true)
+ for frame in 12:
+  player._physics_process(1.0/60);await physics_frame
+ require(player.movement_response.stage==&'walk_start' and player.movement_response.speed==0,'The live player completes the ninety-degree brake in exactly 0.2 seconds without a hold')
+ player._physics_process(1.0/60);await physics_frame
+ require(player.movement_response.speed>0,'The live corner immediately enters the preserved walking startup')
+ key(KEY_D,false);game.free()

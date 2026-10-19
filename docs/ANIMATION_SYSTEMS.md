@@ -137,15 +137,21 @@ El reloj base usa el desplazamiento horizontal real en coordenadas del modelo.
 Los cambios ordinarios de dirección se suavizan en el desplazamiento físico:
 respuesta angular de 15/s y velocidad máxima de 540°/s. Los pies del jugador
 usan la dirección real recorrida, sin añadir otro filtro visual después.
-Una inversión de 180° mientras hay movimiento activa una frenada de 0,8 s en
+La frenada normal dura 0,12 s; el arranque de marcha conserva 0,24 s.
+Una inversión de 180° mientras hay movimiento activa una frenada de 0,4 s en
 la dirección de salida, seguida de 0,1 s con velocidad horizontal exactamente
 cero. La detección admite una tolerancia angular de 0,1°. En carrera, los dos
-tiempos se multiplican por 2,24: 1,792 s de frenada y 0,224 s detenido; durante
+tiempos se multiplican por 2,24: 0,896 s de frenada y 0,224 s detenido; durante
 la aceleración se interpola este factor con el peso actual de sprint.
 El reinicio conserva el arranque físico de marcha de 0,24 s y el de carrera
 de 0,16 s más 1 s de aceleración. La dirección solicitada se actualiza durante
 frenada y pausa; soltar las teclas evita el reinicio. La inversión especial
-solo se aplica en el suelo. Saltos y deslizamientos conservan su control propio.
+solo se aplica en el suelo. Los cambios de 90°, con la misma tolerancia de
+0,1°, frenan en la dirección de salida durante 0,2 s andando o 0,448 s en
+carrera máxima y arrancan en la dirección solicitada sin pausa adicional.
+La duración interpola el factor de sprint vigente y la dirección pendiente
+puede actualizarse o soltarse durante la frenada. Los demás ángulos conservan
+el giro suavizado ordinario. Saltos y deslizamientos conservan su control propio.
 El guardado conserva fase, tiempo restante, velocidad y dirección pendiente;
 las partidas anteriores siguen siendo válidas.
 
@@ -256,7 +262,11 @@ Añade `WALK_LEAN = 3°` hacia delante: `Spine` aporta 1,2° (40 %),
 `Spine1`, `Spine2` y `Neck` aportan 0,6° cada uno. La cabeza sigue los 3°
 acumulados del cuello. La entrada/salida se suaviza y se reduce con la velocidad
 visual y la transición a carrera. La marcha agachada mantiene su postura propia.
-La carrera aplica la misma separación de rodillas. Añade 0,8° a cada aporte
+La carrera usa `RUN_KNEE_SPREAD = 1.32`: aumenta un 20 % la separación lateral
+que produce el factor de caminata 1,10, respetando el círculo alcanzable de
+cada rodilla. La entrada y salida del sprint mezclan ambos factores sin
+desplazar los pies ni cambiar las longitudes de muslo y pantorrilla.
+Añade 0,8° a cada aporte
 de inclinación de caminata: `Spine` 2°, `Spine1` 1,4°, `Spine2` 1,4° y
 `Neck` 1,4°, para `RUN_LEAN = 6,2°`. La cabeza acompaña al cuello; la mezcla
 marcha/carrera interpola los aportes por hueso junto con el peso de sprint.

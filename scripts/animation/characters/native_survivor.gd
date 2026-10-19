@@ -94,7 +94,7 @@ func untwisted_chain(ids:Array[int],offset:int,chain:Dictionary,reference:Basis)
   var swing:=Basis(Quaternion(from,a.direction_to(b)))
   posed[bone]=Transform3D(swing*reference*rest[bone].basis,a)
 
-func spread_knee(chain:Dictionary,pelvis:Transform3D,weight:float) -> Dictionary:
+func spread_knee(chain:Dictionary,pelvis:Transform3D,weight:float,spread:float=Clips.Gait.WALK_KNEE_SPREAD) -> Dictionary:
  if weight<=0:return chain
  var axis:Vector3=(chain.end-chain.root).normalized()
  var bend:Vector3=chain.joint-chain.root
@@ -107,7 +107,7 @@ func spread_knee(chain:Dictionary,pelvis:Transform3D,weight:float) -> Dictionary
  if freedom<.0001 or radius<.0001:return chain
  var u:=projection/freedom;var v:=axis.cross(u).normalized()
  var origin:float=(pelvis*Vector3(0,Clips.Anatomy.HIP.y,0)).dot(lateral)
- var target:float=origin+(chain.joint.dot(lateral)-origin)*lerpf(1,Clips.Gait.WALK_KNEE_SPREAD,weight)
+ var target:float=origin+(chain.joint.dot(lateral)-origin)*lerpf(1,spread,weight)
  var x:=clampf((target-centre.dot(lateral))/freedom,-radius,radius)
  var y:=sqrt(maxf(0,radius*radius-x*x))*(-1 if radial.dot(v)<0 else 1)
  chain.joint=centre+u*x+v*y
@@ -235,7 +235,9 @@ func sync(control:RefCounted,pose:Dictionary,delta:float=0.0) -> void:
   pole=control.posed[source+1].origin-control.posed[source].origin
   if Clips.upright_gait(pose):foot=Clips.grounded_reach(hip,foot,chain.a,chain.b,.12 if running or grounded_walk else .35)
   solved=Solver.joint(hip,foot,chain.a,chain.b,pole)
-  solved=spread_knee(solved,pelvis,clampf(walk_posture+run_posture,0,1))
+  var posture_weight:=clampf(walk_posture+run_posture,0,1)
+  var knee_spread:float=lerpf(Clips.Gait.WALK_KNEE_SPREAD,Clips.Gait.RUN_KNEE_SPREAD,run_posture/maxf(walk_posture+run_posture,.000001))
+  solved=spread_knee(solved,pelvis,posture_weight,knee_spread)
   if gait:untwisted_chain(ids,0,solved,pelvis.basis)
   else:orient_chain(ids,0,solved,chain.axes)
   posed[ids[2]]=Transform3D(foot_rotation*rest[ids[2]].basis,solved.end)

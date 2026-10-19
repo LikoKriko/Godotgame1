@@ -65,8 +65,13 @@ func run():
    var pole:Vector3=actor.rig.posed[11+side*3].origin-actor.rig.posed[10+side*3].origin
    var base:=Solver.joint(native.posed[ids[0]].origin,native.posed[ids[2]].origin,native.legs[side].a,native.legs[side].b,pole)
    var centre:float=(pelvis*Vector3(0,31,0)).dot(pelvis.basis.x)
-   var expected:float=centre+1.1*(base.joint.dot(pelvis.basis.x)-centre)
-   require(absf(native.posed[ids[1]].origin.dot(pelvis.basis.x)-expected)<.01,"Running applies the same ten-percent knee separation")
+   var expected:float=centre+1.32*(base.joint.dot(pelvis.basis.x)-centre)
+   var axis:Vector3=(base.end-base.root).normalized()
+   var circle:Vector3=base.root+axis*(base.joint-base.root).dot(axis)
+   var lateral:Vector3=pelvis.basis.x.normalized()
+   var reach:float=base.joint.distance_to(circle)*(lateral-axis*lateral.dot(axis)).length()
+   expected=clampf(expected,circle.dot(lateral)-reach,circle.dot(lateral)+reach)
+   require(absf(native.posed[ids[1]].origin.dot(pelvis.basis.x)-expected)<.01,"Running widens the previous knee spacing by twenty percent")
  actor.family_override=&""
  for state in [&"run",&"idle",&"crouch_walk",&"action",&"jump"]:
   actor.animate(state,.3,false,0,.3,Vector3.BACK)
