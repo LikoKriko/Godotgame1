@@ -17,6 +17,9 @@ const DIAGONAL_TORSO_TURN:=deg_to_rad(20.0)
 const DIAGONAL_TORSO_RESPONSE:=14.0
 const RUN_LEAN:=deg_to_rad(7.2)
 const RUN_SPINE_LEAN:Array[float]=[2.0/6.2,3.4/6.2,4.8/6.2]
+const RUN_BACK_CURVE:=deg_to_rad(2.0)
+# Cumulative rotations: each back bone adds one third; neck/head follow.
+const RUN_BACK_CURVE_SHARES:Array[float]=[1.0/3.0,2.0/3.0,1.0]
 const DIAGONAL_TORSO_SPEED:=deg_to_rad(120.0)
 const HIP_MOTION:=.45
 const HIP_REDUCTION:=.40

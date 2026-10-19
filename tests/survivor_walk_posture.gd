@@ -46,7 +46,7 @@ func run():
     require(absf(widened[1]-widened[0])>=absf(original[1]-original[0])-.001,"Walking knees open outward rather than collapsing inward")
     require(native.hand_error<.08,"Walking lean preserves native tool grips")
  require(exact>800,"Ten-percent knee widening is attained throughout the walking cycle and directions")
- # Running adds 0.8 degrees to every local walking contribution.
+ # Running keeps its lean and adds two degrees across the three back bones.
  actor.family_override=&""
  for sample in 33:
   var phase:=sample/32.0;actor.animate(&"run",phase,false,0,phase,Vector3.BACK)
@@ -57,9 +57,10 @@ func run():
   var head_follow:Basis=Basis(Vector3.UP,actor.Clips.Gait.head_twist(actor.Clips.Controls.sample(&"run",phase).chest.y,1))*actor.rig.posed[3].basis.orthonormalized()
   for i in bones.size():
    var base:Basis=pelvis.basis.slerp(chest,[.25,.60,1.0][i]) if i<3 else (chest.slerp(head_follow,.35) if i==3 else head_follow)
-   var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad(7.2)*[2.0/6.2,3.4/6.2,4.8/6.2,1.0,1.0][i])*base
+   var curve:float=deg_to_rad(2.0)*[1.0/3.0,2.0/3.0,1.0,1.0,1.0][i]
+   var expected:=Basis(pelvis.basis.x.normalized(),deg_to_rad(7.2)*[2.0/6.2,3.4/6.2,4.8/6.2,1.0,1.0][i]+curve)*base
    var actual:Basis=native.posed[bones[i]].basis*native.rest[bones[i]].basis.inverse()
-   require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Running distributes 7.2 degrees with the existing spine proportions; the head follows the neck")
+   require(expected.get_rotation_quaternion().angle_to(actual.get_rotation_quaternion())<.001,"Running keeps its 7.2-degree lean plus two degrees of back curvature; neck and head follow")
   for side in 2:
    var ids:Array=native.legs[side].ids
    var pole:Vector3=actor.rig.posed[11+side*3].origin-actor.rig.posed[10+side*3].origin

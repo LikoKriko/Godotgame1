@@ -280,6 +280,12 @@ Usa `RUN_LEAN = 7,2°` con su distribución proporcional propia:
 `Spine` aporta aproximadamente 2,323° y `Spine1`, `Spine2` y `Neck`
 aportan aproximadamente 1,626° cada uno. La cabeza acompaña al cuello; la mezcla
 marcha/carrera interpola los aportes por hueso junto con el peso de sprint.
+La carrera añade `RUN_BACK_CURVE = 2°` de curvatura hacia delante, repartidos
+por igual entre `Spine`, `Spine1` y `Spine2` (aproximadamente 0,667° locales
+en cada uno; acumulados 0,667°/1,333°/2°). Cuello y cabeza acompañan los 2°
+acumulados sin añadir flexión propia; su inclinación total de carrera es 9,2°.
+La curva sigue el peso suavizado de carrera durante el arranque, la frenada
+y la transición con caminata. No añade curvatura a la caminata ni a la pelvis.
 El torso acompaña las diagonales con hasta 20° de giro adicional, repartidos
 acumulativamente al 25/60/100 % entre los tres huesos de la espalda.
 Las diagonales de retirada invierten el giro respecto a las de avance del

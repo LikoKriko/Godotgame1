@@ -114,12 +114,13 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
  body.basis=body.basis*Basis(Vector3.RIGHT,-recoil*0.045)
  if state==&"idle": body.origin.y+=sin(phase*TAU)*0.12
  pose.body=body
+ var original_inverse:=original_body.affine_inverse()
  for side in 2:
   pose.shoulders[side]=body*Vector3((-1 if side==0 else 1)*Anatomy.SHOULDER.x,Anatomy.SHOULDER.y,Anatomy.SHOULDER.z)
   pose.hips[side]=body*Vector3((-1 if side==0 else 1)*Anatomy.HIP.x,Anatomy.HIP.y,0)
-  pose.hands[side]=body*Anatomy.limb(original_body.affine_inverse()*pose.hands[side])
+  pose.hands[side]=body*Anatomy.limb(original_inverse*pose.hands[side])
   pose.legs[side].end.x*=Anatomy.BODY_WIDTH
- pose.grip=body*(Anatomy.limb(original_body.affine_inverse()*pose.grip)+(Vector3(0,2,5.1) if family in [&"axe",&"pickaxe"] else Vector3(0,0,2.6)))
+ pose.grip=body*(Anatomy.limb(original_inverse*pose.grip)+(Vector3(0,2,5.1) if family in [&"axe",&"pickaxe"] else Vector3(0,0,2.6)))
  if state==&"parry":
   var raised := guard_amount
   var guard_height:=31.0 if low_guard>0 else 42.0
@@ -183,9 +184,10 @@ static func sample(family: StringName,state: StringName,phase: float,movement_ph
   lengthen_stride(pose,STRIDE_SCALE*GAIT_STRIDE_LENGTH);body=pose.body
   # Free walking arms retain their resting depth and share the slower gait.
   if state not in [&"run",&"start_run",&"equip_run"]:
+   var body_inverse:=body.affine_inverse()
    for side in 2:
     if not arm_is_free(pose,side):continue
-    var local:Vector3=body.affine_inverse()*pose.hands[side]
+    var local:Vector3=body_inverse*pose.hands[side]
     local.z=lerpf(3.5*Anatomy.BODY_DEPTH,local.z,ARM_SWING_SCALE)
     pose.hands[side]=body*local
  natural_motion(pose,state,phase,movement_phase,movement,contact,striding)

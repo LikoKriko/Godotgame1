@@ -94,8 +94,12 @@ func animate(state: StringName, phase: float, equipped: bool, delta: float = 0.0
  if state!=&"death":death_from.clear()
  if not equipping:equipment_from.clear()
  var death_phase:=lerpf(.40,1,phase) if state==&"death" and death_from.get("low_start",false) and delta>0 else phase
- var target := Clips.sample(item,state,death_phase,movement_phase,movement,aim_contact,slide_launch_pose,action_crouch,punch_side)
- if state in [&"run",&"start_run",&"stop_run"] and sprint_weight>=0:
+ var blending_sprint:=state in [&"run",&"start_run",&"stop_run"] and sprint_weight>=0
+ var target:Dictionary={}
+ # The unarmed sprint mix replaces this pose entirely. Preserve the
+ # equipped path while its models are being revised by the other department.
+ if not blending_sprint or item!=&"":target=Clips.sample(item,state,death_phase,movement_phase,movement,aim_contact,slide_launch_pose,action_crouch,punch_side)
+ if blending_sprint:
   var walking:=Clips.sample(item,&"walk",movement_phase,movement_phase,movement)
   if sprint_crouch>0:walking=Clips.mix_motion(walking,Clips.sample(item,&"crouch_walk",movement_phase,movement_phase,movement),sprint_crouch)
   var sprinting:=Clips.sample(item,&"run",movement_phase,movement_phase,movement)
