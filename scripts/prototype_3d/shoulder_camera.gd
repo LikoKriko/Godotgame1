@@ -3,6 +3,7 @@ extends Node3D
 const Gait=preload("res://scripts/animation/characters/gait_parameters.gd")
 const DISTANCE := 3.6
 const SHOULDER := 0.30
+const FOLLOW_HEIGHT := 1.45
 const SENSITIVITY := 0.0025
 const PITCH_LIMIT := PI*0.5
 const FREE_LOOK_LIMIT := PI*0.5
@@ -27,6 +28,11 @@ func configure(owner_game, target: CharacterBody3D) -> void:
  camera.fov = 75; camera.near = 0.08; add_child(camera); camera.current = true
  aim_camera.fov=camera.fov;aim_camera.near=camera.near;add_child(aim_camera);aim_camera.current=false
  get_window().focus_exited.connect(func():free_look_held=false)
+func set_world_radius(radius:float) -> void:
+ # A single frustum bounds every world visual, including grass, particles and
+ # later-created objects. Portrait viewports keep their own camera settings.
+ var distance:=preload("res://scripts/prototype_3d/stream_layout.gd").render_distance(radius,BOOM_OFFSET.length()+FOLLOW_HEIGHT)
+ camera.far=distance;aim_camera.far=distance
 func head_yaw() -> float:
  # Native bind axes differ from the character frame; remove the head's rest
  # orientation before reading its actual animated forward direction.
@@ -61,7 +67,7 @@ func update(delta: float) -> void:
  sync_free_look_input()
  if free_look_held:constrain_free_look()
  else:free_look_offset=move_toward(free_look_offset,0,FREE_LOOK_RETURN_SPEED*maxf(delta,0))
- global_position = player.global_position+Vector3(0,1.45,0)
+ global_position = player.global_position+Vector3.UP*FOLLOW_HEIGHT
  var aim_basis:=Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,pitch)
  basis = Basis(Vector3.UP,yaw+free_look_offset)*Basis(Vector3.RIGHT,pitch)
  boom_query.transform=Transform3D(Basis.IDENTITY,global_position)

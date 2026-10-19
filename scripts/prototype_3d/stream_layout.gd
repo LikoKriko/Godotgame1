@@ -18,6 +18,15 @@ var sampler
 var reservations=preload("res://scripts/prototype_3d/story_zone_catalog.gd").new()
 static func coordinate(point:Vector2) -> Vector2i:return Vector2i(floori(point.x/CHUNK_SIZE),floori(point.y/CHUNK_SIZE))
 static func rect(key:Vector2i) -> Rect2:return Rect2(Vector2(key)*CHUNK_SIZE,Vector2.ONE*CHUNK_SIZE)
+static func window(point:Vector3,radius:float) -> Rect2:
+ # Cell centering plus half a cell covers the chosen radius before crossing.
+ var center:=rect(coordinate(Vector2(point.x,point.z))).get_center()
+ return Rect2(center-Vector2.ONE*(radius+CHUNK_SIZE*.5),Vector2.ONE*(radius*2+CHUNK_SIZE))
+static func render_distance(radius:float,camera_offset:float) -> float:
+ # Include both diagonals, cell centering, padding, retention and the final
+ # intersecting chunk. The vertical allowance covers the current relief/trees.
+ var extent:=radius+CHUNK_SIZE*3
+ return Vector3(extent,32.0,extent).length()+camera_offset
 func configure(seed_number:int,ground_sampler) -> void:
  seed_value=seed_number;sampler=ground_sampler;base.generate(seed_number)
  base_records.clear();base_chunks.clear();base_grass.clear()

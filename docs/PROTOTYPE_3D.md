@@ -193,9 +193,12 @@ La noche conserva su iluminación ambiental y la luz lunar configurada.
 por mundo con `assets/shaders/lighting_sky.gdshader`. El cielo se utiliza como
 fondo: el ambiente procede del color configurado y los reflejos del cielo están
 desactivados, evitando actualizar cubemaps de radiancia. La atmósfera es niebla
-de profundidad no volumétrica: empieza a 35 m, termina su transición a 220 m,
+de profundidad no volumétrica: empieza a 35 m y termina su transición a
+100 / 200 / 220 m según la generación elegida de 100 / 200 / 400 m,
 tiene curva 1,6 y opacidad máxima diurna de 0,12, atenuada hasta cero de noche.
 La niebla se desactiva cuando su opacidad es despreciable.
+El plano lejano de las cámaras de juego y apuntado sigue también la ventana
+de generación y sus márgenes; ver [WORLD_STREAMING.md](WORLD_STREAMING.md).
 Conserva nítida la zona cercana al jugador. No añade luces ni pasadas de sombra;
 el fondo en degradado añade su dibujo y la niebla se evalúa en los materiales.
 
