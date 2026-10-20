@@ -124,6 +124,21 @@ la escena principal ni el visor `aren_authoring_review.tscn`.
   y de suela. Un apoyo anclado válido puede completar su fase aunque el sondeo
   nominal cruce un borde; al liberarlo, el desfase parte del objetivo actual
   y se desvanece con `smooth5`, incluso si no hay superficie aceptable.
+  En vuelo, un sondeo horizontal detecta caras de escalón antes de que las
+  alcance la piel. El sondeo vertical y la política anterior deben aprobar
+  su superficie superior. La envolvente exacta de la piel determina la
+  distancia y velocidad de aproximación a esa cara, incluyendo la rotación
+  de la pierna; se anticipa con `smooth5` en una ventana de 0,16 s, entre
+  15 y 50 cm. Las observaciones conservan su tiempo físico y normal de cara
+  para no interpretar giros o fotogramas sin detección como velocidad adicional.
+  Los cambios grandes de corrección elevan el pie con límite de 2 m/s,
+  conservando su última posición y orientación seguras junto al borde hasta
+  tener altura suficiente; luego mezclan el avance y la orientación durante
+  0,12 s. Al abandonar un nivel, solo la corrección añadida retiene altura y
+  desciende con frecuencia 24 y límite de 1,5 m/s, por encima del objetivo de
+  colisión. La historia guarda la corrección realmente aplicada
+  tras los límites anatómicos, sin sumarla al siguiente objetivo. El pie sigue
+  en vuelo hasta alcanzar el nuevo apoyo; los anclajes estables no se filtran.
   `terrain_cycle_sampler.gd` reutiliza las muestras idénticas entre el cálculo
   de pecho durante el arranque y la pose final de esa misma evaluación. La
   caché exige el mismo clip y tiempo exacto, restaura la pose nativa y los polos

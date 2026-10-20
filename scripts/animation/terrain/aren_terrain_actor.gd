@@ -20,6 +20,7 @@ var body_height_velocity:=0.0
 var height_initialized:=false
 var ray_count:=0
 var ground_query:=PhysicsRayQueryParameters3D.new()
+var edge_query:=PhysicsRayQueryParameters3D.new()
 var support_error:=0.0
 var previous_speed:=0.0
 var skin_time_left:=0.0
@@ -48,7 +49,9 @@ func _ready() -> void:
  if body!=null:exclusions.append(body.get_rid())
  foot_support.configure(native,exclusions,Callable(self,"support_surface"))
  ground_query.collision_mask=1
- if body!=null:ground_query.exclude=[body.get_rid()]
+ edge_query.collision_mask=1
+ if body!=null:
+  ground_query.exclude=[body.get_rid()];edge_query.exclude=[body.get_rid()]
  changing_style=false
  set_process(false)
 
@@ -184,6 +187,79 @@ func minimum_reach(side:int) -> float:
  var flex:float=maxf(deg_to_rad(130),upper.angle_to(lower))
  return sqrt(maxf(0,leg.a*leg.a+leg.b*leg.b+2*leg.a*leg.b*cos(flex)))
 
+func anticipate_edge(side:int,frame:Transform3D) -> float:
+ if terrain_contacts[side].planted or not grounded or measured_speed<.03:return 0.0
+ var direction:=measured_velocity.normalized()
+ var reach:=.50
+ var bounds:AABB=foot_support.pose_bounds(native,side,frame)
+ var centre:=bounds.get_center()
+ var extent:float=(absf(direction.x)*bounds.size.x+absf(direction.z)*bounds.size.z)*.5
+ # Find the vertical face before any skin vertex reaches it. This horizontal
+ # ray is only a warning: the existing vertical policy must approve its top.
+ var floor_y:float=terrain_contacts[side].get("scan_floor",body.global_position.y)
+ centre.y=maxf(bounds.position.y+.003,floor_y+.006)
+ edge_query.from=centre-direction*(extent+reach)
+ edge_query.to=centre+direction*(extent+reach)
+ ray_count+=1
+ var wall:=body.get_world_3d().direct_space_state.intersect_ray(edge_query)
+ if wall.is_empty() or wall.normal.y>=cos(deg_to_rad(42)):return 0.0
+ var top:=probe(wall.position+direction*.01)
+ if top.is_empty():return 0.0
+ # Exact posed skin, not the conservative broad phase, defines the leading
+ # edge and its clearance. This work is only needed beside a valid step face.
+ var gap:=INF;var low:=INF
+ for point in foot_support.skinned_points(native,side):
+  var world:Vector3=frame*point
+  gap=minf(gap,wall.normal.dot(world-wall.position));low=minf(low,world.y)
+ var approach:float=maxf(.01,-wall.normal.dot(direction))
+ var distance:float=gap/approach
+ if distance>reach:return 0.0
+ var contact:Dictionary=terrain_contacts[side]
+ var speed:=measured_speed
+ if contact.get("edge_rid",RID())==wall.rid and contact.get("edge_normal",Vector3.ZERO).dot(wall.normal)>.99:
+  var elapsed:float=maxf(correction_tick,clock-float(contact.get("edge_clock",clock)))
+  speed=maxf(speed,(float(contact.get("edge_gap",gap))-gap)/maxf(elapsed*approach,.00001))
+ contact.edge_gap=gap;contact.edge_clock=clock;contact.edge_rid=wall.rid;contact.edge_normal=wall.normal
+ var window:float=clampf(speed*.16,.15,reach)
+ var weight:float=smooth5(clampf(1-distance/window,0,1))
+ return maxf(0,top.position.y+.003-low)*weight
+
+func settle_foot(side:int,goal:Transform3D,base_y:float) -> Transform3D:
+ var contact:Dictionary=terrain_contacts[side]
+ var desired:float=goal.origin.y-base_y
+ var previous:float=contact.get("height_correction",desired)
+ var stable:bool=contact.planted and contact.get("was_planted",false)
+ var applied:=desired
+ if not stable:
+  if desired-previous>.025 or contact.get("height_raising",false):
+   applied=minf(desired,previous+2.0*correction_tick)
+  elif previous-desired>.025 or contact.get("height_releasing",false):
+   applied=maxf(desired,maxf(previous-1.5*correction_tick,lerpf(previous,desired,1-exp(-24*correction_tick))))
+ contact.height_raising=desired-applied>.0001
+ contact.height_releasing=applied-desired>.0001
+ if contact.height_raising and not contact.get("transferring",false):
+  # Lift beside the obstacle first, then cross its face. Slowing Y alone
+  # would let a foot enter the step while still below its upper surface.
+  contact.transfer_start=contact.get("visual_pose",goal)
+  contact.transfer_progress=0.0;contact.transferring=true
+ goal.origin.y=base_y+applied
+ if not stable and contact.get("transferring",false):
+  if not contact.height_raising:contact.transfer_progress=minf(1,float(contact.transfer_progress)+correction_tick/.12)
+  var start:Transform3D=contact.transfer_start
+  var weight:=smooth5(float(contact.transfer_progress))
+  goal.origin.x=lerpf(start.origin.x,goal.origin.x,weight)
+  goal.origin.z=lerpf(start.origin.z,goal.origin.z,weight)
+  var scale:=goal.basis.get_scale()
+  goal.basis=start.basis.orthonormalized().slerp(goal.basis.orthonormalized(),weight)*Basis.from_scale(scale)
+  if contact.transfer_progress>=1:contact.transferring=false
+ if stable:contact.transferring=false
+ # Landing is acquired only once the foot has completed the transfer and
+ # reached the real surface. Existing world anchors remain exact.
+ if (contact.height_raising or contact.height_releasing or contact.get("transferring",false)) and contact.planted:
+  contact.planted=false
+  if contacts.size()>side:contacts[side].planted=false
+ return goal
+
 func solve_contacts() -> void:
  if body==null or changing_style:
   super.solve_contacts();return
@@ -212,6 +288,7 @@ func solve_contacts() -> void:
   var hit:=probe(world)
   if terrain_contacts.size()<=side:terrain_contacts.append({"planted":false,"anchor":world,"basis":goal.basis})
   var contact:Dictionary=terrain_contacts[side]
+  contact.was_planted=contact.planted
   var planted:bool=grounded and (gait_blend()<.015 or fposmod(phase+side*.5,1)<support_fraction()) and (not hit.is_empty() or contact.planted)
   var authored_world:=world
   var authored_basis:=goal.basis
@@ -240,6 +317,7 @@ func solve_contacts() -> void:
     var sole_hit:=probe(world+sole_offset)
     if not sole_hit.is_empty():sole_height=maxf(sole_height,sole_hit.position.y-sole_offset.y)
    if is_finite(sole_height):world.y=sole_height+(0.0 if planted else clearance)+.006
+  contact.scan_floor=hit.position.y if not hit.is_empty() else floor_y
   var hip_world:Vector3=frame*(native.posed[ids[0]].origin+Vector3.UP*((pelvis_offset+body_offset)/SCALE))
   if hip_world.distance_to(world)<minimum_reach(side)*SCALE:
    world=authored_world;goal.basis=authored_basis;planted=false
@@ -341,6 +419,16 @@ func solve_contacts() -> void:
   # Ankle skin blends with the shin. Correct its actual surface after IK,
   # keeping the planted XZ anchor while permitting vertical sole compression.
   # Skin is displayed once per physics frame; contact clocks still substep.
+  var ahead:float=anticipate_edge(side,frame)
+  if ahead>.0001:
+   goals[side].origin.y+=ahead/SCALE
+   var hip:Vector3=native.posed[ids[0]].origin
+   var horizontal:float=Vector2(goals[side].origin.x-hip.x,goals[side].origin.z-hip.z).length_squared()
+   goals[side].origin.y=minf(goals[side].origin.y,hip.y-sqrt(maxf(0,minimum*minimum-horizontal)))
+   solution=Solver.joint(hip,goals[side].origin,leg.a,leg.b,pole)
+   native.untwisted_chain(ids,0,solution,Basis.IDENTITY)
+   Torso.rotate_branch(native,ids[2],goals[side].basis,solution.end)
+   KneePlane.stabilize(native,side,stable_pole,knee_planes[side],0)
   for iteration in (2 if skin_time_left<.000001 else 0):
    if not foot_support.may_penetrate(native,side,frame,body.get_world_3d().direct_space_state):break
    var lift:=0.0
@@ -364,6 +452,21 @@ func solve_contacts() -> void:
    native.untwisted_chain(ids,0,solution,Basis.IDENTITY)
    Torso.rotate_branch(native,ids[2],goals[side].basis,solution.end)
    KneePlane.stabilize(native,side,stable_pole,knee_planes[side],0)
+  var world_goal:Transform3D=frame*goals[side]
+  var authored_y:float=(frame*source_feet[side].origin).y+pelvis_offset+body_offset
+  var settled:=settle_foot(side,world_goal,authored_y)
+  if not settled.is_equal_approx(world_goal):
+   goals[side]=inverse*settled
+   var hip:Vector3=native.posed[ids[0]].origin
+   var horizontal:float=Vector2(goals[side].origin.x-hip.x,goals[side].origin.z-hip.z).length_squared()
+   goals[side].origin.y=minf(goals[side].origin.y,hip.y-sqrt(maxf(0,minimum*minimum-horizontal)))
+   solution=Solver.joint(hip,goals[side].origin,leg.a,leg.b,pole)
+   native.untwisted_chain(ids,0,solution,Basis.IDENTITY)
+   Torso.rotate_branch(native,ids[2],goals[side].basis,solution.end)
+   KneePlane.stabilize(native,side,stable_pole,knee_planes[side],0)
+  var visual:Transform3D=frame*native.posed[ids[2]]
+  terrain_contacts[side].height_correction=visual.origin.y-authored_y
+  terrain_contacts[side].visual_pose=visual
   error=native.posed[ids[2]].origin.distance_to(goals[side].origin)*SCALE
   max_ik_error_m=maxf(max_ik_error_m,error)
   if terrain_contacts[side].planted:support_error=maxf(support_error,error)

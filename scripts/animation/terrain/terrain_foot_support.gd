@@ -75,15 +75,19 @@ func clearance(side:int,goal:Transform3D) -> float:
  for point in soles[side]:lowest=minf(lowest,(goal*point).y*(1.75/64.0))
  return maxf(0,lowest)
 
-func may_penetrate(native:RefCounted,side:int,frame:Transform3D,space:PhysicsDirectSpaceState3D) -> bool:
- plane_valid=false
- if bone_bounds[side].is_empty():return true
+func pose_bounds(native:RefCounted,side:int,frame:Transform3D) -> AABB:
  var bounds:=AABB()
  var first:=true
  for bone in bone_bounds[side]:
   var transformed:AABB=(frame*native.posed[bone])*bone_bounds[side][bone]
   bounds=transformed if first else bounds.merge(transformed)
   first=false
+ return bounds
+
+func may_penetrate(native:RefCounted,side:int,frame:Transform3D,space:PhysicsDirectSpaceState3D) -> bool:
+ plane_valid=false
+ if bone_bounds[side].is_empty():return true
+ var bounds:=pose_bounds(native,side,frame)
  # Match the detail rays' upward reach: a foot already below a surface must
  # still find it. Below the 3 mm skin margin, ground cannot require a lift.
  var foot_bounds:=bounds
