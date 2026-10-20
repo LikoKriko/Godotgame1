@@ -1,0 +1,106 @@
+{
+  "controls": "res://assets/characters/prototype_3d/generated/aren_transitions_v1/controls.res",
+  "direction": "forward",
+  "launch_increment_deg": 1.5,
+  "loading_m": 0.028,
+  "posture": {
+    "cautious": {
+      "launch_deg": 4.0,
+      "recovery_steps": 3.0,
+      "steady_deg": 2.0
+    },
+    "normal": {
+      "launch_deg": 7.0,
+      "recovery_steps": 2.5,
+      "steady_deg": 3.0
+    },
+    "tired": {
+      "launch_deg": 3.0,
+      "recovery_steps": 3.0,
+      "steady_deg": 1.5
+    }
+  },
+  "recipes": {
+    "idle_to_run": {
+      "anticipation": 0.12,
+      "duration": 1.85,
+      "from": "idle",
+      "to": "run"
+    },
+    "idle_to_walk": {
+      "anticipation": 0.17,
+      "duration": 1.15,
+      "from": "idle",
+      "to": "walk"
+    },
+    "run_to_idle": {
+      "anticipation": 0.05,
+      "duration": 1.75,
+      "from": "run",
+      "to": "idle"
+    },
+    "run_to_walk": {
+      "anticipation": 0.05,
+      "duration": 1.15,
+      "from": "run",
+      "to": "walk"
+    },
+    "walk_to_idle": {
+      "anticipation": 0.06,
+      "duration": 1.1,
+      "from": "walk",
+      "to": "idle"
+    },
+    "walk_to_run": {
+      "anticipation": 0.08,
+      "duration": 1.1,
+      "from": "walk",
+      "to": "run"
+    }
+  },
+  "schema": 1.0,
+  "source_hashes": {
+    "res://assets/characters/prototype_3d/generated/aren_cautious_v1/aren.tscn": "9f9e021b159b4a43bd94a06d7f7d9edff31c1c25ba49fc9bf3c8f4ca0ca518f3",
+    "res://assets/characters/prototype_3d/generated/aren_cautious_v1/clips.res": "492c7c9697ec1194a0ce65ea761584a7e9e2868128e6609ce89fef47a84ecd14",
+    "res://assets/characters/prototype_3d/generated/aren_run_idle_v3/aren.tscn": "3f5050ec1bb033febba18ebe5701f17ff59d1ff91b3da5e8c9816fc2d01db8cd",
+    "res://assets/characters/prototype_3d/generated/aren_run_idle_v3/clips.res": "a7a33a1563255dc38e47215304d0b12de5d255722e04f858b44366d6e8080000",
+    "res://assets/characters/prototype_3d/generated/aren_run_launch_v1/profile.json": "cf263b5302d7aeca338b3d6f294544a34b94b7456805369bba94211fd6844f22",
+    "res://assets/characters/prototype_3d/generated/aren_tired_v1/aren.tscn": "56097afeff79ec808b00824598c026fa2b0d20d67730246b083e32a4952f10af",
+    "res://assets/characters/prototype_3d/generated/aren_tired_v1/clips.res": "161d8187b9c6093255fa4ca2f6283a4572cebdd540eb47a7a7ee9efeb57a59a0",
+    "res://assets/characters/prototype_3d/generated/aren_transitions_v1/controls.res": "9b7be43d298cd6557f3be32cc4bd6ea62f2fa6ba95b29c6cbfa42dc24dc66893",
+    "res://assets/characters/prototype_3d/generated/aren_transitions_v1/profile.json": "13188924453571d2a252fbf9f4f66d8d00aa9b73c87153eae124beedc95f84c5",
+    "res://scripts/animation/authoring/aren_coordination_actor.gd": "0474527096e4436def00965dc2963b5acf3eb2676381d80eedb314f06a25d10f",
+    "res://scripts/animation/authoring/aren_coordination_sampler.gd": "102636718388e655e4928dbc5c6e8cae9c9a42d332df5cbc607fa29e33cd0683",
+    "res://scripts/animation/authoring/aren_cycle_sampler.gd": "e981a8d15150e228d0315c4613bf8bf273e36abca00f21007ffe39dc2e9d0400",
+    "res://scripts/animation/authoring/aren_knee_plane.gd": "458b8a2efb09eddb19fdda83105e6492e276a5b3a8bc6498f78b090df7fcbaea",
+    "res://scripts/animation/authoring/aren_posture_sampler.gd": "095c0cea517469907f563a60c57f96bf1bac7585339029aeff6dfc0e7efb55f1",
+    "res://scripts/animation/authoring/aren_run_launch_actor.gd": "c99025976821cefa31d5afcdc4050939b3bc3aaed60c2f8609328ec84c75f975",
+    "res://scripts/animation/authoring/aren_run_posture.gd": "ed896a22d39a3ad4684c8b74652d9dc5767fc4dca1861a0b016eb93eacc77a5e",
+    "res://scripts/animation/authoring/aren_torso_flow.gd": "2b78f1d661d4557cb1cd70fe6716e4a84103e6a0d084cb1feef3d4cc04ef73cf",
+    "res://scripts/animation/authoring/aren_transition_actor.gd": "d4c0e84d13b1fcb125801be7dcbe0df3c52be9e959d5a8ff951548f9daeeb7be",
+    "res://scripts/animation/characters/native_survivor.gd": "753415edf52dcaeaab241fd4ce5abd1835994d73430314b85b94efd12d57f18a",
+    "res://scripts/continuous_body_pose.gd": "bfe3ca0b78007c97c3d21846b5049673ddd6a6911eb0fe7e99216c8ab2067691",
+    "res://tools/animation/generate_aren_coordination.gd": "34f36ac8b8d98b0428b02dab5f25b92746574b728c14c1dd5377544187f0c6d0",
+    "res://tools/animation/generate_aren_run_posture.gd": "84685fe7041de047dd049cf41687870b07fce47a5de08d5d0a9a814c6d4620df",
+    "res://tools/animation/generate_aren_transitions.gd": "45f2ac3a72873f16a14d26105d6959e5ea0b2ab6e28b145c8b68d9555ad371e9"
+  },
+  "styles": {
+    "cautious": {
+      "scene": "res://assets/characters/prototype_3d/generated/aren_cautious_v1/aren.tscn",
+      "timing": 1.25,
+      "weight_shift_m": 0.009
+    },
+    "normal": {
+      "scene": "res://assets/characters/prototype_3d/generated/aren_run_idle_v3/aren.tscn",
+      "timing": 1.0,
+      "weight_shift_m": 0.012
+    },
+    "tired": {
+      "scene": "res://assets/characters/prototype_3d/generated/aren_tired_v1/aren.tscn",
+      "timing": 1.4,
+      "weight_shift_m": 0.01
+    }
+  },
+  "surface": "flat",
+  "walk_arm_phase": 0.5
+}

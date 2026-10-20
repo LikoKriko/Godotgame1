@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/characters/prototype_3d/generated/aren_run_launch_v1/aren.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/animation/authoring/aren_coordination_actor.gd" id="2"]
+
+[node name="ArenCoordinated" instance=ExtResource("1")]
+script = ExtResource("2")
+transition_profile = "res://assets/characters/prototype_3d/generated/aren_coordination_v1/profile.json"

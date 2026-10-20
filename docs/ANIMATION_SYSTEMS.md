@@ -401,10 +401,11 @@ godot --headless --path . --script tests/aren_transitions.gd
 
 #### Carrera habitual e impulso inicial coordinados
 
-El visor abre **Carrera e impulso: postura ajustada** (`aren_run_launch_v1/`),
-con `run` seleccionado. **Ver antes / Ver después** alterna con la entrega
-**Transiciones con apoyos**, conservando estado, fase y velocidad. Para comparar
-el impulso, seleccionar **Reposo → correr** y usar el mismo botón. Puede pausarse
+La entrega **Carrera e impulso: postura ajustada** (`aren_run_launch_v1/`)
+conserva el ajuste anterior de carrera e impulso. El visor abre ahora la entrega
+de coordinación descrita a continuación y permite compararla con esta versión
+mediante **Ver antes / Ver después**. Para comparar el impulso, seleccionar
+**Reposo → correr** y usar el mismo botón. Puede pausarse
 la comparación; al alternar, el arranque se reproduce hasta el mismo instante,
 sin cambiar la trayectoria de velocidad. **Reiniciar** repite el arranque.
 El selector de estado conserva Normal/Cauteloso/Cansado en ambas versiones.
@@ -474,6 +475,61 @@ godot --headless --path . --script tests/aren_run_posture.gd
 El actor añade `seek_cycle(clip, segundos)` para comparar los ciclos muestreados.
 La API de solicitud y encadenado de transiciones sigue siendo la anterior. Las
 entregas previas y el controlador jugable mantienen su comportamiento.
+
+#### Coordinación contralateral, incremento del impulso y plano de rodillas
+
+El visor abre **Coordinación: brazos y rodillas** (`aren_coordination_v1/`), con
+`walk` seleccionado. **Ver antes / Ver después** alterna con `aren_run_launch_v1`
+en el mismo instante, estado y velocidad. Los tres estados y las seis transiciones,
+incluido **Encadenadas**, están disponibles. **Pausa** permite comparar una pose;
+**Reiniciar** repite una transición. Las fuentes anteriores siguen seleccionables.
+
+`aren_coordination_sampler.gd` desplaza las cadenas completas de ambos brazos,
+desde hombro hasta dedos, medio ciclo de caminata (`walk_arm_phase=0.5`). Conserva
+sus gestos y amplitudes aprobados: el brazo derecho avanza con la pierna izquierda
+y viceversa en Normal/Cauteloso/Cansado. No modifica el torso, piernas, apoyos ni
+morfos de los ciclos; reposo y carrera se muestrean igual que antes. Las transiciones
+mezclan estos mismos ciclos, sin bibliotecas duplicadas.
+
+`aren_coordination_actor.gd` añade `launch_increment_deg=1.5` a la pose efectiva del
+impulso anterior en los tres estados. La carga quintica alcanza exactamente +1,5°
+en el pecho antes de la recuperación; no se aumenta únicamente un objetivo que un
+filtro pudiera atenuar. La misma recuperación por apoyos y velocidad real reduce
+el incremento durante los siguientes 2,5/3/3 pasos. Al interrumpirlo, un resorte
+críticamente amortiguado libera el incremento. La carrera estable conserva los
+incrementos +3°/+2°/+1,5° de la tabla anterior. La capa corporal existente reparte
+el nuevo giro entre pelvis (35 %) y columna (50/75/100 % acumulado hasta pecho),
+con hombros solidarios y compensación de cuello del 50 %. Las cadenas de piernas
+conservan sus transformaciones globales.
+
+El rig usa +Z como avance en el marco de autoría. La flexión correcta aproxima
+el talón a los glúteos; elevar el muslo es un movimiento distinto. Los ciclos
+fuente mantienen su flexión y sus límites originales. Bajo carga, el antiguo polo
+IK tomado del vector de muslo podía invertir el plano de la rodilla.
+`aren_knee_plane.gd` conserva el componente radial obtenido por FK de los ciclos
+mezclados como referencia anatómica. Solo corrige la desviación del plano fuera
+de un cono suave: empieza a 15° y alcanza la referencia a 45°, reduciendo esos
+umbrales cuando la referencia está próxima al límite de inversión. La corrección
+y su liberación limitan el giro relativo del plano a 180°/s, evitando saltos al
+cruzar la singularidad del polo antiguo; los movimientos válidos se siguen
+directamente. Conserva el ángulo de flexión, las longitudes, el pie y su orientación; no introduce una
+flexión manual ni cambia los ejes de reposo, binds o recursos originales.
+
+Criterios de comparación: coordinación opuesta de brazo/pierna en cada estado;
++1,5° efectivo durante el impulso y ningún incremento en carrera estable; recuperación
+al tercer apoyo; rodillas en el plano anatómico sin alterar una flexión válida;
+continuidad de pelvis, columna y articulaciones al acelerar, frenar e interrumpir;
+contactos y velocidad de desplazamiento conservados. Revisar frente, lateral,
+espalda y tres cuartos con el selector de estado y las transiciones encadenadas.
+
+La entrega guarda únicamente escena y perfil, referenciando las bibliotecas y los
+seis controles existentes. Generar siempre en un directorio nuevo:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren_coordination.gd -- \
+  --output res://assets/characters/prototype_3d/generated/aren_coordination_custom
+godot --headless --path . --script tests/aren_coordination.gd
+```
 
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango

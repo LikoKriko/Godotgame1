@@ -2,7 +2,7 @@ extends Control
 ## Four live views of a generated library, on a real fixed ground grid.
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
-@export var scene_path:=ROOT+"aren_run_launch_v1/aren.tscn"
+@export var scene_path:=ROOT+"aren_coordination_v1/aren.tscn"
 var sources:Array=[
  {"label":"Original del juego","path":""},
  {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
@@ -12,7 +12,8 @@ var sources:Array=[
  {"label":"Caminata: torso coordinado","path":ROOT+"aren_walk_torso_v2/aren.tscn"},
  {"label":"Carrera y reposo corregidos","path":ROOT+"aren_run_idle_v3/aren.tscn"},
  {"label":"Transiciones con apoyos","path":ROOT+"aren_transitions_v1/aren.tscn"},
- {"label":"Carrera e impulso: postura ajustada","path":ROOT+"aren_run_launch_v1/aren.tscn"}
+ {"label":"Carrera e impulso: postura ajustada","path":ROOT+"aren_run_launch_v1/aren.tscn"},
+ {"label":"Coordinación: brazos y rodillas","path":ROOT+"aren_coordination_v1/aren.tscn"}
 ]
 const MOTIONS=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]
 const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
@@ -156,13 +157,16 @@ func reset_trees() -> void:
 func update_source_status() -> void:
  if not source_status:return
  if compare_button:
-  compare_button.disabled=source_index not in [7,8] or motion not in ["run","idle_to_run"]
-  compare_button.text="Ver antes" if source_index==8 else "Ver después"
+  compare_button.disabled=source_index not in [8,9]
+  compare_button.text="Ver antes" if source_index==9 else "Ver después"
  if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
  if advanced() and transition_motion():
   var actor=actors[0]
   source_status.text="%s · %s · %.2f m/s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],actor.recipe if not actor.recipe.is_empty() else "Ciclo estable",actor.current_speed]
-  if actor.has_method("seek_cycle") and motion=="idle_to_run":source_status.text+=" · %.1f pasos · extra %.1f°"%[actor.recovery_steps_done,rad_to_deg(maxf(0,actor.launch_pitch-actor.steady_chest_pitch))]
+  if actor.has_method("seek_cycle") and motion=="idle_to_run":
+   var extra:float=actor.launch_pitch-actor.steady_chest_pitch
+   if actor.has_method("impulse_increment"):extra+=actor.impulse_increment()
+   source_status.text+=" · %.1f pasos · extra %.1f°"%[actor.recovery_steps_done,rad_to_deg(maxf(0,extra))]
   return
  var clip:String="walk" if transition_motion() else motion
  var animation:Animation=actors[0].library.get_animation(StringName(clip))
@@ -171,6 +175,8 @@ func update_source_status() -> void:
   source_status.text="%s · %s · Ciclo %.2f s · %.3f m/s"%[sources[source_index].label,clip,animation.length,animation.get_meta("cycle").speed_mps]
   if actors[0].has_method("seek_cycle") and clip=="run":source_status.text="%s · run · torso +%.1f° · %.3f m/s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],actors[0].profile.posture[actors[0].style].steady_deg,animation.get_meta("cycle").speed_mps]
   return
+ if actors[0].has_method("impulse_increment") and clip=="walk":
+  source_status.text="%s · walk · brazos contralaterales · %.3f m/s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],animation.get_meta("cycle").speed_mps];return
  source_status.text="%s · Paso ×%.2f · Brazos ×%.2f · Torso extra %.1f°"%[sources[source_index].label,parameters.stride,parameters.arms,rad_to_deg(parameters.lean)]
 
 func advanced() -> bool:return not actors.is_empty() and actors[0].has_method("advance_transition")
@@ -213,9 +219,9 @@ func process_transitions(delta:float) -> void:
  update_source_status()
 
 func compare_posture() -> void:
- if source_index not in [7,8] or motion not in ["run","idle_to_run"]:return
+ if source_index not in [8,9]:return
  var seconds:=elapsed
- select_source(7 if source_index==8 else 8)
+ select_source(8 if source_index==9 else 9)
  if transition_motion():
   var remaining:=seconds
   while remaining>.0000001:
