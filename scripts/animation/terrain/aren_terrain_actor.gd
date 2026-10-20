@@ -177,7 +177,7 @@ func support_surface(point:Vector3,normal:Vector3) -> bool:
  if not climb_checked:
   climb_checked=true
   climb_landing=Step.landing(body,direction*.35)
- return not climb_landing.is_empty() and absf(point.y-climb_landing.transform.origin.y)<=.035
+ return not climb_landing.is_empty() and absf(point.y-climb_landing.surface_y)<=.035
 
 func minimum_reach(side:int) -> float:
  var leg:Dictionary=native.legs[side];var ids:Array=leg.ids

@@ -87,11 +87,19 @@ la escena principal ni el visor `aren_authoring_review.tscn`.
   el desplazamiento físico final, incluido el escalón, incluso al bloquearse.
 - `aren_terrain_test.gd` reutiliza `movement_response.gd` para aceleración,
   frenada, dirección y reversión; conserva las seis recetas como preparación
-  corporal. El colisionador cilíndrico conserva altura/radio y ofrece una base
-  plana para no confundir bordes de escalones con paredes inclinadas.
+  corporal. El colisionador es una cápsula de 1,65 m de altura y 22 cm de radio,
+  con la misma envolvente del controlador anterior. Su base redondeada evita
+  enganches en las aristas entre triángulos que alternaban desplazamientos
+  laterales, velocidad y orientación del personaje sobre las mallas irregulares.
   `terrain_step.gd` barre el cuerpo hacia arriba, avanza el desplazamiento real
   y baja hasta un aterrizaje transitable, con límite de 26 cm. Comprueba paredes
   y techo y confirma el recorrido completo sin duplicar el avance horizontal.
+  Si la cápsula toca el borde de un escalón con una normal de separación
+  pronunciada, un rayo 3 mm dentro del borde comprueba la normal y altura
+  reales de su superficie superior. Solo ese contacto validado se refresca
+  como suelo mientras la cápsula supera el borde; se restaura inmediatamente
+  el límite habitual de 42°. `surface_y` conserva la altura real de la
+  superficie para que la anticipación de IK use el mismo aterrizaje.
   El snap automático se limita al descenso posible por tick en una pendiente
   de 42° (mínimo 2,5 cm); salir de un borde usa gravedad, sin snap forzado de
   35 cm. Cambiar de estado conserva

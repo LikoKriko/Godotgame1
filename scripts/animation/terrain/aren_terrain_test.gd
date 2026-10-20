@@ -48,8 +48,8 @@ func _ready() -> void:
  environment.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
  environment.environment.ambient_light_color=Color(.8,.85,.95);environment.environment.ambient_light_energy=.7;add_child(environment)
  body=CharacterBody3D.new();body.name="ArenController";body.floor_snap_length=.03;body.floor_max_angle=deg_to_rad(42);body.floor_constant_speed=true;add_child(body)
- # A flat support base keeps stair edges from becoming steep capsule normals.
- var collider:=CollisionShape3D.new();var cylinder:=CylinderShape3D.new();cylinder.radius=.22;cylinder.height=1.65;collider.shape=cylinder;collider.position.y=.825;body.add_child(collider)
+ # A rounded base avoids alternating edge normals on triangulated ground.
+ var collider:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.22;capsule.height=1.65;collider.shape=capsule;collider.position.y=.825;body.add_child(collider)
  actor=load("res://scenes/prototype_3d/aren_terrain_actor.tscn").instantiate()
  actor.body=body;body.add_child(actor)
  actor.rotation.y=PI
