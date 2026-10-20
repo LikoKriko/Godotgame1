@@ -1,6 +1,6 @@
 # Sistema de animaciones de Aren: estado actual
 
-**Rama:** `test/animation-system-v1`. **Último commit funcional:** `1520151`.
+**Rama:** `test/animation-system-v1`. **Base anterior de autoría:** `1520151`.
 Trabajar en esta rama; no integrar en `main` sin autorización. Rutas relativas
 a la raíz del proyecto Godot 4; leer las instrucciones `AGENTS.md` aplicables.
 
@@ -61,9 +61,38 @@ visual por petición del usuario**: validar ciclo y transiciones antes de aproba
 `tests/aren_run_refined.gd` cubre la variante previa; falta ampliar la cobertura
 a `aren_run_balanced_v1`. No hay generación universal de movimientos desde texto.
 
-**Próximo objetivo:** integrar las animaciones aprobadas en un entorno jugable
-provisional, sin texturas, con pendientes, baches y apoyos dinámicos mediante IK.
-La integración del controlador y la adaptación de pies/pelvis a colisiones,
-normales del terreno y soportes móviles están pendientes; el evaluador actual
-es de avance recto sobre plano. Consultar solo las secciones necesarias de
-`docs/ANIMATION_SYSTEMS.md` al ampliar el sistema.
+## Prueba jugable de terreno (aislada)
+
+Abrir `scenes/prototype_3d/aren_terrain_test.tscn` y pulsar **F6**. No cambia
+la escena principal ni el visor `aren_authoring_review.tscn`.
+
+- WASD: movimiento relativo a cámara; Mayús: carrera; botón derecho y ratón:
+  orientar cámara; 1/2/3: normal/cauteloso/cansado; R: volver al inicio.
+- Centro: plano, subida de 15°, plataforma y bajada de 15°. Izquierda: baches
+  suaves. Derecha: pequeños desniveles de 5 a 25 cm. Geometría básica sin texturas.
+- `scenes/prototype_3d/aren_terrain_actor.tscn` hereda la variante coordinada;
+  `scripts/animation/terrain/aren_terrain_actor.gd` añade contactos con colisiones,
+  sondeos de talón/centro/punta y envolvente de suela nativa, normales, pelvis
+  filtrada e IK nativa sin escalado
+  de piernas. Anclajes de apoyo en mundo, también al girar; fase y mezcla usan
+  el desplazamiento medido después de `move_and_slide`, incluso al bloquearse.
+- `aren_terrain_test.gd` reutiliza `movement_response.gd` para aceleración,
+  frenada, dirección y reversión; conserva las seis recetas como preparación
+  corporal. `terrain_step.gd` permite superar obstáculos de hasta 26 cm,
+  comprobando espacio para la cápsula y el techo. Cambiar de estado conserva
+  la fase y mezcla las poses locales, conservando longitudes, durante 0,3 s
+  antes de resolver los apoyos; la velocidad de destino también se filtra.
+  `terrain_foot_support.gd` cachea puntos de la malla skinned en espacio del
+  tobillo para comprobar la suela completa, con margen inicial de 6 mm.
+  Una rejilla dinámica de 3 mm de puntos skinned comprueba colisiones después
+  de IK, una vez por fotograma físico, y permite
+  corrección vertical del tobillo (margen de 3 mm) sin mover el anclaje horizontal.
+  Los tres estados se precargan al abrir la escena. La orientación usa el límite
+  de giro del controlador existente. Clips y perfiles aprobados son de solo lectura.
+- El HUD muestra velocidad medida, error de apoyo y coste CPU de evaluación.
+  Los sondeos usan la capa física 1, excluyen el controlador y aceptan normales
+  hasta 42°. Alcance de sondeo: 0,65 m arriba y 0,85 m abajo del tobillo.
+
+Alcance provisional: locomoción terrestre sobre colisiones estáticas. No incorpora
+saltos, combate ni seguimiento de plataformas móviles. Revisar también la
+naturalidad visual en Godot con F6 antes de integrar en el juego principal.
