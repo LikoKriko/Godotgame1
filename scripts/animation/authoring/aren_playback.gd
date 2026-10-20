@@ -2,6 +2,7 @@ extends Node3D
 ## Opt-in baked locomotion. The approved gameplay controller remains unchanged.
 @export var library:AnimationLibrary
 @export var model_path:NodePath
+@export var use_approved_skin:=false
 var player:AnimationPlayer
 var tree:AnimationTree
 var target_speed:=0.0
@@ -10,6 +11,7 @@ var current_speed:=0.0
 func _ready() -> void:
  if library==null:
   push_error("Aren playback requires a generated library");set_process(false);return
+ if use_approved_skin:prepare_approved_skin(get_node(model_path))
  player=AnimationPlayer.new();player.name="Clips";add_child(player)
  player.add_animation_library(&"aren",library)
  tree=AnimationTree.new();tree.name="Locomotion";add_child(tree);tree.anim_player=tree.get_path_to(player)
@@ -38,3 +40,11 @@ func use_procedural_rollback() -> Node3D:
  var actor=preload("res://scripts/prototype_3d/survivor_model.gd").new()
  actor.scale=Vector3.ONE*(1.75/64.0)
  return actor
+static func prepare_approved_skin(model:Node3D) -> void:
+ var skeleton:Skeleton3D=model.find_children("*","Skeleton3D",true,false)[0]
+ var mesh:MeshInstance3D=model.find_children("*","MeshInstance3D",true,false)[0]
+ var frame:=Transform3D.IDENTITY
+ var ancestor:Node3D=skeleton
+ while ancestor!=model.get_parent():
+  frame=ancestor.transform*frame;ancestor=ancestor.get_parent()
+ mesh.mesh=preload("res://scripts/animation/characters/hip_skin.gd").stable_mesh(mesh.mesh,mesh.skin,frame,skeleton.find_bone("smartrig_Hips"))

@@ -176,6 +176,8 @@ godot --headless --path . --script tools/animation/generate_aren.gd -- \
 | caution | 0–1 | Apoyo más largo, cuerpo más bajo y transferencia lateral contenida |
 | tension | 0–1 | Postura de protección de ambos brazos |
 | anticipation | 0–0,08 ciclos | Anticipación de los brazos respecto al paso |
+| torso_flow | 0–1 | Reparte flexión, inclinación lateral y contrarrotación en toda la columna al caminar |
+| pelvis_sway | 0,2–1 | Fracción de oscilación de pelvis conservada con `torso_flow` activo |
 
 No se simulan lesiones clínicas, anatomías distintas, pendientes ni contactos de
 armas en estos clips de manos libres. Los presets son variantes técnicas
@@ -234,6 +236,51 @@ que se está reproduciendo. La prueba usa `stride=1.2`, `arms=1.3`, `lean=4°`
 adicionales y la misma cadencia. Aumenta el recorrido por ciclo de 1,925 a
 2,31 m y la velocidad de revisión de 2 a 2,4 m/s para conservar el apoyo.
 No altera las velocidades del controlador del juego.
+
+#### Caminata con torso coordinado
+
+El visor abre por defecto **Caminata: torso coordinado**, una entrega independiente
+en `aren_walk_torso_v2/`. Se compara con **Prueba: paso +20 %, brazos +30 %** en
+la misma fase y con los mismos parámetros de zancada, brazos, inclinación media
+y cadencia. Las bibliotecas anteriores y los recursos del modelo se conservan.
+
+La capa `aren_torso_flow.gd` mide el ciclo base y conserva su postura media.
+Con `torso_flow=1` y `pelvis_sway=0.4`, mantiene el 40 % de la oscilación de pelvis.
+La contrarrotación original se reparte progresivamente entre Spine, Spine1 y
+Spine2 con participaciones acumuladas 30/65/100 %. Añade flexión sagital contenida
+de ±0,25° a dos pulsos por ciclo e inclinación lateral de ±0,45° ligada a los
+apoyos, con compensación parcial de cuello/cabeza. Las transformaciones de cada
+tramo arrastran sus descendientes; después se resuelven los pies con las
+longitudes nativas y los objetivos previos. No modifica la trayectoria ni el
+reloj del paso. Esta capa se aplica únicamente a `walk`; reposo y carrera
+conservan sus poses anteriores.
+
+La deformación exagerada de cintura no procedía solo del hueso de cadera:
+las escenas horneadas anteriores reproducían la piel fuente y omitían la
+estabilización de cintura/glúteos ya usada por `NativeSurvivor`. Las entregas
+con `torso_flow` activado exportan `use_approved_skin=true`. Su reproducción y
+su validación reutilizan `hip_skin.gd` con sus valores aprobados, sin añadir una
+corrección de pesos nueva. La copia GPU se comparte y se prepara una vez; las
+fuentes, posiciones de reposo, UV, morfos, materiales y binds permanecen intactos.
+La escena guarda la referencia al modelo original y prepara esta copia al
+cargar. La política de piel pertenece al actor completo; las poses de carrera
+y reposo no se vuelven a diseñar. Las escenas antiguas mantienen el flag desactivado.
+
+Repetir con otro nombre:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren.gd -- \
+  --preset natural \
+  --parameters '{"stride":1.2,"arms":1.3,"lean":0.06981317008,"torso_flow":1,"pelvis_sway":0.4}' \
+  --output res://assets/characters/prototype_3d/generated/aren_walk_torso_v3
+godot --headless --path . --script tests/aren_torso_coordination.gd
+```
+
+La prueba reproduce ambas bibliotecas, mide la piel real de la cintura respecto
+a la cadera, la distribución angular de los tres tramos, la contrarrotación y
+la conservación de pies/brazos/cadencia. Comprueba además que los clips de
+reposo/carrera mantienen sus claves y poses, y que la corrección coincide con sus
+fuentes. `tests/aren_authoring.gd` incluye las transiciones de la nueva entrega.
 
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango

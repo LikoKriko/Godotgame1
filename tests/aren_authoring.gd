@@ -17,8 +17,9 @@ func run() -> void:
  require(Request.parameters("natural",{"stride":1.2,"arms":1.3}).ok,"Exact 20/30 percent boundary values accepted")
  require(not Request.parameters("natural",{"arms":1.31}).ok,"Values beyond the tested arm range rejected")
  var spine_rotations:Array[Quaternion]=[]
- for preset in ["natural","cautious","tired"]:
-  var scene=load(BASE%preset).instantiate();root.add_child(scene);scene.set_process(false)
+ for preset in ["natural","cautious","tired","coordinated"]:
+  var scene_path:String=BASE%preset if preset!="coordinated" else "res://assets/characters/prototype_3d/generated/aren_walk_torso_v2/aren.tscn"
+  var scene=load(scene_path).instantiate();root.add_child(scene);scene.set_process(false)
   require(scene.tree!=null and scene.tree.active,"Exported scene builds an active AnimationTree")
   var skeleton:Skeleton3D=scene.get_node(scene.model_path).find_children("*","Skeleton3D",true,false)[0]
   require(skeleton.get_bone_count()==66,"All original bones retained")

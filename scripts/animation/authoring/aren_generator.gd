@@ -3,6 +3,7 @@ extends RefCounted
 const Request=preload("res://scripts/animation/authoring/aren_request.gd")
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const Solver=preload("res://scripts/continuous_body_pose.gd")
+const Torso=preload("res://scripts/animation/authoring/aren_torso_flow.gd")
 const MODEL="res://assets/characters/prototype_3d/composite/model.scn"
 const PROFILE="res://data/animation/characters/survivor_native.tres"
 const CATALOG="res://data/animation/authoring/aren_clips.json"
@@ -13,11 +14,13 @@ var actor:Node3D
 var fingerprint:Dictionary={}
 var source_kind:="unavailable"
 var arm_references:Dictionary={}
+var torso_reference:Dictionary={}
 func configure(parent:Node) -> bool:
  actor=Actor.new();parent.add_child(actor)
  actor.family_override=&"";actor.steering_is_physical=true
  if actor.native.skeleton.get_bone_count()!=66:return false
  var sources=[MODEL,PROFILE,CATALOG,"res://assets/characters/prototype_3d/composite/source.json","res://scripts/animation/characters/native_survivor.gd","res://scripts/prototype_3d/survivor_model.gd","res://scripts/prototype_3d/humanoid_rig.gd","res://scripts/prototype_3d/survivor_animation.gd","res://scripts/prototype_3d/human_kinematics.gd","res://scripts/continuous_body_pose.gd","res://scripts/animation/characters/native_hand_grip.gd","res://scripts/animation/shared/rig_binding.gd","res://scripts/animation/characters/gait_parameters.gd","res://scripts/animation/authoring/aren_generator.gd","res://scripts/animation/authoring/aren_request.gd","res://scripts/animation/authoring/aren_validator.gd","res://tools/animation/generate_aren.gd"]
+ sources.append_array(["res://scripts/animation/authoring/aren_torso_flow.gd","res://scripts/animation/authoring/aren_playback.gd","res://scripts/animation/characters/hip_skin.gd"])
  var catalog=JSON.parse_string(FileAccess.get_file_as_string(CATALOG))
  if not catalog is Dictionary or not catalog.get("clips") is Array:return false
  for entry in catalog.clips:
@@ -72,6 +75,7 @@ func sample(motion:String,phase:float,p:Dictionary) -> void:
  if motion!="idle":capture_arm_reference(motion)
  actor.animate(StringName(motion),phase,false,0,phase,Vector3.BACK if motion!="idle" else Vector3.ZERO)
  if motion=="idle":return
+ if motion=="walk":Torso.apply(native,phase,p,torso_reference)
  var info:=cycle_info(motion,p)
  var hip:int=native.binding.bone(&"root")
  var pivot:Vector3=native.posed[hip].origin
@@ -139,13 +143,16 @@ func arm_angle(side:int) -> float:
 func capture_arm_reference(motion:String) -> void:
  if arm_references.has(motion):return
  var values:Array=[[],[]]
+ var torso_frames:Array=[]
  for frame in SAMPLES+1:
   var phase:=frame/float(SAMPLES)
   actor.animate(StringName(motion),phase,false,0,phase,Vector3.BACK)
+  if motion=="walk":torso_frames.append(Torso.capture(actor.native))
   for side in 2:values[side].append(arm_angle(side))
  var references:Array=[]
  for side in 2:references.append({"samples":values[side],"centre":(values[side].min()+values[side].max())*.5})
  arm_references[motion]=references
+ if motion=="walk":torso_reference=Torso.summarize(torso_frames)
 func rotate_subtree(bone:int,change:Transform3D) -> void:
  var native=actor.native
  for i in native.posed.size():

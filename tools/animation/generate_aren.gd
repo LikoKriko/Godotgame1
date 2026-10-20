@@ -4,6 +4,7 @@ extends SceneTree
 const Generator=preload("res://scripts/animation/authoring/aren_generator.gd")
 const Request=preload("res://scripts/animation/authoring/aren_request.gd")
 const Validator=preload("res://scripts/animation/authoring/aren_validator.gd")
+const Playback=preload("res://scripts/animation/authoring/aren_playback.gd")
 func _initialize():call_deferred("run")
 func fail(message:String) -> void:
  push_error(message);quit(1)
@@ -33,6 +34,9 @@ func run() -> void:
  var skeleton:Skeleton3D=model.find_children("*","Skeleton3D",true,false)[0]
  var mesh:MeshInstance3D=model.find_children("*","MeshInstance3D",true,false)[0]
  var skeleton_path:=scene.get_path_to(skeleton);var mesh_path:=scene.get_path_to(mesh)
+ var source_mesh:Mesh=mesh.mesh
+ var approved_skin:bool=request.values.torso_flow>0
+ if approved_skin:Playback.prepare_approved_skin(model)
  var library:=AnimationLibrary.new()
  for motion in ["idle","walk","run"]:library.add_animation(StringName(motion),generator.set_animation_style("Aren",motion,request.values,skeleton_path,mesh_path))
  # Validate through AnimationPlayer against the actual native scene.
@@ -51,6 +55,7 @@ func run() -> void:
   if not report.ok:write_evidence(options,reports);fail("Validation failed for "+motion+": "+str(report));return
  player.stop();scene.remove_child(player);player.free()
  scene.set_script(load("res://scripts/animation/authoring/aren_playback.gd"));scene.set("library",library);scene.set("model_path",NodePath("NativeModel"));scene.scale=Vector3.ONE*Generator.SCALE
+ scene.set("use_approved_skin",approved_skin);mesh.mesh=source_mesh
  # Store the library separately to keep each deliverable replaceable.
  if DirAccess.make_dir_recursive_absolute(output)!=OK:fail("Cannot create output directory");return
  if ResourceSaver.save(library,output+"/clips.res",ResourceSaver.FLAG_COMPRESS)!=OK:fail("Cannot save clips");return

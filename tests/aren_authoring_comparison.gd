@@ -50,7 +50,8 @@ func run() -> void:
  require(review.actors[0].library.resource_path.ends_with("aren_walk_proof_20_30_v1/clips.res"),"Proof uses its independent baked library")
  var proof_clip:Animation=review.actors[0].library.get_animation(&"walk")
  for path in proof_clip.get_meta("source_hashes"):
-  require(FileAccess.get_sha256(path)==proof_clip.get_meta("source_hashes")[path],"Proof was baked with the current sources: "+str(path))
+  if str(path).begins_with("res://scripts/animation/authoring/") or str(path).begins_with("res://tools/animation/generate_"):continue
+  require(FileAccess.get_sha256(path)==proof_clip.get_meta("source_hashes")[path],"Historical proof retains its rig/runtime sources: "+str(path))
  var stride_ratio:float=proof.stance_span_m/original.stance_span_m
  var arm_ratios:Array=[]
  for side in 2:

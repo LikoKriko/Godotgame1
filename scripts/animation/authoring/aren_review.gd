@@ -2,15 +2,16 @@ extends Control
 ## Four live views of a generated library, on a real fixed ground grid.
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
-@export var scene_path:=ROOT+"aren_walk_proof_20_30_v1/aren.tscn"
+@export var scene_path:=ROOT+"aren_walk_torso_v2/aren.tscn"
 var sources:Array=[
  {"label":"Original del juego","path":""},
  {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
  {"label":"Prueba: paso +20 %, brazos +30 %","path":ROOT+"aren_walk_proof_20_30_v1/aren.tscn"},
  {"label":"Generada cautelosa v1","path":ROOT+"aren_cautious_v1/aren.tscn"},
- {"label":"Generada cansada v1","path":ROOT+"aren_tired_v1/aren.tscn"}
+ {"label":"Generada cansada v1","path":ROOT+"aren_tired_v1/aren.tscn"},
+ {"label":"Caminata: torso coordinado","path":ROOT+"aren_walk_torso_v2/aren.tscn"}
 ]
-var source_index:=2
+var source_index:=5
 var source_selector:OptionButton
 var source_status:Label
 var actors:Array[Node3D]=[]
