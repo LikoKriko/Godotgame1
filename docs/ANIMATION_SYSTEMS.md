@@ -284,7 +284,7 @@ fuentes. `tests/aren_authoring.gd` incluye las transiciones de la nueva entrega.
 
 #### Carrera y reposo parametrizados
 
-El visor abre **Carrera y reposo corregidos** (`aren_run_idle_v3/`). Seleccionar
+La opción **Carrera y reposo corregidos** (`aren_run_idle_v3/`) conserva esa entrega. Seleccionar
 `run` o `idle`; **Caminata: torso coordinado** permite comparar la entrega anterior.
 La biblioteca copia `walk` con todas sus claves, duración y metadatos intactos.
 Las bibliotecas originales permanecen disponibles. El controlador jugable no cambia:
@@ -335,7 +335,7 @@ Los límites de alcance y contactos siguen sujetos a validación antes de export
 
 #### Transiciones compartidas de movimiento
 
-El visor abre **Transiciones con apoyos** (`aren_transitions_v1/aren.tscn`).
+La opción **Transiciones con apoyos** (`aren_transitions_v1/aren.tscn`) conserva la entrega anterior.
 Elegir **Normal**, **Cauteloso** o **Cansado**, y una de las seis transiciones del
 segundo selector. **Encadenadas** recorre reposo→caminar→correr→caminar→reposo,
 seguido de reposo→correr→reposo, sin reiniciar la fase ni los contactos entre
@@ -398,6 +398,82 @@ godot --headless --path . --script tools/animation/generate_aren_transitions.gd 
   --output res://assets/characters/prototype_3d/generated/aren_transitions_custom
 godot --headless --path . --script tests/aren_transitions.gd
 ```
+
+#### Carrera habitual e impulso inicial coordinados
+
+El visor abre **Carrera e impulso: postura ajustada** (`aren_run_launch_v1/`),
+con `run` seleccionado. **Ver antes / Ver después** alterna con la entrega
+**Transiciones con apoyos**, conservando estado, fase y velocidad. Para comparar
+el impulso, seleccionar **Reposo → correr** y usar el mismo botón. Puede pausarse
+la comparación; al alternar, el arranque se reproduce hasta el mismo instante,
+sin cambiar la trayectoria de velocidad. **Reiniciar** repite el arranque.
+El selector de estado conserva Normal/Cauteloso/Cansado en ambas versiones.
+
+Los ángulos siguientes son incrementos sobre los ciclos aprobados de cada estado,
+no inclinaciones absolutas medidas desde la vertical:
+
+| Estado | Carrera habitual, pecho | Impulso, extra máximo sobre la nueva postura | Ventana de recuperación |
+| --- | --- | --- | --- |
+| Normal | +3° | +7° | 2,5 pasos |
+| Cauteloso | +2° | +4° | 3 pasos |
+| Cansado | +1,5° | +3° | 3 pasos |
+
+`aren_run_posture.gd` aplica una capa constante durante todo el ciclo. La pelvis
+recibe el 35 % del giro y la inclinación acumulada alcanza 50/75/100 % en abdomen
+inferior/superior/pecho. Hombros y brazos acompañan al pecho, conservando exactamente
+su gesto relativo; el cuello compensa la mitad del giro añadido para estabilizar
+la mirada. Las cadenas completas de piernas se expresan en el nuevo marco de
+pelvis conservando sus transformaciones globales, apoyos y morfos originales.
+No cambia la cadencia, amplitud ni trayectoria de las extremidades, ni el rig,
+los binds, longitudes o escalas nativas. La capa solo afecta al muestreo de `run`:
+walk/idle y los recursos originales permanecen intactos.
+
+`aren_run_launch_actor.gd` reutiliza el evaluador de transiciones y sus controles.
+Solo al arrancar a correr desde reposo sustituye la inclinación de aceleración
+anterior por el impulso parametrizado. La anticipación carga la postura antes de
+avanzar. Su objetivo absoluto parte de la inclinación media de la nueva carrera
+del estado más el extra de impulso; se filtra ese objetivo absoluto para que la
+mezcla inicial con reposo no diluya el impulso ni produzca sobrepasos.
+El primer aterrizaje real tras ese impulso fija el origen de la
+recuperación. Desde ahí se combina el avance de fase (dos apoyos por ciclo) con
+la fracción de velocidad realmente ganada hacia la velocidad de carrera del
+estado. La recuperación quintica progresa con el mayor de esos avances y nunca
+retrocede. El reloj de transición por sí solo no reduce la inclinación.
+
+La inclinación adicional se reparte con la capa corporal del evaluador existente:
+45 % pelvis y 55 % distribuido en columna, con compensación parcial del cuello.
+La respuesta del resorte aumenta suavemente de 12 a 24 con el avance de la
+recuperación para evitar un retraso de postura al tercer apoyo.
+El resorte corporal mantiene la continuidad al pasar a carrera estable o
+interrumpir el arranque. La velocidad, aceleración, distancia y reloj de pasos
+siguen el plan aprobado; los contactos e IK existentes coordinan el impulso con
+piernas y transferencia de peso. La nueva postura habitual ya forma parte de la
+pose destino, sin un segundo cambio de postura al terminar el arranque.
+
+Criterios de comparación en frente, lateral, espalda y tres cuartos:
+
+- Igual fase, estado y velocidad, tanto en `run` como en el instante del arranque.
+- Incrementos efectivos de pecho y pelvis acordes a la tabla, no flexión aislada
+  de cintura; cabeza y hombros acompañan sin oscilaciones nuevas.
+- Trayectorias de piernas/pies y gesto relativo de brazos conservados en carrera
+  habitual (tolerancia de 1 mm en pies); reloj, velocidad y ciclos sin alteración.
+- Impulso visible, recuperación entre los siguientes 2–3 pasos y residual inferior
+  a 0,25° al tercer paso; avance de fase y velocidad controlan la recuperación.
+- Continuidad de pelvis/columna, apoyos bloqueados durante las transiciones,
+  bucles continuos y piel dentro de la tolerancia de suelo de 4 mm.
+
+La entrega solo guarda escena y perfil; referencia las bibliotecas aprobadas y los
+seis controles existentes sin copiarlos. Regenerar con un nombre nuevo:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren_run_posture.gd -- \
+  --output res://assets/characters/prototype_3d/generated/aren_run_launch_custom
+godot --headless --path . --script tests/aren_run_posture.gd
+```
+
+El actor añade `seek_cycle(clip, segundos)` para comparar los ciclos muestreados.
+La API de solicitud y encadenado de transiciones sigue siendo la anterior. Las
+entregas previas y el controlador jugable mantienen su comportamiento.
 
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango
