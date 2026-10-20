@@ -129,6 +129,107 @@ las pistas omitidas para que el departamento complete lo específico del modelo.
 
 ## Curvas del superviviente
 
+### Autoría automatizada de Aren
+
+`tools/animation/generate_aren.gd` crea bibliotecas independientes de reposo,
+caminata y carrera para los 66 huesos nativos. No sobrescribe clips ni fuentes.
+Reutiliza las curvas propias autorizadas del catálogo local
+`data/animation/authoring/aren_clips.json`, adapta el cuerpo mediante el rig
+nativo y hornea una trayectoria original de apoyos con IK de longitudes fijas.
+No contiene mocap externo ni concede una licencia de redistribución separada.
+Los clips de huesos suministrados posteriormente pueden prepararse con
+`retarget_clip.gd`; no se aceptan recursos externos automáticamente en el catálogo.
+
+Desde la raíz, con Godot 4.6.3 o compatible:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren.gd -- \
+  --request "Genera una caminata de Aren cautelosa natural zancada media brazos moderados sin deslizamiento de pies" \
+  --output res://assets/characters/prototype_3d/generated/aren_custom_v1 \
+  --evidence /tmp/aren-custom-validation
+```
+
+La salida debe ser un directorio **nuevo**. Cada petición entrega ambos ciclos
+walk/run y reposo, para poder probar sus transiciones; el movimiento mencionado
+en la petición expresa la intención, no excluye su compañero de locomoción.
+El vocabulario está delimitado: caminar/caminata, correr/carrera, natural,
+cautelosa/cauteloso, cansada/cansado, zancada corta/media/larga y brazos moderados.
+Las palabras desconocidas fallan con un mensaje; no se inventa una animación.
+Las instrucciones abiertas pueden traducirse a parámetros por el agente sin
+especificar huesos. `--preset natural|cautious|tired` es la alternativa explícita.
+
+Personalización adicional, por ejemplo:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren.gd -- \
+  --preset tired --parameters '{"stride":0.8,"cadence":0.75,"arms":0.5}' \
+  --output res://assets/characters/prototype_3d/generated/aren_tired_v2
+```
+
+| Parámetro | Rango | Efecto coordinado |
+| --- | --- | --- |
+| stride | 0,6–1,1 | Zancada, recorrido y velocidad de desplazamiento |
+| cadence | 0,65–1,3 | Duración del ciclo y velocidad de desplazamiento |
+| arms | 0,3–1,25 | Balanceo de cadenas completas desde los hombros |
+| lean | −0,03–0,10 rad | Inclinación corporal; piernas resueltas desde las caderas finales |
+| fatigue | 0–1 | Descenso, flexión articulada de espalda/cuello y menor elevación del pie |
+| caution | 0–1 | Apoyo más largo, cuerpo más bajo y transferencia lateral contenida |
+| tension | 0–1 | Postura de protección de ambos brazos |
+| anticipation | 0–0,08 ciclos | Anticipación de los brazos respecto al paso |
+
+No se simulan lesiones clínicas, anatomías distintas, pendientes ni contactos de
+armas en estos clips de manos libres. Los presets son variantes técnicas
+provisionales, no sustituyen una aprobación artística del movimiento.
+`ArenGenerator.set_animation_style` valida parámetros antes de hornear.
+Los perfiles persistentes incluyen jerarquía, ejes, longitudes, roles, cadenas,
+commit de partida y hashes de fuentes, curvas, rig y scripts del pipeline.
+`data/animation/characters/aren_rig_cache.json` evita reconstruir el índice
+cuando coinciden los hashes; se sigue instanciando el rig para reproducirlo.
+Si cambian las fuentes, regenerar el perfil y los clips; no reutilizar un caché
+de otro modelo/importador. `rig_profile.json` acompaña cada entrega.
+
+La validación reproduce 241 instantes por clip con AnimationPlayer, comprueba
+longitudes locales, transformaciones finitas, cierre de bucle y velocidad de
+los tobillos apoyados en espacio de mundo. Muestrea toda la piel y los morfos
+de rodilla en nueve instantes. Tolera hasta 6 cm/s de deslizamiento de tobillo
+y 4 mm de penetración; no certifica cada vértice en cada instante ni el contacto
+de cada punto de la suela. Una corrección vertical constante se hornea cuando
+el error de suelo es menor de 8 cm. Los fallos restantes impiden exportar.
+Los informes opcionales permanecen fuera de Git; no equivalen a revisión visual.
+
+Cada entrega contiene `clips.res`, `rig_profile.json` y `aren.tscn`. La escena
+crea un AnimationTree de reposo/caminar/correr con ciclos de fase normalizada,
+reloj común y transición de 5 unidades de mezcla/s. `set_locomotion(metros_s)`
+elige la mezcla; `current_speed` expone la velocidad compatible con zancada y
+cadencia. El consumidor mueve el actor; la escena no añade física ni colisiones.
+La variante natural reproduce aproximadamente 2/4,48 m/s; las variantes
+personalizadas tienen velocidades propias. No forzar una variante a una
+velocidad distinta sin adaptar parámetros y volver a validar contactos.
+La prueba de transiciones
+comprueba finitud, inversiones, continuidad angular y llegada a reposo;
+no certifica ausencia de deslizamiento durante todas las mezclas dinámicas.
+El gameplay conserva su controlador y clips anteriores. El rollback consiste
+en retirar la escena generada o usar `use_procedural_rollback()` y devolver su
+actor al controlador existente.
+
+Abrir `scenes/prototype_3d/aren_authoring_review.tscn` con F6 para cuatro vistas,
+pausa, cámara lenta y transiciones. Para otro recurso, ejecutar:
+
+```sh
+godot --path . scenes/prototype_3d/aren_authoring_review.tscn -- \
+  res://assets/characters/prototype_3d/generated/aren_tired_v1/aren.tscn
+godot --path . --script tools/animation/render_aren.gd -- \
+  res://assets/characters/prototype_3d/generated/aren_tired_v1/aren.tscn \
+  /tmp/aren-tired-render walk
+godot --headless --path . --script tests/aren_authoring.gd
+```
+
+El render necesita un servidor gráfico OpenGL; headless basta para hornear y
+validar pero no para las imágenes. La exportación produce 48 fotogramas con
+cuatro ángulos y cuadrícula fija mientras el actor recorre su distancia real.
+La revisión visual sigue siendo necesaria para silueta, naturalidad y oclusión.
+Los recursos originales del modelo, binds, rest pose y escala permanecen intactos.
+
 `assets/characters/prototype_3d/motion/controls.res` contiene curvas nativas
 compartidas para marcha, carrera, salto, ocho deslizamientos, caída frontal y
 los golpes de hacha, pico y espada. Se interpolan controles de cuerpo, manos,

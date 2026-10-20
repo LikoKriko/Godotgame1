@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/animation/authoring/aren_playback.gd" id="1_1i6da"]
+[ext_resource type="AnimationLibrary" path="res://assets/characters/prototype_3d/generated/aren_cautious_v1/clips.res" id="2_q2k7b"]
+[ext_resource type="PackedScene" path="res://assets/characters/prototype_3d/composite/model.scn" id="3_jck1l"]
+
+[node name="ArenGenerated" type="Node3D" unique_id=1129944829]
+transform = Transform3D(0.02734375, 0, 0, 0, 0.02734375, 0, 0, 0, 0.02734375, 0, 0, 0)
+script = ExtResource("1_1i6da")
+library = ExtResource("2_q2k7b")
+model_path = NodePath("NativeModel")
+
+[node name="NativeModel" type="Node3D" parent="." unique_id=1488868203 instance=ExtResource("3_jck1l")]
+transform = Transform3D(37.067867, 0, 0, 0, 37.067867, 0, 0, 0, 37.067867, 0, 0, 2.6)

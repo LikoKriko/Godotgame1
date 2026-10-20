@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "clips": [
+    {
+      "id": "aren_project_controls",
+      "path": "res://assets/characters/prototype_3d/motion/controls.res",
+      "source": "res://tools/animation/characters/motion_source.gd",
+      "authorization": "existing_project_authoring_only",
+      "provenance": "Curvas originales de Day Zero; no mocap ni recurso externo",
+      "license": "project_internal_only; no independent redistribution grant",
+      "kind": "contact_controls",
+      "rig": "survivor_native",
+      "motions": ["walk", "run"],
+      "duration": 1.0,
+      "loop": true
+    }
+  ]
+}

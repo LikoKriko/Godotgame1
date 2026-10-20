@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/animation/authoring/aren_playback.gd" id="1_pwfe0"]
+[ext_resource type="AnimationLibrary" path="res://assets/characters/prototype_3d/generated/aren_tired_v1/clips.res" id="2_cutli"]
+[ext_resource type="PackedScene" path="res://assets/characters/prototype_3d/composite/model.scn" id="3_wlcgx"]
+
+[node name="ArenGenerated" type="Node3D" unique_id=1586082233]
+transform = Transform3D(0.02734375, 0, 0, 0, 0.02734375, 0, 0, 0, 0.02734375, 0, 0, 0)
+script = ExtResource("1_pwfe0")
+library = ExtResource("2_cutli")
+model_path = NodePath("NativeModel")
+
+[node name="NativeModel" type="Node3D" parent="." unique_id=1488868203 instance=ExtResource("3_wlcgx")]
+transform = Transform3D(37.067867, 0, 0, 0, 37.067867, 0, 0, 0, 37.067867, 0, 0, 2.6)

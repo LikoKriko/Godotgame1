@@ -27,8 +27,9 @@ se oculta mientras la vista está desviada y reaparece al completar el retorno.
 
 El personaje puede caminar, correr, agacharse, deslizarse, saltar, recoger,
 equipar objetos, comer, beber, bloquear y usar armas. La cámara evita atravesar
-paredes y copas. El modelo tiene un esqueleto de 24 huesos, con controles de
-ropa y volumen de articulaciones. Las colisiones mantienen sus dimensiones
+paredes y copas. El rig auxiliar tiene 24 huesos, con controles de
+ropa y volumen de articulaciones, separados del rig visible nativo de 66 huesos
+descrito en `ANIMATION_SYSTEMS.md`. Las colisiones mantienen sus dimensiones
 independientemente del detalle visual. Las referencias de brazos, piernas y
 volumen de articulaciones se preparan al crear el rig. `skeleton_pose.gd`
 convierte las poses completas a transformaciones locales reutilizando cada
