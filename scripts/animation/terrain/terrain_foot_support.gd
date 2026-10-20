@@ -7,7 +7,9 @@ var skin_query:=PhysicsShapeQueryParameters3D.new()
 var skin_box:=BoxShape3D.new()
 var plane_valid:=false
 var skin_plane:=Plane()
-func configure(native:RefCounted,exclude:Array[RID]=[]) -> void:
+var accept_surface:=Callable()
+func configure(native:RefCounted,exclude:Array[RID]=[],accept:Callable=Callable()) -> void:
+ accept_surface=accept
  soles=[[],[]];skin_samples=[[],[]];bone_bounds=[{},{}]
  skin_query.shape=skin_box;skin_query.collision_mask=1
  skin_query.exclude=exclude;skin_query.margin=.0002
@@ -114,6 +116,7 @@ func cache_plane(hit:Dictionary,bounds:AABB) -> void:
   var p:Vector3=bounds.position+Vector3(corner&1,(corner>>1)&1,(corner>>2)&1)*bounds.size
   var y:float=(plane.d-normal.x*p.x-normal.z*p.z)/normal.y
   if y-p.y>.65:return
+  if accept_surface.is_valid() and not accept_surface.call(Vector3(p.x,y,p.z),normal):return
   var local:Vector3=inverse*Vector3(p.x,y,p.z)
   if absf(local.x)>half.x-.0002 or absf(local.z)>half.z-.0002:return
  skin_plane=plane;plane_valid=true

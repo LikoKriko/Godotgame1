@@ -113,6 +113,17 @@ la escena principal ni el visor `aren_authoring_review.tscn`.
   los puntos de 3 mm. Bordes, mallas, varios contactos o formas desconocidas
   siguen usando el barrido detallado original. La consulta se renueva por pose;
   no reutiliza alturas de otro fotograma ni cambia el reloj de apoyos a 120 Hz.
+  Los rayos y el atajo de plano comparten la selección de superficies del actor:
+  una cara elevada debe estar dentro del escalón de 26 cm. Si no pertenece al
+  plano de suelo del controlador (tolerancia 3,5 cm), requiere movimiento real
+  hacia ella y un aterrizaje válido del barrido corporal de `terrain_step.gd`.
+  Este barrido anticipado de 35 cm solo consulta colisiones; no mueve el cuerpo
+  y se cachea por actualización física. No autoriza terrazas laterales o traseras.
+  La IK limita la flexión añadida a 130°, conservando cualquier flexión mayor
+  presente en la pose aprobada, también después de la compensación de pelvis
+  y de suela. Un apoyo anclado válido puede completar su fase aunque el sondeo
+  nominal cruce un borde; al liberarlo, el desfase parte del objetivo actual
+  y se desvanece con `smooth5`, incluso si no hay superficie aceptable.
   `terrain_cycle_sampler.gd` reutiliza las muestras idénticas entre el cálculo
   de pecho durante el arranque y la pose final de esa misma evaluación. La
   caché exige el mismo clip y tiempo exacto, restaura la pose nativa y los polos

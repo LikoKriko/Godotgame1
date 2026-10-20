@@ -1,6 +1,7 @@
 extends "res://scripts/animation/authoring/aren_run_balanced_actor.gd"
 ## Collision-driven adapter. Source samplers, clips, binds and the review are read-only.
 const TerrainSampler=preload("res://scripts/animation/terrain/terrain_cycle_sampler.gd")
+const Step=preload("res://scripts/animation/terrain/terrain_step.gd")
 const FootSupport=preload("res://scripts/animation/terrain/terrain_foot_support.gd")
 var foot_support=FootSupport.new()
 var body:CharacterBody3D
@@ -30,6 +31,8 @@ var style_blend:=1.0
 var changing_style:=true
 var style_cache:Dictionary={}
 var landing_feet:Dictionary={}
+var climb_checked:=false
+var climb_landing:Dictionary={}
 
 func _ready() -> void:
  super._ready()
@@ -43,7 +46,7 @@ func _ready() -> void:
  activate_style("normal")
  var exclusions:Array[RID]=[]
  if body!=null:exclusions.append(body.get_rid())
- foot_support.configure(native,exclusions)
+ foot_support.configure(native,exclusions,Callable(self,"support_surface"))
  ground_query.collision_mask=1
  if body!=null:ground_query.exclude=[body.get_rid()]
  changing_style=false
@@ -101,6 +104,7 @@ func evaluate_motion(dt:float,velocity:Vector3,on_ground:bool) -> void:
  body_height=height.x;body_height_velocity=height.y
  var envelope:=spring(pose_speed,pose_speed_velocity,speed,dt,24)
  pose_speed=maxf(0,envelope.x);pose_speed_velocity=envelope.y
+ climb_checked=false;climb_landing.clear()
  measured_speed=speed;grounded=on_ground
  measured_acceleration=(speed-previous_speed)/maxf(dt,.00001);previous_speed=speed
  ray_count=0;support_error=0;skin_time_left=clampf(dt,0,1)
@@ -150,8 +154,35 @@ func probe(point:Vector3) -> Dictionary:
  ground_query.from=point+Vector3.UP*.65;ground_query.to=point-Vector3.UP*.85
  ray_count+=1
  var hit:=body.get_world_3d().direct_space_state.intersect_ray(ground_query)
- if not hit.is_empty() and hit.normal.dot(Vector3.UP)<cos(deg_to_rad(42)):return {}
+ if not hit.is_empty() and not support_surface(hit.position,hit.normal):return {}
  return hit
+
+func support_surface(point:Vector3,normal:Vector3) -> bool:
+ if normal.y<cos(deg_to_rad(42)):return false
+ var height:float=point.y-body.global_position.y
+ if height<=.035:return true
+ if height>Step.MAXIMUM+.005:return false
+ # A continuous slope through the controller's floor is already reachable.
+ # A horizontal terrace above that floor needs a real forward body landing.
+ var offset:=point-body.global_position
+ var floor_at_body:float=point.y+(normal.x*offset.x+normal.z*offset.z)/normal.y
+ if absf(floor_at_body-body.global_position.y)<=.035:return true
+ if not grounded or measured_speed<.03:return false
+ var direction:=measured_velocity.normalized()
+ var planar:=Vector3(offset.x,0,offset.z)
+ if planar.length()>.7 or planar.normalized().dot(direction)<.25:return false
+ if not climb_checked:
+  climb_checked=true
+  climb_landing=Step.landing(body,direction*.35)
+ return not climb_landing.is_empty() and absf(point.y-climb_landing.transform.origin.y)<=.035
+
+func minimum_reach(side:int) -> float:
+ var leg:Dictionary=native.legs[side];var ids:Array=leg.ids
+ var upper:Vector3=source_pose[ids[1]].origin-source_pose[ids[0]].origin
+ var lower:Vector3=source_pose[ids[2]].origin-source_pose[ids[1]].origin
+ # Preserve any greater flexion authored in the approved source pose.
+ var flex:float=maxf(deg_to_rad(130),upper.angle_to(lower))
+ return sqrt(maxf(0,leg.a*leg.a+leg.b*leg.b+2*leg.a*leg.b*cos(flex)))
 
 func solve_contacts() -> void:
  if body==null or changing_style:
@@ -179,16 +210,19 @@ func solve_contacts() -> void:
   source_feet.append(goal)
   var world:Vector3=frame*goal.origin
   var hit:=probe(world)
-  var planted:bool=grounded and (gait_blend()<.015 or fposmod(phase+side*.5,1)<support_fraction()) and not hit.is_empty()
   if terrain_contacts.size()<=side:terrain_contacts.append({"planted":false,"anchor":world,"basis":goal.basis})
   var contact:Dictionary=terrain_contacts[side]
+  var planted:bool=grounded and (gait_blend()<.015 or fposmod(phase+side*.5,1)<support_fraction()) and (not hit.is_empty() or contact.planted)
+  var authored_world:=world
+  var authored_basis:=goal.basis
+  var floor_y:float=hit.position.y if not hit.is_empty() else float(contact.get("floor_y",global_position.y))
   var cycle:=floori(phase+side*.5)
   if int(contact.get("released_cycle",-1))==cycle:planted=false
   var clearance:float=foot_support.clearance(side,goal)
   if not hit.is_empty():
    # Three probes cover the sole, preventing a centre-only ray from burying toes.
    var normal:Vector3=hit.normal
-   var floor_y:float=hit.position.y
+   floor_y=hit.position.y
    var forward:Vector3=frame.basis.z.normalized()
    for along in [-.09,.12]:
     var sole_hit:=probe(world+forward*along)
@@ -206,29 +240,31 @@ func solve_contacts() -> void:
     var sole_hit:=probe(world+sole_offset)
     if not sole_hit.is_empty():sole_height=maxf(sole_height,sole_hit.position.y-sole_offset.y)
    if is_finite(sole_height):world.y=sole_height+(0.0 if planted else clearance)+.006
-   var nominal:=world
-   var nominal_basis:=goal.basis
-   if planted:
-    if not contact.planted:
-     contact.anchor=world;contact.basis=frame.basis.orthonormalized()*goal.basis
-     contact.floor_y=floor_y;contact.heading=frame.basis.z.normalized()
-    world=contact.anchor;goal.basis=frame.basis.orthonormalized().inverse()*contact.basis
-   # Release unreachable support rather than stretching a native joint.
-   var hip_world:Vector3=frame*(native.posed[ids[0]].origin+Vector3.UP*((pelvis_offset+body_offset)/SCALE))
-   var turn:float=frame.basis.z.normalized().angle_to(contact.get("heading",frame.basis.z.normalized()))
-   if planted and (hip_world.distance_to(world)>(native.legs[side].a+native.legs[side].b-.08)*SCALE+.002 or turn>deg_to_rad(60)):
-    planted=false;contact.released_cycle=cycle
-    world=nominal;goal.basis=nominal_basis
-   if not planted:
-    if contact.planted:
-     contact.swing_offset=contact.anchor-contact.get("nominal",nominal)
-     contact.release_phase=phase+side*.5
-    var progress:float=clampf((phase+side*.5-float(contact.get("release_phase",phase+side*.5-1)))/maxf(1-support_fraction(),.01),0,1)
-    var fade:float=1-smooth5(progress)
-    world+=contact.get("swing_offset",Vector3.ZERO)*fade
-    var source_basis:Basis=frame.basis.orthonormalized().inverse()*contact.basis
-    goal.basis=Transform3D(source_basis,Vector3.ZERO).interpolate_with(Transform3D(goal.basis,Vector3.ZERO),1-fade).basis
-   contact.nominal=nominal
+  var hip_world:Vector3=frame*(native.posed[ids[0]].origin+Vector3.UP*((pelvis_offset+body_offset)/SCALE))
+  if hip_world.distance_to(world)<minimum_reach(side)*SCALE:
+   world=authored_world;goal.basis=authored_basis;planted=false
+  var nominal:=world
+  var nominal_basis:=goal.basis
+  if planted:
+   if not contact.planted:
+    contact.anchor=world;contact.basis=frame.basis.orthonormalized()*goal.basis
+    contact.floor_y=floor_y;contact.heading=frame.basis.z.normalized()
+   world=contact.anchor;goal.basis=frame.basis.orthonormalized().inverse()*contact.basis
+  # Release unreachable support rather than stretching a native joint.
+  var turn:float=frame.basis.z.normalized().angle_to(contact.get("heading",frame.basis.z.normalized()))
+  if planted and (hip_world.distance_to(world)>(native.legs[side].a+native.legs[side].b-.08)*SCALE+.002 or turn>deg_to_rad(60)):
+   planted=false;contact.released_cycle=cycle
+   world=nominal;goal.basis=nominal_basis
+  if not planted:
+   if contact.planted:
+    contact.swing_offset=contact.anchor-nominal
+    contact.release_phase=phase+side*.5
+   var progress:float=clampf((phase+side*.5-float(contact.get("release_phase",phase+side*.5-1)))/maxf(1-support_fraction(),.01),0,1)
+   var fade:float=1-smooth5(progress)
+   world+=contact.get("swing_offset",Vector3.ZERO)*fade
+   var source_basis:Basis=frame.basis.orthonormalized().inverse()*contact.basis
+   goal.basis=Transform3D(source_basis,Vector3.ZERO).interpolate_with(Transform3D(goal.basis,Vector3.ZERO),1-fade).basis
+  contact.nominal=nominal
   contact.planted=planted
   if contacts.size()>side:contacts[side].planted=planted
   goal.origin=inverse*world
@@ -278,6 +314,14 @@ func solve_contacts() -> void:
    var delta:Vector3=goals[side].origin-hip
    var reach:float=leg.a+leg.b-.08
    if delta.length()>reach:goals[side].origin=hip+delta.normalized()*reach
+  # Pelvis filtering and release offsets must obey the same flexion bound.
+  var from_hip:Vector3=goals[side].origin-native.posed[ids[0]].origin
+  var minimum:=minimum_reach(side)
+  if from_hip.length()<minimum:
+   goals[side].origin=native.posed[ids[0]].origin+from_hip.normalized()*minimum
+   terrain_contacts[side].planted=false
+   terrain_contacts[side].released_cycle=floori(phase+side*.5)
+   if contacts.size()>side:contacts[side].planted=false
   var pole:Vector3=native.posed[ids[1]].origin-native.posed[ids[0]].origin
   var solution:=Solver.joint(native.posed[ids[0]].origin,goals[side].origin,leg.a,leg.b,pole)
   native.untwisted_chain(ids,0,solution,Basis.IDENTITY)
@@ -308,7 +352,12 @@ func solve_contacts() -> void:
      var skin_hit:=probe(skin_world)
      if not skin_hit.is_empty():lift=maxf(lift,skin_hit.position.y+.003-skin_world.y)
    if lift<.0001:break
-   goals[side].origin.y+=lift*1.1/SCALE
+   var hip:Vector3=native.posed[ids[0]].origin
+   var horizontal:float=Vector2(goals[side].origin.x-hip.x,goals[side].origin.z-hip.z).length_squared()
+   var ceiling:float=hip.y-sqrt(maxf(0,minimum*minimum-horizontal))
+   var raised:=minf(goals[side].origin.y+lift*1.1/SCALE,ceiling)
+   if raised<=goals[side].origin.y+.000001:break
+   goals[side].origin.y=raised
    # This is a fresh per-pose skin correction, never accumulated in the
    # immutable support anchor across frames or fed back into pelvis height.
    solution=Solver.joint(native.posed[ids[0]].origin,goals[side].origin,leg.a,leg.b,pole)
