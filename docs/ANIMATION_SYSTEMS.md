@@ -533,9 +533,9 @@ godot --headless --path . --script tests/aren_coordination.gd
 
 #### Caminata con movimiento del torso superior
 
-El visor abre **Caminata: torso superior coordinado** (`aren_walk_upper_v1/`), con
-`walk` seleccionado. **Ver antes / Ver después** alterna con `aren_coordination_v1`
-conservando instante, fase, estado y velocidad. Se mantienen disponibles los seis
+La entrega **Caminata: torso superior coordinado** (`aren_walk_upper_v1/`)
+conserva el ajuste de caminata y sigue seleccionable en el visor. La entrega
+posterior de carrera hereda estos mismos ciclos y parámetros de torso. Se mantienen disponibles los seis
 cambios de velocidad y **Encadenadas**, además de **Pausa** y **Reiniciar**.
 
 `aren_walk_upper_sampler.gd` reutiliza el muestreo contralateral y añade una capa
@@ -584,6 +584,67 @@ tres tramos de columna, contrarrotación sin giro aislado de cintura, hombros
 conectados, cabeza más estable que el pecho y apoyos conservados al encadenar o
 interrumpir transiciones. La comprobación automatizada evalúa también la piel
 deformada del torso superior para detectar ajustes sin efecto visible.
+
+#### Carrera con apertura contenida y recuperación temprana
+
+El visor abre **Carrera: zancada contenida** (`aren_short_run_v1/`), con `run`
+seleccionado. **Ver antes / Ver después** alterna con `aren_walk_upper_v1` en la
+misma fase del ciclo, respetando la duración de cada versión. En transiciones
+conserva el tiempo real, la velocidad y la distancia recorrida; las fases pueden
+diferir porque la cadencia cambia. Los tres estados, las seis transiciones y
+**Encadenadas** siguen disponibles.
+
+`generate_aren_short_run.gd` mide la separación longitudinal máxima de los pies
+de cada ciclo fuente y calibra los objetivos de vuelo hasta obtener el 80 % de
+esa apertura. Es una reducción de la separación observable en vista lateral,
+distinta de la distancia recorrida por ciclo. `duration_scale=0.9` acorta el ciclo
+un 10 % y aumenta la cadencia un 11,11 %. La distancia de desplazamiento por ciclo
+se reduce también un 10 % para conservar exactamente la velocidad del estado.
+La fracción de apoyo aumenta inversamente a la duración: el tiempo físico de
+contacto y su recorrido longitudinal permanecen iguales.
+
+`aren_short_run.gd` reutiliza el planteamiento de objetivos de pie del generador,
+el límite de alcance y el solver IK nativo. Durante el vuelo, calibra los tramos
+de liberación y preparación del aterrizaje (proporción 1:1,4). Las curvas quinticas
+conservan velocidad y aceleración en sus uniones con el apoyo; invierten antes
+la trayectoria de la pierna trasera y reducen la extensión de la delantera.
+La recuperación adicional del talón se concentra en el primer tercio del vuelo
+mediante una envolvente suave, nula en los contactos:
+
+| Estado | Recuperación del talón, parámetro |
+| --- | --- |
+| Normal | 0,18 m |
+| Cauteloso | 0,14 m |
+| Cansado | 0,13 m |
+
+El IK articula muslo y rodilla para alcanzar esos objetivos, conservando longitudes,
+orientación de pie y morfos correctivos. La elevación de vuelo de pelvis se ajusta
+a la nueva fracción de apoyo; pelvis, torso, cabeza y brazos comparten el nuevo
+reloj sin cambiar sus gestos angulares ni la inclinación de carrera estable.
+Se conserva el evaluador de aceleración/frenada, bloqueo de contactos, corrección
+del plano de rodilla y recuperación del impulso por apoyos y velocidad real.
+
+La entrega guarda tres recursos `run_*.res` con las claves fuente temporizadas y
+metadatos de ciclo coherentes. `aren_short_run_actor.gd` los combina con referencias
+a los mismos recursos de caminar/reposo; `aren_short_run_sampler.gd` aplica los
+objetivos parametrizados al evaluar la pose. Para evaluar la entrega completa,
+usar el actor (`seek_cycle`) o la escena de revisión. El perfil registra los
+parámetros y hashes de fuentes; no se duplican las bibliotecas de caminar/reposo
+ni se modifican los modelos, binds, materiales o recursos previos.
+
+Regenerar con un directorio nuevo:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren_short_run.gd -- \
+  --output res://assets/characters/prototype_3d/generated/aren_short_run_custom
+godot --headless --path . --script tests/aren_short_run.gd
+```
+
+Comparar el ciclo lateral completo: apertura máxima, flexión anatómica, recuperación
+del talón y preparación del apoyo; después probar **Reposo → correr**, carrera
+estable y **Correr → reposo**, además de cambios hacia/desde caminar e interrupciones.
+La velocidad y los contactos deben conservarse, sin saltos de pelvis/columna ni
+alteraciones de las caminatas y el reposo aprobados.
 
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango
