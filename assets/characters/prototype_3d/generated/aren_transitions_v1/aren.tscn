@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/characters/prototype_3d/generated/aren_run_idle_v3/aren.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/animation/authoring/aren_transition_actor.gd" id="2"]
+
+[node name="ArenTransitions" instance=ExtResource("1")]
+script = ExtResource("2")
+transition_profile = "res://assets/characters/prototype_3d/generated/aren_transitions_v1/profile.json"

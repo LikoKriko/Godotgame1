@@ -2,7 +2,7 @@ extends Control
 ## Four live views of a generated library, on a real fixed ground grid.
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
-@export var scene_path:=ROOT+"aren_run_idle_v3/aren.tscn"
+@export var scene_path:=ROOT+"aren_transitions_v1/aren.tscn"
 var sources:Array=[
  {"label":"Original del juego","path":""},
  {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
@@ -10,9 +10,16 @@ var sources:Array=[
  {"label":"Generada cautelosa v1","path":ROOT+"aren_cautious_v1/aren.tscn"},
  {"label":"Generada cansada v1","path":ROOT+"aren_tired_v1/aren.tscn"},
  {"label":"Caminata: torso coordinado","path":ROOT+"aren_walk_torso_v2/aren.tscn"},
- {"label":"Carrera y reposo corregidos","path":ROOT+"aren_run_idle_v3/aren.tscn"}
+ {"label":"Carrera y reposo corregidos","path":ROOT+"aren_run_idle_v3/aren.tscn"},
+ {"label":"Transiciones con apoyos","path":ROOT+"aren_transitions_v1/aren.tscn"}
 ]
-var source_index:=5
+const MOTIONS=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]
+const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
+var state_selector:OptionButton
+var restart_button:Button
+var chain_index:=0
+var chain_wait:=0.0
+var source_index:=7
 var source_selector:OptionButton
 var source_status:Label
 var actors:Array[Node3D]=[]
@@ -33,6 +40,7 @@ func _ready() -> void:
   if sources[i].path==scene_path:source_index=i;break
  if source_index<0:
   sources.append({"label":"Generada personalizada","path":scene_path});source_index=sources.size()-1
+ if sources[source_index].path.ends_with("aren_transitions_v1/aren.tscn"):motion="transitions"
  build_views()
  var bar:=HBoxContainer.new();bar.position=Vector2(12,8);add_child(bar)
  source_selector=OptionButton.new();source_selector.name="SourceSelector"
@@ -40,12 +48,19 @@ func _ready() -> void:
  bar.add_child(source_selector);source_selector.select(source_index);source_selector.item_selected.connect(select_source)
  var clips:=OptionButton.new()
  motion_selector=clips
- for label in ["walk","run","idle","transitions"]:clips.add_item(label)
- bar.add_child(clips);clips.item_selected.connect(func(index):motion=["walk","run","idle","transitions"][index];elapsed=0;travel=0;show_frame(motion,elapsed) if motion!="transitions" else reset_trees();update_source_status())
+ for label in ["walk","run","idle","Encadenadas","Reposo → caminar","Reposo → correr","Caminar → correr","Correr → caminar","Caminar → reposo","Correr → reposo"]:clips.add_item(label)
+ bar.add_child(clips);clips.select(MOTIONS.find(motion));clips.item_selected.connect(select_motion)
  var angles:=Label.new();angles.text="Frente · lateral · espalda · tres cuartos";bar.add_child(angles)
  var pause:=Button.new();pause.text="Pausa";bar.add_child(pause);pause.pressed.connect(func():playing=not playing)
  speed_slider=HSlider.new();speed_slider.min_value=.1;speed_slider.max_value=1.5;speed_slider.value=1;speed_slider.custom_minimum_size.x=100;bar.add_child(speed_slider)
- source_status=Label.new();source_status.position=Vector2(12,36);add_child(source_status)
+ state_selector=OptionButton.new();state_selector.position=Vector2(12,36)
+ for label in ["Normal","Cauteloso","Cansado"]:state_selector.add_item(label)
+ add_child(state_selector);state_selector.item_selected.connect(select_state)
+ restart_button=Button.new();restart_button.text="Reiniciar";restart_button.position=Vector2(145,36);add_child(restart_button)
+ restart_button.pressed.connect(func():reset_trees() if transition_motion() else show_frame(motion,0))
+ source_status=Label.new();source_status.position=Vector2(240,36);add_child(source_status)
+ refresh_options()
+ if transition_motion():reset_trees()
  update_source_status()
  get_viewport().size_changed.connect(fit_views);fit_views()
 func fit_views() -> void:
@@ -89,6 +104,8 @@ func point_camera(index:int) -> void:
 func _process(delta:float) -> void:
  if not playing:return
  elapsed+=delta*speed_slider.value
+ if advanced() and transition_motion():
+  process_transitions(delta*speed_slider.value);return
  if motion!="transitions":show_frame(motion,elapsed);return
  if source_index==0:
   show_frame("idle" if fmod(elapsed,8)>6 else ("walk" if fmod(elapsed,8)<3 else "run"),elapsed);return
@@ -116,27 +133,68 @@ func cycle_info(clip:String) -> Dictionary:
  return {"duration":distance/speed,"speed_mps":speed}
 func select_source(index:int) -> void:
  if index<0 or index>=sources.size():return
- var phase:float=fposmod(elapsed/cycle_info(motion if motion!="transitions" else "walk").duration,1.0)
+ var phase:float=fposmod(elapsed/cycle_info("walk" if transition_motion() else motion).duration,1.0)
  source_index=index;scene_path=sources[index].path
- if motion_selector:
-  motion_selector.set_item_disabled(3,source_index==0)
-  if source_index==0 and motion=="transitions":motion="walk";motion_selector.select(0)
+
  for i in actors.size():
   var world:=actors[i].get_parent();actors[i].free();actors[i]=create_actor(world)
- elapsed=phase*cycle_info(motion if motion!="transitions" else "walk").duration;travel=0
+ elapsed=phase*cycle_info("walk" if transition_motion() else motion).duration;travel=0
  if source_selector:source_selector.select(index)
- update_source_status()
- if motion!="transitions":show_frame(motion,elapsed)
+ refresh_options();update_source_status()
+ if not transition_motion():show_frame(motion,elapsed)
  else:reset_trees()
 func reset_trees() -> void:
+ if advanced():start_transition_preview();return
  for actor in actors:
   if source_index!=0:actor.blend=0;actor.tree.active=true
 func update_source_status() -> void:
  if not source_status:return
  if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
- var clip:String="walk" if motion=="transitions" else motion
+ if advanced() and transition_motion():
+  var actor=actors[0]
+  source_status.text="%s · %s · %.2f m/s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],actor.recipe if not actor.recipe.is_empty() else "Ciclo estable",actor.current_speed];return
+ var clip:String="walk" if transition_motion() else motion
  var animation:Animation=actors[0].library.get_animation(StringName(clip))
  var parameters:Dictionary=animation.get_meta("parameters")
  if clip=="run" or clip=="idle":
   source_status.text="%s · %s · Ciclo %.2f s · %.3f m/s"%[sources[source_index].label,clip,animation.length,animation.get_meta("cycle").speed_mps];return
  source_status.text="%s · Paso ×%.2f · Brazos ×%.2f · Torso extra %.1f°"%[sources[source_index].label,parameters.stride,parameters.arms,rad_to_deg(parameters.lean)]
+
+func advanced() -> bool:return not actors.is_empty() and actors[0].has_method("advance_transition")
+func transition_motion() -> bool:return motion=="transitions" or motion in CHAIN
+func refresh_options() -> void:
+ if not motion_selector:return
+ for index in range(4,MOTIONS.size()):motion_selector.set_item_disabled(index,not advanced())
+ motion_selector.set_item_disabled(3,source_index==0)
+ if (motion in CHAIN and not advanced()) or (motion=="transitions" and source_index==0):motion="walk"
+ motion_selector.select(MOTIONS.find(motion))
+ if state_selector:state_selector.disabled=not advanced()
+ if advanced():
+  for actor in actors:actor.set_style(["normal","cautious","tired"][state_selector.selected])
+func select_motion(index:int) -> void:
+ motion=MOTIONS[index];elapsed=0;travel=0
+ if transition_motion():reset_trees()
+ else:show_frame(motion,0)
+ update_source_status()
+func select_state(index:int) -> void:
+ if not advanced():return
+ for actor in actors:actor.set_style(["normal","cautious","tired"][index])
+ if transition_motion():start_transition_preview()
+ else:show_frame(motion,0)
+ update_source_status()
+func start_transition_preview() -> void:
+ chain_index=0;chain_wait=0;elapsed=0;travel=0
+ var name:String=CHAIN[0] if motion=="transitions" else motion
+ for actor in actors:
+  actor.reset_motion(actor.profile.recipes[name].from)
+  actor.request_transition(name);actor.position.z=0
+ update_source_status()
+func process_transitions(delta:float) -> void:
+ if motion=="transitions" and actors[0].recipe.is_empty():
+  chain_wait+=delta
+  if chain_wait>=.45:
+   chain_wait=0;chain_index=(chain_index+1)%CHAIN.size()
+   for actor in actors:actor.request_transition(CHAIN[chain_index])
+ for i in actors.size():
+  actors[i].advance_transition(delta);actors[i].position.z=actors[i].distance_m;point_camera(i)
+ update_source_status()

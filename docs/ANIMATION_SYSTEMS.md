@@ -333,6 +333,72 @@ la calculada), brazos 0,5–1,1, movimiento corporal 0,4–1, postura/elevación
 El reposo admite periodos de 3,5–6 s, respiración 0,3–1,5 y equilibrio 0–1.
 Los límites de alcance y contactos siguen sujetos a validación antes de exportar.
 
+#### Transiciones compartidas de movimiento
+
+El visor abre **Transiciones con apoyos** (`aren_transitions_v1/aren.tscn`).
+Elegir **Normal**, **Cauteloso** o **Cansado**, y una de las seis transiciones del
+segundo selector. **Encadenadas** recorre reposo→caminar→correr→caminar→reposo,
+seguido de reposo→correr→reposo, sin reiniciar la fase ni los contactos entre
+tramos. **Reiniciar** repite la prueba seleccionada; Pausa y el deslizador regulan
+la reproducción. Las cuatro cámaras muestran frente, lateral, espalda y tres
+cuartos. Los ciclos aprobados siguen disponibles en las opciones walk/run/idle
+y en sus entregas anteriores.
+
+`generate_aren_transitions.gd` genera seis pequeños clips de control normalizados
+(`controls.res`) y un perfil con referencias y hashes de las bibliotecas
+existentes. No duplica claves de huesos ni modifica ciclos, rig o piel fuente.
+Normal referencia `aren_run_idle_v3`; cauteloso y cansado reutilizan
+`aren_cautious_v1` y `aren_tired_v1`. Sus parámetros de postura, brazos y velocidad
+se conservan. Los seis controles comparten interpolación quintica y separan
+anticipación del cambio de velocidad. Duraciones normales:
+
+| Transición | Duración | Anticipación, fracción del tramo |
+| --- | --- | --- |
+| idle_to_walk | 1,15 s | 0,17 |
+| idle_to_run | 1,85 s | 0,12 |
+| walk_to_run | 1,10 s | 0,08 |
+| run_to_walk | 1,15 s | 0,05 |
+| walk_to_idle | 1,10 s | 0,06 |
+| run_to_idle | 1,75 s | 0,05 |
+
+Cauteloso multiplica tiempos por 1,25 y cansado por 1,4. La transferencia lateral
+anticipatoria es de 12/9/10 mm. Una carga compartida de hasta 28 mm prepara la
+flexión de piernas durante el cambio, conserva un margen de 0,8 s al completarse
+y se libera suavemente. La aceleración inclina progresivamente pelvis y los tres
+tramos de columna, con compensación parcial del cuello; la frenada invierte esa
+inclinación. Resortes críticamente amortiguados conservan la continuidad corporal
+al interrumpir un tramo. El siguiente tramo parte de la velocidad y aceleración
+actuales; no reinicia la fase del paso.
+
+`aren_cycle_sampler.gd` lee los clips aprobados. `aren_transition_actor.gd` mezcla
+sus poses locales y conserva un reloj común para caminar/correr, calculado a
+partir de velocidad y distancia del ciclo; reposo conserva su reloj respiratorio.
+Los objetivos de los pies se mezclan en espacio global para conservar las
+trayectorias y la orientación de suelas de los clips fuente. La traslación se
+integra con ese mismo reloj. Los apoyos se bloquean en espacio
+de desplazamiento y las piernas usan la IK nativa de longitudes fijas. Al soltar
+el pie, el error anterior de apoyo se desvanece durante la recuperación; la
+compresión de pelvis se anticipa al alcance y se libera gradualmente. No se
+retoca cada hueso a mano ni se guarda un clip nuevo por cada combinación de estado.
+
+API de la escena generada: `set_style("normal"|"cautious"|"tired")`,
+`reset_motion("idle"|"walk"|"run", fase)` para iniciar una prueba y
+`request_transition(nombre)` para solicitar o encadenar cualquiera de los seis
+tramos. `advance_transition(delta)` evalúa con pasos internos de hasta 1/120 s;
+`distance_m` es la traslación frontal acumulada que debe aplicar el anfitrión.
+`set_locomotion(velocidad)` selecciona uno de los tres estados nominales. Esta
+entrega es una prueba de avance recto sobre plano; no integra todavía el
+controlador jugable, giros ni terreno irregular. Los apoyos durante mezclas se
+validan para estas seis transiciones y estos tres estados.
+
+Regenerar sin sobrescribir recursos:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren_transitions.gd -- \
+  --output res://assets/characters/prototype_3d/generated/aren_transitions_custom
+godot --headless --path . --script tests/aren_transitions.gd
+```
+
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango
 y transforma la cadena completa. Corrige la fórmula inicial, que añadía un giro
@@ -355,14 +421,14 @@ la biblioteca y el cambio efectivo de pose al alternar en pausa.
 Implementado: selección de curvas propias autorizadas, adaptación al rig nativo,
 horneado de poses y correctivos, parámetros corporales, IK de piernas sobre plano,
 compensación de pelvis, validación de contactos/bucle, perfiles con hashes,
-reproducción independiente, AnimationTree de prueba y render desde cuatro ángulos.
+reproducción independiente, AnimationTree de prueba, transiciones con contactos y render desde cuatro ángulos.
 El texto de alto nivel usa un vocabulario acotado; los porcentajes se pasan por
 JSON. No hay un generador general de movimientos a partir de lenguaje libre.
 El retargeting de clips de huesos es una herramienta separada: esta prueba usa
 las curvas del proyecto, no un clip externo retargeteado automáticamente.
 Pendientes: selección automática de otros clips/rigs, fallback cuando faltan las
 curvas del proyecto, lesiones y anatomías distintas, IK de terreno, validación de
-contactos durante mezclas dinámicas e integración de estas bibliotecas en el
+contactos durante mezclas dinámicas fuera de las transiciones documentadas e integración de estas bibliotecas en el
 controlador jugable. La revisión artística de naturalidad sigue siendo humana.
 
 Para otro recurso, ejecutar:
