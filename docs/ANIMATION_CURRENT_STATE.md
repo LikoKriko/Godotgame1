@@ -103,6 +103,22 @@ la escena principal ni el visor `aren_authoring_review.tscn`.
   de IK, una vez por fotograma físico, y permite
   corrección vertical del tobillo (margen de 3 mm) calculada desde cero por pose,
   sin acumularla en el anclaje persistente ni realimentar la pelvis.
+  Antes de ese barrido, `terrain_foot_support.gd` transforma las envolventes por
+  hueso de todos los vértices de piel y consulta un volumen conservador, con
+  el mismo alcance superior de 65 cm y margen de suela. Si no hay superficie,
+  evita construir la rejilla y lanzar sus rayos. Si solo hay una caja y todas
+  las proyecciones caen dentro de su cara superior transitable, calcula la
+  separación con ese plano. En caras horizontales proyecta el skinning a Y;
+  su mínimo coincide con el mínimo de la rejilla. En caras inclinadas conserva
+  los puntos de 3 mm. Bordes, mallas, varios contactos o formas desconocidas
+  siguen usando el barrido detallado original. La consulta se renueva por pose;
+  no reutiliza alturas de otro fotograma ni cambia el reloj de apoyos a 120 Hz.
+  `terrain_cycle_sampler.gd` reutiliza las muestras idénticas entre el cálculo
+  de pecho durante el arranque y la pose final de esa misma evaluación. La
+  caché exige el mismo clip y tiempo exacto, restaura la pose nativa y los polos
+  de rodilla del clip, y se vacía al terminar la evaluación. No cuantiza tiempos
+  ni modifica la frecuencia de animación o IK; fuera del arranque delega en el
+  muestreador aprobado sin almacenar muestras.
   Los tres estados se precargan con muestreadores independientes: antes de
   configurar el siguiente se instala un muestreador temporal, para que el
   `set_style` heredado no reconfigure la instancia ya cacheada. Así clips, fase,

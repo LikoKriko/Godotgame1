@@ -1,5 +1,6 @@
 extends "res://scripts/animation/authoring/aren_run_balanced_actor.gd"
 ## Collision-driven adapter. Source samplers, clips, binds and the review are read-only.
+const TerrainSampler=preload("res://scripts/animation/terrain/terrain_cycle_sampler.gd")
 const FootSupport=preload("res://scripts/animation/terrain/terrain_foot_support.gd")
 var foot_support=FootSupport.new()
 var body:CharacterBody3D
@@ -38,8 +39,11 @@ func _ready() -> void:
   # Do not let that mutate a sampler already retained by another style.
   sampler=Sampler.new()
   set_style(state);cache_style()
+ for entry in style_cache.values():entry.sampler=TerrainSampler.new(entry.sampler)
  activate_style("normal")
- foot_support.configure(native)
+ var exclusions:Array[RID]=[]
+ if body!=null:exclusions.append(body.get_rid())
+ foot_support.configure(native,exclusions)
  ground_query.collision_mask=1
  if body!=null:ground_query.exclude=[body.get_rid()]
  changing_style=false
@@ -137,7 +141,9 @@ func render_pose(prepare:float) -> void:
  # Phase/displacement above still use measured motion; clip curves are untouched.
  var physical_speed:=current_speed
  if height_initialized and not changing_style:current_speed=pose_speed
+ if sampler is TerrainSampler:sampler.begin_evaluation(launch_session)
  super.render_pose(prepare)
+ if sampler is TerrainSampler:sampler.end_evaluation()
  current_speed=physical_speed
 
 func probe(point:Vector3) -> Dictionary:
@@ -292,11 +298,15 @@ func solve_contacts() -> void:
   # keeping the planted XZ anchor while permitting vertical sole compression.
   # Skin is displayed once per physics frame; contact clocks still substep.
   for iteration in (2 if skin_time_left<.000001 else 0):
+   if not foot_support.may_penetrate(native,side,frame,body.get_world_3d().direct_space_state):break
    var lift:=0.0
-   for point in foot_support.skinned_points(native,side):
-    var skin_world:Vector3=frame*point
-    var skin_hit:=probe(skin_world)
-    if not skin_hit.is_empty():lift=maxf(lift,skin_hit.position.y+.003-skin_world.y)
+   if foot_support.plane_valid:
+    lift=foot_support.plane_lift(native,side,frame)
+   else:
+    for point in foot_support.skinned_points(native,side):
+     var skin_world:Vector3=frame*point
+     var skin_hit:=probe(skin_world)
+     if not skin_hit.is_empty():lift=maxf(lift,skin_hit.position.y+.003-skin_world.y)
    if lift<.0001:break
    goals[side].origin.y+=lift*1.1/SCALE
    # This is a fresh per-pose skin correction, never accumulated in the
