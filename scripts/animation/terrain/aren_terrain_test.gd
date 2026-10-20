@@ -47,8 +47,9 @@ func _ready() -> void:
  environment.environment.background_mode=Environment.BG_COLOR;environment.environment.background_color=Color(.17,.19,.22)
  environment.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR
  environment.environment.ambient_light_color=Color(.8,.85,.95);environment.environment.ambient_light_energy=.7;add_child(environment)
- body=CharacterBody3D.new();body.name="ArenController";body.floor_snap_length=.35;body.floor_max_angle=deg_to_rad(42);body.floor_constant_speed=true;add_child(body)
- var collider:=CollisionShape3D.new();var capsule:=CapsuleShape3D.new();capsule.radius=.22;capsule.height=1.65;collider.shape=capsule;collider.position.y=.825;body.add_child(collider)
+ body=CharacterBody3D.new();body.name="ArenController";body.floor_snap_length=.03;body.floor_max_angle=deg_to_rad(42);body.floor_constant_speed=true;add_child(body)
+ # A flat support base keeps stair edges from becoming steep capsule normals.
+ var collider:=CollisionShape3D.new();var cylinder:=CylinderShape3D.new();cylinder.radius=.22;cylinder.height=1.65;collider.shape=cylinder;collider.position.y=.825;body.add_child(collider)
  actor=load("res://scenes/prototype_3d/aren_terrain_actor.tscn").instantiate()
  actor.body=body;body.add_child(actor)
  actor.rotation.y=PI
@@ -106,19 +107,18 @@ func _physics_process(dt:float) -> void:
  body.velocity.x=travel.x;body.velocity.z=travel.y
  if not body.is_on_floor():body.velocity.y-=20*dt
  else:body.velocity.y=-.1
- var lift:float=Step.rise(body,Vector3(travel.x,0,travel.y)*dt)
- if lift>0:
-  body.position.y+=lift
+ # Snap only across the distance a walkable slope can descend this tick;
+ # leaving a ledge uses gravity instead of a forced 35 cm teleport.
+ body.floor_snap_length=maxf(.025,speed*dt*tan(body.floor_max_angle)+.005)
  var before:=body.position
- body.move_and_slide()
- body.apply_floor_snap()
+ if not Step.move(body,Vector3(travel.x,0,travel.y)*dt):body.move_and_slide()
  var displacement:=body.position-before
  var planar:=Vector2(displacement.x,displacement.z)
  if planar.length()>.00001:
   # The same steered direction drives body motion and the rig's +Z heading.
   actor.rotation.y=rotate_toward(actor.rotation.y,atan2(planar.x,planar.y),Response.STEER_SPEED*dt)
  var start:=Time.get_ticks_usec()
- actor.evaluate_motion(dt,planar.length()/dt,body.is_on_floor())
+ actor.evaluate_motion(dt,displacement/dt,body.is_on_floor())
  pose_ms=(Time.get_ticks_usec()-start)/1000.0
  if body.position.y< -5:reset_at(Vector3(0,.1,2))
  update_camera()

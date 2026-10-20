@@ -4,6 +4,7 @@ const FootSupport=preload("res://scripts/animation/terrain/terrain_foot_support.
 var foot_support=FootSupport.new()
 var body:CharacterBody3D
 var measured_speed:=0.0
+var measured_velocity:=Vector3.ZERO
 var pose_speed:=0.0
 var pose_speed_velocity:=0.0
 var measured_acceleration:=0.0
@@ -11,7 +12,7 @@ var grounded:=false
 var planning:=false
 var terrain_contacts:Array[Dictionary]=[]
 var pelvis_offset:=0.0
-var reach_velocity:=0.0
+var reach_velocity:=0.0 # Metres/second for the single signed pelvis correction.
 var body_height:=0.0
 var body_height_velocity:=0.0
 var height_initialized:=false
@@ -33,6 +34,9 @@ func _ready() -> void:
  super._ready()
  cache_style()
  for state in ["cautious","tired"]:
+  # Parent set_style() reconfigures the current sampler before replacing it.
+  # Do not let that mutate a sampler already retained by another style.
+  sampler=Sampler.new()
   set_style(state);cache_style()
  activate_style("normal")
  foot_support.configure(native)
@@ -83,7 +87,9 @@ func change_style(value:String) -> void:
  native.writer.apply(native.skeleton,native.local_globals)
  for shape in old_shapes.size():native.mesh.set_blend_shape_value(shape,old_shapes[shape])
 
-func evaluate_motion(dt:float,speed:float,on_ground:bool) -> void:
+func evaluate_motion(dt:float,velocity:Vector3,on_ground:bool) -> void:
+ measured_velocity=Vector3(velocity.x,0,velocity.z)
+ var speed:=measured_velocity.length()
  if not height_initialized:
   body_height=global_position.y;body_height_velocity=0; height_initialized=true
   pose_speed=speed;pose_speed_velocity=0
@@ -156,7 +162,7 @@ func solve_contacts() -> void:
  # Retain the authored/blended input, never an already terrain-corrected pose.
  source_pose=native.posed.duplicate();source_feet.clear()
  var goals:Array[Transform3D]=[]
- var offsets:Array[float]=[]
+ var support_floor:=INF
  var frame:=global_transform
  var body_offset:float=body_height-global_position.y if height_initialized else 0.0
  var inverse:=frame.affine_inverse()
@@ -173,7 +179,6 @@ func solve_contacts() -> void:
   var cycle:=floori(phase+side*.5)
   if int(contact.get("released_cycle",-1))==cycle:planted=false
   var clearance:float=foot_support.clearance(side,goal)
-  var offset:=0.0
   if not hit.is_empty():
    # Three probes cover the sole, preventing a centre-only ray from burying toes.
    var normal:Vector3=hit.normal
@@ -186,7 +191,6 @@ func solve_contacts() -> void:
      floor_y=maxf(floor_y,centred_height)
      normal+=sole_hit.normal
    normal=normal.normalized()
-   offset=floor_y-(global_position.y+body_offset)
    var aligned:Basis=frame.basis.orthonormalized().inverse()*Basis(Quaternion(Vector3.UP,normal))*frame.basis.orthonormalized()*goal.basis
    var basis_scale:=goal.basis.get_scale()
    goal.basis=goal.basis.orthonormalized().slerp(aligned.orthonormalized(),1-smoothstep(.015,.16,clearance))*Basis.from_scale(basis_scale)
@@ -201,10 +205,12 @@ func solve_contacts() -> void:
    if planted:
     if not contact.planted:
      contact.anchor=world;contact.basis=frame.basis.orthonormalized()*goal.basis
+     contact.floor_y=floor_y;contact.heading=frame.basis.z.normalized()
     world=contact.anchor;goal.basis=frame.basis.orthonormalized().inverse()*contact.basis
    # Release unreachable support rather than stretching a native joint.
-   var hip_world:Vector3=frame*(native.posed[ids[0]].origin+Vector3.UP*((pelvis_offset+body_offset)/SCALE-pelvis_lowering))
-   if planted and hip_world.distance_to(world)>(native.legs[side].a+native.legs[side].b-.08)*SCALE+.002:
+   var hip_world:Vector3=frame*(native.posed[ids[0]].origin+Vector3.UP*((pelvis_offset+body_offset)/SCALE))
+   var turn:float=frame.basis.z.normalized().angle_to(contact.get("heading",frame.basis.z.normalized()))
+   if planted and (hip_world.distance_to(world)>(native.legs[side].a+native.legs[side].b-.08)*SCALE+.002 or turn>deg_to_rad(60)):
     planted=false;contact.released_cycle=cycle
     world=nominal;goal.basis=nominal_basis
    if not planted:
@@ -220,16 +226,18 @@ func solve_contacts() -> void:
   contact.planted=planted
   if contacts.size()>side:contacts[side].planted=planted
   goal.origin=inverse*world
-  offsets.append(offset);goals.append(goal)
+  # Only the ground carrying an actual world anchor may position the body.
+  # A rotating nominal/swing foot can be over another level or off a ledge.
+  if planted:support_floor=minf(support_floor,float(contact.floor_y))
+  goals.append(goal)
  var dt:float=correction_tick
- var desired:float=clampf(minf(offsets[0],offsets[1]),-.28,.22) if grounded else 0.0
- pelvis_offset=move_toward(pelvis_offset,lerpf(pelvis_offset,desired,1-exp(-dt*16)),.75*dt)
+ var desired:float=clampf(support_floor-body_height,-.28,.22) if grounded and is_finite(support_floor) else 0.0
  var lowering:=0.0
  for side in 2:
   # A recovering foot must never drive the pelvis down to reach a rearward,
   # elevated swing target. The approved player bounds swing reach too.
   var leg:Dictionary=native.legs[side]
-  var hip:Vector3=native.posed[leg.ids[0]].origin+Vector3.UP*(pelvis_offset+body_offset)/SCALE
+  var hip:Vector3=native.posed[leg.ids[0]].origin+Vector3.UP*(desired+body_offset)/SCALE
   var goal:Vector3=goals[side].origin
   if not terrain_contacts[side].planted:
    if not grounded:continue
@@ -239,9 +247,9 @@ func solve_contacts() -> void:
    var a:String="idle" if mix<1 else "walk"
    var b:String="walk" if mix<1 else "run"
    var front:Transform3D=landing_feet[a][side].interpolate_with(landing_feet[b][side],mix if mix<1 else mix-1)
-   var landing_world:Vector3=frame*front.origin+frame.basis.z.normalized()*measured_speed*.12
+   var landing_world:Vector3=frame*front.origin+measured_velocity*.12
    var hit:=probe(landing_world)
-   if hit.is_empty():continue
+   if hit.is_empty() or absf(hit.position.y-global_position.y)>.26:continue
    var sole_y:=INF
    for point in foot_support.soles[side]:sole_y=minf(sole_y,(frame.basis*front.basis*point).y)
    goal=front.origin
@@ -249,12 +257,14 @@ func solve_contacts() -> void:
   var horizontal:=Vector2(hip.x-goal.x,hip.z-goal.z).length_squared()
   var allowed:float=goal.y+sqrt(maxf(.01,pow(leg.a+leg.b-.08,2)-horizontal))
   lowering=maxf(lowering,hip.y-allowed)
- # Filter only the additive terrain correction, preserving authored body bob.
- # Both compression and release use the physical substep, including turns.
- var filtered:=spring(pelvis_lowering,reach_velocity,clampf(lowering,0,.25/SCALE),dt,18)
- pelvis_lowering=move_toward(pelvis_lowering,filtered.x,.75*dt/SCALE)
- reach_velocity=clampf(filtered.y,-.75/SCALE,.75/SCALE)
- for i in native.posed.size():native.posed[i].origin.y+=(pelvis_offset+body_offset)/SCALE-pelvis_lowering
+ # Resolve both feet into one signed target before filtering. Independent
+ # floor/reach filters could add their velocities during a support change.
+ var target:=clampf(desired-lowering*SCALE,-.28,.22)
+ var filtered:=spring(pelvis_offset,reach_velocity,target,dt,18)
+ pelvis_offset=move_toward(pelvis_offset,filtered.x,.75*dt)
+ reach_velocity=clampf(filtered.y,-.75,.75)
+ pelvis_lowering=0.0
+ for i in native.posed.size():native.posed[i].origin.y+=(pelvis_offset+body_offset)/SCALE
  for side in 2:
   var leg:Dictionary=native.legs[side];var ids:Array=leg.ids
   if not terrain_contacts[side].planted:
@@ -289,7 +299,8 @@ func solve_contacts() -> void:
     if not skin_hit.is_empty():lift=maxf(lift,skin_hit.position.y+.003-skin_world.y)
    if lift<.0001:break
    goals[side].origin.y+=lift*1.1/SCALE
-   if terrain_contacts[side].planted:terrain_contacts[side].anchor.y+=lift*1.1
+   # This is a fresh per-pose skin correction, never accumulated in the
+   # immutable support anchor across frames or fed back into pelvis height.
    solution=Solver.joint(native.posed[ids[0]].origin,goals[side].origin,leg.a,leg.b,pole)
    native.untwisted_chain(ids,0,solution,Basis.IDENTITY)
    Torso.rotate_branch(native,ids[2],goals[side].basis,solution.end)

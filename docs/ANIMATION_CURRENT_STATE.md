@@ -84,35 +84,51 @@ la escena principal ni el visor `aren_authoring_review.tscn`.
   sondeos de talón/centro/punta y envolvente de suela nativa, normales, pelvis
   filtrada e IK nativa sin escalado
   de piernas. Anclajes de apoyo en mundo, también al girar; fase y mezcla usan
-  el desplazamiento medido después de `move_and_slide`, incluso al bloquearse.
+  el desplazamiento físico final, incluido el escalón, incluso al bloquearse.
 - `aren_terrain_test.gd` reutiliza `movement_response.gd` para aceleración,
   frenada, dirección y reversión; conserva las seis recetas como preparación
-  corporal. `terrain_step.gd` permite superar obstáculos de hasta 26 cm,
-  comprobando espacio para la cápsula y el techo. Cambiar de estado conserva
+  corporal. El colisionador cilíndrico conserva altura/radio y ofrece una base
+  plana para no confundir bordes de escalones con paredes inclinadas.
+  `terrain_step.gd` barre el cuerpo hacia arriba, avanza el desplazamiento real
+  y baja hasta un aterrizaje transitable, con límite de 26 cm. Comprueba paredes
+  y techo y confirma el recorrido completo sin duplicar el avance horizontal.
+  El snap automático se limita al descenso posible por tick en una pendiente
+  de 42° (mínimo 2,5 cm); salir de un borde usa gravedad, sin snap forzado de
+  35 cm. Cambiar de estado conserva
   la fase y mezcla las poses locales, conservando longitudes, durante 0,3 s
   antes de resolver los apoyos; la velocidad de destino también se filtra.
   `terrain_foot_support.gd` cachea puntos de la malla skinned en espacio del
   tobillo para comprobar la suela completa, con margen inicial de 6 mm.
   Una rejilla dinámica de 3 mm de puntos skinned comprueba colisiones después
   de IK, una vez por fotograma físico, y permite
-  corrección vertical del tobillo (margen de 3 mm) sin mover el anclaje horizontal.
-  Los tres estados se precargan al abrir la escena. La orientación usa el límite
-  de giro del controlador existente. Clips y perfiles aprobados son de solo lectura.
+  corrección vertical del tobillo (margen de 3 mm) calculada desde cero por pose,
+  sin acumularla en el anclaje persistente ni realimentar la pelvis.
+  Los tres estados se precargan con muestreadores independientes: antes de
+  configurar el siguiente se instala un muestreador temporal, para que el
+  `set_style` heredado no reconfigure la instancia ya cacheada. Así clips, fase,
+  zancada y parámetros de postura corresponden al mismo estado. La orientación
+  usa el límite de giro del controlador existente. Clips y perfiles aprobados son de solo lectura.
 - La pelvis calcula alcance para apoyos y anticipa el siguiente aterrizaje
-  con poses frontales cacheadas; el pie en recuperación elevado no determina
-  la altura corporal. El alcance del pie en vuelo se acota con la
-  IK existente. La compresión y su recuperación usan un resorte amortiguado
-  de frecuencia 18 y límite de 0,75 m/s, con el subpaso físico real. Se filtra
-  únicamente la corrección añadida, sin filtrar las curvas de oscilación corporal.
+  con poses frontales cacheadas y el vector de velocidad física, no el rumbo
+  visual retrasado durante el giro. Omite anticipaciones a otro nivel fuera del
+  alcance del escalón (26 cm). Solo el suelo de apoyos anclados determina la
+  referencia corporal; un sondeo nominal en vuelo no cambia esa referencia.
+  El alcance del pie en vuelo se acota con la IK existente. Altura de apoyo y alcance de ambas piernas se resuelven en un
+  único objetivo firmado de pelvis (`pelvis_offset`, −28 a +22 cm), con resorte
+  de frecuencia 18 y un único límite de 0,75 m/s en subpasos físicos.
+  `reach_velocity` se expresa en m/s; `pelvis_lowering` heredado permanece a
+  cero. Se filtra únicamente la corrección añadida, sin filtrar las curvas
+  de oscilación corporal.
   La mezcla de marchas filtra los impulsos de velocidad de colisión (frecuencia
   24). La fase usa distancia física y zancada efectiva de esa misma mezcla,
   con límite de 3 ciclos/s para arranques de amplitud casi nula. La distancia
   acumulada sigue siendo la recorrida realmente.
-  Los apoyos imposibles al girar se liberan hasta el siguiente ciclo; el vuelo
+  Los apoyos fuera de alcance o con más de 60° de giro corporal desde su
+  adquisición se liberan hasta el siguiente ciclo; el vuelo
   conserva el desfase de apoyo y lo desvanece con `smooth5`, como en el visor.
-- La altura visual sigue la altura real de la cápsula con un resorte de frecuencia
-  25; modelo y cámara comparten esa referencia. No se resta la subida solicitada
-  por `terrain_step.gd`: el ajuste usa la altura real tras colisiones y floor snap.
+- La altura visual sigue la altura real del controlador con un resorte de frecuencia
+  25; modelo y cámara comparten esa referencia. El ajuste usa la altura real
+  tras colisiones y escalones, sin restar subidas solicitadas o anticipadas.
   Las mezclas conservan las poses y pies anteriores a IK de terreno, y mantienen
   la compresión y su velocidad entre estados para evitar sumas o reinicios.
 - El HUD muestra velocidad medida, error de apoyo, FPS y coste CPU de evaluación.
