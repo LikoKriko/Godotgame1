@@ -4,19 +4,30 @@ const FootSupport=preload("res://scripts/animation/terrain/terrain_foot_support.
 var foot_support=FootSupport.new()
 var body:CharacterBody3D
 var measured_speed:=0.0
+var pose_speed:=0.0
+var pose_speed_velocity:=0.0
 var measured_acceleration:=0.0
 var grounded:=false
 var planning:=false
 var terrain_contacts:Array[Dictionary]=[]
 var pelvis_offset:=0.0
+var reach_velocity:=0.0
+var body_height:=0.0
+var body_height_velocity:=0.0
+var height_initialized:=false
 var ray_count:=0
+var ground_query:=PhysicsRayQueryParameters3D.new()
 var support_error:=0.0
 var previous_speed:=0.0
 var skin_time_left:=0.0
 var style_pose:Array[Transform3D]=[]
+var style_feet:Array[Transform3D]=[]
+var source_pose:Array[Transform3D]=[]
+var source_feet:Array[Transform3D]=[]
 var style_blend:=1.0
 var changing_style:=true
 var style_cache:Dictionary={}
+var landing_feet:Dictionary={}
 
 func _ready() -> void:
  super._ready()
@@ -25,32 +36,46 @@ func _ready() -> void:
   set_style(state);cache_style()
  activate_style("normal")
  foot_support.configure(native)
+ ground_query.collision_mask=1
+ if body!=null:ground_query.exclude=[body.get_rid()]
  changing_style=false
  set_process(false)
 
 func cache_style() -> void:
- style_cache[style]={"library":library,"sampler":sampler,"pitch":steady_chest_pitch}
+ var landing:Dictionary={}
+ for clip in ["idle","walk","run"]:
+  var feet:Array[Transform3D]=[]
+  for side in 2:
+   var sample:Dictionary=sampler.sample(clip,0.0 if clip=="idle" else side*.5*sampler.clips[clip].length)
+   feet.append(native.frame*sample.feet[side])
+  landing[clip]=feet
+ style_cache[style]={"library":library,"sampler":sampler,"pitch":steady_chest_pitch,"landing":landing}
 
 func activate_style(value:String) -> void:
  style=value;library=style_cache[value].library;sampler=style_cache[value].sampler
- steady_chest_pitch=style_cache[value].pitch
+ steady_chest_pitch=style_cache[value].pitch;landing_feet=style_cache[value].landing
  player.remove_animation_library(&"aren");player.add_animation_library(&"aren",library)
  reset_motion()
 
 func change_style(value:String) -> void:
  if value==style or not style_cache.has(value):return
  var old_pose:Array[Transform3D]=native.posed.duplicate()
+ var old_source_pose:Array[Transform3D]=source_pose.duplicate()
+ var old_source_feet:Array[Transform3D]=source_feet.duplicate()
  var old_shapes:Array[float]=[]
  for shape in native.mesh.mesh.get_blend_shape_count():old_shapes.append(native.mesh.get_blend_shape_value(shape))
  var old_phase:=phase
  var old_clock:=clock
  var speed:=current_speed
+ var old_lowering:=pelvis_lowering
+ var old_reach_velocity:=reach_velocity
  changing_style=true
  activate_style(value)
  changing_style=false
  phase=old_phase;clock=old_clock;current_speed=speed
+ pelvis_lowering=old_lowering;reach_velocity=old_reach_velocity
  target_speed=speed
- style_pose=old_pose;style_blend=0.0
+ style_pose=old_source_pose;style_feet=old_source_feet;style_blend=0.0
  # Configuration resets its preview pose; retain the visible terrain pose until
  # the next physics sample, so input callbacks cannot expose a flat idle frame.
  native.posed=old_pose.duplicate()
@@ -59,6 +84,13 @@ func change_style(value:String) -> void:
  for shape in old_shapes.size():native.mesh.set_blend_shape_value(shape,old_shapes[shape])
 
 func evaluate_motion(dt:float,speed:float,on_ground:bool) -> void:
+ if not height_initialized:
+  body_height=global_position.y;body_height_velocity=0; height_initialized=true
+  pose_speed=speed;pose_speed_velocity=0
+ var height:=spring(body_height,body_height_velocity,global_position.y,dt,25)
+ body_height=height.x;body_height_velocity=height.y
+ var envelope:=spring(pose_speed,pose_speed_velocity,speed,dt,24)
+ pose_speed=maxf(0,envelope.x);pose_speed_velocity=envelope.y
  measured_speed=speed;grounded=on_ground
  measured_acceleration=(speed-previous_speed)/maxf(dt,.00001);previous_speed=speed
  ray_count=0;support_error=0;skin_time_left=clampf(dt,0,1)
@@ -75,11 +107,14 @@ func tick(dt:float) -> void:
  planning=false
  current_speed=measured_speed;acceleration=measured_acceleration
  phase=old_phase
+ var physical_speed:=current_speed
+ current_speed=pose_speed
  var mix:=gait_blend()
+ current_speed=physical_speed
  var walk:Dictionary=library.get_animation(&"walk").get_meta("cycle")
  var run:Dictionary=library.get_animation(&"run").get_meta("cycle")
  var stride:float=walk.distance_m*mix if mix<=1 else lerpf(walk.distance_m,run.distance_m,mix-1)
- if measured_speed>.00001:phase+=measured_speed/maxf(stride,.00001)*dt
+ if measured_speed>.00001:phase+=minf(3.0,measured_speed/maxf(stride,walk.distance_m*.02))*dt
  distance_m=old_distance+measured_speed*dt
  var preparation:=0.0
  if not recipe.is_empty():preparation=controls.get_animation(StringName(recipe)).value_track_interpolate(1,transition_time/transition_duration)
@@ -92,12 +127,17 @@ func tick(dt:float) -> void:
 
 func render_pose(prepare:float) -> void:
  if planning:return
+ # Collision impulses must not switch the idle/walk/run mix in one frame.
+ # Phase/displacement above still use measured motion; clip curves are untouched.
+ var physical_speed:=current_speed
+ if height_initialized and not changing_style:current_speed=pose_speed
  super.render_pose(prepare)
+ current_speed=physical_speed
 
 func probe(point:Vector3) -> Dictionary:
- var query:=PhysicsRayQueryParameters3D.create(point+Vector3.UP*.65,point-Vector3.UP*.85,1,[body.get_rid()])
+ ground_query.from=point+Vector3.UP*.65;ground_query.to=point-Vector3.UP*.85
  ray_count+=1
- var hit:=body.get_world_3d().direct_space_state.intersect_ray(query)
+ var hit:=body.get_world_3d().direct_space_state.intersect_ray(ground_query)
  if not hit.is_empty() and hit.normal.dot(Vector3.UP)<cos(deg_to_rad(42)):return {}
  return hit
 
@@ -113,19 +153,25 @@ func solve_contacts() -> void:
    var local:=old_local.interpolate_with(new_local,smooth5(style_blend))
    if parent>=0:local.origin=local.origin.normalized()*new_local.origin.length()
    native.posed[i]=native.posed[parent]*local if parent>=0 else local
+ # Retain the authored/blended input, never an already terrain-corrected pose.
+ source_pose=native.posed.duplicate();source_feet.clear()
  var goals:Array[Transform3D]=[]
  var offsets:Array[float]=[]
  var frame:=global_transform
+ var body_offset:float=body_height-global_position.y if height_initialized else 0.0
  var inverse:=frame.affine_inverse()
  for side in 2:
   var ids:Array=native.legs[side].ids
   var goal:Transform3D=sampled_feet[side]
-  if style_blend<1 and style_pose.size()==native.posed.size():goal=style_pose[ids[2]].interpolate_with(goal,smooth5(style_blend))
+  if style_blend<1 and style_feet.size()==2:goal=style_feet[side].interpolate_with(goal,smooth5(style_blend))
+  source_feet.append(goal)
   var world:Vector3=frame*goal.origin
   var hit:=probe(world)
   var planted:bool=grounded and (gait_blend()<.015 or fposmod(phase+side*.5,1)<support_fraction()) and not hit.is_empty()
   if terrain_contacts.size()<=side:terrain_contacts.append({"planted":false,"anchor":world,"basis":goal.basis})
   var contact:Dictionary=terrain_contacts[side]
+  var cycle:=floori(phase+side*.5)
+  if int(contact.get("released_cycle",-1))==cycle:planted=false
   var clearance:float=foot_support.clearance(side,goal)
   var offset:=0.0
   if not hit.is_empty():
@@ -140,7 +186,7 @@ func solve_contacts() -> void:
      floor_y=maxf(floor_y,centred_height)
      normal+=sole_hit.normal
    normal=normal.normalized()
-   offset=floor_y-global_position.y
+   offset=floor_y-(global_position.y+body_offset)
    var aligned:Basis=frame.basis.orthonormalized().inverse()*Basis(Quaternion(Vector3.UP,normal))*frame.basis.orthonormalized()*goal.basis
    var basis_scale:=goal.basis.get_scale()
    goal.basis=goal.basis.orthonormalized().slerp(aligned.orthonormalized(),1-smoothstep(.015,.16,clearance))*Basis.from_scale(basis_scale)
@@ -150,32 +196,72 @@ func solve_contacts() -> void:
     var sole_hit:=probe(world+sole_offset)
     if not sole_hit.is_empty():sole_height=maxf(sole_height,sole_hit.position.y-sole_offset.y)
    if is_finite(sole_height):world.y=sole_height+(0.0 if planted else clearance)+.006
+   var nominal:=world
+   var nominal_basis:=goal.basis
    if planted:
     if not contact.planted:
      contact.anchor=world;contact.basis=frame.basis.orthonormalized()*goal.basis
     world=contact.anchor;goal.basis=frame.basis.orthonormalized().inverse()*contact.basis
    # Release unreachable support rather than stretching a native joint.
-   var hip_world:Vector3=frame*native.posed[ids[0]].origin
-   if planted and hip_world.distance_to(world)>(native.legs[side].a+native.legs[side].b)*SCALE*1.05:
-    planted=false;contact.planted=false
+   var hip_world:Vector3=frame*(native.posed[ids[0]].origin+Vector3.UP*((pelvis_offset+body_offset)/SCALE-pelvis_lowering))
+   if planted and hip_world.distance_to(world)>(native.legs[side].a+native.legs[side].b-.08)*SCALE+.002:
+    planted=false;contact.released_cycle=cycle
+    world=nominal;goal.basis=nominal_basis
+   if not planted:
+    if contact.planted:
+     contact.swing_offset=contact.anchor-contact.get("nominal",nominal)
+     contact.release_phase=phase+side*.5
+    var progress:float=clampf((phase+side*.5-float(contact.get("release_phase",phase+side*.5-1)))/maxf(1-support_fraction(),.01),0,1)
+    var fade:float=1-smooth5(progress)
+    world+=contact.get("swing_offset",Vector3.ZERO)*fade
+    var source_basis:Basis=frame.basis.orthonormalized().inverse()*contact.basis
+    goal.basis=Transform3D(source_basis,Vector3.ZERO).interpolate_with(Transform3D(goal.basis,Vector3.ZERO),1-fade).basis
+   contact.nominal=nominal
   contact.planted=planted
   if contacts.size()>side:contacts[side].planted=planted
   goal.origin=inverse*world
   offsets.append(offset);goals.append(goal)
+ var dt:float=correction_tick
  var desired:float=clampf(minf(offsets[0],offsets[1]),-.28,.22) if grounded else 0.0
- pelvis_offset=lerpf(pelvis_offset,desired,1-exp(-1.0/120*16))
+ pelvis_offset=move_toward(pelvis_offset,lerpf(pelvis_offset,desired,1-exp(-dt*16)),.75*dt)
  var lowering:=0.0
  for side in 2:
+  # A recovering foot must never drive the pelvis down to reach a rearward,
+  # elevated swing target. The approved player bounds swing reach too.
   var leg:Dictionary=native.legs[side]
-  var hip:Vector3=native.posed[leg.ids[0]].origin+Vector3.UP*pelvis_offset/SCALE
+  var hip:Vector3=native.posed[leg.ids[0]].origin+Vector3.UP*(pelvis_offset+body_offset)/SCALE
   var goal:Vector3=goals[side].origin
+  if not terrain_contacts[side].planted:
+   if not grounded:continue
+   # Preview the next ground-level landing, not the raised trailing foot.
+   # Cache approved front-contact poses to avoid resampling/mutating the rig.
+   var mix:=gait_blend()
+   var a:String="idle" if mix<1 else "walk"
+   var b:String="walk" if mix<1 else "run"
+   var front:Transform3D=landing_feet[a][side].interpolate_with(landing_feet[b][side],mix if mix<1 else mix-1)
+   var landing_world:Vector3=frame*front.origin+frame.basis.z.normalized()*measured_speed*.12
+   var hit:=probe(landing_world)
+   if hit.is_empty():continue
+   var sole_y:=INF
+   for point in foot_support.soles[side]:sole_y=minf(sole_y,(frame.basis*front.basis*point).y)
+   goal=front.origin
+   goal.y=(hit.position.y-sole_y+.006-global_position.y)/SCALE
   var horizontal:=Vector2(hip.x-goal.x,hip.z-goal.z).length_squared()
   var allowed:float=goal.y+sqrt(maxf(.01,pow(leg.a+leg.b-.08,2)-horizontal))
   lowering=maxf(lowering,hip.y-allowed)
- pelvis_lowering=maxf(lowering,lerpf(pelvis_lowering,lowering,1-exp(-1.0/120/.12)))
- for i in native.posed.size():native.posed[i].origin.y+=pelvis_offset/SCALE-pelvis_lowering
+ # Filter only the additive terrain correction, preserving authored body bob.
+ # Both compression and release use the physical substep, including turns.
+ var filtered:=spring(pelvis_lowering,reach_velocity,clampf(lowering,0,.25/SCALE),dt,18)
+ pelvis_lowering=move_toward(pelvis_lowering,filtered.x,.75*dt/SCALE)
+ reach_velocity=clampf(filtered.y,-.75/SCALE,.75/SCALE)
+ for i in native.posed.size():native.posed[i].origin.y+=(pelvis_offset+body_offset)/SCALE-pelvis_lowering
  for side in 2:
   var leg:Dictionary=native.legs[side];var ids:Array=leg.ids
+  if not terrain_contacts[side].planted:
+   var hip:Vector3=native.posed[ids[0]].origin
+   var delta:Vector3=goals[side].origin-hip
+   var reach:float=leg.a+leg.b-.08
+   if delta.length()>reach:goals[side].origin=hip+delta.normalized()*reach
   var pole:Vector3=native.posed[ids[1]].origin-native.posed[ids[0]].origin
   var solution:=Solver.joint(native.posed[ids[0]].origin,goals[side].origin,leg.a,leg.b,pole)
   native.untwisted_chain(ids,0,solution,Basis.IDENTITY)

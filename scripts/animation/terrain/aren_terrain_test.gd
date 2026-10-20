@@ -67,12 +67,13 @@ func _unhandled_input(event:InputEvent) -> void:
 func reset_at(at:Vector3) -> void:
  body.position=at;body.velocity=Vector3.ZERO;response=Response.new()
  actor.rotation.y=PI
- actor.terrain_contacts.clear();actor.pelvis_offset=0;actor.previous_speed=0
+ actor.terrain_contacts.clear();actor.pelvis_offset=0;actor.reach_velocity=0;actor.height_initialized=false;actor.previous_speed=0
  actor.style_pose.clear();actor.style_blend=1;actor.grounded=false;actor.measured_speed=0
  actor.reset_motion();requested_gait="idle"
 
 func update_camera() -> void:
  var target:=body.position+Vector3.UP*1.0
+ if actor.height_initialized:target.y=actor.body_height+1.0
  camera.position=target+Basis(Vector3.UP,yaw)*Basis(Vector3.RIGHT,pitch)*Vector3(0,1.0,4.8)
  camera.look_at(target)
 
@@ -100,7 +101,7 @@ func _physics_process(dt:float) -> void:
  else:body.velocity.y=-.1
  var lift:float=Step.rise(body,Vector3(travel.x,0,travel.y)*dt)
  if lift>0:
-  body.position.y+=lift;actor.pelvis_offset-=lift
+  body.position.y+=lift
  var before:=body.position
  body.move_and_slide()
  body.apply_floor_snap()
@@ -114,4 +115,4 @@ func _physics_process(dt:float) -> void:
  pose_ms=(Time.get_ticks_usec()-start)/1000.0
  if body.position.y< -5:reset_at(Vector3(0,.1,2))
  update_camera()
- label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · pose %.2f ms" % [actor.style,actor.measured_speed,actor.support_error*1000,pose_ms]
+ label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · %.0f FPS · pose %.2f ms" % [actor.style,actor.measured_speed,actor.support_error*1000,Engine.get_frames_per_second(),pose_ms]

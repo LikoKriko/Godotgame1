@@ -89,7 +89,24 @@ la escena principal ni el visor `aren_authoring_review.tscn`.
   corrección vertical del tobillo (margen de 3 mm) sin mover el anclaje horizontal.
   Los tres estados se precargan al abrir la escena. La orientación usa el límite
   de giro del controlador existente. Clips y perfiles aprobados son de solo lectura.
-- El HUD muestra velocidad medida, error de apoyo y coste CPU de evaluación.
+- La pelvis calcula alcance para apoyos y anticipa el siguiente aterrizaje
+  con poses frontales cacheadas; el pie en recuperación elevado no determina
+  la altura corporal. El alcance del pie en vuelo se acota con la
+  IK existente. La compresión y su recuperación usan un resorte amortiguado
+  de frecuencia 18 y límite de 0,75 m/s, con el subpaso físico real. Se filtra
+  únicamente la corrección añadida, sin filtrar las curvas de oscilación corporal.
+  La mezcla de marchas filtra los impulsos de velocidad de colisión (frecuencia
+  24). La fase usa distancia física y zancada efectiva de esa misma mezcla,
+  con límite de 3 ciclos/s para arranques de amplitud casi nula. La distancia
+  acumulada sigue siendo la recorrida realmente.
+  Los apoyos imposibles al girar se liberan hasta el siguiente ciclo; el vuelo
+  conserva el desfase de apoyo y lo desvanece con `smooth5`, como en el visor.
+- La altura visual sigue la altura real de la cápsula con un resorte de frecuencia
+  25; modelo y cámara comparten esa referencia. No se resta la subida solicitada
+  por `terrain_step.gd`: el ajuste usa la altura real tras colisiones y floor snap.
+  Las mezclas conservan las poses y pies anteriores a IK de terreno, y mantienen
+  la compresión y su velocidad entre estados para evitar sumas o reinicios.
+- El HUD muestra velocidad medida, error de apoyo, FPS y coste CPU de evaluación.
   Los sondeos usan la capa física 1, excluyen el controlador y aceptan normales
   hasta 42°. Alcance de sondeo: 0,65 m arriba y 0,85 m abajo del tobillo.
 
