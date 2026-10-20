@@ -1,187 +1,87 @@
-# Day Zero: regla visual permanente del usuario
+# DAY ZERO — Instrucciones globales para agentes
 
-La rama de integración vigente es `main` y contiene el juego 3D.
-El runtime 2D ha sido retirado; conservar los sprites y sistemas compartidos
-que se detallan en `docs/SHARED_RESOURCES.md`. Actualizar las ramas de departamento
-antes de trabajar para evitar restaurar archivos obsoletos.
+## Proyecto vigente
 
-## Acceso al entorno y Git
+Day Zero es un juego 3D de supervivencia y exploración en Godot 4.
+La rama de integración es `main`. El runtime 2D se ha retirado.
+No restaurar código 2D obsoleto; conservar los recursos compartidos
+vigentes según `docs/SHARED_RESOURCES.md`.
 
-Si Git falla al conectar con el proxy desde la ejecución aislada, reintentar con ejecución autorizada (`sandbox_permissions: "require_escalated"`), cuando esté disponible y permitida por el entorno.
-Mantener el proxy configurado y la verificación TLS activa; ese error de conectividad no implica falta de autorización de GitHub.
+## Preparación y seguridad
 
-## Autorización de publicación de animación
+Antes de editar, inspeccionar Git y sincronizar la rama correspondiente.
+Conservar trabajo de otros departamentos, fuentes originales, IDs
+persistentes, escenas, rigs, binds y compatibilidad de guardado.
+Preferir cambios acotados y reversibles. No reemplazar sistemas
+funcionales cuando una solución reutilizable ya exista.
+Si falta definir un criterio artístico o de comportamiento, proponer
+opciones al usuario; resolver autónomamente detalles técnicos definidos.
 
-El usuario autoriza al departamento de animación a crear commits y hacer push
-a `main` de sus futuras entregas dentro del alcance solicitado, sin pedir otra
-confirmación de publicación. Actualizar primero la rama remota, conservar el
-trabajo de los demás departamentos, resolver los conflictos de integración y
-realizar las comprobaciones pertinentes antes de publicar. Actualizar también
-la documentación de parámetros cuando corresponda, sin añadir informes ni
-registros de cambios. Esta autorización del usuario no sustituye las
-credenciales ni los permisos técnicos exigidos por GitHub o por el entorno.
+## Lectura selectiva de documentación
 
-## Acabado permanente de todas las texturas
+Leer las instrucciones aplicables y documentación del subsistema
+implicado, NO todos los documentos por defecto. Empezar por rutas,
+símbolos y funciones relevantes; ampliar contexto ante dependencias
+reales o riesgos de integración.
+Usar `docs/TASK_ROUTING.md` como mapa de contexto mínimo, no como lista de lectura.
+Referencias: `docs/REUSABLE_SYSTEMS.md`, `docs/PROTOTYPE_3D.md`,
+`docs/SHARED_RESOURCES.md`, `docs/MESHY_ASSETS.md`,
+`docs/ANIMATION_SYSTEMS.md`, `docs/FIXED_STORY_ZONES.md`.
+Consultar documentos visuales, de criaturas y render solo si aplican.
+Las reglas especializadas vinculadas son obligatorias dentro de su ámbito;
+las instrucciones locales complementan estas reglas, sin contradecirlas.
+Ante discrepancias documentales, conservar ambas referencias temporalmente,
+señalar el conflicto y aplicar la opción más segura hasta resolverlo.
 
-Todas las texturas nuevas o adaptadas deben mantener el estilo visual actual
-del juego. La referencia principal de acabado es el enemigo3 Sunny Sprout,
-sus materiales en `assets/enemies/third/sprout/` y su apariencia dentro del juego.
-El estilo es fantasía 3D estilizada con acabado pintado: formas orgánicas
-legibles, colores armonizados, variaciones de tono suaves y detalles de
-superficie definidos y limpios. El enemigo3 combina amarillos cálidos, crema,
-verdes vegetales y marrones; usarlo como referencia de tratamiento y calidad,
-adaptando la paleta al material y la identidad de cada personaje u objeto.
+## Dirección visual global
 
-La textura debe acompañar el volumen y distinguir piel, pelo, hojas, tela,
-madera o piedra mediante color, rugosidad y relieve moderado. Se permiten mapas
-de normales y otros mapas de material para aportar detalle fino sin aumentar
-innecesariamente la geometría. Mantener transiciones cuidadas, costuras UV
-discretas y rasgos propios como cicatrices, ojos y expresión de la boca.
-Evitar ruido, manchas de material incorrecto, contrastes excesivos y relieve
-que deforme visualmente las facciones. El resultado debe leerse bien tanto
-de cerca como a la distancia habitual de juego.
+Estilo 3D de fantasía estilizada con acabado pintado. Sunny Sprout
+(`assets/enemies/third/sprout/`) es referencia de tratamiento.
+Preservar anatomía, identidad y siluetas aprobadas. No imponer pixel
+art del runtime retirado. Reglas detalladas de materiales, contornos
+y excepciones de interfaz: `docs/VISUAL_STYLE.md`.
 
-Esta referencia sustituye la exigencia anterior de pixel art, incluso donde
-queden menciones antiguas: no imponer pixelado visible ni reducir la paleta
-para simularlo. Elegir resolución, filtrado y mipmaps para reproducir el acabado
-de referencia con nitidez y estabilidad, sin escalones artificiales ni pérdida
-de detalle por desenfoque. Se aplica a texturas generadas, adaptadas de imágenes
-o sprites y destinadas a modelos 3D, objetos e interfaz. Conservar las reglas
-de contornos finos y las excepciones de interfaz indicadas a continuación.
+## Animaciones y modelos
 
-El superviviente 3D representa un hombre estilizado de 1,75 m y 60 kg, delgado,
-con articulaciones identificables y definición anatómica discreta. Compartir
-anatomía y pesos de piel en todas las animaciones. La tela holgada acompaña las
-piernas con inercia pequeña. Cada golpe tiene preparación, acción, retroceso y
-recuperación. El golpe apunta al punto de mira fijado al iniciarlo, con alcance
-limitado por brazos y herramienta. Las nuevas herramientas usan los anclajes
-del catálogo de poses, sin duplicar o separar brazos del cuerpo.
+Reutilizar rigs y perfiles nativos existentes, más herramientas
+compartidas de `scripts/animation/shared/` y el sistema documentado
+en `docs/ANIMATION_SYSTEMS.md`. Respetar binds, longitudes,
+anclajes, contactos, IK, continuidad y anatomía completa.
+No sobrescribir fuentes ni clips existentes sin autorización.
 
-Todos los dibujos del juego deben usar contornos tan finos como los del personaje principal. Se aplica a personajes, animales, árboles, rocas, césped, objetos, armas, armaduras, materiales y a sus representaciones en inventario, fabricación, reparación y cualquier interfaz o mecánica futura. No incorporar nuevos dibujos con bordes gruesos. Excepción de interfaz solicitada por el usuario: los marcos de ventanas y botones tienen un contorno cuatro veces más grueso, manteniendo sus rectángulos, zonas de clic y adornos originales.
+## Mundo, contenido y mecánicas
 
-El grosor de referencia es un píxel de la rasterización del personaje completo (192×192 por celda, ~1,5 píxeles de raster por unidad del mundo). El contorno escala con el dibujo y el zoom; no mantiene un ancho fijo en pantalla. Usar `scripts/visual_style.gd` para normalizar dibujos e iconos. La exportación del personaje y sus herramientas debe compartir esta política, evitando añadir dos contornos consecutivos. Eliminar solo el borde oscuro exterior grueso; preservar sombreado y detalles interiores.
+Los generadores deben respetar zonas reservadas completas usando
+`story_zone_catalog.gd` y `data/world/story_zones.json`, sin alterar
+IDs persistentes. Para iluminación consultar `data/rendering/` y
+los apartados de iluminación de `docs/PROTOTYPE_3D.md`.
+Las herramientas no básicas requieren mesa de fabricación y
+validación real de desbloqueos, además de su presentación en UI.
+Consultar perfiles y documentación específica antes de actuar.
 
-Las herramientas no deben dibujarse a través del torso o la cabeza al mirar hacia arriba o hacia los lados. Los agarres y los brazos deben seguir visibles donde corresponda. Validar la oclusión en los fotogramas completos exportados, no únicamente en el rig antiguo.
+## Git, autorización y publicación
 
-Si una decisión visual o de comportamiento no está especificada, presentar opciones al usuario antes de escogerla. Las decisiones de implementación que cumplen el resultado ya definido no necesitan consultas repetidas.
+El departamento de animación está autorizado a hacer commit y push
+al `main` para entregas de animación solicitadas dentro de su alcance,
+tras actualizar remoto, resolver conflictos sin perder trabajo ajeno
+y ejecutar las comprobaciones pertinentes. Este permiso no se
+extiende por defecto a otros departamentos ni a cambios de alcance
+diferente. Respetar credenciales, protecciones y permisos técnicos.
+Actualizar también los parámetros documentados cuando corresponda.
+Si Git falla al conectar con el proxy desde la ejecución aislada,
+reintentar con ejecución autorizada (`sandbox_permissions: "require_escalated"`)
+solo cuando esté disponible y permitido. Mantener el proxy configurado y TLS
+verificado; ese error de conectividad no implica falta de autorización de GitHub.
 
-## Dirección de iluminación y ambiente
+## Documentación y validación
 
-Mantener un acabado natural estilizado que conserve la paleta del juego y
-favorezca la lectura del volumen y los detalles. La ambientación debe resultar
-bonita, interesante e inmersiva, con identidad según el momento del día y la
-zona, y capacidad de acompañar las misiones, la tensión y el contexto narrativo.
-Usar perfiles reutilizables para definir luz, relleno ambiental, cielo y
-atmósfera; mantener coherencia entre sus transiciones y cuidar el rendimiento.
-Consultar los perfiles actuales de `data/rendering/` y `docs/PROTOTYPE_3D.md`.
-
-## Animación y anatomía compartidas
-
-Usar los modelos y rigs de `scripts/prototype_3d/` y la cinemática de
-`scripts/continuous_body_pose.gd` como base reutilizable para personajes y
-enemigos. El runtime y los exportadores de sprites 2D se han retirado. Los huesos
-mantienen su longitud; hombros y caderas permanecen dentro
-del torso, y piel, manos, pies y ropa acompañan sus articulaciones. Las fases de
-apoyo y transferencia se comparten mediante `stance_swing`; el número de patas y
-la postura deben corresponder a la criatura. El joven camina sobre cuatro patas
-y se levanta solo para sus puñetazos alternos.
-
-Orientar las herramientas a partir de sus puntos reales de agarre y de su plano
-de corte, de forma continua durante reposo, preparación, impacto y recuperación.
-No solucionar una orientación incorrecta con inversiones aisladas de frames o
-direcciones. La estela de la espada debe tomar la punta exportada en cada sprite.
-Revisar todas las direcciones y poses completas, también con armadura; validar
-agarres, oclusión, márgenes y continuidad antes de publicar los atlas.
-
-## Fabricación y vestimenta
-
-Toda herramienta o arma nueva que no sea básica necesita como mínimo una mesa
-de fabricación básica y no debe aparecer en Crear desde el inventario. Marcar
-las básicas mediante `basic_tool`; el requisito se comprueba también al fabricar,
-no solo en la interfaz. Las recetas de mesa deben respetar los desbloqueos.
-
-Conservar las líneas negras interiores finas de ramas, troncos y separaciones
-de hojas, tomando las ramitas como referencia. Normalizar el contorno exterior
-no debe borrar esas líneas ni aumentar su grosor.
-
-Las armaduras normales acompañan la transformación completa del torso; la de
-hojas cubre pecho, abdomen, espalda y hombros, dejando abierto el cuello. No
-recortar la cobertura a una pequeña pechera.
-
-## Criaturas y contactos de sombra
-
-Cada criatura nueva debe tener un perfil propio y separar decisiones, física y
-exportación de sus sprites completos. Reutilizar articulaciones continuas e IK;
-conservar anatomía y proporciones en las dieciséis direcciones. El joven camina
-sobre cuatro patas, se sienta en el suelo y se alza para atacar.
-
-Las sombras de objetos parten del contorno visible de sus apoyos. Declarar cada
-pata de muebles y apoyos de edificios en coordenadas del dibujo, y usar sus
-apoyos físicos 3D; la hitbox no define el origen visual. Conservar la sombra
-del personaje. Ver `docs/YOUNG_3D.md` y `docs/PROTOTYPE_3D.md` para el runtime vigente.
-
-## Zonas fijas de historia
-
-`data/world/story_zones.json` define las coordenadas, recintos y márgenes de
-las zonas de historia. Los generadores nuevos de recursos, poblados y caminos
-deben consultar `story_zone_catalog.gd` antes de colocar su huella completa;
-no basta con comprobar el centro. Conservar los IDs de zonas y elementos al
-sustituir las cajas por contenido definitivo. Ver `docs/FIXED_STORY_ZONES.md`.
-
-## Documentación del proyecto
-
-Mantener solo información vigente: dimensiones, velocidades, comportamiento,
-controles, reglas, configuración y recursos actuales. No añadir registros de
-cambios de departamentos, tiempos de trabajo, informes de pruebas, métricas
-comparativas ni capturas de revisión al repositorio. Las verificaciones y
-archivos temporales quedan locales. Actualizar los valores documentados cuando
-cambie su definición en el código. No recrear WORK_TIMES.md ni galerías de
-informes; las imágenes generadas de docs/previews están excluidas de Git.
-
-## Referencias vigentes de los modelos 3D
-
-Consultar `docs/MESHY_ASSETS.md` y los manifiestos source.json de assets para
-la fuente actual de cada modelo. Conservar los FBX, PNG, UV, geometría y rigs
-originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
-
-- Superviviente: cuerpo y rig originales en T de `Personaje1_Renewed_3d`,
-  `psnj1_3d_rigged.fbx`; cabeza aprobada Rugged Castaway y material
-  face_materials_v1. Runtime en `assets/characters/prototype_3d/composite/model.scn`,
-  66 huesos originales y altura de 1,75 m. Mantener la transición cerrada del
-  cuello, sus pesos compartidos y los ejes/binds nativos. El perfil visible es
-  survivor_native.tres; survivor.tres mantiene los controles compartidos de
-  contactos. Las superficies de meshy/ son donantes de autoría, no el cuerpo
-  visible. Regenerar según docs/ANIMATION_SYSTEMS.md.
-- Enemigo1: Mossclaw Boar 1016001519, 4036 triángulos de superficie, 0,875 m,
-  25 huesos originales SmartRigArmature de modelo1_rig. Mantener jerarquía,
-  ejes de reposo y ligadura original, con pesos interpolados en la superficie
-  reducida. Fuente intacta de 7340 triángulos; relieve horneado en normal de
-  2048 px. Animaciones nativas compartidas en rig/.
-- Enemigo3: Sunny Sprout de entregables/enemigos/enemigo3/modelo_enemigo3.fbx,
-  13582 triángulos y 35 huesos originales. Altura de partida 0,9 m. K permite
-  añadirlo con patrulla de veinte metros por tramo y ciclo de carrera de
-  10/20/40 s, con descansos de 5 s entre modalidades; la última incluye pausas
-  de 2 s cada 8 s corriendo. Velocidad de carrera diez veces la marcha y
-  torso/cabeza inclinados 60 grados. Sin objetivos reales, combate ni aparición
-  automática. Guardado en sprouts; no mezclar prototype_sprouts con el joven.
-- Hacha y pico: model_scale 0.6, grip_bottom −4 y palmas separadas 4,95 unidades.
-  Usar assets/models/meshy/{axe,pickaxe}/anchors.gd sin duplicar la escala.
-- Botella, arco y armadura: conservar sus fuentes Meshy, anclajes y materiales;
-  la armadura acompaña torso y articulaciones y el arco deforma su cuerda nativa.
-- Árboles adultos: Twisted Oak 1019091539 de modelo_arbol3d/arbol1.zip,
-  edición radial de 22976 triángulos, 15 ramas principales, 73 secundarias y
-  182 ramitas, sin hojas. Mantener alturas, IDs, posiciones y estados de tala.
-  Perfil en data/world/trees/twisted_oak.json; regenerar según docs/TREES_3D.md.
-- Roca1: Mossy Stone Outcrop 1019090447 de modelo_roca1_3d/roca1.zip,
-  11931 triángulos y altura única de 1 m, sin variantes de escala.
-  Los afloramientos se minan con pico. Conservar IDs, posiciones, resistencia
-  y rendimientos para cargar partidas existentes.
-
-## Bases reutilizables
-
-Consultar `docs/REUSABLE_SYSTEMS.md`. Definir nuevos terrenos mediante recetas
-y perfiles de `data/world/`; reutilizar los generadores y comprobar las reservas
-completas de historia. Mantener separados los perfiles de animación de Personajes
-y Enemigos en `data/animation/characters/` y `data/animation/enemies/`, usando
-las herramientas de `scripts/animation/shared/`. Conservar las fuentes originales
-y revisar las adaptaciones de clips antes de incorporarlas al runtime.
+Actualizar documentación técnica únicamente cuando cambien valores
+o comportamientos. No añadir registros de cambios de departamentos,
+informes de tareas o pruebas, métricas comparativas, tiempos de trabajo,
+capturas temporales ni galerías a Git; no recrear `WORK_TIMES.md`.
+Las verificaciones y temporales quedan locales; las imágenes generadas de
+`docs/previews` están excluidas de Git.
+Validar primero el componente modificado y después sus integraciones
+relevantes. Informar de pruebas no ejecutadas sin inventar resultados.
+Evitar imprimir archivos completos, logs enormes o reanalizar sin
+motivo configuraciones ya conocidas.

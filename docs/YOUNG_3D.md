@@ -117,3 +117,12 @@ La reducción de superficie no requiere regenerar esos clips.
 rutinas y memoria; `young_rig_motion.gd`, la autoría de poses y apoyos;
 `young_model.gd`, la reproducción nativa y sus transiciones; `young_face.gd`,
 la expresión facial. Todos están en `scripts/prototype_3d/`.
+
+## Contrato específico de postura
+
+El joven camina sobre cuatro patas
+y se levanta solo para sus puñetazos alternos.
+
+Esta postura corresponde solo al joven/Mossclaw Boar, no al superviviente ni
+a Sunny Sprout. La separación de decisiones, física y representación se describe
+en [ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md#enemigos).

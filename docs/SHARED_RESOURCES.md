@@ -33,3 +33,37 @@ No se usa como una región aleatoria de suelo ni se recolorea con una paleta
 artificial de tierra. La escala y mezcla compartidas entre chunks conservan
 la continuidad del dibujo. El muestreo nearest mantiene los píxeles definidos;
 los cuatro mapas de color se interpretan como sRGB para la iluminación.
+
+## Runtime y compatibilidad
+
+La rama de integración vigente es `main` y contiene el juego 3D.
+El runtime 2D ha sido retirado; conservar los sprites y sistemas compartidos
+que se detallan en `docs/SHARED_RESOURCES.md`. Actualizar las ramas de departamento
+antes de trabajar para evitar restaurar archivos obsoletos.
+
+No restaurar el runtime ni los exportadores 2D retirados para editar estos
+recursos. Los sprites, recortes y sistemas de la tabla inicial siguen teniendo
+usos actuales: no borrarlos por ser imágenes planas. Los atlas que se encuentren
+solo como referencia no constituyen un nuevo runtime jugable.
+
+## Referencias de exportación 2D: verificar vigencia
+
+La estela de la espada debe tomar la punta exportada en cada sprite.
+Revisar todas las direcciones y poses completas, también con armadura; validar
+agarres, oclusión, márgenes y continuidad antes de publicar los atlas.
+
+Cada criatura nueva debe tener un perfil propio y separar decisiones, física y
+exportación de sus sprites completos. Reutilizar articulaciones continuas e IK;
+conservar anatomía y proporciones en las dieciséis direcciones. El joven camina
+sobre cuatro patas, se sienta en el suelo y se alza para atacar.
+
+**Verificar vigencia antes de aplicar a una exportación compartida concreta.**
+Estas instrucciones conservan las puntas exportadas de sprites, las dieciséis
+direcciones, los atlas y las validaciones del flujo de imágenes completas. No
+obligan a crear dieciséis clips, atlas ni exportadores para los modelos 3D actuales.
+La regla de perfil por criatura, decisiones separadas de física, anatomía,
+articulaciones continuas e IK sigue vigente para 3D; consultar
+[ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md#enemigos). El joven cuadrúpedo tiene
+su contrato en [YOUNG_3D.md](YOUNG_3D.md#contrato-específico-de-postura).
+Las cifras de raster y sus excepciones siguen en
+[VISUAL_STYLE.md](VISUAL_STYLE.md#referencia-de-raster-para-recursos-planos).

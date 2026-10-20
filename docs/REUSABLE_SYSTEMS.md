@@ -24,3 +24,27 @@ completa de una parte o modelo. Los IDs y las semillas permanecen estables.
 No se modifican FBX, UV, skin ni geometría originales para adaptar una animación.
 Las escenas exportadas por las herramientas son resultados de autoría; el
 mundo jugable mantiene su carga por proximidad y sus presupuestos de fotograma.
+
+## Contratos de reutilización
+
+Consultar `docs/REUSABLE_SYSTEMS.md`. Definir nuevos terrenos mediante recetas
+y perfiles de `data/world/`; reutilizar los generadores y comprobar las reservas
+completas de historia. Mantener separados los perfiles de animación de Personajes
+y Enemigos en `data/animation/characters/` y `data/animation/enemies/`, usando
+las herramientas de `scripts/animation/shared/`. Conservar las fuentes originales
+y revisar las adaptaciones de clips antes de incorporarlas al runtime.
+
+## Fabricación y desbloqueos
+
+Toda herramienta o arma nueva que no sea básica necesita como mínimo una mesa
+de fabricación básica y no debe aparecer en Crear desde el inventario. Marcar
+las básicas mediante `basic_tool`; el requisito se comprueba también al fabricar,
+no solo en la interfaz. Las recetas de mesa deben respetar los desbloqueos.
+
+La definición de herramientas y desbloqueos está en `scripts/inventory.gd`.
+`scripts/workshop.gd` calcula `required_station_for` y filtra `recipe_ids`;
+`craft` vuelve a comprobar desbloqueo y nivel de mesa. La presentación de
+`scripts/creation_page.gd` no sustituye esa validación. Conservar también las
+excepciones existentes de botella y mesa en `required_station_for`.
+La prueba específica es `tests/workbench_station_rules.gd`.
+Para elegir contexto y comprobaciones consultar [TASK_ROUTING.md](TASK_ROUTING.md).

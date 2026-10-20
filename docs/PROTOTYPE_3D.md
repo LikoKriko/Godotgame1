@@ -243,3 +243,19 @@ pelo, hojas, césped y ropa. La amplitud máxima prevista en las puntas es de
 viento y sus ráfagas; la deformación de esos modelos requiere preparar sus
 máscaras o ligaduras y conectar sus materiales. No se alteran sus mallas, UV,
 rigs ni animaciones originales.
+
+## Dirección de iluminación y ambiente
+
+Mantener un acabado natural estilizado que conserve la paleta del juego y
+favorezca la lectura del volumen y los detalles. La ambientación debe resultar
+bonita, interesante e inmersiva, con identidad según el momento del día y la
+zona, y capacidad de acompañar las misiones, la tensión y el contexto narrativo.
+Usar perfiles reutilizables para definir luz, relleno ambiental, cielo y
+atmósfera; mantener coherencia entre sus transiciones y cuidar el rendimiento.
+Consultar los perfiles actuales de `data/rendering/` y `docs/PROTOTYPE_3D.md`.
+
+Las reglas de acabado y origen físico de sombras están en
+[VISUAL_STYLE.md](VISUAL_STYLE.md). Los apartados de sol, luna y acabado natural
+describen los perfiles globales existentes. Un perfil de zona o escena debe
+reutilizar esos contratos y el reloj compartido; no hay un sistema narrativo
+de iluminación por zona implementado por esta documentación.

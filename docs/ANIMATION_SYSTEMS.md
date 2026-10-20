@@ -65,6 +65,13 @@ apoyos nativos. No transferir los pesos antiguos del cuerpo al rig en T.
 
 ## Enemigos
 
+Cada criatura nueva debe tener un perfil propio y separar decisiones, física y
+representación. Reutilizar articulaciones continuas e IK, manteniendo anatomía,
+proporciones, número de patas y postura propios. Las instrucciones de sprites
+completos y dieciséis direcciones que sobreviven como referencia se delimitan en
+[SHARED_RESOURCES.md](SHARED_RESOURCES.md#referencias-de-exportación-2d-verificar-vigencia);
+no imponen un pipeline de atlas a los nuevos rigs 3D.
+
 `scripts/animation/enemies/enemy_profile.gd` declara una familia de locomoción,
 huesos por función, cadenas de tres o cuatro articulaciones y fases de apoyo
 para marcha/carrera. No presupone que todos los enemigos tengan el mismo número
@@ -402,3 +409,28 @@ Referencias de autoría: [marcha](https://www.animationmentor.com/blog/tutorial-
 y [espada](https://www.animationmentor.com/blog/tutorial-animate-sword-fights-battle-sequences/).
 Los movimientos se adaptan al rig y los tiempos de juego; no se incluyen clips
 comerciales de terceros.
+
+## Contratos de anatomía y contacto
+
+El superviviente 3D representa un hombre estilizado de 1,75 m y 60 kg, delgado,
+con articulaciones identificables y definición anatómica discreta. Compartir
+anatomía y pesos de piel en todas las animaciones. La tela holgada acompaña las
+piernas con inercia pequeña. Cada golpe tiene preparación, acción, retroceso y
+recuperación. El golpe apunta al punto de mira fijado al iniciarlo, con alcance
+limitado por brazos y herramienta. Las nuevas herramientas usan los anclajes
+del catálogo de poses, sin duplicar o separar brazos del cuerpo.
+
+Usar los modelos y rigs de `scripts/prototype_3d/` y la cinemática de
+`scripts/continuous_body_pose.gd` como base reutilizable para personajes y
+enemigos. El runtime y los exportadores de sprites 2D se han retirado. Los huesos
+mantienen su longitud; hombros y caderas permanecen dentro
+del torso, y piel, manos, pies y ropa acompañan sus articulaciones. Las fases de
+apoyo y transferencia se comparten mediante `stance_swing`; el número de patas y
+la postura deben corresponder a la criatura.
+
+Las reglas de oclusión y orientación de herramientas están en
+[WEAPON_ANIMATIONS_3D.md](WEAPON_ANIMATIONS_3D.md#orientación-y-oclusión).
+Validar pelvis, columna, transferencia de peso, apoyos y continuidad en las
+poses y transiciones afectadas, sin alargar huesos para alcanzar un contacto.
+La base nativa y su regeneración se describen en el apartado [Personajes](#personajes);
+las fuentes y perfiles exactos están en [MESHY_ASSETS.md](MESHY_ASSETS.md#contratos-de-fuentes-y-modelos).

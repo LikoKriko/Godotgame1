@@ -80,3 +80,11 @@ su estado guardado, pero no reaparecen invadiendo la zona. Mesas y objetos
 colocados por el jugador conservan su persistencia existente.
 
 La maqueta no contiene todavía misiones, inventarios ni estados de historia.
+
+## Contrato de integración de generadores
+
+`data/world/story_zones.json` define las coordenadas, recintos y márgenes de
+las zonas de historia. Los generadores nuevos de recursos, poblados y caminos
+deben consultar `story_zone_catalog.gd` antes de colocar su huella completa;
+no basta con comprobar el centro. Conservar los IDs de zonas y elementos al
+sustituir las cajas por contenido definitivo. Ver `docs/FIXED_STORY_ZONES.md`.

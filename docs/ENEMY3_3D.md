@@ -74,3 +74,13 @@ reproduce el clip horneado; la referencia está en `animate_run()` y el generado
 en `tools/enemy3/bake_run.gd`. No modifica malla, pesos, UV ni texturas.
 En `enemy3_review.tscn`, W muestra caminata, C carrera y R la pose original;
 Espacio pausa/reanuda las cuatro vistas.
+
+## Contrato de identidad y grupos
+
+- Enemigo3: Sunny Sprout de entregables/enemigos/enemigo3/modelo_enemigo3.fbx,
+  13582 triángulos y 35 huesos originales. Altura de partida 0,9 m. K permite
+  añadirlo con patrulla de veinte metros por tramo y ciclo de carrera de
+  10/20/40 s, con descansos de 5 s entre modalidades; la última incluye pausas
+  de 2 s cada 8 s corriendo. Velocidad de carrera diez veces la marcha y
+  torso/cabeza inclinados 60 grados. Sin objetivos reales, combate ni aparición
+  automática. Guardado en sprouts; no mezclar prototype_sprouts con el joven.

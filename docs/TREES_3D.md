@@ -62,3 +62,10 @@ utiliza el sistema compartido de mallas y materiales.
 
 La escena `scenes/prototype_3d/tree_review.tscn` permite revisar el árbol desde
 cualquier ángulo y con las alturas y orientaciones existentes.
+
+## Contrato de identidad y persistencia
+
+- Árboles adultos: Twisted Oak 1019091539 de modelo_arbol3d/arbol1.zip,
+  edición radial de 22976 triángulos, 15 ramas principales, 73 secundarias y
+  182 ramitas, sin hojas. Mantener alturas, IDs, posiciones y estados de tala.
+  Perfil en data/world/trees/twisted_oak.json; regenerar según docs/TREES_3D.md.

@@ -8,7 +8,7 @@ están en `assets/`; los originales se organizan en `entregables/`.
 
 | Modelo | Altura en partida | Triángulos | Esqueleto |
 | --- | --- | --- | --- |
-| Superviviente Rugged Castaway | 1,75 m | 32569 | 24 huesos, con controles de ropa y volumen articular |
+| Superviviente: cuerpo nativo y cabeza Rugged Castaway | 1,75 m | 30666 en la escena compuesta | 66 huesos originales; 24 controles compartidos separados |
 | Enemigo1 Mossclaw Boar | 0,875 m | 4036, sin apertura facial | 25 huesos originales SmartRigArmature |
 | Enemigo3 Sunny Sprout | 0,9 m | 13582 | 35 huesos originales |
 
@@ -95,11 +95,14 @@ y `bake_motion.gd` en `tools/enemy1/`; la superficie optimizada se deriva con
 La armadura se prepara con `prepare_wearables.gd`.
 Usar las fuentes y manifiestos vigentes al regenerar recursos.
 
-El superviviente muestra `meshy/survivor_axilla.res`, una derivación local de
-`survivor_skin.res` con soporte adicional del pliegue axilar y transición suave
-de pesos. El recurso fuente conserva su geometría y UV; el manifiesto distingue
-la superficie de ejecución. Al actualizar el modelo, regenerar el soporte y
-los apoyos según [ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md).
+Los recursos de autoría `meshy/survivor_axilla.res` y `survivor_skin.res` conservan
+el soporte del pliegue axilar y la transición suave de pesos del donante. No
+son el cuerpo visible del jugador: `survivor_model.gd` instancia la escena
+compuesta y obtiene su malla mediante `native.mesh`. El manifiesto compuesto
+declara superficies de 19987, 10524 y 155 triángulos (30666 en total),
+66 huesos y altura de 1,75 m. Al actualizar el modelo, regenerar los apoyos
+según [ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md); no confundir los 24 controles
+de autoría/contactos con el esqueleto que deforma el cuerpo visible.
 
 ## Árboles
 
@@ -109,3 +112,45 @@ añade ramificación radial: 15 ramas principales, 73 secundarias y 182 ramitas;
 22976 triángulos, sin hojas. Una malla compartida de altura normalizada 1 m se
 escala a la altura existente de cada recurso. Ver [TREES_3D.md](TREES_3D.md)
 para materiales, reglas de curvas y regeneración.
+
+## Contratos de fuentes y modelos
+
+Consultar `docs/MESHY_ASSETS.md` y los manifiestos source.json de assets para
+la fuente actual de cada modelo. Conservar los FBX, PNG, UV, geometría y rigs
+originales; adaptar las animaciones a ellos sin reconstruir sus siluetas.
+
+- Superviviente: cuerpo y rig originales en T de `Personaje1_Renewed_3d`,
+  `psnj1_3d_rigged.fbx`; cabeza aprobada Rugged Castaway y material
+  face_materials_v1. Runtime en `assets/characters/prototype_3d/composite/model.scn`,
+  66 huesos originales y altura de 1,75 m. Mantener la transición cerrada del
+  cuello, sus pesos compartidos y los ejes/binds nativos. El perfil visible es
+  survivor_native.tres; survivor.tres mantiene los controles compartidos de
+  contactos. Las superficies de meshy/ son donantes de autoría, no el cuerpo
+  visible. Regenerar según docs/ANIMATION_SYSTEMS.md.
+
+- Enemigo1: Mossclaw Boar 1016001519, 4036 triángulos de superficie, 0,875 m,
+  25 huesos originales SmartRigArmature de modelo1_rig. Mantener jerarquía,
+  ejes de reposo y ligadura original, con pesos interpolados en la superficie
+  reducida. Fuente intacta de 7340 triángulos; relieve horneado en normal de
+  2048 px. Animaciones nativas compartidas en rig/.
+
+- Hacha y pico: model_scale 0.6, grip_bottom −4 y palmas separadas 4,95 unidades.
+  Usar assets/models/meshy/{axe,pickaxe}/anchors.gd sin duplicar la escala.
+
+- Botella, arco y armadura: conservar sus fuentes Meshy, anclajes y materiales;
+  la armadura acompaña torso y articulaciones y el arco deforma su cuerda nativa.
+
+- Roca1: Mossy Stone Outcrop 1019090447 de modelo_roca1_3d/roca1.zip,
+  11931 triángulos y altura única de 1 m, sin variantes de escala.
+  Los afloramientos se minan con pico. Conservar IDs, posiciones, resistencia
+  y rendimientos para cargar partidas existentes.
+
+Ficha completa de Sunny Sprout: [ENEMY3_3D.md](ENEMY3_3D.md#contrato-de-identidad-y-grupos).
+Edición radial y persistencia de Twisted Oak: [TREES_3D.md](TREES_3D.md#contrato-de-identidad-y-persistencia).
+El plan documental llama «Aren» al superviviente: **verificar vigencia del nombre**;
+las rutas reales utilizan `survivor` y `personaje1`. No renombrar recursos ni IDs
+por esa denominación. La etiqueta `Personaje1_Renewed_3d` es la release de fuente,
+no una carpeta requerida en la raíz del proyecto. Las rutas de archivos ZIP
+con prefijo `modelo_` identifican entregas de releases externas, no archivos que
+deban reaparecer en la raíz. Las copias locales conservadas se localizan en los
+manifiestos `source.json` y en `entregables/`.
