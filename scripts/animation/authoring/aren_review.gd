@@ -2,7 +2,7 @@ extends Control
 ## Four live views of a generated library, on a real fixed ground grid.
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
-@export var scene_path:=ROOT+"aren_short_run_v1/aren.tscn"
+@export var scene_path:=ROOT+"aren_walk_launch_v1/aren.tscn"
 var sources:Array=[
  {"label":"Original del juego","path":""},
  {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
@@ -15,7 +15,8 @@ var sources:Array=[
  {"label":"Carrera e impulso: postura ajustada","path":ROOT+"aren_run_launch_v1/aren.tscn"},
  {"label":"Coordinación: brazos y rodillas","path":ROOT+"aren_coordination_v1/aren.tscn"},
  {"label":"Caminata: torso superior coordinado","path":ROOT+"aren_walk_upper_v1/aren.tscn"},
- {"label":"Carrera: zancada contenida","path":ROOT+"aren_short_run_v1/aren.tscn"}
+ {"label":"Carrera: zancada contenida","path":ROOT+"aren_short_run_v1/aren.tscn"},
+ {"label":"Caminata y arranque ajustados","path":ROOT+"aren_walk_launch_v1/aren.tscn"}
 ]
 const MOTIONS=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]
 const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
@@ -159,8 +160,8 @@ func reset_trees() -> void:
 func update_source_status() -> void:
  if not source_status:return
  if compare_button:
-  compare_button.disabled=source_index not in [10,11]
-  compare_button.text="Ver antes" if source_index==11 else "Ver después"
+  compare_button.disabled=source_index not in [11,12]
+  compare_button.text="Ver antes" if source_index==12 else "Ver después"
  if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
  if advanced() and transition_motion():
   var actor=actors[0]
@@ -224,10 +225,10 @@ func process_transitions(delta:float) -> void:
  update_source_status()
 
 func compare_posture() -> void:
- if source_index not in [10,11]:return
+ if source_index not in [11,12]:return
  var seconds:=elapsed
  var cycle_phase:float=0 if transition_motion() else elapsed/cycle_info(motion).duration
- select_source(10 if source_index==11 else 11)
+ select_source(11 if source_index==12 else 12)
  if transition_motion():
   var remaining:=seconds
   while remaining>.0000001:

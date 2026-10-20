@@ -587,9 +587,9 @@ deformada del torso superior para detectar ajustes sin efecto visible.
 
 #### Carrera con apertura contenida y recuperación temprana
 
-El visor abre **Carrera: zancada contenida** (`aren_short_run_v1/`), con `run`
-seleccionado. **Ver antes / Ver después** alterna con `aren_walk_upper_v1` en la
-misma fase del ciclo, respetando la duración de cada versión. En transiciones
+La entrega **Carrera: zancada contenida** (`aren_short_run_v1/`) conserva el ajuste
+de apertura y recuperación de piernas. Sigue seleccionable y sirve como referencia
+para la entrega posterior de caminata y preparación de brazos. En transiciones
 conserva el tiempo real, la velocidad y la distancia recorrida; las fases pueden
 diferir porque la cadencia cambia. Los tres estados, las seis transiciones y
 **Encadenadas** siguen disponibles.
@@ -645,6 +645,59 @@ del talón y preparación del apoyo; después probar **Reposo → correr**, carr
 estable y **Correr → reposo**, además de cambios hacia/desde caminar e interrupciones.
 La velocidad y los contactos deben conservarse, sin saltos de pelvis/columna ni
 alteraciones de las caminatas y el reposo aprobados.
+
+#### Flexión lumbar moderada y preparación asimétrica de brazos
+
+El visor abre **Caminata y arranque ajustados** (`aren_walk_launch_v1/`) con `walk`
+seleccionado. **Ver antes / Ver después** alterna con `aren_short_run_v1` en la
+misma fase o, al revisar transiciones, en el mismo instante, estado y velocidad.
+Usar **Reposo → correr** para observar la preparación antes del primer paso y
+**Caminar → correr** para comprobar el enlace desde el balanceo existente.
+
+La entrega reutiliza el evaluador de torso y reduce `walk_torso.pitch_deg` al
+35 % del valor anterior en los tres estados: ±0,2975° Normal, ±0,21° Cauteloso y
+±0,2625° Cansado en el pecho. Conserva las posturas medias, la contrarrotación,
+las inclinaciones laterales y las participaciones acumuladas 28/63/100 % de la
+columna. Reduce la flexión/extensión lumbar y abdominal sin añadir escalados ni
+traslaciones a la columna. Cada muestra se reconstruye desde la pose fuente;
+las participaciones son orientaciones acumuladas objetivo y no giros que deban
+sumarse de nuevo a la muestra anterior. Se conservan los pies y los ciclos de
+carrera y reposo.
+
+`aren_walk_launch_actor.gd` añade una preparación de brazos sobre la pose fresca
+del evaluador existente. La carga anticipatoria del torso activa primero el
+brazo que acompaña a la siguiente pierna contralateral; el segundo empieza más
+tarde y con menor amplitud. Los umbrales de carga son 0,02 y 0,65, respectivamente.
+El brazo que inicia la preparación adelanta el húmero hasta 8° y añade hasta 32°
+de flexión de codo; el otro usa 3° y 18°. Las ganancias son 1/0,85/0,70 para
+Normal/Cauteloso/Cansado. La flexión total queda limitada a 115° y sigue el plano
+anatómico del codo muestreado. `aren_arm_preparation.gd` utiliza las herramientas
+compartidas de transformación de ramas; no cambia longitudes, escalas o rig.
+
+La preparación empieza durante la inclinación, antes de avanzar la fase del
+primer paso. Se retira con interpolación quintica según dos pasos de fase y la
+velocidad realmente ganada, enlazando con el balanceo contralateral de los ciclos.
+En **Caminar → correr** usa una intensidad del 35 %, manteniendo el gesto que ya
+está en marcha. Los ángulos efectivos de cada brazo se filtran con resortes
+críticamente amortiguados de respuesta 20; conservan continuidad al interrumpir,
+retomar o cambiar el brazo que inicia el movimiento. La pose se reconstruye antes
+de aplicar la preparación, evitando acumulación entre fotogramas. La preparación
+no permanece en la carrera estable ni modifica los contactos o planes de velocidad.
+
+El perfil referencia todos los ciclos anteriores; solo se guardan escena y
+parámetros nuevos. Generar en un directorio independiente:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren_walk_launch.gd -- \
+  --output res://assets/characters/prototype_3d/generated/aren_walk_launch_custom
+godot --headless --path . --script tests/aren_walk_launch.gd
+```
+
+Comparar el bucle de caminata desde lateral, frente, espalda y tres cuartos:
+flexión contenida sin efecto de compresión/estiramiento, torso conectado y pies
+conservados. En el arranque, comprobar inicio escalonado de los brazos antes del
+primer paso, amplitudes distintas, recuperación hacia la carrera y continuidad
+en aceleraciones interrumpidas y retomadas.
 
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango
