@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/characters/prototype_3d/generated/aren_coordination_v1/aren.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/animation/authoring/aren_walk_upper_actor.gd" id="2"]
+
+[node name="ArenWalkUpper" instance=ExtResource("1")]
+script = ExtResource("2")
+transition_profile = "res://assets/characters/prototype_3d/generated/aren_walk_upper_v1/profile.json"

@@ -478,9 +478,9 @@ entregas previas y el controlador jugable mantienen su comportamiento.
 
 #### Coordinación contralateral, incremento del impulso y plano de rodillas
 
-El visor abre **Coordinación: brazos y rodillas** (`aren_coordination_v1/`), con
-`walk` seleccionado. **Ver antes / Ver después** alterna con `aren_run_launch_v1`
-en el mismo instante, estado y velocidad. Los tres estados y las seis transiciones,
+La entrega **Coordinación: brazos y rodillas** (`aren_coordination_v1/`) conserva
+las correcciones de brazos, impulso y rodillas. Sigue seleccionable como fuente
+y como referencia de comparación para el ajuste de torso siguiente. Los tres estados y las seis transiciones,
 incluido **Encadenadas**, están disponibles. **Pausa** permite comparar una pose;
 **Reiniciar** repite una transición. Las fuentes anteriores siguen seleccionables.
 
@@ -530,6 +530,60 @@ godot --headless --path . --script tools/animation/generate_aren_coordination.gd
   --output res://assets/characters/prototype_3d/generated/aren_coordination_custom
 godot --headless --path . --script tests/aren_coordination.gd
 ```
+
+#### Caminata con movimiento del torso superior
+
+El visor abre **Caminata: torso superior coordinado** (`aren_walk_upper_v1/`), con
+`walk` seleccionado. **Ver antes / Ver después** alterna con `aren_coordination_v1`
+conservando instante, fase, estado y velocidad. Se mantienen disponibles los seis
+cambios de velocidad y **Encadenadas**, además de **Pausa** y **Reiniciar**.
+
+`aren_walk_upper_sampler.gd` reutiliza el muestreo contralateral y añade una capa
+parametrizada solo a `walk`. `aren_walk_upper_body.gd` utiliza las herramientas
+existentes de transformación de ramas y referencia media del torso. Conserva la
+postura media de cada estado, incluida la flexión propia de Cansado, y reparte
+el movimiento acumulado entre lumbar, abdomen superior y tórax con participaciones
+28/63/100 %. La pelvis conserva el 90 % de su oscilación angular previa y su
+traslación completa. No añade un nuevo balanceo de cadera.
+
+Amplitudes de pecho respecto a su postura media, por lado (±):
+
+| Estado | Flexión sagital | Contrarrotación | Inclinación lateral |
+| --- | --- | --- | --- |
+| Normal | 0,85° | 4,20° | 1,50° |
+| Cauteloso | 0,60° | 3,20° | 1,00° |
+| Cansado | 0,75° | 3,60° | 1,30° |
+
+La contrarrotación y el balanceo lateral usan la fase existente de los pasos;
+la flexión sagital tiene dos pulsos por ciclo. El giro del tórax se opone al de
+la pelvis, acompañando al brazo contralateral. Los hombros siguen al tórax con
+sus gestos locales originales, sin duplicar ni incrementar el balanceo de brazos.
+Cuello y cabeza conservan el 45 % y el 20 % del movimiento angular del pecho,
+respectivamente, estabilizando la mirada sin desconectar la cabeza del cuerpo.
+
+La capa conserva las transformaciones globales de las cadenas completas de
+piernas y las curvas de morfos/contactos del ciclo. El evaluador existente mezcla
+los ciclos ajustados antes de resolver los apoyos y el IK anatómico. La velocidad,
+cadencia, zancada, planes de aceleración/frenada e impulso de carrera siguen los
+parámetros previos. Los muestreos de carrera y reposo permanecen iguales. No se
+modifican mallas, pesos, rigs, binds, materiales ni bibliotecas aprobadas.
+
+El perfil guarda `walk_torso` por estado: `pitch_deg`, `yaw_deg`, `roll_deg`,
+`spine_shares`, `pelvis_retention`, `neck_follow` y `head_follow`. La escena y el
+perfil referencian la entrega anterior y sus recursos compartidos. Regenerar con
+un nombre nuevo:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren_walk_upper.gd -- \
+  --output res://assets/characters/prototype_3d/generated/aren_walk_upper_custom
+godot --headless --path . --script tests/aren_walk_upper_body.gd
+```
+
+Comparar en frente, lateral, espalda y tres cuartos: movimiento progresivo en los
+tres tramos de columna, contrarrotación sin giro aislado de cintura, hombros
+conectados, cabeza más estable que el pecho y apoyos conservados al encadenar o
+interrumpir transiciones. La comprobación automatizada evalúa también la piel
+deformada del torso superior para detectar ajustes sin efecto visible.
 
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango

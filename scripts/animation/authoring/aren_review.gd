@@ -2,7 +2,7 @@ extends Control
 ## Four live views of a generated library, on a real fixed ground grid.
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
-@export var scene_path:=ROOT+"aren_coordination_v1/aren.tscn"
+@export var scene_path:=ROOT+"aren_walk_upper_v1/aren.tscn"
 var sources:Array=[
  {"label":"Original del juego","path":""},
  {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
@@ -13,7 +13,8 @@ var sources:Array=[
  {"label":"Carrera y reposo corregidos","path":ROOT+"aren_run_idle_v3/aren.tscn"},
  {"label":"Transiciones con apoyos","path":ROOT+"aren_transitions_v1/aren.tscn"},
  {"label":"Carrera e impulso: postura ajustada","path":ROOT+"aren_run_launch_v1/aren.tscn"},
- {"label":"Coordinación: brazos y rodillas","path":ROOT+"aren_coordination_v1/aren.tscn"}
+ {"label":"Coordinación: brazos y rodillas","path":ROOT+"aren_coordination_v1/aren.tscn"},
+ {"label":"Caminata: torso superior coordinado","path":ROOT+"aren_walk_upper_v1/aren.tscn"}
 ]
 const MOTIONS=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]
 const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
@@ -157,8 +158,8 @@ func reset_trees() -> void:
 func update_source_status() -> void:
  if not source_status:return
  if compare_button:
-  compare_button.disabled=source_index not in [8,9]
-  compare_button.text="Ver antes" if source_index==9 else "Ver después"
+  compare_button.disabled=source_index not in [9,10]
+  compare_button.text="Ver antes" if source_index==10 else "Ver después"
  if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
  if advanced() and transition_motion():
   var actor=actors[0]
@@ -176,7 +177,9 @@ func update_source_status() -> void:
   if actors[0].has_method("seek_cycle") and clip=="run":source_status.text="%s · run · torso +%.1f° · %.3f m/s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],actors[0].profile.posture[actors[0].style].steady_deg,animation.get_meta("cycle").speed_mps]
   return
  if actors[0].has_method("impulse_increment") and clip=="walk":
-  source_status.text="%s · walk · brazos contralaterales · %.3f m/s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],animation.get_meta("cycle").speed_mps];return
+  source_status.text="%s · walk · brazos contralaterales · %.3f m/s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],animation.get_meta("cycle").speed_mps]
+  if actors[0].profile.has("walk_torso"):source_status.text+=" · torso coordinado"
+  return
  source_status.text="%s · Paso ×%.2f · Brazos ×%.2f · Torso extra %.1f°"%[sources[source_index].label,parameters.stride,parameters.arms,rad_to_deg(parameters.lean)]
 
 func advanced() -> bool:return not actors.is_empty() and actors[0].has_method("advance_transition")
@@ -219,9 +222,9 @@ func process_transitions(delta:float) -> void:
  update_source_status()
 
 func compare_posture() -> void:
- if source_index not in [8,9]:return
+ if source_index not in [9,10]:return
  var seconds:=elapsed
- select_source(8 if source_index==9 else 9)
+ select_source(9 if source_index==10 else 10)
  if transition_motion():
   var remaining:=seconds
   while remaining>.0000001:
