@@ -1,5 +1,6 @@
 extends Control
 ## Four live views of a generated library, on a real fixed ground grid.
+const PoseMirror=preload("res://scripts/animation/authoring/aren_review_pose.gd")
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
 @export var scene_path:=ROOT+"aren_walk_launch_v1/aren.tscn"
@@ -29,6 +30,7 @@ var source_index:=7
 var source_selector:OptionButton
 var source_status:Label
 var actors:Array[Node3D]=[]
+var pose_mirror=PoseMirror.new()
 var cameras:Array[Camera3D]=[]
 var viewports:Array[SubViewport]=[]
 var motion:="walk"
@@ -49,6 +51,7 @@ func _ready() -> void:
  if sources[source_index].path.ends_with("aren_transitions_v1/aren.tscn"):motion="transitions"
  if sources[source_index].path.ends_with("aren_run_launch_v1/aren.tscn") or sources[source_index].path.ends_with("aren_short_run_v1/aren.tscn"):motion="run"
  build_views()
+ pose_mirror.configure(actors)
  var bar:=HBoxContainer.new();bar.position=Vector2(12,8);add_child(bar)
  source_selector=OptionButton.new();source_selector.name="SourceSelector"
  for source in sources:source_selector.add_item(source.label)
@@ -93,6 +96,13 @@ func build_views() -> void:
   var actor:=create_actor(world);actors.append(actor)
   var camera:=Camera3D.new();camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.size=2.5;world.add_child(camera);camera.current=true;cameras.append(camera)
 func show_frame(clip:String,seconds:float) -> void:
+ if advanced():
+  var actor=actors[0];var info:=cycle_info(clip)
+  actor.position.z=seconds*float(info.speed_mps);actor.tree.active=false
+  if actor.has_method("seek_cycle"):actor.seek_cycle(clip,fposmod(seconds,info.duration))
+  else:
+   actor.player.play(StringName("aren/"+clip));actor.player.seek(fposmod(seconds,info.duration),true);actor.player.pause()
+  sync_pose_views();return
  for i in actors.size():
   var actor=actors[i]
   var info:=cycle_info(clip)
@@ -106,6 +116,10 @@ func show_frame(clip:String,seconds:float) -> void:
    else:
     actor.player.play(StringName("aren/"+clip));actor.player.seek(fposmod(seconds,info.duration),true);actor.player.pause()
   point_camera(i)
+func sync_pose_views() -> void:
+ pose_mirror.copy_pose()
+ for i in actors.size():
+  actors[i].position=actors[0].position;point_camera(i)
 func point_camera(index:int) -> void:
  var angle:float=[0.0,PI/2,PI,PI/4][index]
  var target:=actors[index].position+Vector3(0,.9,0)
@@ -148,6 +162,7 @@ func select_source(index:int) -> void:
 
  for i in actors.size():
   var world:=actors[i].get_parent();actors[i].free();actors[i]=create_actor(world)
+ pose_mirror.configure(actors)
  elapsed=phase*cycle_info("walk" if transition_motion() else motion).duration;travel=0
  if source_selector:source_selector.select(index)
  refresh_options();update_source_status()
@@ -210,18 +225,19 @@ func select_state(index:int) -> void:
 func start_transition_preview() -> void:
  chain_index=0;chain_wait=0;elapsed=0;travel=0
  var name:String=CHAIN[0] if motion=="transitions" else motion
- for actor in actors:
-  actor.reset_motion(actor.profile.recipes[name].from)
-  actor.request_transition(name);actor.position.z=0
+ var actor=actors[0]
+ actor.reset_motion(actor.profile.recipes[name].from)
+ actor.request_transition(name);actor.position.z=0
+ sync_pose_views()
  update_source_status()
 func process_transitions(delta:float) -> void:
  if motion=="transitions" and actors[0].recipe.is_empty():
   chain_wait+=delta
   if chain_wait>=.45:
    chain_wait=0;chain_index=(chain_index+1)%CHAIN.size()
-   for actor in actors:actor.request_transition(CHAIN[chain_index])
- for i in actors.size():
-  actors[i].advance_transition(delta);actors[i].position.z=actors[i].distance_m;point_camera(i)
+   actors[0].request_transition(CHAIN[chain_index])
+ actors[0].advance_transition(delta);actors[0].position.z=actors[0].distance_m
+ sync_pose_views()
  update_source_status()
 
 func compare_posture() -> void:

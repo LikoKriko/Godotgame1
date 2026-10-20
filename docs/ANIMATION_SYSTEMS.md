@@ -344,6 +344,17 @@ la reproducción. Las cuatro cámaras muestran frente, lateral, espalda y tres
 cuartos. Los ciclos aprobados siguen disponibles en las opciones walk/run/idle
 y en sus entregas anteriores.
 
+En la escena de revisión, las fuentes con `advance_transition` se evalúan una
+sola vez, en `actors[0]`. `aren_review_pose.gd` copia su pose local de esqueleto
+y sus pesos de blend shapes a las otras tres vistas, que conservan esqueletos
+e instancias independientes. Los enlaces y buffers se reutilizan hasta cambiar
+de fuente. Las cuatro cámaras siguen mostrando la misma pose y desplazamiento;
+solo el primer actor mantiene el reloj y el estado de la simulación. Se conservan
+los subpasos de hasta 1/120 s, la IK, los apoyos, los clips y los ajustes gráficos.
+Esta optimización también se aplica a los ciclos de esas fuentes; las fuentes
+anteriores mantienen su reproducción original. Verificación de equivalencia:
+`godot --headless --path . --script tests/aren_review_playback.gd`.
+
 `generate_aren_transitions.gd` genera seis pequeños clips de control normalizados
 (`controls.res`) y un perfil con referencias y hashes de las bibliotecas
 existentes. No duplica claves de huesos ni modifica ciclos, rig o piel fuente.
