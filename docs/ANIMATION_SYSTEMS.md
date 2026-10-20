@@ -168,9 +168,9 @@ godot --headless --path . --script tools/animation/generate_aren.gd -- \
 
 | Parámetro | Rango | Efecto coordinado |
 | --- | --- | --- |
-| stride | 0,6–1,1 | Zancada, recorrido y velocidad de desplazamiento |
+| stride | 0,6–1,2 | Zancada, recorrido y velocidad de desplazamiento |
 | cadence | 0,65–1,3 | Duración del ciclo y velocidad de desplazamiento |
-| arms | 0,3–1,25 | Balanceo de cadenas completas desde los hombros |
+| arms | 0,3–1,3 | Factor real de amplitud angular de los brazos respecto al torso |
 | lean | −0,03–0,10 rad | Inclinación corporal; piernas resueltas desde las caderas finales |
 | fatigue | 0–1 | Descenso, flexión articulada de espalda/cuello y menor elevación del pie |
 | caution | 0–1 | Apoyo más largo, cuerpo más bajo y transferencia lateral contenida |
@@ -185,8 +185,10 @@ Los perfiles persistentes incluyen jerarquía, ejes, longitudes, roles, cadenas,
 commit de partida y hashes de fuentes, curvas, rig y scripts del pipeline.
 `data/animation/characters/aren_rig_cache.json` evita reconstruir el índice
 cuando coinciden los hashes; se sigue instanciando el rig para reproducirlo.
-Si cambian las fuentes, regenerar el perfil y los clips; no reutilizar un caché
-de otro modelo/importador. `rig_profile.json` acompaña cada entrega.
+Si cambian las fuentes, regenerar el perfil y las entregas que se quieran
+actualizar; no reutilizar un caché de otro modelo/importador. Las bibliotecas
+ya horneadas conservan sus hashes históricos y no se sobrescriben cuando cambia
+la herramienta. `rig_profile.json` acompaña cada entrega.
 
 La validación reproduce 241 instantes por clip con AnimationPlayer, comprueba
 longitudes locales, transformaciones finitas, cierre de bucle y velocidad de
@@ -213,7 +215,59 @@ en retirar la escena generada o usar `use_procedural_rollback()` y devolver su
 actor al controlador existente.
 
 Abrir `scenes/prototype_3d/aren_authoring_review.tscn` con F6 para cuatro vistas,
-pausa, cámara lenta y transiciones. Para otro recurso, ejecutar:
+pausa, cámara lenta y transiciones. El primer selector distingue:
+
+- **Original del juego**: ejecuta el actor procedural aprobado, sin AnimationPlayer
+  ni biblioteca nueva. Sirve para comparar caminar/correr/reposo; las transiciones
+  de este actor se prueban en gameplay, no se simulan en este visor.
+- **Generada natural v1**: reproduce `aren_natural_v1/clips.res`. La primera
+  versión ya horneaba pistas nativas y nuevos contactos, pero heredaba gran parte
+  del torso y brazos del movimiento original. La escena inicial elegía solamente
+  esta variante, sin selector entre bibliotecas, por lo que el parecido era grande.
+- **Prueba: paso +20 %, brazos +30 %**: reproduce exclusivamente la nueva biblioteca
+  `aren_walk_proof_20_30_v1/clips.res`, seleccionada al abrir F6.
+- **Generada cautelosa/cansada v1**: conservan los clips anteriores intactos.
+
+Elegir `walk` en el segundo selector. La pausa permite alternar las fuentes en
+la misma fase normalizada; la etiqueta muestra los parámetros de la biblioteca
+que se está reproduciendo. La prueba usa `stride=1.2`, `arms=1.3`, `lean=4°`
+adicionales y la misma cadencia. Aumenta el recorrido por ciclo de 1,925 a
+2,31 m y la velocidad de revisión de 2 a 2,4 m/s para conservar el apoyo.
+No altera las velocidades del controlador del juego.
+
+El factor de brazos actual mide primero el ángulo de cada hombro respecto al
+torso durante el ciclo base. Escala su oscilación respecto al centro del rango
+y transforma la cadena completa. Corrige la fórmula inicial, que añadía un giro
+cosenoidal aproximado y no garantizaba el porcentaje pedido. Las bibliotecas v1
+anteriores mantienen la interpretación con la que fueron horneadas.
+
+Para repetir la variante con otro nombre, sin editar huesos:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren.gd -- \
+  --preset natural --parameters '{"stride":1.2,"arms":1.3,"lean":0.06981317008}' \
+  --output res://assets/characters/prototype_3d/generated/aren_walk_proof_v2
+godot --headless --path . --script tests/aren_authoring_comparison.gd
+```
+
+La comparación mide posiciones y ángulos del Skeleton3D que usa el visor,
+no solo valores del perfil; verifica los porcentajes, la inclinación, la ruta de
+la biblioteca y el cambio efectivo de pose al alternar en pausa.
+
+Implementado: selección de curvas propias autorizadas, adaptación al rig nativo,
+horneado de poses y correctivos, parámetros corporales, IK de piernas sobre plano,
+compensación de pelvis, validación de contactos/bucle, perfiles con hashes,
+reproducción independiente, AnimationTree de prueba y render desde cuatro ángulos.
+El texto de alto nivel usa un vocabulario acotado; los porcentajes se pasan por
+JSON. No hay un generador general de movimientos a partir de lenguaje libre.
+El retargeting de clips de huesos es una herramienta separada: esta prueba usa
+las curvas del proyecto, no un clip externo retargeteado automáticamente.
+Pendientes: selección automática de otros clips/rigs, fallback cuando faltan las
+curvas del proyecto, lesiones y anatomías distintas, IK de terreno, validación de
+contactos durante mezclas dinámicas e integración de estas bibliotecas en el
+controlador jugable. La revisión artística de naturalidad sigue siendo humana.
+
+Para otro recurso, ejecutar:
 
 ```sh
 godot --path . scenes/prototype_3d/aren_authoring_review.tscn -- \

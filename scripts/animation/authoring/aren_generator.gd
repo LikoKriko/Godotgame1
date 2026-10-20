@@ -12,6 +12,7 @@ const CACHE="res://data/animation/characters/aren_rig_cache.json"
 var actor:Node3D
 var fingerprint:Dictionary={}
 var source_kind:="unavailable"
+var arm_references:Dictionary={}
 func configure(parent:Node) -> bool:
  actor=Actor.new();parent.add_child(actor)
  actor.family_override=&"";actor.steering_is_physical=true
@@ -68,6 +69,7 @@ func foot(phase:float,info:Dictionary,lift:float) -> Vector3:
  return Vector3(0,64*pow(u,3)*pow(1-u,3)*lift,z)
 func sample(motion:String,phase:float,p:Dictionary) -> void:
  var native=actor.native
+ if motion!="idle":capture_arm_reference(motion)
  actor.animate(StringName(motion),phase,false,0,phase,Vector3.BACK if motion!="idle" else Vector3.ZERO)
  if motion=="idle":return
  var info:=cycle_info(motion,p)
@@ -101,8 +103,16 @@ func sample(motion:String,phase:float,p:Dictionary) -> void:
   var chain:Dictionary=native.arms[side]
   var shoulder:int=chain.ids[1]
   var arm_pivot:Vector3=native.posed[shoulder].origin
-  var angle:float=cos((phase+p.anticipation+side*.5)*TAU)*(p.arms-1)*0.20+p.tension*0.04
-  rotate_subtree(shoulder,Transform3D(Basis(Vector3.RIGHT,angle),arm_pivot-Basis(Vector3.RIGHT,angle)*arm_pivot))
+  var reference:Dictionary=arm_references[motion][side]
+  var current:=arm_angle(side)
+  var base_angle:=current
+  if p.anticipation>0:
+   var at:float=fposmod(phase+p.anticipation,1.0)*SAMPLES
+   base_angle=lerp_angle(reference.samples[floori(at)],reference.samples[floori(at)+1],at-floorf(at))
+  var desired:float=reference.centre+(base_angle-reference.centre)*p.arms+p.tension*.04
+  var axis:Vector3=torso_basis().x.normalized()
+  var arm_rotation:=Basis(axis,current-desired)
+  rotate_subtree(shoulder,Transform3D(arm_rotation,arm_pivot-arm_rotation*arm_pivot))
   chain=native.legs[side]
   var ids:Array=chain.ids
   var target:Vector3=foot(phase+side*.5,info,(4.5 if motion=="run" else 2.8)*(1-p.fatigue*0.18))
@@ -118,6 +128,24 @@ func sample(motion:String,phase:float,p:Dictionary) -> void:
   native.mesh.set_blend_shape_value(native.knee_shapes[side],.5*(1-cosine)*(1-smoothstep(deg_to_rad(115),deg_to_rad(145),acos(cosine))))
  for i in native.posed.size():native.local_globals[i]=native.inverse_frame*native.posed[i]
  native.writer.apply(native.skeleton,native.local_globals)
+func torso_basis() -> Basis:
+ var native=actor.native
+ return (native.posed[native.spine[2]].basis*native.inverse_rest[native.spine[2]].basis).orthonormalized()
+func arm_angle(side:int) -> float:
+ var native=actor.native
+ var ids:Array=native.arms[side].ids
+ var direction:Vector3=torso_basis().inverse()*(native.posed[ids[2]].origin-native.posed[ids[1]].origin)
+ return atan2(direction.z,-direction.y)
+func capture_arm_reference(motion:String) -> void:
+ if arm_references.has(motion):return
+ var values:Array=[[],[]]
+ for frame in SAMPLES+1:
+  var phase:=frame/float(SAMPLES)
+  actor.animate(StringName(motion),phase,false,0,phase,Vector3.BACK)
+  for side in 2:values[side].append(arm_angle(side))
+ var references:Array=[]
+ for side in 2:references.append({"samples":values[side],"centre":(values[side].min()+values[side].max())*.5})
+ arm_references[motion]=references
 func rotate_subtree(bone:int,change:Transform3D) -> void:
  var native=actor.native
  for i in native.posed.size():

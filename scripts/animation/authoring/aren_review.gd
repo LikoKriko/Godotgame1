@@ -1,6 +1,18 @@
 extends Control
 ## Four live views of a generated library, on a real fixed ground grid.
-@export var scene_path:="res://assets/characters/prototype_3d/generated/aren_natural_v1/aren.tscn"
+const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
+const ROOT="res://assets/characters/prototype_3d/generated/"
+@export var scene_path:=ROOT+"aren_walk_proof_20_30_v1/aren.tscn"
+var sources:Array=[
+ {"label":"Original del juego","path":""},
+ {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
+ {"label":"Prueba: paso +20 %, brazos +30 %","path":ROOT+"aren_walk_proof_20_30_v1/aren.tscn"},
+ {"label":"Generada cautelosa v1","path":ROOT+"aren_cautious_v1/aren.tscn"},
+ {"label":"Generada cansada v1","path":ROOT+"aren_tired_v1/aren.tscn"}
+]
+var source_index:=2
+var source_selector:OptionButton
+var source_status:Label
 var actors:Array[Node3D]=[]
 var cameras:Array[Camera3D]=[]
 var viewports:Array[SubViewport]=[]
@@ -13,22 +25,32 @@ var motion_selector:OptionButton
 var grounds:Array[Node3D]=[]
 func _ready() -> void:
  var paths:=OS.get_cmdline_user_args()
- if paths.size()==1:scene_path=paths[0]
+ if paths.size()==1 and paths[0].ends_with(".tscn") and ResourceLoader.exists(paths[0]):scene_path=paths[0]
+ source_index=-1
+ for i in sources.size():
+  if sources[i].path==scene_path:source_index=i;break
+ if source_index<0:
+  sources.append({"label":"Generada personalizada","path":scene_path});source_index=sources.size()-1
  build_views()
  var bar:=HBoxContainer.new();bar.position=Vector2(12,8);add_child(bar)
+ source_selector=OptionButton.new();source_selector.name="SourceSelector"
+ for source in sources:source_selector.add_item(source.label)
+ bar.add_child(source_selector);source_selector.select(source_index);source_selector.item_selected.connect(select_source)
  var clips:=OptionButton.new()
  motion_selector=clips
  for label in ["walk","run","idle","transitions"]:clips.add_item(label)
- bar.add_child(clips);clips.item_selected.connect(func(index):motion=["walk","run","idle","transitions"][index];elapsed=0)
+ bar.add_child(clips);clips.item_selected.connect(func(index):motion=["walk","run","idle","transitions"][index];elapsed=0;travel=0;show_frame(motion,elapsed) if motion!="transitions" else reset_trees())
  var angles:=Label.new();angles.text="Frente · lateral · espalda · tres cuartos";bar.add_child(angles)
  var pause:=Button.new();pause.text="Pausa";bar.add_child(pause);pause.pressed.connect(func():playing=not playing)
- speed_slider=HSlider.new();speed_slider.min_value=.1;speed_slider.max_value=1.5;speed_slider.value=1;speed_slider.custom_minimum_size.x=160;bar.add_child(speed_slider)
+ speed_slider=HSlider.new();speed_slider.min_value=.1;speed_slider.max_value=1.5;speed_slider.value=1;speed_slider.custom_minimum_size.x=100;bar.add_child(speed_slider)
+ source_status=Label.new();source_status.position=Vector2(12,36);add_child(source_status)
+ update_source_status()
  get_viewport().size_changed.connect(fit_views);fit_views()
 func fit_views() -> void:
- scale=Vector2.ONE*minf(get_viewport_rect().size.x/1200.0,get_viewport_rect().size.y/885.0)
+ scale=Vector2.ONE*minf(get_viewport_rect().size.x/1200.0,get_viewport_rect().size.y/905.0)
 func build_views() -> void:
  for i in 4:
-  var box:=SubViewportContainer.new();box.position=Vector2((i%2)*600,45+(i/2)*420);box.size=Vector2(600,420);add_child(box)
+  var box:=SubViewportContainer.new();box.position=Vector2((i%2)*600,65+(i/2)*420);box.size=Vector2(600,420);add_child(box)
   var viewport:=SubViewport.new();viewport.size=Vector2i(600,420);viewport.own_world_3d=true;viewport.render_target_update_mode=SubViewport.UPDATE_ALWAYS;box.add_child(viewport);viewports.append(viewport)
   var world:=Node3D.new();viewport.add_child(world)
   var environment:=WorldEnvironment.new();environment.environment=Environment.new();environment.environment.background_mode=Environment.BG_COLOR;environment.environment.background_color=Color("36434b");environment.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;environment.environment.ambient_light_color=Color("dce4ec");environment.environment.ambient_light_energy=.65;world.add_child(environment)
@@ -43,17 +65,19 @@ func build_views() -> void:
    var p:=line*.25
    for point in [Vector3(p,.002,-10),Vector3(p,.002,10),Vector3(-10,.002,p),Vector3(10,.002,p)]:lines.surface_add_vertex(point)
   lines.surface_end()
-  var actor:Node3D=load(scene_path).instantiate();world.add_child(actor);actors.append(actor);actor.set_process(false);actor.tree.active=false
+  var actor:=create_actor(world);actors.append(actor)
   var camera:=Camera3D.new();camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.size=2.5;world.add_child(camera);camera.current=true;cameras.append(camera)
 func show_frame(clip:String,seconds:float) -> void:
- if motion_selector:motion_selector.select(["walk","run","idle"].find(clip))
  for i in actors.size():
   var actor=actors[i]
-  actor.tree.active=false
-  var animation:Animation=actor.library.get_animation(StringName(clip))
-  var info:Dictionary=animation.get_meta("cycle")
+  var info:=cycle_info(clip)
   actor.position.z=seconds*float(info.speed_mps)
-  actor.player.play(StringName("aren/"+clip));actor.player.seek(fposmod(seconds,animation.length),true)
+  if source_index==0:
+   var phase:=fposmod(seconds/info.duration,1.0)
+   actor.animate(StringName(clip),phase,false,0,phase,Vector3.BACK if clip!="idle" else Vector3.ZERO)
+  else:
+   actor.tree.active=false
+   actor.player.play(StringName("aren/"+clip));actor.player.seek(fposmod(seconds,info.duration),true)
   point_camera(i)
 func point_camera(index:int) -> void:
  var angle:float=[0.0,PI/2,PI,PI/4][index]
@@ -64,8 +88,49 @@ func _process(delta:float) -> void:
  if not playing:return
  elapsed+=delta*speed_slider.value
  if motion!="transitions":show_frame(motion,elapsed);return
- var target:float=0 if fmod(elapsed,8)>6 else (actors[0].library.get_animation(&"walk").get_meta("cycle").speed_mps if fmod(elapsed,8)<3 else actors[0].library.get_animation(&"run").get_meta("cycle").speed_mps)
+ if source_index==0:
+  show_frame("idle" if fmod(elapsed,8)>6 else ("walk" if fmod(elapsed,8)<3 else "run"),elapsed);return
+ var target:float=0 if fmod(elapsed,8)>6 else (cycle_info("walk").speed_mps if fmod(elapsed,8)<3 else cycle_info("run").speed_mps)
  for i in actors.size():
   actors[i].tree.active=true;actors[i].set_locomotion(target);actors[i]._process(delta*speed_slider.value)
   if i==0:travel+=actors[i].current_speed*delta*speed_slider.value
   actors[i].position.z=travel;point_camera(i)
+
+func create_actor(world:Node3D) -> Node3D:
+ var actor:Node3D=Actor.new() if source_index==0 else load(sources[source_index].path).instantiate()
+ world.add_child(actor);actor.set_process(false)
+ if source_index==0:
+  actor.scale=Vector3.ONE*(1.75/64.0);actor.family_override=&"";actor.steering_is_physical=true
+ else:actor.tree.active=false
+ return actor
+func cycle_info(clip:String) -> Dictionary:
+ if source_index!=0:
+  var animation:Animation=actors[0].library.get_animation(StringName(clip))
+  var result:Dictionary=animation.get_meta("cycle").duplicate();result.duration=animation.length;return result
+ if clip=="idle":return {"duration":1.0,"speed_mps":0.0}
+ var sprint:=1.0 if clip=="run" else 0.0
+ var speed:=4.48 if clip=="run" else 2.0
+ var distance:float=Actor.Clips.cycle_distance(sprint)/Actor.Clips.gait_playback_rate(sprint)
+ return {"duration":distance/speed,"speed_mps":speed}
+func select_source(index:int) -> void:
+ if index<0 or index>=sources.size():return
+ var phase:float=fposmod(elapsed/cycle_info(motion if motion!="transitions" else "walk").duration,1.0)
+ source_index=index;scene_path=sources[index].path
+ if motion_selector:
+  motion_selector.set_item_disabled(3,source_index==0)
+  if source_index==0 and motion=="transitions":motion="walk";motion_selector.select(0)
+ for i in actors.size():
+  var world:=actors[i].get_parent();actors[i].free();actors[i]=create_actor(world)
+ elapsed=phase*cycle_info(motion if motion!="transitions" else "walk").duration;travel=0
+ if source_selector:source_selector.select(index)
+ update_source_status()
+ if motion!="transitions":show_frame(motion,elapsed)
+ else:reset_trees()
+func reset_trees() -> void:
+ for actor in actors:
+  if source_index!=0:actor.blend=0;actor.tree.active=true
+func update_source_status() -> void:
+ if not source_status:return
+ if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
+ var parameters:Dictionary=actors[0].library.get_animation(&"walk").get_meta("parameters")
+ source_status.text="%s · Paso ×%.2f · Brazos ×%.2f · Torso extra %.1f°"%[sources[source_index].label,parameters.stride,parameters.arms,rad_to_deg(parameters.lean)]

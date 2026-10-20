@@ -5,14 +5,14 @@ const PRESETS = {
  "cautious": {"stride":0.78,"cadence":0.86,"arms":0.60,"lean":0.025,"fatigue":0.0,"caution":0.8,"tension":0.5,"anticipation":0.04},
  "tired": {"stride":0.85,"cadence":0.80,"arms":0.65,"lean":0.065,"fatigue":0.8,"caution":0.0,"tension":0.0,"anticipation":0.0}
 }
-const LIMITS = {"stride":Vector2(0.6,1.1),"cadence":Vector2(0.65,1.3),"arms":Vector2(0.3,1.25),"lean":Vector2(-0.03,0.10),"fatigue":Vector2(0,1),"caution":Vector2(0,1),"tension":Vector2(0,1),"anticipation":Vector2(0,0.08)}
+const LIMITS = {"stride":Vector2(0.6,1.2),"cadence":Vector2(0.65,1.3),"arms":Vector2(0.3,1.3),"lean":Vector2(-0.03,0.10),"fatigue":Vector2(0,1),"caution":Vector2(0,1),"tension":Vector2(0,1),"anticipation":Vector2(0,0.08)}
 static func parameters(preset:String,overrides:Dictionary={}) -> Dictionary:
  if not PRESETS.has(preset):return {"ok":false,"error":"Unknown preset: "+preset}
  var values:Dictionary=PRESETS[preset].duplicate()
  for key in overrides:
   if not LIMITS.has(key) or not (overrides[key] is float or overrides[key] is int):return {"ok":false,"error":"Unknown or nonnumeric parameter: "+str(key)}
   var value:float=overrides[key]
-  if not is_finite(value) or value<LIMITS[key].x or value>LIMITS[key].y:return {"ok":false,"error":"Parameter out of range: "+str(key)}
+  if not is_finite(value) or value<LIMITS[key].x-0.000001 or value>LIMITS[key].y+0.000001:return {"ok":false,"error":"Parameter out of range: "+str(key)}
   values[key]=value
  return {"ok":true,"values":values,"preset":preset}
 static func parse(sentence:String) -> Dictionary:

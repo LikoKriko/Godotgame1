@@ -6,8 +6,8 @@ func run() -> void:
  if args.size()!=3 or args[2] not in ["walk","run"] or DirAccess.dir_exists_absolute(args[1]):push_error("Pass scene, NEW local directory, walk|run");quit(1);return
  if args[1].begins_with("res://") or args[1].begins_with(ProjectSettings.globalize_path("res://")):push_error("Evidence must stay outside Git");quit(1);return
  DirAccess.make_dir_recursive_absolute(args[1])
- root.size=Vector2i(1200,885);root.content_scale_size=Vector2i.ZERO
- var review=load("res://scripts/animation/authoring/aren_review.gd").new();review.scene_path=args[0];root.add_child(review);review.playing=false
+ root.size=Vector2i(1200,905);root.content_scale_size=Vector2i.ZERO
+ var review=load("res://scripts/animation/authoring/aren_review.gd").new();review.scene_path=args[0];root.add_child(review);review.playing=false;review.motion=args[2];review.motion_selector.select(["walk","run"].find(args[2]))
  var clip:Animation=review.actors[0].library.get_animation(StringName(args[2]))
  for frame in 48:
   review.show_frame(args[2],frame/24.0*clip.length)
