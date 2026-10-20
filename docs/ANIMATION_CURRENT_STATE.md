@@ -68,8 +68,17 @@ la escena principal ni el visor `aren_authoring_review.tscn`.
 
 - WASD: movimiento relativo a cámara; Mayús: carrera; botón derecho y ratón:
   orientar cámara; 1/2/3: normal/cauteloso/cansado; R: volver al inicio.
+  4/5: acceso al camino de tierra o al terreno forestal, mirando hacia su recorrido.
 - Centro: plano, subida de 15°, plataforma y bajada de 15°. Izquierda: baches
   suaves. Derecha: pequeños desniveles de 5 a 25 cm. Geometría básica sin texturas.
+- Camino de tierra: 6 × 28 m, centro `(-17, 0, -12)`, con ondulaciones continuas
+  pequeñas. Terreno forestal: 12 × 28 m, centro `(19, 0, -12)`, con pendientes
+  cruzadas, montículos, depresiones y variación lateral para apoyos asimétricos.
+  `terrain_test_patch.gd` construye ambas superficies con triángulos de paso
+  0,25 m; malla y colisión estática comparten vértices. Los bordes enlazan
+  suavemente con el plano existente. Material gris uniforme, sin texturas ni
+  decoración; las depresiones son relativas a la superficie elevada para que
+  el plano original no las tape. Se conservan todas las zonas anteriores.
 - `scenes/prototype_3d/aren_terrain_actor.tscn` hereda la variante coordinada;
   `scripts/animation/terrain/aren_terrain_actor.gd` añade contactos con colisiones,
   sondeos de talón/centro/punta y envolvente de suela nativa, normales, pelvis

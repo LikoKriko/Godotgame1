@@ -1,5 +1,6 @@
 extends Node3D
 ## Independent F6 sandbox; no game singleton or main-scene changes.
+const Patch=preload("res://scripts/animation/terrain/terrain_test_patch.gd")
 const Step=preload("res://scripts/animation/terrain/terrain_step.gd")
 const Response=preload("res://scripts/prototype_3d/movement_response.gd")
 var response=Response.new()
@@ -37,6 +38,10 @@ func _ready() -> void:
   box(Vector3(3,.14,1.05),Vector3(-7,.015+.035*sin(i*1.8),-3-i*.9),deg_to_rad(3*sin(i*1.3)))
  for i in 5:
   box(Vector3(3,.05*(i+1),1.5),Vector3(7,.025*(i+1),-4-i*1.45))
+ var road:=Patch.build("IrregularDirtPath",Vector2(6,28),false)
+ road.position=Vector3(-17,0,-12);add_child(road)
+ var forest:=Patch.build("ForestTerrain",Vector2(12,28),true)
+ forest.position=Vector3(19,0,-12);add_child(forest)
  var light:=DirectionalLight3D.new();light.rotation_degrees=Vector3(-55,-25,0);light.shadow_enabled=true;add_child(light)
  var environment:=WorldEnvironment.new();environment.environment=Environment.new()
  environment.environment.background_mode=Environment.BG_COLOR;environment.environment.background_color=Color(.17,.19,.22)
@@ -62,6 +67,8 @@ func _unhandled_input(event:InputEvent) -> void:
   if event.keycode==KEY_ESCAPE:Input.mouse_mode=Input.MOUSE_MODE_VISIBLE
   if event.keycode in [KEY_1,KEY_2,KEY_3]:
    actor.change_style(["normal","cautious","tired"][event.keycode-KEY_1]);requested_gait=""
+  if event.keycode in [KEY_4,KEY_5]:
+   yaw=0;reset_at(Vector3(-17 if event.keycode==KEY_4 else 19,.1,3))
   if event.keycode==KEY_R:reset_at(Vector3(0,.1,2))
 
 func reset_at(at:Vector3) -> void:
@@ -115,4 +122,4 @@ func _physics_process(dt:float) -> void:
  pose_ms=(Time.get_ticks_usec()-start)/1000.0
  if body.position.y< -5:reset_at(Vector3(0,.1,2))
  update_camera()
- label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · %.0f FPS · pose %.2f ms" % [actor.style,actor.measured_speed,actor.support_error*1000,Engine.get_frames_per_second(),pose_ms]
+ label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\n4: camino de tierra · 5: terreno forestal\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · %.0f FPS · pose %.2f ms" % [actor.style,actor.measured_speed,actor.support_error*1000,Engine.get_frames_per_second(),pose_ms]
