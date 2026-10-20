@@ -149,7 +149,7 @@ godot --headless --path . --script tools/animation/generate_aren.gd -- \
   --evidence /tmp/aren-custom-validation
 ```
 
-La salida debe ser un directorio **nuevo**. Cada petición entrega ambos ciclos
+La salida debe ser un directorio **nuevo**. Por defecto cada petición entrega ambos ciclos
 walk/run y reposo, para poder probar sus transiciones; el movimiento mencionado
 en la petición expresa la intención, no excluye su compañero de locomoción.
 El vocabulario está delimitado: caminar/caminata, correr/carrera, natural,
@@ -239,7 +239,7 @@ No altera las velocidades del controlador del juego.
 
 #### Caminata con torso coordinado
 
-El visor abre por defecto **Caminata: torso coordinado**, una entrega independiente
+El visor conserva **Caminata: torso coordinado**, una entrega independiente
 en `aren_walk_torso_v2/`. Se compara con **Prueba: paso +20 %, brazos +30 %** en
 la misma fase y con los mismos parámetros de zancada, brazos, inclinación media
 y cadencia. Las bibliotecas anteriores y los recursos del modelo se conservan.
@@ -281,6 +281,57 @@ a la cadera, la distribución angular de los tres tramos, la contrarrotación y
 la conservación de pies/brazos/cadencia. Comprueba además que los clips de
 reposo/carrera mantienen sus claves y poses, y que la corrección coincide con sus
 fuentes. `tests/aren_authoring.gd` incluye las transiciones de la nueva entrega.
+
+#### Carrera y reposo parametrizados
+
+El visor abre **Carrera y reposo corregidos** (`aren_run_idle_v3/`). Seleccionar
+`run` o `idle`; **Caminata: torso coordinado** permite comparar la entrega anterior.
+La biblioteca copia `walk` con todas sus claves, duración y metadatos intactos.
+Las bibliotecas originales permanecen disponibles. El controlador jugable no cambia:
+esta entrega continúa siendo una prueba independiente.
+
+`aren_run_idle.gd` aplica capas de cuerpo completo sobre las curvas autorizadas.
+`run_flow=1` activa el ajuste de carrera; `run_cadence=0.9` reduce su frecuencia
+un 10 %. El generador conserva automáticamente la velocidad del clip base
+(5,376 m/s en esta biblioteca de prueba), ajusta la distancia del ciclo y mantiene
+el tiempo de apoyo original. No cambia la velocidad de juego (4,48 m/s).
+`run_arms=0.8` escala la oscilación de brazos respecto a sus parámetros heredados;
+`run_body_motion=0.7` modera torso y cabeza, con contrarrotación progresiva de
+columna, y `run_posture=0.8` suaviza su inclinación media. `lean=0` elimina la
+inclinación adicional de la antigua variante demostrativa. `run_lift=0.8` reduce
+la elevación nominal del pie; la recuperación temprana del talón flexiona la
+rodilla antes de avanzar y enlaza suavemente con los contactos. La pelvis acompaña el vuelo con una elevación suave,
+sin cambiar los objetivos plantados; la recuperación del pie corrige suavemente
+su altura cuando el alcance nativo lo requiere, sin estirar las piernas.
+
+`idle_flow=1` sustituye la oscilación antigua por una pose relajada con respiración
+de `idle_period=4.5` segundos. `idle_breath=1` reparte flexión acumulada de
+±0,05°/±0,16°/±0,38° entre abdomen inferior, superior y pecho, con compensación del
+cuello y hombros mínimos. `idle_balance=1` añade equilibrio milimétrico horizontal,
+sin oscilación vertical de pelvis ni desplazamiento de los pies. El AnimationTree
+conserva la duración real de reposo; solo normaliza las fases de caminar/correr.
+Los parámetros `*_flow` por defecto valen cero: no cambian generaciones antiguas.
+
+Regenerar exclusivamente esos dos clips en un directorio nuevo:
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren.gd -- \
+  --base-scene res://assets/characters/prototype_3d/generated/aren_walk_torso_v2/aren.tscn \
+  --replace run,idle \
+  --clip-parameters '{"run":{"run_flow":1,"run_cadence":0.9,"run_arms":0.8,"run_body_motion":0.7,"run_posture":0.8,"run_lift":0.8,"lean":0},"idle":{"idle_flow":1,"idle_period":4.5,"idle_breath":1,"idle_balance":1}}' \
+  --output res://assets/characters/prototype_3d/generated/aren_run_idle_custom
+
+godot --headless --path . --script tests/aren_run_idle.gd
+```
+
+`--base-scene` hereda los parámetros de cada clip y la política de piel. Usar
+`--clip-parameters` para sus cambios; no combinarlo con parámetros globales o
+peticiones de texto. `--replace` preserva los clips excluidos sin corregir sus
+claves; el perfil registra también los hashes de escena y biblioteca de origen.
+La cadencia de carrera admite 0,85–1,1, la velocidad explícita 0–8 m/s (cero conserva
+la calculada), brazos 0,5–1,1, movimiento corporal 0,4–1, postura/elevación 0,6–1.
+El reposo admite periodos de 3,5–6 s, respiración 0,3–1,5 y equilibrio 0–1.
+Los límites de alcance y contactos siguen sujetos a validación antes de exportar.
 
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango

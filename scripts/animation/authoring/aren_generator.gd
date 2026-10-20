@@ -4,6 +4,7 @@ const Request=preload("res://scripts/animation/authoring/aren_request.gd")
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const Solver=preload("res://scripts/continuous_body_pose.gd")
 const Torso=preload("res://scripts/animation/authoring/aren_torso_flow.gd")
+const Dynamics=preload("res://scripts/animation/authoring/aren_run_idle.gd")
 const MODEL="res://assets/characters/prototype_3d/composite/model.scn"
 const PROFILE="res://data/animation/characters/survivor_native.tres"
 const CATALOG="res://data/animation/authoring/aren_clips.json"
@@ -15,12 +16,13 @@ var fingerprint:Dictionary={}
 var source_kind:="unavailable"
 var arm_references:Dictionary={}
 var torso_reference:Dictionary={}
+var run_reference:Dictionary={}
 func configure(parent:Node) -> bool:
  actor=Actor.new();parent.add_child(actor)
  actor.family_override=&"";actor.steering_is_physical=true
  if actor.native.skeleton.get_bone_count()!=66:return false
  var sources=[MODEL,PROFILE,CATALOG,"res://assets/characters/prototype_3d/composite/source.json","res://scripts/animation/characters/native_survivor.gd","res://scripts/prototype_3d/survivor_model.gd","res://scripts/prototype_3d/humanoid_rig.gd","res://scripts/prototype_3d/survivor_animation.gd","res://scripts/prototype_3d/human_kinematics.gd","res://scripts/continuous_body_pose.gd","res://scripts/animation/characters/native_hand_grip.gd","res://scripts/animation/shared/rig_binding.gd","res://scripts/animation/characters/gait_parameters.gd","res://scripts/animation/authoring/aren_generator.gd","res://scripts/animation/authoring/aren_request.gd","res://scripts/animation/authoring/aren_validator.gd","res://tools/animation/generate_aren.gd"]
- sources.append_array(["res://scripts/animation/authoring/aren_torso_flow.gd","res://scripts/animation/authoring/aren_playback.gd","res://scripts/animation/characters/hip_skin.gd"])
+ sources.append_array(["res://scripts/animation/authoring/aren_torso_flow.gd","res://scripts/animation/authoring/aren_playback.gd","res://scripts/animation/authoring/aren_run_idle.gd","res://scripts/animation/characters/hip_skin.gd"])
  var catalog=JSON.parse_string(FileAccess.get_file_as_string(CATALOG))
  if not catalog is Dictionary or not catalog.get("clips") is Array:return false
  for entry in catalog.clips:
@@ -50,6 +52,10 @@ func cycle_info(motion:String,p:Dictionary) -> Dictionary:
  var half:float=(12.33375 if running else 8.8)*p.stride
  var duration:float=(0.6844 if running else 0.9625)/p.cadence
  var distance:=2*half/support*SCALE
+ if running and p.run_flow>0:
+  var speed:float=p.run_speed if p.run_speed>0 else distance/duration
+  duration/=p.run_cadence;support*=p.run_cadence
+  distance=speed*duration;half=distance*support/(2*SCALE)
  return {"duration":duration,"distance_m":distance,"speed_mps":distance/duration,"support":support,"half":half}
 static func smooth5(t:float) -> float:
  t=clampf(t,0,1)
@@ -73,9 +79,15 @@ func foot(phase:float,info:Dictionary,lift:float) -> Vector3:
 func sample(motion:String,phase:float,p:Dictionary) -> void:
  var native=actor.native
  if motion!="idle":capture_arm_reference(motion)
- actor.animate(StringName(motion),phase,false,0,phase,Vector3.BACK if motion!="idle" else Vector3.ZERO)
- if motion=="idle":return
+ var source_phase:float=0.0 if motion=="idle" and p.idle_flow>0 else phase
+ actor.animate(StringName(motion),source_phase,false,0,source_phase,Vector3.BACK if motion!="idle" else Vector3.ZERO)
+ if motion=="idle":
+  if p.idle_flow>0:
+   Dynamics.resting(native,phase,p)
+   write_pose()
+  return
  if motion=="walk":Torso.apply(native,phase,p,torso_reference)
+ if motion=="run":Dynamics.running(native,phase,p,run_reference)
  var info:=cycle_info(motion,p)
  var hip:int=native.binding.bone(&"root")
  var pivot:Vector3=native.posed[hip].origin
@@ -103,6 +115,13 @@ func sample(motion:String,phase:float,p:Dictionary) -> void:
   reach_lowering=maxf(reach_lowering,hip_position.y-allowed)
  if reach_lowering>0:
   for i in native.posed.size():native.posed[i].origin.y-=reach_lowering
+ if motion=="run" and p.run_flow>0:
+  # Preserve contact duration as cadence slows. A smooth small flight rise
+  # coordinates both legs with the torso without disturbing planted feet.
+  var step:float=fposmod(phase,.5)
+  var air:float=clampf((step-info.support)/(.5-info.support),0,1)
+  var rise:float=.025/SCALE*pow(sin(PI*air),2)*p.run_body_motion*p.run_flow
+  for i in native.posed.size():native.posed[i].origin.y+=rise
  for side in 2:
   var chain:Dictionary=native.arms[side]
   var shoulder:int=chain.ids[1]
@@ -113,15 +132,23 @@ func sample(motion:String,phase:float,p:Dictionary) -> void:
   if p.anticipation>0:
    var at:float=fposmod(phase+p.anticipation,1.0)*SAMPLES
    base_angle=lerp_angle(reference.samples[floori(at)],reference.samples[floori(at)+1],at-floorf(at))
-  var desired:float=reference.centre+(base_angle-reference.centre)*p.arms+p.tension*.04
+  var arm_factor:float=p.arms*(p.run_arms if motion=="run" and p.run_flow>0 else 1.0)
+  var desired:float=reference.centre+(base_angle-reference.centre)*arm_factor+p.tension*.04
   var axis:Vector3=torso_basis().x.normalized()
   var arm_rotation:=Basis(axis,current-desired)
   rotate_subtree(shoulder,Transform3D(arm_rotation,arm_pivot-arm_rotation*arm_pivot))
   chain=native.legs[side]
   var ids:Array=chain.ids
-  var target:Vector3=foot(phase+side*.5,info,(4.5 if motion=="run" else 2.8)*(1-p.fatigue*0.18))
+  var lift_factor:float=p.run_lift if motion=="run" and p.run_flow>0 else 1.0
+  var target:Vector3=foot(phase+side*.5,info,(4.5 if motion=="run" else 2.8)*(1-p.fatigue*0.18)*lift_factor)
   target.x=native.rest[ids[2]].origin.x
   target.y+=native.rest[ids[2]].origin.y+0.30
+  if motion=="run" and p.run_flow>0:
+   var swing:float=clampf((fposmod(phase+side*.5,1.0)-info.support)/(1-info.support),0,1)
+   # Early heel recovery folds the knee before forward swing. C2 at contacts;
+   # the foot target, not individual bone rotations, controls the whole chain.
+   target.y+=.22/SCALE*p.run_lift*pow(swing,3)*pow(1-swing,6)/(pow(1.0/3,3)*pow(2.0/3,6))
+   target=Dynamics.swing_clearance(native.posed[ids[0]].origin,target,chain.a+chain.b-.08,phase+side*.5,info.support)
   var solved:=Solver.joint(native.posed[ids[0]].origin,target,chain.a,chain.b,Vector3.BACK)
   native.untwisted_chain(ids,0,solved,Basis.IDENTITY)
   # Flat planted soles; children retain their native local transforms.
@@ -130,6 +157,9 @@ func sample(motion:String,phase:float,p:Dictionary) -> void:
   rotate_subtree(ids[2],new_pose*old.affine_inverse())
   var cosine:float=clampf((solved.joint-solved.root).normalized().dot((solved.end-solved.joint).normalized()),-1,1)
   native.mesh.set_blend_shape_value(native.knee_shapes[side],.5*(1-cosine)*(1-smoothstep(deg_to_rad(115),deg_to_rad(145),acos(cosine))))
+ write_pose()
+func write_pose() -> void:
+ var native=actor.native
  for i in native.posed.size():native.local_globals[i]=native.inverse_frame*native.posed[i]
  native.writer.apply(native.skeleton,native.local_globals)
 func torso_basis() -> Basis:
@@ -147,12 +177,13 @@ func capture_arm_reference(motion:String) -> void:
  for frame in SAMPLES+1:
   var phase:=frame/float(SAMPLES)
   actor.animate(StringName(motion),phase,false,0,phase,Vector3.BACK)
-  if motion=="walk":torso_frames.append(Torso.capture(actor.native))
+  torso_frames.append(Torso.capture(actor.native))
   for side in 2:values[side].append(arm_angle(side))
  var references:Array=[]
  for side in 2:references.append({"samples":values[side],"centre":(values[side].min()+values[side].max())*.5})
  arm_references[motion]=references
  if motion=="walk":torso_reference=Torso.summarize(torso_frames)
+ if motion=="run":run_reference=Torso.summarize(torso_frames)
 func rotate_subtree(bone:int,change:Transform3D) -> void:
  var native=actor.native
  for i in native.posed.size():
@@ -161,7 +192,7 @@ func rotate_subtree(bone:int,change:Transform3D) -> void:
   if ancestor==bone:native.posed[i]=change*native.posed[i]
 func bake(motion:String,p:Dictionary,skeleton_path:NodePath,mesh_path:NodePath) -> Animation:
  var native=actor.native
- var clip:=Animation.new();clip.length=cycle_info(motion,p).duration if motion!="idle" else 1.0;clip.loop_mode=Animation.LOOP_LINEAR
+ var clip:=Animation.new();clip.length=cycle_info(motion,p).duration if motion!="idle" else (p.idle_period if p.idle_flow>0 else 1.0);clip.loop_mode=Animation.LOOP_LINEAR
  for i in native.posed.size():
   for type in [Animation.TYPE_POSITION_3D,Animation.TYPE_ROTATION_3D,Animation.TYPE_SCALE_3D]:
    var track:=clip.add_track(type);clip.track_set_path(track,NodePath(str(skeleton_path)+":"+str(native.skeleton.get_bone_name(i))))

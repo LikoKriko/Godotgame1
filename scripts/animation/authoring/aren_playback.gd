@@ -18,7 +18,7 @@ func _ready() -> void:
  var space:=AnimationNodeBlendSpace1D.new();space.min_space=0;space.max_space=2;space.sync=true
  for i in 3:
   var animation:=AnimationNodeAnimation.new();animation.animation=StringName("aren/"+["idle","walk","run"][i])
-  animation.use_custom_timeline=true;animation.timeline_length=1.0;animation.stretch_time_scale=true
+  animation.use_custom_timeline=true;animation.timeline_length=library.get_animation(&"idle").length if i==0 else 1.0;animation.stretch_time_scale=true
   space.add_blend_point(animation,float(i))
  var nodes:=AnimationNodeBlendTree.new();nodes.add_node(&"Gait",space);nodes.add_node(&"Cadence",AnimationNodeTimeScale.new());nodes.connect_node(&"Cadence",0,&"Gait");nodes.connect_node(&"output",0,&"Cadence")
  tree.tree_root=nodes;tree.active=true

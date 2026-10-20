@@ -2,14 +2,15 @@ extends Control
 ## Four live views of a generated library, on a real fixed ground grid.
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
-@export var scene_path:=ROOT+"aren_walk_torso_v2/aren.tscn"
+@export var scene_path:=ROOT+"aren_run_idle_v3/aren.tscn"
 var sources:Array=[
  {"label":"Original del juego","path":""},
  {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
  {"label":"Prueba: paso +20 %, brazos +30 %","path":ROOT+"aren_walk_proof_20_30_v1/aren.tscn"},
  {"label":"Generada cautelosa v1","path":ROOT+"aren_cautious_v1/aren.tscn"},
  {"label":"Generada cansada v1","path":ROOT+"aren_tired_v1/aren.tscn"},
- {"label":"Caminata: torso coordinado","path":ROOT+"aren_walk_torso_v2/aren.tscn"}
+ {"label":"Caminata: torso coordinado","path":ROOT+"aren_walk_torso_v2/aren.tscn"},
+ {"label":"Carrera y reposo corregidos","path":ROOT+"aren_run_idle_v3/aren.tscn"}
 ]
 var source_index:=5
 var source_selector:OptionButton
@@ -40,7 +41,7 @@ func _ready() -> void:
  var clips:=OptionButton.new()
  motion_selector=clips
  for label in ["walk","run","idle","transitions"]:clips.add_item(label)
- bar.add_child(clips);clips.item_selected.connect(func(index):motion=["walk","run","idle","transitions"][index];elapsed=0;travel=0;show_frame(motion,elapsed) if motion!="transitions" else reset_trees())
+ bar.add_child(clips);clips.item_selected.connect(func(index):motion=["walk","run","idle","transitions"][index];elapsed=0;travel=0;show_frame(motion,elapsed) if motion!="transitions" else reset_trees();update_source_status())
  var angles:=Label.new();angles.text="Frente · lateral · espalda · tres cuartos";bar.add_child(angles)
  var pause:=Button.new();pause.text="Pausa";bar.add_child(pause);pause.pressed.connect(func():playing=not playing)
  speed_slider=HSlider.new();speed_slider.min_value=.1;speed_slider.max_value=1.5;speed_slider.value=1;speed_slider.custom_minimum_size.x=100;bar.add_child(speed_slider)
@@ -133,5 +134,9 @@ func reset_trees() -> void:
 func update_source_status() -> void:
  if not source_status:return
  if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
- var parameters:Dictionary=actors[0].library.get_animation(&"walk").get_meta("parameters")
+ var clip:String="walk" if motion=="transitions" else motion
+ var animation:Animation=actors[0].library.get_animation(StringName(clip))
+ var parameters:Dictionary=animation.get_meta("parameters")
+ if clip=="run" or clip=="idle":
+  source_status.text="%s · %s · Ciclo %.2f s · %.3f m/s"%[sources[source_index].label,clip,animation.length,animation.get_meta("cycle").speed_mps];return
  source_status.text="%s · Paso ×%.2f · Brazos ×%.2f · Torso extra %.1f°"%[sources[source_index].label,parameters.stride,parameters.arms,rad_to_deg(parameters.lean)]

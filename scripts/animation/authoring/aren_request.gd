@@ -10,10 +10,13 @@ static func parameters(preset:String,overrides:Dictionary={}) -> Dictionary:
  if not PRESETS.has(preset):return {"ok":false,"error":"Unknown preset: "+preset}
  var values:Dictionary=PRESETS[preset].duplicate()
  values.merge({"torso_flow":0.0,"pelvis_sway":1.0})
+ values.merge({"run_flow":0.0,"run_cadence":1.0,"run_speed":0.0,"run_arms":1.0,"run_body_motion":1.0,"run_posture":1.0,"run_lift":1.0,"idle_flow":0.0,"idle_period":4.5,"idle_breath":1.0,"idle_balance":1.0})
+ var limits:Dictionary=LIMITS.duplicate()
+ limits.merge({"run_flow":Vector2(0,1),"run_cadence":Vector2(.85,1.1),"run_speed":Vector2(0,8),"run_arms":Vector2(.5,1.1),"run_body_motion":Vector2(.4,1),"run_posture":Vector2(.6,1),"run_lift":Vector2(.6,1),"idle_flow":Vector2(0,1),"idle_period":Vector2(3.5,6),"idle_breath":Vector2(.3,1.5),"idle_balance":Vector2(0,1)})
  for key in overrides:
-  if not LIMITS.has(key) or not (overrides[key] is float or overrides[key] is int):return {"ok":false,"error":"Unknown or nonnumeric parameter: "+str(key)}
+  if not limits.has(key) or not (overrides[key] is float or overrides[key] is int):return {"ok":false,"error":"Unknown or nonnumeric parameter: "+str(key)}
   var value:float=overrides[key]
-  if not is_finite(value) or value<LIMITS[key].x-0.000001 or value>LIMITS[key].y+0.000001:return {"ok":false,"error":"Parameter out of range: "+str(key)}
+  if not is_finite(value) or value<limits[key].x-0.000001 or value>limits[key].y+0.000001:return {"ok":false,"error":"Parameter out of range: "+str(key)}
   values[key]=value
  return {"ok":true,"values":values,"preset":preset}
 static func parse(sentence:String) -> Dictionary:
