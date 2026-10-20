@@ -711,12 +711,10 @@ en aceleraciones interrumpidas y retomadas.
 
 #### Carrera: apertura adicional del 10 % y recuperación del pie derecho
 
-El visor abre **Carrera: apertura −10 % y pie derecho** (`aren_run_refined_v1/`)
-con `run` seleccionado. **Ver antes / Ver después** alterna con
-`aren_walk_launch_v1`: conserva la fase normalizada de los ciclos o el tiempo
-de la secuencia de transiciones, y mantiene el estado elegido. Las velocidades
-de ambas entregas son distintas por el ajuste siguiente. Todas las entregas
-anteriores siguen disponibles en el selector.
+**Carrera: apertura −10 % y pie derecho** (`aren_run_refined_v1/`) conserva la
+corrección del pie derecho. Sigue disponible junto con `aren_walk_launch_v1`
+en el selector. Las velocidades de esas dos entregas son distintas por el ajuste
+siguiente.
 
 `generate_aren_run_refined.gd` reutiliza el perfil anterior y reduce `half` al
 90 % sin cambiar las fracciones ni las curvas longitudinales de apoyo/vuelo.
@@ -758,6 +756,31 @@ Comparar el ciclo lateral completo y la orientación de ambos pies desde frente,
 espalda y tres cuartos. Revisar las seis transiciones, Encadenadas e interrupciones
 en Normal/Cauteloso/Cansado; la prueba automatizada verifica separación real,
 piel de ambos pies, continuidad, longitudes, apoyos y conservación de caminar/reposo.
+
+#### Carrera: pies coordinados en fases opuestas
+
+El visor abre **Carrera: pies coordinados** (`aren_run_balanced_v1/`) con `run`.
+**Ver antes / Ver después** alterna con `aren_run_refined_v1`, conservando estado,
+fase del ciclo o tiempo de transición. Se reutilizan exactamente los mismos
+recursos de carrera, caminar, reposo y controles de transición; solo se añaden
+escena, perfil y una capa de evaluación del pie izquierdo.
+
+`aren_run_balanced_sampler.gd` conserva la corrección derecha y aplica al pie
+izquierdo sus mismos parámetros por estado, con `left_phase_offset=0.5` ciclos.
+`aren_run_left_foot.gd` reutiliza las herramientas de reconstrucción de pose,
+alcance, IK, transformación de ramas y curvas de recuperación del pie derecho.
+La corrección se limita al vuelo de la cadena izquierda: altura moderada,
+flexión plantar inicial y dorsiflexión leve antes del apoyo, sin invertir los
+ejes anatómicos ni alterar la orientación plana de contacto. Actualiza también
+el plano de rodilla y su morfo correctivo. El evaluador existente incorpora estas
+muestras a las transiciones y resuelve sus anclajes después de mezclar las poses.
+La cadencia, velocidad, zancada, torso, brazos y preparación del arranque se
+heredan de la entrega anterior.
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren_run_balanced.gd -- \
+  --output res://assets/characters/prototype_3d/generated/aren_run_balanced_custom
+```
 
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango
