@@ -659,9 +659,8 @@ alteraciones de las caminatas y el reposo aprobados.
 
 #### Flexión lumbar moderada y preparación asimétrica de brazos
 
-El visor abre **Caminata y arranque ajustados** (`aren_walk_launch_v1/`) con `walk`
-seleccionado. **Ver antes / Ver después** alterna con `aren_short_run_v1` en la
-misma fase o, al revisar transiciones, en el mismo instante, estado y velocidad.
+**Caminata y arranque ajustados** (`aren_walk_launch_v1/`) conserva la caminata
+y preparación asimétrica. Sigue seleccionable junto con `aren_short_run_v1`.
 Usar **Reposo → correr** para observar la preparación antes del primer paso y
 **Caminar → correr** para comprobar el enlace desde el balanceo existente.
 
@@ -709,6 +708,56 @@ flexión contenida sin efecto de compresión/estiramiento, torso conectado y pie
 conservados. En el arranque, comprobar inicio escalonado de los brazos antes del
 primer paso, amplitudes distintas, recuperación hacia la carrera y continuidad
 en aceleraciones interrumpidas y retomadas.
+
+#### Carrera: apertura adicional del 10 % y recuperación del pie derecho
+
+El visor abre **Carrera: apertura −10 % y pie derecho** (`aren_run_refined_v1/`)
+con `run` seleccionado. **Ver antes / Ver después** alterna con
+`aren_walk_launch_v1`: conserva la fase normalizada de los ciclos o el tiempo
+de la secuencia de transiciones, y mantiene el estado elegido. Las velocidades
+de ambas entregas son distintas por el ajuste siguiente. Todas las entregas
+anteriores siguen disponibles en el selector.
+
+`generate_aren_run_refined.gd` reutiliza el perfil anterior y reduce `half` al
+90 % sin cambiar las fracciones ni las curvas longitudinales de apoyo/vuelo.
+La apertura máxima observable se reduce así otro 10 % respecto a
+`aren_walk_launch_v1`. El ciclo dura el 95 %: la cadencia se multiplica por
+`1 / 0.95` y la velocidad por `0.90 / 0.95`. La distancia por ciclo se reduce al
+90 %, por lo que la velocidad de retroceso del pie apoyado coincide con el avance
+del personaje. Se guardan únicamente tres recursos `run_*.res` temporizados;
+caminar y reposo mantienen sus recursos y evaluadores aprobados.
+
+`aren_run_refined_sampler.gd` reutiliza el evaluador de zancada corta y aplica
+`aren_run_foot.gd` durante el vuelo del pie derecho. La recuperación vertical se
+modera, conserva el límite de alcance y usa IK de longitudes fijas. La flexión
+plantar inicial enlaza con dorsiflexión leve antes del apoyo mediante envolventes
+de fase con continuidad C2. La rotación desaparece cerca del suelo para conservar
+la orientación plana de contacto. Los parámetros por estado son:
+
+| Estado | Recuperación vertical conservada | Flexión plantar, parámetro | Dorsiflexión, parámetro |
+| --- | --- | --- | --- |
+| Normal | 85 % | 18° | 5° |
+| Cauteloso | 88 % | 14° | 4° |
+| Cansado | 90 % | 12° | 3° |
+
+La corrección específica del tobillo no modifica el pie izquierdo. Ambas piernas
+comparten la reducción longitudinal; al reducir su alcance también puede disminuir
+la elevación mínima que exigía la IK durante el vuelo. Se conservan torso, brazos,
+preparación del arranque, planos anatómicos de rodilla y morfos correctivos.
+Las transiciones muestrean el nuevo ciclo y sus metadatos con el mismo reloj de
+velocidad/distancia y bloqueo de contactos existente, sin duplicar seis clips por
+estado ni añadir correcciones después de resolver los apoyos.
+
+```sh
+godot --headless --path . --script tools/animation/generate_aren_run_refined.gd -- \
+  --output res://assets/characters/prototype_3d/generated/aren_run_refined_custom
+godot --headless --path . --script tests/aren_run_refined.gd
+```
+
+Comparar el ciclo lateral completo y la orientación de ambos pies desde frente,
+espalda y tres cuartos. Revisar las seis transiciones, Encadenadas e interrupciones
+en Normal/Cauteloso/Cansado; la prueba automatizada verifica separación real,
+piel de ambos pies, continuidad, longitudes, apoyos y conservación de caminar/reposo.
 
 El factor de brazos actual mide primero el ángulo de cada hombro respecto al
 torso durante el ciclo base. Escala su oscilación respecto al centro del rango

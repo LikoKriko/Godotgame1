@@ -3,7 +3,7 @@ extends Control
 const PoseMirror=preload("res://scripts/animation/authoring/aren_review_pose.gd")
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
-@export var scene_path:=ROOT+"aren_walk_launch_v1/aren.tscn"
+@export var scene_path:=ROOT+"aren_run_refined_v1/aren.tscn"
 var sources:Array=[
  {"label":"Original del juego","path":""},
  {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
@@ -17,7 +17,8 @@ var sources:Array=[
  {"label":"Coordinación: brazos y rodillas","path":ROOT+"aren_coordination_v1/aren.tscn"},
  {"label":"Caminata: torso superior coordinado","path":ROOT+"aren_walk_upper_v1/aren.tscn"},
  {"label":"Carrera: zancada contenida","path":ROOT+"aren_short_run_v1/aren.tscn"},
- {"label":"Caminata y arranque ajustados","path":ROOT+"aren_walk_launch_v1/aren.tscn"}
+ {"label":"Caminata y arranque ajustados","path":ROOT+"aren_walk_launch_v1/aren.tscn"},
+ {"label":"Carrera: apertura −10 % y pie derecho","path":ROOT+"aren_run_refined_v1/aren.tscn"}
 ]
 const MOTIONS=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]
 const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
@@ -49,7 +50,7 @@ func _ready() -> void:
  if source_index<0:
   sources.append({"label":"Generada personalizada","path":scene_path});source_index=sources.size()-1
  if sources[source_index].path.ends_with("aren_transitions_v1/aren.tscn"):motion="transitions"
- if sources[source_index].path.ends_with("aren_run_launch_v1/aren.tscn") or sources[source_index].path.ends_with("aren_short_run_v1/aren.tscn"):motion="run"
+ if sources[source_index].path.ends_with("aren_run_launch_v1/aren.tscn") or sources[source_index].path.ends_with("aren_short_run_v1/aren.tscn") or sources[source_index].path.ends_with("aren_run_refined_v1/aren.tscn"):motion="run"
  build_views()
  pose_mirror.configure(actors)
  var bar:=HBoxContainer.new();bar.position=Vector2(12,8);add_child(bar)
@@ -175,8 +176,8 @@ func reset_trees() -> void:
 func update_source_status() -> void:
  if not source_status:return
  if compare_button:
-  compare_button.disabled=source_index not in [11,12]
-  compare_button.text="Ver antes" if source_index==12 else "Ver después"
+  compare_button.disabled=source_index not in [11,12,13]
+  compare_button.text="Ver antes" if source_index==13 else "Ver después"
  if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
  if advanced() and transition_motion():
   var actor=actors[0]
@@ -241,10 +242,10 @@ func process_transitions(delta:float) -> void:
  update_source_status()
 
 func compare_posture() -> void:
- if source_index not in [11,12]:return
+ if source_index not in [11,12,13]:return
  var seconds:=elapsed
  var cycle_phase:float=0 if transition_motion() else elapsed/cycle_info(motion).duration
- select_source(11 if source_index==12 else 12)
+ select_source(12 if source_index in [11,13] else 13)
  if transition_motion():
   var remaining:=seconds
   while remaining>.0000001:
