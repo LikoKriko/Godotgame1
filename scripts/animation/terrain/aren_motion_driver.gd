@@ -40,8 +40,13 @@ func advance(body:CharacterBody3D,actor:Node3D,input:Vector2,running:bool,yaw:fl
  var speed:float=lerpf(walk_speed,run_speed,response.sprint_weight)*amount
  var travel:Vector2=velocity_input.normalized()*speed
  var gait:="idle" if speed<.01 else ("run" if running and not response.reversing() else "walk")
+ # Select the approved cue from input intent, before the physical envelope
+ # changes speed. Measured walk speed can sit slightly above its nominal
+ # value, and waiting for zero speed loses the run-to-idle braking cue.
+ if corrected:gait="idle" if input.is_zero_approx() else ("run" if running else "walk")
  if gait!=requested_gait:
   var origin:="idle" if actor.current_speed<.01 else ("walk" if actor.current_speed<=actor.speed_for("walk") else "run")
+  if corrected and not requested_gait.is_empty():origin=requested_gait
   if origin!=gait:actor.request_transition(origin+"_to_"+gait)
   requested_gait=gait
  body.velocity.x=travel.x;body.velocity.z=travel.y

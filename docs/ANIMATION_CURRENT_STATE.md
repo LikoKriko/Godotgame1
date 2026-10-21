@@ -58,7 +58,11 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
   de geometrías y consultas truncadas conservan el barrido detallado existente.
 - `aren_motion_driver.gd` comparte el movimiento entre el visor de giros y la
   escena provisional. `aren_turn_response.gd` adapta `movement_response.gd`
-  sin cambiar el controlador global. Conserva sus envolventes de arranque,
+  sin cambiar el controlador global. Las seis transiciones se solicitan según
+  la intención de movimiento, desde el destino anterior incluso si se interrumpe
+  su transición. Al soltar la carrera se pide `run_to_idle` inmediatamente;
+  pequeñas diferencias entre velocidad medida y nominal no omiten `walk_to_run`.
+  Conserva sus envolventes de arranque,
   frenada al soltar y peso de carrera; los cambios de dirección no activan
   `reverse_brake` ni `reverse_hold`, ni reinician el arranque desde reposo.
   El rumbo y cada diferencia angular se normalizan a [-π, π]; cada muestra
@@ -92,6 +96,8 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
   1/2/3: normal/cauteloso/cansado; R: inicio; 4/5: camino irregular/terreno forestal.
   HUD: velocidad real, error de apoyo, FPS y coste CPU de evaluación.
   Actor reutilizado: `scenes/prototype_3d/aren_terrain_actor.tscn`.
+  Regresión de las seis transiciones, cambios rápidos de estado y cinco terrenos:
+  `godot --headless --path . --fixed-fps 60 --script tests/aren_locomotion_integration.gd`.
 - **Visor:** abrir `scenes/prototype_3d/aren_authoring_review.tscn` con **F6**;
   seleccionar **Carrera: pies coordinados**, estado y ciclo/transición.
   Ofrece cuatro vistas, comparación antes/después, secuencias, pausa y velocidad.
