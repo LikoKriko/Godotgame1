@@ -1,6 +1,6 @@
 extends RefCounted
 ## Voluntary jump timing. Preview flight remains ballistic, with no gameplay hook.
-const PREPARE=.50
+const PREPARE=.20
 const PUSH=.105
 const LEAD_IN=.55
 const RECOVER=.34

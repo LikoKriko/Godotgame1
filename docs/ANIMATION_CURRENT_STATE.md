@@ -141,8 +141,11 @@ Durante la preparación la pelvis desciende hasta 6,5 cm y la inclinación de
 progresiva. El impulso conserva 4° hacia delante; la espalda se endereza de
 forma continua durante el ascenso, hasta la postura neutral cerca del ápice.
 
-`aren_jump_motion.gd` define preparación de 0,50 s, impulso de 0,105 s,
-velocidad inicial de 3,8 m/s y gravedad de 9,8 m/s². El vuelo balístico dura
+`aren_jump_motion.gd` define preparación de 0,20 s, impulso de 0,105 s,
+velocidad inicial de 3,8 m/s y gravedad de 9,8 m/s². Preparación y curvas
+de flexión/inclinación recorren sus mismas poses en el 40 % del tiempo anterior;
+el despegue físico ocurre al completar preparación e impulso (0,305 s,
+redondeado al siguiente tick de física). El vuelo balístico dura
 aproximadamente 0,78 s y conserva la velocidad horizontal de salida. La
 recuperación provisional mezcla durante 0,34 s; devuelve antes los objetivos
 de pie y pelvis para alcanzar el siguiente apoyo sin prolongar su anclaje.
