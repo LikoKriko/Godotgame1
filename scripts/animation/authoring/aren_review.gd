@@ -23,7 +23,7 @@ var sources:Array=[
  {"label":"Carrera: pies coordinados","path":ROOT+"aren_run_balanced_v1/aren.tscn"},
  {"label":"Paso 6: salto voluntario (revisión)","path":"res://scenes/prototype_3d/aren_jump_review_actor.tscn"}
 ]
-const MOTIONS=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]
+var MOTIONS:Array=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]+Jump.RECIPES
 const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
 var state_selector:OptionButton
 var restart_button:Button
@@ -66,7 +66,7 @@ func _ready() -> void:
  bar.add_child(source_selector);source_selector.select(source_index);source_selector.item_selected.connect(select_source)
  var clips:=OptionButton.new()
  motion_selector=clips
- for label in ["walk","run","idle","Encadenadas","Reposo → caminar","Reposo → correr","Caminar → correr","Correr → caminar","Caminar → reposo","Correr → reposo"]:clips.add_item(label)
+ for label in ["walk","run","idle","Encadenadas","Reposo → caminar","Reposo → correr","Caminar → correr","Correr → caminar","Caminar → reposo","Correr → reposo"]+Jump.LABELS:clips.add_item(label)
  bar.add_child(clips);clips.select(MOTIONS.find(motion));clips.item_selected.connect(select_motion)
  var angles:=Label.new();angles.text="Frente · lateral · espalda · tres cuartos";bar.add_child(angles)
  var pause:=Button.new();pause.text="Pausa";bar.add_child(pause);pause.pressed.connect(func():playing=not playing)
@@ -81,15 +81,16 @@ func _ready() -> void:
  build_jump_controls()
  refresh_options()
  if transition_motion():reset_trees()
+ elif jump_review():actors[0].begin_preview(motion);playing=true;refresh_jump_view()
  update_source_status()
  var turn_review:=Button.new();turn_review.text="Paso 3: comparar giros";turn_review.position=Vector2(990,36);add_child(turn_review)
  turn_review.pressed.connect(func():get_tree().change_scene_to_file("res://scenes/prototype_3d/aren_turn_review.tscn"))
  get_viewport().size_changed.connect(fit_views);fit_views()
 func fit_views() -> void:
- scale=Vector2.ONE*minf(get_viewport_rect().size.x/1200.0,get_viewport_rect().size.y/940.0)
+ scale=Vector2.ONE*minf(get_viewport_rect().size.x/1200.0,get_viewport_rect().size.y/970.0)
 func build_views() -> void:
  for i in 4:
-  var box:=SubViewportContainer.new();box.position=Vector2((i%2)*600,100+(i/2)*420);box.size=Vector2(600,420);add_child(box)
+  var box:=SubViewportContainer.new();box.position=Vector2((i%2)*600,130+(i/2)*420);box.size=Vector2(600,420);add_child(box)
   var viewport:=SubViewport.new();viewport.size=Vector2i(600,420);viewport.own_world_3d=true;viewport.render_target_update_mode=SubViewport.UPDATE_ALWAYS;box.add_child(viewport);viewports.append(viewport)
   var world:=Node3D.new();viewport.add_child(world)
   var environment:=WorldEnvironment.new();environment.environment=Environment.new();environment.environment.background_mode=Environment.BG_COLOR;environment.environment.background_color=Color("36434b");environment.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;environment.environment.ambient_light_color=Color("dce4ec");environment.environment.ambient_light_energy=.65;world.add_child(environment)
@@ -108,12 +109,8 @@ func build_views() -> void:
   var camera:=Camera3D.new();camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.size=2.5;world.add_child(camera);camera.current=true;cameras.append(camera)
 func show_frame(clip:String,seconds:float) -> void:
  if jump_review():
-  var t:=fposmod(seconds,Jump.duration()+.65)
-  actors[0].seek_jump(t,clip)
-  sync_pose_views()
-  var state:Dictionary=actors[0].jump_state
-  jump_label.text="%s · vy %.2f m/s · altura %.2f m%s"%[Jump.PHASES[state.phase],state.vertical_velocity,state.height," · corte / reinicio" if state.finished else ""]
-  jump_scrub.set_value_no_signal(state.time)
+  actors[0].seek_preview(clip,seconds)
+  refresh_jump_view()
   return
  if advanced():
   var actor=actors[0];var info:=cycle_info(clip)
@@ -147,6 +144,12 @@ func point_camera(index:int) -> void:
 func _process(delta:float) -> void:
  if not playing:return
  elapsed+=delta*speed_slider.value
+ if jump_review():
+  if actors[0].preview_name.is_empty():actors[0].begin_preview(motion)
+  actors[0].advance_jump_preview(delta*speed_slider.value)
+  refresh_jump_view()
+  if actors[0].preview_done:playing=false
+  return
  if advanced() and transition_motion():
   process_transitions(delta*speed_slider.value);return
  if motion!="transitions":show_frame(motion,elapsed);return
@@ -166,7 +169,7 @@ func create_actor(world:Node3D) -> Node3D:
  else:actor.tree.active=false
  return actor
 func cycle_info(clip:String) -> Dictionary:
- if jump_review():return {"duration":Jump.duration()+.65,"speed_mps":actors[0].speed_for(clip)}
+ if jump_review():return {"duration":Jump.preview_duration(clip),"speed_mps":actors[0].current_speed}
  if source_index!=0:
   var animation:Animation=actors[0].library.get_animation(StringName(clip))
   var result:Dictionary=animation.get_meta("cycle").duplicate();result.duration=animation.length;return result
@@ -178,6 +181,7 @@ func cycle_info(clip:String) -> Dictionary:
 func select_source(index:int) -> void:
  if index<0 or index>=sources.size():return
  var phase:float=fposmod(elapsed/cycle_info("walk" if transition_motion() else motion).duration,1.0)
+ if motion in Jump.RECIPES:motion="idle";phase=0
  source_index=index;scene_path=sources[index].path
 
  for i in actors.size():
@@ -199,7 +203,7 @@ func update_source_status() -> void:
   compare_button.text="Ver antes" if source_index==14 else "Ver después"
  if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
  if jump_review():
-  source_status.text="Salto voluntario · %s · desde %s · sin aterrizaje"%[["Normal","Cauteloso","Cansado"][state_selector.selected],motion]
+  source_status.text="%s · %s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],Jump.LABELS[Jump.RECIPES.find(actors[0].segment_name)] if actors[0].segment_name in Jump.RECIPES else "Salto completo desde "+motion]
   return
  if advanced() and transition_motion():
   var actor=actors[0]
@@ -227,10 +231,13 @@ func advanced() -> bool:return not actors.is_empty() and actors[0].has_method("a
 func transition_motion() -> bool:return motion=="transitions" or motion in CHAIN
 func refresh_options() -> void:
  if not motion_selector:return
- for index in range(4,MOTIONS.size()):motion_selector.set_item_disabled(index,not advanced() or jump_review())
+ for index in range(4,10):motion_selector.set_item_disabled(index,not advanced() or jump_review())
+ for index in range(10,MOTIONS.size()):motion_selector.set_item_disabled(index,not jump_review())
  motion_selector.set_item_disabled(3,source_index==0 or jump_review())
  if jump_review() and transition_motion():motion="idle"
+ if not jump_review() and motion in Jump.RECIPES:motion="idle"
  if jump_bar:jump_bar.visible=jump_review()
+ if jump_label:jump_label.visible=jump_review()
  if compare_button:compare_button.visible=not jump_review()
  if (motion in CHAIN and not advanced()) or (motion=="transitions" and source_index==0):motion="walk"
  motion_selector.select(MOTIONS.find(motion))
@@ -239,12 +246,18 @@ func refresh_options() -> void:
   for actor in actors:actor.set_style(["normal","cautious","tired"][state_selector.selected])
 func select_motion(index:int) -> void:
  motion=MOTIONS[index];elapsed=0;travel=0
+ if motion_selector:motion_selector.select(index)
+ if jump_review():
+  actors[0].request_preview(motion)
+  playing=true;refresh_jump_view();return
  if transition_motion():reset_trees()
  else:show_frame(motion,0)
  update_source_status()
 func select_state(index:int) -> void:
  if not advanced():return
  for actor in actors:actor.set_style(["normal","cautious","tired"][index])
+ if jump_review():
+  actors[0].begin_preview(motion);elapsed=0;refresh_jump_view();return
  if transition_motion():start_transition_preview()
  else:show_frame(motion,0)
  update_source_status()
@@ -284,15 +297,41 @@ func jump_review() -> bool:
 func build_jump_controls() -> void:
  jump_bar=HBoxContainer.new();jump_bar.position=Vector2(12,66);add_child(jump_bar)
  var sequence:=Button.new();sequence.text="Salto completo";jump_bar.add_child(sequence)
- sequence.pressed.connect(func():elapsed=0;playing=true;show_frame(motion,0))
+ sequence.pressed.connect(func():select_motion(MOTIONS.find(jump_gait()));restart_preview();playing=true)
  for index in Jump.PHASES.size():
-  var button:=Button.new();button.text=Jump.PHASES[index];jump_bar.add_child(button)
-  button.pressed.connect(func():playing=false;elapsed=Jump.phase_time(index);show_frame(motion,elapsed))
+  var button:=Button.new();button.text="Recuperación" if index==5 else Jump.PHASES[index];jump_bar.add_child(button)
+  button.pressed.connect(func():show_jump_phase(index))
  jump_scrub=HSlider.new();jump_scrub.min_value=0;jump_scrub.max_value=Jump.duration();jump_scrub.step=.001;jump_scrub.custom_minimum_size.x=120;jump_bar.add_child(jump_scrub)
  jump_scrub.value_changed.connect(func(value:float):playing=false;elapsed=value;show_frame(motion,value))
- jump_label=Label.new();jump_bar.add_child(jump_label)
+ jump_label=Label.new();jump_label.position=Vector2(12,98);add_child(jump_label)
 
 func restart_preview() -> void:
  elapsed=0;travel=0
- if transition_motion():reset_trees()
+ if jump_review():actors[0].begin_preview(motion);playing=true;refresh_jump_view()
+ elif transition_motion():reset_trees()
  else:show_frame(motion,0)
+
+func refresh_jump_view() -> void:
+ sync_pose_views()
+ var actor=actors[0]
+ var state:Dictionary=actor.jump_state
+ if state.is_empty():return
+ var phase_label:String=Jump.PHASES[state.phase] if actor.preview_stage!="lead" else "Locomoción de entrada"
+ if actor.preview_done:phase_label+=" · revisión terminada"
+ jump_label.text="%s · vy %.2f m/s · altura %.2f m"%[phase_label,state.vertical_velocity,state.height]
+ if not actor.queued_preview.is_empty():jump_label.text+=" · siguiente: "+(Jump.LABELS[Jump.RECIPES.find(actor.queued_preview)] if actor.queued_preview in Jump.RECIPES else actor.queued_preview)
+ jump_scrub.max_value=maxf(Jump.preview_duration(motion),actor.preview_clock)
+ jump_scrub.set_value_no_signal(actor.preview_clock)
+ update_source_status()
+func show_jump_phase(index:int) -> void:
+ playing=false
+ var gait:=jump_gait()
+ motion=gait;motion_selector.select(MOTIONS.find(gait))
+ elapsed=Jump.LEAD_IN+Jump.phase_time(index)
+ actors[0].begin_preview(gait);show_frame(gait,elapsed)
+
+func jump_gait() -> String:
+ if motion in ["idle","walk","run"]:return motion
+ if motion.ends_with("_to_jump"):return motion.trim_suffix("_to_jump")
+ if motion.begins_with("jump_to_"):return motion.trim_prefix("jump_to_")
+ return actors[0].jump_origin

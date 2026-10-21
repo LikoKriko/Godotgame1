@@ -117,22 +117,41 @@ Leer los `AGENTS.md` aplicables antes de editar; reutilizar los sistemas existen
 ### Paso 6: salto voluntario en revisión visual
 
 El visor `aren_authoring_review.tscn` abre **Paso 6: salto voluntario (revisión)**.
-`idle`/`walk`/`run` eligen la locomoción de salida; conserva los tres estados.
-Los botones inferiores permiten aislar preparación, impulso, ascenso, fase aérea
-y descenso; el deslizador permite recorrer la secuencia con las cuatro vistas.
-**Salto completo**, **Pausa**, **Reiniciar** y velocidad controlan la reproducción.
-La secuencia se detiene antes del contacto y reinicia mediante un corte de revisión;
-ese corte no representa una transición ni un aterrizaje.
+`idle`/`walk`/`run` muestran un salto completo desde esa locomoción, con entrada
+terrestre y recuperación provisional. Conserva los tres estados. El segundo
+selector incluye **Reposo → Salto**, **Caminata → Salto**, **Carrera → Salto**,
+**Salto → Reposo**, **Salto → Caminata**, **Salto → Carrera** y
+**Saltos encadenados**. Las entradas terminan en el ápice; las salidas aisladas
+parten de esa misma fase y terminan en su locomoción de destino. La cadena
+alterna reposo → salto → caminata → salto → carrera → salto → reposo,
+conservando pose, desplazamiento y contactos entre segmentos, sin cortes.
 
-`aren_jump_actor.gd` extiende el actor aprobado, muestrea sus bibliotecas sin
-modificarlas y reutiliza el rig nativo, las transformaciones de ramas, el solver
-de longitudes fijas y los correctivos de rodilla. El vuelo no ejecuta apoyo
-terrestre ni sondeos de terreno. `aren_jump_motion.gd` define la previsualización:
-preparación 0,18 s, impulso 0,12 s, velocidad inicial 3,6 m/s y gravedad 9,8 m/s².
-El desplazamiento horizontal conserva la velocidad de la locomoción de salida;
-la pose aérea consume velocidad vertical y tiempo en vuelo. Su API de dirección
-aérea conserva la velocidad vertical y el impulso horizontal sin entrada.
-La previsualización es balística: todavía no utiliza colisiones del personaje.
+Los botones inferiores aíslan preparación, impulso, ascenso, fase aérea,
+descenso y recuperación provisional. El deslizador, pausa, velocidad y
+**Reiniciar** permiten inspección individual. Cambiar a una salida durante el
+vuelo conserva el salto actual; los otros cambios se encolan hasta recuperar
+el suelo. **Reiniciar** inicia explícitamente la opción elegida. Las opciones
+individuales se detienen al terminar, sin reinicios automáticos.
+
+`aren_jump_actor.gd` extiende el actor aprobado y conserva sus bibliotecas.
+Reutiliza el rig nativo, las transformaciones de ramas, el solver de longitudes
+fijas y los correctivos de rodilla. La entrada y recuperación reutilizan el
+reloj y los contactos del actor terrestre, incluidos sus cambios de velocidad.
+Durante la preparación la pelvis desciende hasta 6,5 cm y la inclinación de
+11° se reparte entre pelvis (30 %) y columna (16/24/30 %), con flexión local
+progresiva. El impulso conserva 4° hacia delante; la espalda se endereza de
+forma continua durante el ascenso, hasta la postura neutral cerca del ápice.
+
+`aren_jump_motion.gd` define preparación de 0,50 s, impulso de 0,105 s,
+velocidad inicial de 3,8 m/s y gravedad de 9,8 m/s². El vuelo balístico dura
+aproximadamente 0,78 s y conserva la velocidad horizontal de salida. La
+recuperación provisional mezcla durante 0,34 s; devuelve antes los objetivos
+de pie y pelvis para alcanzar el siguiente apoyo sin prolongar su anclaje.
+El descenso prepara un apoyo adelantado al moverse y conserva flexión de
+rodilla para el contacto. El apoyo consume el solver terrestre existente y una compresión pequeña de
+carga; no constituye el catálogo de aterrizajes del paso 8. La pose aérea
+consume velocidad vertical y tiempo de vuelo, sin ejecutar apoyos ni sondeos
+terrestres. La previsualización todavía no usa colisiones del personaje.
 
 **Pendiente de aprobación visual.** No conectado al controlador jugable.
 Tras la aprobación: conectar a la física existente y validar continuidad,
