@@ -52,10 +52,14 @@ func run() -> void:
         var anchor:Vector3=actor.landing.feet[side].origin
         check(Vector2(foot.x-anchor.x,foot.z-anchor.z).length()<.001,"planted foot slid")
       if frame%6==0:check(actor.landing.knee_gap(actor,true)>=-.002,"right knee/shin penetration")
-      if actor.landing.knee_planted:
+      if actor.landing.support_loaded:
        var knee:Vector3=actor.global_transform*native.posed[native.legs[0].ids[1]].origin
        check(Vector2(knee.x-actor.landing.knee_anchor.x,knee.z-actor.landing.knee_anchor.z).length()<.001,"right knee slid")
-       check(absf(actor.landing.knee_minimum)<.001,"right knee skin left floor")
+       check(actor.landing.knee_minimum>=.03 and actor.landing.knee_minimum<=.05,"right knee clearance outside 3–5 cm")
+       check(not actor.landing.knee_planted,"right knee incorrectly bears weight")
+       var rear_low:=INF
+       for point in actor.landing.sole_support.world_skin_points(native,0,actor.global_transform):rear_low=minf(rear_low,point.y-actor.floor_y)
+       check(absf(rear_low)<.002,"rear forefoot lost support")
        var left_knee:Vector3=native.posed[native.legs[1].ids[1]].origin
        var left_hip:Vector3=native.posed[native.legs[1].ids[0]].origin
        var heading:=absf(rad_to_deg(atan2(left_knee.x-left_hip.x,left_knee.z-left_hip.z)))

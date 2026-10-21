@@ -252,14 +252,14 @@ conservando la referencia del borde durante los contactos redondeados de la cáp
 
 ### Paso 8: recepción profunda con apoyo de palma
 
-`aren_authoring_review.tscn` abre **Paso 8: recepción con rodilla y palma**.
+`aren_authoring_review.tscn` abre **Paso 8: recepción con palma**.
 El selector ofrece 0,55/1,50/3/3,5/4/4,8/5,5/6/6,8/7,5/7,9/8 m. Conserva
 entradas desde reposo, caminata y carrera, cadenas, tres estados, cuatro ángulos,
 pausa, velocidad, reinicio y búsqueda temporal. Para la nueva recepción, los
-botones aíslan contacto de pies, absorción, apoyo de rodilla y palma, retirada
+botones aíslan contacto de pies, absorción, palma con rodilla suspendida, retirada
 de mano, elevación de pelvis y rodilla, y equilibrio. **Detalle** aproxima y baja la cámara durante la recepción.
 Las fuentes anteriores siguen seleccionables para comparar salto y caída.
-La casilla **Antes** alterna con la postura de `fb76425`, conservando el instante,
+La casilla **Antes** alterna con la postura de `5ac786d`, conservando el instante,
 la pausa y los cuatro ángulos. Desactivada muestra la postura corregida; solo
 se ofrece en la revisión del paso 8.
 
@@ -279,29 +279,35 @@ continuamente hasta aproximadamente 2,5 s al acercarse a 8 m.
 El actor del visor utiliza `aren_kneeling_landing_pose.gd`, que extiende el solver
 existente sin cambiar su ruta jugable. Durante el descenso coloca el pie
 izquierdo adelantado. Al absorber el impacto, la pelvis baja y se desplaza entre
-los apoyos, el pie derecho pivota y la tibia se coloca hacia atrás hasta apoyar
-la rodilla derecha. El pie izquierdo permanece fijado y soporta peso. El muslo
-derecho conserva su longitud alrededor de la rodilla anclada; el alcance de
-ambas piernas y la flexión de rodilla se limitan antes de resolver el IK.
-La posición de contacto corresponde a la piel de la rodilla, no al centro del
-hueso. El pie posterior conserva separación del suelo durante sus giros.
+los apoyos. La tibia derecha queda hacia atrás y el antepié derecho se apoya
+con el talón elevado; la rodilla permanece suspendida, sin soportar peso.
+El pie izquierdo permanece fijado, con la rodilla hacia delante, como apoyo
+principal; la palma complementa el equilibrio. El reparto visual de referencia
+es 50/30/20 % entre pie izquierdo, pie derecho y palma, sin imponer fuerzas
+artificiales. El muslo derecho conserva su longitud alrededor del objetivo
+de rodilla; el alcance de ambas piernas y su flexión se limitan antes del IK.
+El solver calibra la piel real de la rodilla a 4 cm del suelo durante la carga
+y la piel del antepié sobre el plano. El pie posterior conserva separación
+del suelo durante sus giros. **Antes** conserva el apoyo anterior de rodilla.
 
 La pelvis conserva una traslación de carga de 0,5 cm hacia arriba y 3–3,5 cm
 hacia delante. El IK
-conserva la longitud del muslo derecho y el contacto de rodilla, de modo que la
+conserva la longitud del muslo derecho y la separación de rodilla, de modo que la
 corrección final del centro se adapta a los apoyos. El pie izquierdo conserva su objetivo y apoyo originales; el plano de flexión
 de su rodilla la mantiene alineada sobre ese pie y prioriza el avance, con
-menos apertura lateral.
+menos apertura lateral. El objetivo derecho avanza entre 1,2 y 3,7 cm según
+la velocidad horizontal para equilibrar la pelvis sin retrasarla al correr.
 
 El pecho se eleva reduciendo la inclinación frontal: la corrección lumbar
-durante la carga pasa de +4° a −11°, con compensación inversa del cuello.
+durante la carga mantiene −11°, con compensación inversa del cuello.
 La estabilización torácica utiliza 7° sin cambiar sus tiempos. Para acercar el
 brazo al apoyo, la rotación longitudinal se reparte entre pelvis y los tres
-segmentos de columna (2°/5°/6°/7°), siguiendo los ejes anatómicos de cada
-segmento. El cuello compensa 8° de ese giro y la clavícula de apoyo acompaña
-con 3°, conservando longitudes nativas. Estas adaptaciones siguen la carga
-continua de la recepción; no desplazan los objetivos de rodilla, pie o palma
-ni modifican los tiempos de recuperación.
+segmentos de columna (2°/6°/7°/9°), siguiendo los ejes anatómicos de cada
+segmento. El cuello compensa 10° de ese giro y la clavícula de apoyo acompaña
+con 4°, conservando longitudes nativas. La curvatura sagital se redistribuye
+−3°/+1°/+2° entre los tres segmentos sin añadir inclinación frontal neta.
+Estas adaptaciones siguen la carga continua de la recepción y conservan
+los tiempos de recuperación y el anclaje de palma.
 
 
 La palma permanece orientada y anclada al suelo mientras soporta peso; el
@@ -309,7 +315,8 @@ contacto utiliza piel de palma y eminencia tenar, respetando las proporciones
 nativas de mano y dedos. El codo responde a la absorción y al traslado gradual
 del peso durante la estabilización. La mano libre equilibra fuera del muslo
 izquierdo; la columna distribuye su curvatura y la cabeza acompaña la carga.
-La mano se retira antes de elevar pelvis y rodilla. El pie derecho se recupera
+La mano transfiere progresivamente el apoyo a los pies y se retira antes de
+elevar pelvis y rodilla. El pie derecho se recupera
 con un arco bajo, después el izquierdo vuelve a la separación normal mediante
 un paso corto, y el evaluador devuelve la postura erguida y la locomoción.
 
@@ -320,7 +327,7 @@ palma y pies, conserva el instante de contacto, frena progresivamente el avance
 durante la absorción y devuelve el control durante el equilibrio. Mantiene el
 rumbo durante el apoyo y encola cambios de estado hasta terminar. El salto
 voluntario aprobado y la detección de caída conservan su ruta existente. Esta
-conexión sigue utilizando el solver anterior: la postura con apoyo de rodilla
+conexión sigue utilizando el solver anterior: la postura con rodilla suspendida
 se carga exclusivamente desde el visor y espera aprobación visual antes de
 integrarse en la escena jugable.
 

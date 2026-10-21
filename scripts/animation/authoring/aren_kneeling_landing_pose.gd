@@ -1,10 +1,11 @@
 extends "res://scripts/animation/authoring/aren_landing_pose.gd"
-## Authoring-only contact transfer: left sole, right knee and right palm.
+## Authoring-only contact transfer: left sole, rear forefoot and right palm.
 var previous_posture:=false
 var setting_contact:=false
 var knee_anchor:=Vector3.ZERO
 var knee_minimum:=0.0
 var knee_planted:=false
+var support_loaded:=false
 var knee_samples:Array[Array]=[]
 var shin_samples:Array[Array]=[]
 var rear_basis:=Basis.IDENTITY
@@ -63,10 +64,11 @@ func start(actor:Node3D,height:float,impact_velocity:float,velocity:Vector3=Vect
  super.start(actor,height,impact_velocity,velocity,query)
  setting_contact=false
  parameters=review_profile(impact_velocity)
- knee_anchor=contact_position+actor.global_basis.orthonormalized()*Vector3(-.13,.05,.27)
- # Dorsum of the rear foot faces the floor; toes trail behind the knee.
+ var forward_balance:=.012+.025*clampf(velocity.length()/maxf(actor.speed_for("run"),.01),0,1)
+ knee_anchor=contact_position+actor.global_basis.orthonormalized()*Vector3(-.13,.05 if previous_posture else .09,.27+(0.0 if previous_posture else forward_balance))
+ # The rear forefoot supports the load with a raised heel; Antes keeps the old dorsum contact.
  var foot:Transform3D=actor.native.frame*neutral.feet[0]
- rear_basis=Basis(Vector3.RIGHT,deg_to_rad(135))*foot.basis
+ rear_basis=Basis(Vector3.RIGHT,deg_to_rad(135 if previous_posture else 15))*foot.basis
  restore(actor,neutral.poses)
  var native=actor.native;var ids:Array=native.legs[0].ids
  var old:Transform3D=native.posed[ids[2]]
@@ -81,17 +83,23 @@ func bend(actor:Node3D,load:float,drop:float) -> void:
  if not setting_contact:
   # Lift the chest while preserving the previous posture for comparison.
   var spine:int=actor.native.spine[0]
-  var correction:=deg_to_rad(4 if previous_posture else -11)*load
+  var correction:=deg_to_rad(-11)*load
   Torso.rotate_branch(actor.native,spine,Basis(Vector3.RIGHT,correction)*actor.native.posed[spine].basis,actor.native.posed[spine].origin)
   Torso.rotate_branch(actor.native,actor.native.neck,Basis(Vector3.RIGHT,-correction)*actor.native.posed[actor.native.neck].basis,actor.native.posed[actor.native.neck].origin)
  var settle:=Jump.smooth5((time-parameters.absorb)/(parameters.release-parameters.absorb))*load
  var chest:int=actor.native.spine[1]
- Torso.rotate_branch(actor.native,chest,Basis(Vector3.RIGHT,deg_to_rad(6 if previous_posture else 7)*settle)*actor.native.posed[chest].basis,actor.native.posed[chest].origin)
+ Torso.rotate_branch(actor.native,chest,Basis(Vector3.RIGHT,deg_to_rad(7)*settle)*actor.native.posed[chest].basis,actor.native.posed[chest].origin)
  # Move the pelvis into the space between the asymmetric supports.
  var balance:=Jump.smooth5((time-parameters.absorb)/(parameters.release_end-parameters.absorb))
  var shift:Vector3=Vector3(-.025,.005,.030+.005*balance)*load/SCALE
  for bone in actor.native.posed.size():actor.native.posed[bone].origin+=shift
- if not previous_posture and not setting_contact:rotate_support_torso(actor,load)
+ if not setting_contact:
+  if not previous_posture:
+   # Redistribute sagittal curvature without adding net forward pitch.
+   for index in actor.native.spine.size():
+    var bone:int=actor.native.spine[index]
+    Torso.rotate_branch(actor.native,bone,Basis(Vector3.RIGHT,deg_to_rad([-3,1,2][index])*load)*actor.native.posed[bone].basis,actor.native.posed[bone].origin)
+  rotate_support_torso(actor,load)
 
 func rotate_support_torso(actor:Node3D,load:float) -> void:
  var native=actor.native
@@ -101,19 +109,20 @@ func rotate_support_torso(actor:Node3D,load:float) -> void:
   var bone:int=bones[index]
   var child:int=native.spine[index] if index<native.spine.size() else native.neck
   var axis:Vector3=(native.posed[child].origin-native.posed[bone].origin).normalized()
-  Torso.rotate_branch(native,bone,Basis(axis,deg_to_rad([2,5,6,7][index])*load)*native.posed[bone].basis,native.posed[bone].origin)
+  Torso.rotate_branch(native,bone,Basis(axis,deg_to_rad(([2,5,6,7] if previous_posture else [2,6,7,9])[index])*load)*native.posed[bone].basis,native.posed[bone].origin)
  var neck_axis:Vector3=(native.posed[native.neck].origin-native.posed[native.spine[-1]].origin).normalized()
- Torso.rotate_branch(native,native.neck,Basis(neck_axis,-deg_to_rad(8)*load)*native.posed[native.neck].basis,native.posed[native.neck].origin)
+ Torso.rotate_branch(native,native.neck,Basis(neck_axis,-deg_to_rad(8 if previous_posture else 10)*load)*native.posed[native.neck].basis,native.posed[native.neck].origin)
  # Native clavicle rotation lowers the support shoulder without stretching it.
  var shoulder:int=native.arms[support_side].ids[0]
- Torso.rotate_branch(native,shoulder,Basis(neck_axis,deg_to_rad(3)*load)*native.posed[shoulder].basis,native.posed[shoulder].origin)
+ Torso.rotate_branch(native,shoulder,Basis(neck_axis,deg_to_rad(3 if previous_posture else 4)*load)*native.posed[shoulder].basis,native.posed[shoulder].origin)
 
 func solve_legs(actor:Node3D,exit:Dictionary) -> void:
  var native=actor.native
  var approach:=Jump.smooth5(time/parameters.absorb)
  var rise:=Jump.smooth5((time-parameters.release_end)/(parameters.rise_end-parameters.release_end))
  var kneel:=approach*(1-rise)
- knee_planted=time>=parameters.absorb and time<=parameters.release_end
+ support_loaded=time>=parameters.absorb and time<=parameters.release_end
+ knee_planted=previous_posture and support_loaded
  foot_error=0
  var left:Dictionary=native.legs[1]
  var left_goal:Transform3D=actor.global_transform.affine_inverse()*feet[1]
@@ -123,8 +132,8 @@ func solve_legs(actor:Node3D,exit:Dictionary) -> void:
   left_goal.origin.y+=sin(left_step*PI)*.055/SCALE
  var right:Dictionary=native.legs[0];var ids:Array=right.ids
  var target_knee:Vector3=actor.global_transform.affine_inverse()*knee_anchor
- # Hip projection onto the thigh sphere gives the knee an exact support,
- # rather than forcing a foot target while translating the torso through it.
+ # Project the hip onto the thigh sphere around the guided knee, retaining
+ # native lengths while the rear forefoot provides the actual support.
  var hip:Vector3=native.posed[ids[0]].origin
  var corrected:Vector3=supported_hip(hip,target_knee,right)
  var shift:Vector3=(corrected-hip)*kneel
@@ -147,19 +156,20 @@ func solve_legs(actor:Node3D,exit:Dictionary) -> void:
  for bone in native.posed.size():native.posed[bone].origin.y-=lower
  solve_right(actor,goal,target_knee)
  # The swinging rear foot must clear the plane even while it turns plantarward.
- if not knee_planted:
+ if not support_loaded:
   var low:=INF
   for point in sole_support.world_skin_points(native,0,actor.global_transform):low=minf(low,point.y-contact_position.y)
   if low<.0003:
    goal.origin.y+=(.0003-low)/SCALE
    solve_right(actor,goal,target_knee)
  solve_left(actor,left_goal,left_step)
- if knee_planted:
-  # Skin contact, not the bone pivot: keep a fixed knee anchor throughout load.
+ if support_loaded:
+  # Calibrate actual knee skin clearance while retaining the forefoot support.
   for iteration in 3:
    knee_minimum=knee_gap(actor)
-   if absf(knee_minimum)<.0002:break
-   knee_anchor.y-=knee_minimum
+   var clearance:=0.0 if previous_posture else .04
+   if absf(knee_minimum-clearance)<.0002:break
+   knee_anchor.y+=clearance-knee_minimum
    target_knee=actor.global_transform.affine_inverse()*knee_anchor
    hip=native.posed[ids[0]].origin
    corrected=supported_hip(hip,target_knee,right)
@@ -187,7 +197,7 @@ func solve_right(actor:Node3D,goal:Transform3D,knee:Vector3) -> void:
  var hip:Vector3=native.posed[ids[0]].origin
  # The native-length solver does not impose a knee angle; enforce its reach
  # after clearance corrections too, including the rear-foot lift.
- if not knee_planted:
+ if not support_loaded:
   var minimum:=sqrt(leg.a*leg.a+leg.b*leg.b+2*leg.a*leg.b*cos(deg_to_rad(149.5)))
   if hip.distance_to(goal.origin)<minimum:
    var shift:Vector3=goal.origin+(hip-goal.origin).normalized()*minimum-hip

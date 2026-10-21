@@ -25,7 +25,7 @@ var sources:Array=[
  {"label":"Carrera: pies coordinados","path":ROOT+"aren_run_balanced_v1/aren.tscn"},
  {"label":"Paso 6: salto voluntario (aprobado)","path":"res://scenes/prototype_3d/aren_jump_review_actor.tscn"},
  {"label":"Paso 7: caída automática (revisión)","path":"res://scenes/prototype_3d/aren_fall_review_actor.tscn"},
- {"label":"Paso 8: recepción con rodilla y palma","path":"res://scenes/prototype_3d/aren_landing_review_actor.tscn"}
+ {"label":"Paso 8: recepción con palma","path":"res://scenes/prototype_3d/aren_landing_review_actor.tscn"}
 ]
 var MOTIONS:Array=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]+Jump.RECIPES+Fall.RECIPES
 const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
@@ -95,7 +95,7 @@ func _ready() -> void:
  landing_detail=CheckButton.new();landing_detail.text="Detalle";landing_detail.position=Vector2(810,36);landing_detail.button_pressed=true;add_child(landing_detail)
  landing_detail.toggled.connect(func(_enabled:bool):sync_pose_views())
  landing_reference=CheckBox.new();landing_reference.text="Antes";landing_reference.position=Vector2(915,36);add_child(landing_reference)
- landing_reference.tooltip_text="Comparar con la postura de fb76425, conservando el instante y los cuatro ángulos. Desactivado: postura corregida."
+ landing_reference.tooltip_text="Comparar con la postura de 5ac786d, conservando el instante y los cuatro ángulos. Desactivado: postura corregida."
  landing_reference.toggled.connect(func(previous:bool):
   if not landing_review():return
   actors[0].set_posture_reference(previous);refresh_jump_view())
@@ -367,7 +367,10 @@ func refresh_phase_controls() -> void:
  for i in 6:
   var button:Button=jump_bar.get_child(i+1)
   button.visible=i<labels.size()
-  if button.visible:button.text=labels[i]
+  if button.visible:button.text=landing_phase_label(i) if deep else labels[i]
+
+func landing_phase_label(index:int) -> String:
+ return "Palma · rodilla libre" if index==2 and not actors[0].landing.previous_posture else Landing.PHASES[index]
 
 func refresh_jump_view() -> void:
  refresh_phase_controls()
@@ -377,11 +380,11 @@ func refresh_jump_view() -> void:
  if state.is_empty():return
  var labels:Array=Fall.PHASES if fall_review() else Jump.PHASES
  var phase_label:String=labels[state.phase] if actor.preview_stage!="lead" else "Locomoción de entrada"
- if landing_review() and actor.preview_stage=="landing":phase_label=Landing.PHASES[Landing.phase_index(actor.stage_time,actor.landing.parameters)]
+ if landing_review() and actor.preview_stage=="landing":phase_label=landing_phase_label(Landing.phase_index(actor.stage_time,actor.landing.parameters))
  if actor.preview_done:phase_label+=" · revisión terminada"
  jump_label.text=("%s · vy %.2f m/s · descenso %.2f m" if fall_review() else "%s · vy %.2f m/s · altura %.2f m")%[phase_label,state.vertical_velocity,state.height]
  if landing_review() and actor.preview_stage=="landing":jump_label.text+=" · codo %.1f° · palma %s"%[actor.landing.elbow_degrees,"apoyada" if actor.landing.palm_planted else "libre"]
- if landing_review() and actor.preview_stage=="landing":jump_label.text+=" · rodilla "+("apoyada" if actor.landing.knee_planted else "libre")
+ if landing_review() and actor.preview_stage=="landing":jump_label.text+=" · rodilla "+("apoyada" if actor.landing.knee_planted else ("suspendida %.1f cm" % (actor.landing.knee_minimum*100) if actor.landing.support_loaded else "libre"))
  if not actor.queued_preview.is_empty():jump_label.text+=" · siguiente: "+(Jump.LABELS[Jump.RECIPES.find(actor.queued_preview)] if actor.queued_preview in Jump.RECIPES else actor.queued_preview)
  jump_scrub.set_block_signals(true)
  if fall_review() and Fall.collapse_pending(actor.drop_height):jump_label.text+=" · desplome al suelo pendiente"
