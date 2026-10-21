@@ -47,10 +47,20 @@ func run() -> void:
         var low:=INF
         for point in actor.landing.sole_support.world_skin_points(native,side,actor.global_transform):low=minf(low,point.y-actor.floor_y)
         check(low>=-.001,"sole penetration")
-       if actor.stage_time<actor.landing.parameters.rise_end-.21:
+       if side==1 and actor.stage_time<actor.landing.parameters.rise_end-.04:
         var foot:Vector3=actor.global_transform*native.posed[ids[2]].origin
         var anchor:Vector3=actor.landing.feet[side].origin
         check(Vector2(foot.x-anchor.x,foot.z-anchor.z).length()<.001,"planted foot slid")
+      if frame%6==0:check(actor.landing.knee_gap(actor,true)>=-.002,"right knee/shin penetration")
+      if actor.landing.knee_planted:
+       var knee:Vector3=actor.global_transform*native.posed[native.legs[0].ids[1]].origin
+       check(Vector2(knee.x-actor.landing.knee_anchor.x,knee.z-actor.landing.knee_anchor.z).length()<.001,"right knee slid")
+       check(absf(actor.landing.knee_minimum)<.001,"right knee skin left floor")
+       var left_knee:Vector3=native.posed[native.legs[1].ids[1]].origin
+       var left_shoulder:Vector3=native.posed[native.arms[1].ids[1]].origin
+       check(left_knee.distance_to(left_shoulder)*actor.SCALE>.13,"left knee crowds upper torso/shoulder")
+       var ankle:Vector3=actor.global_transform*native.posed[native.legs[0].ids[2]].origin
+       check(ankle.z<knee.z-.25,"right shin did not trail behind knee")
       for bone in actor.landing.finger_bones:
        var parent:int=native.parents[bone]
        var actual:float=native.posed[parent].origin.distance_to(native.posed[bone].origin)

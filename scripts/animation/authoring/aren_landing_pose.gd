@@ -115,11 +115,7 @@ func prepare(actor:Node3D,ground_gap:float,impact_velocity:float) -> void:
  var required:=0.0
  for side in 2:
   var leg:Dictionary=native.legs[side]
-  var goal:Transform3D=native.frame*rest.feet[side]
-  goal.origin.z+=(p.stagger if side==0 else -p.stagger)/SCALE
-  if side==1:
-   goal.origin.x+=.08/SCALE
-   goal.basis=Basis(Vector3.UP,deg_to_rad(25))*goal.basis
+  var goal:Transform3D=preparation_foot(actor,rest,p,side)
   goal=native.posed[leg.ids[2]].interpolate_with(goal,weight)
   goals.append(goal)
   var hip:Vector3=native.posed[leg.ids[0]].origin
@@ -136,6 +132,14 @@ func prepare(actor:Node3D,ground_gap:float,impact_velocity:float) -> void:
   settle_sole(actor,side,goal,Plane(Vector3.UP,actor.global_position.y),weight,pole)
   correct_knee(actor,side)
  write(actor)
+
+func preparation_foot(actor:Node3D,rest:Dictionary,p:Dictionary,side:int) -> Transform3D:
+ var goal:Transform3D=actor.native.frame*rest.feet[side]
+ goal.origin.z+=(p.stagger if side==0 else -p.stagger)/SCALE
+ if side==1:
+  goal.origin.x+=.08/SCALE
+  goal.basis=Basis(Vector3.UP,deg_to_rad(25))*goal.basis
+ return goal
 
 func start(actor:Node3D,height:float,impact_velocity:float,velocity:Vector3=Vector3.ZERO,query:Callable=Callable()) -> void:
  configure(actor)
@@ -201,6 +205,17 @@ func apply(actor:Node3D,seconds:float,exit:Dictionary={}) -> void:
   var current:Dictionary=actor.capture_pose();poses.clear()
   for bone in native.parents.size():poses.append(current.poses[bone].interpolate_with(exit.poses[bone],exit_mix))
   restore(actor,poses)
+ solve_legs(actor,exit)
+ solve_free_hand(actor,load)
+ solve_hand(actor,load)
+ if not exit.is_empty() and exit_mix>0:blend_exit_arms(actor,exit,exit_mix)
+ if time>=parameters.duration:
+  if not exit.is_empty():restore(actor,exit.poses)
+  active=false
+ write(actor)
+
+func solve_legs(actor:Node3D,exit:Dictionary) -> void:
+ var native=actor.native
  foot_error=0
  var goals:Array[Transform3D]=[]
  var foot_progress:Array[float]=[]
@@ -233,13 +248,6 @@ func apply(actor:Node3D,seconds:float,exit:Dictionary={}) -> void:
   native.mesh.set_blend_shape_value(native.knee_shapes[side],.5*(1-cos(flex))*(1-smoothstep(deg_to_rad(115),deg_to_rad(145),flex)))
   settle_sole(actor,side,goal,feet_planes[side],1-Jump.smooth5(foot_progress[side]/.06),pole)
   correct_knee(actor,side)
- solve_free_hand(actor,load)
- solve_hand(actor,load)
- if not exit.is_empty() and exit_mix>0:blend_exit_arms(actor,exit,exit_mix)
- if time>=parameters.duration:
-  if not exit.is_empty():restore(actor,exit.poses)
-  active=false
- write(actor)
 
 func solve_hand(actor:Node3D,load:float) -> void:
  var native=actor.native;var arm:Dictionary=native.arms[support_side];var ids:Array=arm.ids

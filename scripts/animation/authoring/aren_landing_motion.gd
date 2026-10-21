@@ -2,7 +2,7 @@ extends RefCounted
 ## One continuous reception family. The full collapse at >=8 m is separate.
 const Jump=preload("res://scripts/animation/authoring/aren_jump_motion.gd")
 const HEIGHTS=[.55,1.5,3.0,3.5,4.0,4.8,5.5,6.0,6.8,7.5,7.9,8.0]
-const PHASES=["Contacto de pies","Absorción","Apoyo de palma","Elevación","Retirar mano","Equilibrio"]
+const PHASES=["Contacto de pies","Absorción","Rodilla y palma","Retirar mano","Elevar pelvis y rodilla","Equilibrio"]
 static func accepts(height:float) -> bool:return height>=3.0-.001 and height<8.0-.001
 static func profile(velocity_y:float) -> Dictionary:
  var speed:=absf(velocity_y)
@@ -17,12 +17,11 @@ static func carry(time:float,p:Dictionary) -> float:
  var u:=clampf(time/p.brake,0,1)
  return p.brake*(u-2.5*pow(u,4)+3*pow(u,5)-pow(u,6))
 static func phase_time(index:int,p:Dictionary) -> float:
- return [0.0,p.absorb*.85,(p.absorb+p.hold)*.5,p.hold+.12,p.release+.16,p.duration-.12][index]
+ return [0.0,p.absorb*.85,(p.absorb+p.release)*.5,(p.release+p.release_end)*.5,p.release_end+(p.rise_end-p.release_end)*.4,p.duration-.12][index]
 
 static func phase_index(time:float,p:Dictionary) -> int:
  if time<=.001:return 0
  if time<p.absorb:return 1
- if time<p.hold:return 2
- if time<p.release:return 3
- if time<p.release_end:return 4
- return 3 if time<p.rise_end else 5
+ if time<p.release:return 2
+ if time<p.release_end:return 3
+ return 4 if time<p.rise_end else 5

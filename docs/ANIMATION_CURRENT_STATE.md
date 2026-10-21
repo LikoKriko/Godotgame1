@@ -3,7 +3,7 @@
 **Fase 1: locomoción (paso 5) y salto voluntario (paso 6) aprobados visualmente.**
 Salto aprobado por el usuario en `343af25` (`Refine Aren jump timing and add continuous review transitions`).
 Paso 7: caída automática conectada a la escena jugable provisional.
-Paso 8: recepción profunda con palma en revisión visual; activación jugable pendiente.
+Paso 8: recepción con rodilla derecha y palma en revisión visual, exclusivamente en el visor.
 Rama exclusiva: `test/animation-system-v1`. Commit de cierre funcional de locomoción: `651b81a97a0dfe652d3f6af09b38bd2c90e330a9`
 (`Cache rig branches for identical Aren pose transforms`). El cierre posterior
 es únicamente documental. No integrar en `main` sin autorización expresa.
@@ -252,12 +252,12 @@ conservando la referencia del borde durante los contactos redondeados de la cáp
 
 ### Paso 8: recepción profunda con apoyo de palma
 
-`aren_authoring_review.tscn` abre **Paso 8: recepción con palma (revisión)**.
+`aren_authoring_review.tscn` abre **Paso 8: recepción con rodilla y palma**.
 El selector ofrece 0,55/1,50/3/3,5/4/4,8/5,5/6/6,8/7,5/7,9/8 m. Conserva
 entradas desde reposo, caminata y carrera, cadenas, tres estados, cuatro ángulos,
 pausa, velocidad, reinicio y búsqueda temporal. Para la nueva recepción, los
-botones aíslan contacto de pies, absorción, apoyo de palma, elevación, retirada
-de mano y equilibrio. **Detalle** aproxima y baja la cámara durante la recepción.
+botones aíslan contacto de pies, absorción, apoyo de rodilla y palma, retirada
+de mano, elevación de pelvis y rodilla, y equilibrio. **Detalle** aproxima y baja la cámara durante la recepción.
 Las fuentes anteriores siguen seleccionables para comparar salto y caída.
 
 `aren_landing_actor.gd` extiende el actor de caída; `aren_landing_motion.gd`
@@ -269,26 +269,36 @@ desplome pendiente, sin crear la caída completa al suelo.
 
 Entre 3 y menos de 8 m la intensidad depende de la velocidad vertical del
 impacto, interpolada suavemente entre las referencias balísticas de 3 y 8 m.
-El contacto de pies conserva el instante físico/balístico original. La absorción
-dura 0,29–0,36 s; la recuperación completa ocupa 1,8 s hasta 4 m y aumenta
-continuamente hasta aproximadamente 2,5 s al acercarse a 8 m. La pelvis
-acompaña la flexión profunda, una pierna queda adelantada y la columna reparte
-la inclinación hacia la mano de apoyo. La mano libre equilibra lateralmente;
-cuello y cabeza mantienen una mirada hacia delante y abajo.
+El contacto inicial de pies conserva el instante balístico original. La absorción
+dura 0,34–0,40 s; la recuperación completa ocupa 1,8 s hasta 4 m y aumenta
+continuamente hasta aproximadamente 2,5 s al acercarse a 8 m.
 
-Los pies permanecen anclados durante la absorción y el apoyo. La palma se
-orienta al plano de soporte y permanece fijada en mundo mientras soporta peso;
-el contacto se corrige con vértices de piel de la palma y eminencia tenar,
-respetando escalas nativas de mano y longitudes de dedos. El codo cambia con el
-descenso/elevación del torso y la geometría del apoyo; no fija un ángulo constante.
-La retirada de mano precede al final de la extensión corporal. Dos pasos cortos
-con arco recuperan la separación normal de pies antes de devolver la pose al
-evaluador aprobado, evitando arrastrarlos sobre el suelo.
+El actor del visor utiliza `aren_kneeling_landing_pose.gd`, que extiende el solver
+existente sin cambiar su ruta jugable. Durante el descenso coloca el pie
+izquierdo adelantado. Al absorber el impacto, la pelvis baja y se desplaza entre
+los apoyos, el pie derecho pivota y la tibia se coloca hacia atrás hasta apoyar
+la rodilla derecha. El pie izquierdo permanece fijado y soporta peso. El muslo
+derecho conserva su longitud alrededor de la rodilla anclada; el alcance de
+ambas piernas y la flexión de rodilla se limitan antes de resolver el IK.
+La posición de contacto corresponde a la piel de la rodilla, no al centro del
+hueso. El pie posterior conserva separación del suelo durante sus giros.
 
-La conexión está preparada en `aren_air_motion.gd` mediante
+La palma permanece orientada y anclada al suelo mientras soporta peso; el
+contacto utiliza piel de palma y eminencia tenar, respetando las proporciones
+nativas de mano y dedos. El codo responde a la absorción y al traslado gradual
+del peso durante la estabilización. La mano libre equilibra fuera del muslo
+izquierdo; la columna distribuye su curvatura y la cabeza acompaña la carga.
+La mano se retira antes de elevar pelvis y rodilla. El pie derecho se recupera
+con un arco bajo, después el izquierdo vuelve a la separación normal mediante
+un paso corto, y el evaluador devuelve la postura erguida y la locomoción.
+
+La conexión previa de recepción profunda está preparada en `aren_air_motion.gd` mediante
 `deep_landing_enabled`, **desactivado por defecto hasta aprobación visual**.
 Al activarlo utiliza velocidad de impacto y consultas reales de superficie para
 palma y pies, conserva el instante de contacto, frena progresivamente el avance
 durante la absorción y devuelve el control durante el equilibrio. Mantiene el
 rumbo durante el apoyo y encola cambios de estado hasta terminar. El salto
-voluntario aprobado y la detección de caída conservan su ruta existente.
+voluntario aprobado y la detección de caída conservan su ruta existente. Esta
+conexión sigue utilizando el solver anterior: la postura con apoyo de rodilla
+se carga exclusivamente desde el visor y espera aprobación visual antes de
+integrarse en la escena jugable.

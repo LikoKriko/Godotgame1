@@ -1,7 +1,7 @@
 extends "res://scripts/animation/authoring/aren_fall_actor.gd"
 ## Step 8 review. The previous fall actor remains selectable and unchanged.
 const Landing=preload("res://scripts/animation/authoring/aren_landing_motion.gd")
-const LandingPose=preload("res://scripts/animation/authoring/aren_landing_pose.gd")
+const LandingPose=preload("res://scripts/animation/authoring/aren_kneeling_landing_pose.gd")
 var landing=LandingPose.new()
 var landing_contact:=Vector3.ZERO
 var landing_velocity:=Vector3.ZERO
@@ -44,4 +44,4 @@ func step_preview(dt:float) -> void:
   preview_stage="settle";stage_time=0
  if dt-step>.0000001:step_preview(dt-step)
 
-func landing_profile() -> Dictionary:return Landing.profile(-sqrt(2*Jump.GRAVITY*drop_height))
+func landing_profile() -> Dictionary:return landing.review_profile(-sqrt(2*Jump.GRAVITY*drop_height))

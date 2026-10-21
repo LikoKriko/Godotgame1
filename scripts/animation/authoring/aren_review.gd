@@ -25,7 +25,7 @@ var sources:Array=[
  {"label":"Carrera: pies coordinados","path":ROOT+"aren_run_balanced_v1/aren.tscn"},
  {"label":"Paso 6: salto voluntario (aprobado)","path":"res://scenes/prototype_3d/aren_jump_review_actor.tscn"},
  {"label":"Paso 7: caída automática (revisión)","path":"res://scenes/prototype_3d/aren_fall_review_actor.tscn"},
- {"label":"Paso 8: recepción con palma (revisión)","path":"res://scenes/prototype_3d/aren_landing_review_actor.tscn"}
+ {"label":"Paso 8: recepción con rodilla y palma","path":"res://scenes/prototype_3d/aren_landing_review_actor.tscn"}
 ]
 var MOTIONS:Array=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]+Jump.RECIPES+Fall.RECIPES
 const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
@@ -372,6 +372,7 @@ func refresh_jump_view() -> void:
  if actor.preview_done:phase_label+=" · revisión terminada"
  jump_label.text=("%s · vy %.2f m/s · descenso %.2f m" if fall_review() else "%s · vy %.2f m/s · altura %.2f m")%[phase_label,state.vertical_velocity,state.height]
  if landing_review() and actor.preview_stage=="landing":jump_label.text+=" · codo %.1f° · palma %s"%[actor.landing.elbow_degrees,"apoyada" if actor.landing.palm_planted else "libre"]
+ if landing_review() and actor.preview_stage=="landing":jump_label.text+=" · rodilla "+("apoyada" if actor.landing.knee_planted else "libre")
  if not actor.queued_preview.is_empty():jump_label.text+=" · siguiente: "+(Jump.LABELS[Jump.RECIPES.find(actor.queued_preview)] if actor.queued_preview in Jump.RECIPES else actor.queued_preview)
  jump_scrub.set_block_signals(true)
  if fall_review() and Fall.collapse_pending(actor.drop_height):jump_label.text+=" · desplome al suelo pendiente"
