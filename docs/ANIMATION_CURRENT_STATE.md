@@ -1,8 +1,9 @@
 # Aren: estado actual del sistema de animaciones
 
-**Fase 1, paso 5: revisión y optimización de locomoción completadas y aprobadas.**
-Rama exclusiva: `test/animation-system-v1`. Último commit funcional publicado
-al cierre: `651b81a97a0dfe652d3f6af09b38bd2c90e330a9`
+**Fase 1: locomoción (paso 5) y salto voluntario (paso 6) aprobados visualmente.**
+Salto aprobado por el usuario en `343af25` (`Refine Aren jump timing and add continuous review transitions`).
+Paso 7: caída automática en revisión de autoría, pendiente de aprobación visual.
+Rama exclusiva: `test/animation-system-v1`. Commit de cierre funcional de locomoción: `651b81a97a0dfe652d3f6af09b38bd2c90e330a9`
 (`Cache rig branches for identical Aren pose transforms`). El cierre posterior
 es únicamente documental. No integrar en `main` sin autorización expresa.
 
@@ -108,15 +109,13 @@ Leer los `AGENTS.md` aplicables antes de editar; reutilizar los sistemas existen
   `aren_walk_torso_v2`; no corresponden a fallos de poses o contactos.
   Conservar los hashes históricos y los clips aprobados; no regenerarlos para
   silenciar esa comprobación. Las demás regresiones del cierre pasan.
-- **Siguiente objetivo: Fase 1, paso 6, crear la animación de salto voluntario
-  de Aren**, con impulso, ascenso, fase aérea y descenso, reutilizando rig,
-  herramientas y visor existentes. Caída, aterrizajes y sus transiciones se
-  desarrollarán posteriormente. Presentar primero en el visor y validar en la
-  escena jugable tras la aprobación visual; conservar el aislamiento de `main`.
+- **Objetivo actual: Fase 1, paso 7, caída automática de Aren**, presentada
+  primero en el visor. Validar en la escena jugable con desniveles reales tras
+  la aprobación visual. Los aterrizajes definitivos corresponden al paso 8.
 
-### Paso 6: salto voluntario en revisión visual
+### Paso 6: salto voluntario aprobado
 
-El visor `aren_authoring_review.tscn` abre **Paso 6: salto voluntario (revisión)**.
+El visor conserva **Paso 6: salto voluntario (aprobado)**, versión `343af25`.
 `idle`/`walk`/`run` muestran un salto completo desde esa locomoción, con entrada
 terrestre y recuperación provisional. Conserva los tres estados. El segundo
 selector incluye **Reposo → Salto**, **Caminata → Salto**, **Carrera → Salto**,
@@ -153,7 +152,51 @@ carga; no constituye el catálogo de aterrizajes del paso 8. La pose aérea
 consume velocidad vertical y tiempo de vuelo, sin ejecutar apoyos ni sondeos
 terrestres. La previsualización todavía no usa colisiones del personaje.
 
-**Pendiente de aprobación visual.** No conectado al controlador jugable.
-Tras la aprobación: conectar a la física existente y validar continuidad,
-apoyo inicial, control aéreo y rendimiento en plano y terrenos. Los clips de
-caída accidental y los aterrizajes definitivos siguen fuera de este paso.
+**Salto aprobado visualmente.** Conservado sin cambios de poses ni bibliotecas.
+La conexión al controlador jugable y la validación conjunta con desniveles
+quedan pendientes; no se integran durante la revisión visual del paso 7.
+
+
+### Paso 7: caída automática en revisión visual
+
+`aren_authoring_review.tscn` abre **Paso 7: caída automática (revisión)**. El
+segundo selector ofrece **Reposo → Caída**, **Caminata → Caída**, **Carrera →
+Caída**, **Caída corta**, **Caída prolongada** y **Caídas encadenadas**. Conserva
+los tres estados y las cuatro vistas, pausa, velocidad, reinicio y deslizador.
+Los botones aíslan pérdida de apoyo, reacción, caída, preparación de contacto y
+recuperación provisional. Las opciones individuales se detienen al finalizar;
+la cadena alterna los tres orígenes en niveles sucesivamente inferiores, sin
+reiniciar la posición del personaje. Las actualizaciones del rango temporal no
+deben emitir la señal de búsqueda manual ni pausar la cadena.
+
+El selector de altura permite 0,55/1,5/3/8 m en las entradas y cadenas. Las
+opciones corta y prolongada fijan 0,55 y 8 m. El soporte superior es una referencia
+visual; en reposo se retira al iniciar la caída. Una guía vertical acompaña la
+inspección de altura. No son colisiones ni un nivel jugable nuevo.
+
+`aren_fall_actor.gd` extiende el actor de salto sin modificarlo. Reutiliza sus
+objetivos aéreos de descenso, el rig, el solver de longitudes fijas, los
+correctivos, la copia de poses entre vistas y la recuperación provisional.
+Congela la última pose de locomoción al perder apoyo, libera sus anclajes y
+mezcla progresivamente una reacción de equilibrio: inclinación contenida,
+brazos más abiertos y asimétricos, y piernas recogidas. La respuesta aumenta con
+la velocidad vertical real; la proximidad del suelo adapta los objetivos de pie.
+No contiene preparación ni impulso ascendente ni un ciclo de gestos repetidos.
+La muestra neutral se conserva por estado y no se realizan sondeos de terreno
+durante la pose aérea. La gravedad del visor es 9,8 m/s², compartida con el salto.
+
+`terrain/aren_fall_response.gd` es el detector reutilizable, todavía sin conectar
+al controlador. Se alimenta **después de mover el cuerpo** con contacto físico,
+velocidad vertical, distancia al suelo y apoyo de escalón validado. No acepta
+contactos del IK como prueba de suelo. Confirma la caída tras 0,10 s sin apoyo,
+8 cm de descenso y un desnivel superior a 28 cm (margen sobre los escalones
+aprobados de 26 cm). La pérdida de apoyo libera el peso terrestre durante 0,12 s;
+la recuperación lo devuelve progresivamente. Un evento de impulso voluntario
+mantiene la clasificación de salto hasta recuperar contacto físico, incluso si
+se alcanza después una velocidad descendente. El evento representa un salto
+realmente ejecutado, no la mera pulsación de la entrada.
+
+**Pendiente de aprobación visual del paso 7.** El visor usa gravedad balística y
+una recuperación provisional; no hay integración en `aren_terrain_test.tscn`
+ni aterrizajes definitivos del paso 8. Las colisiones y desniveles de la escena
+jugable se comprobarán después de la aprobación.

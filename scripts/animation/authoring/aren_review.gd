@@ -3,8 +3,9 @@ extends Control
 const PoseMirror=preload("res://scripts/animation/authoring/aren_review_pose.gd")
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
 const Jump=preload("res://scripts/animation/authoring/aren_jump_motion.gd")
+const Fall=preload("res://scripts/animation/authoring/aren_fall_motion.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
-@export var scene_path:="res://scenes/prototype_3d/aren_jump_review_actor.tscn"
+@export var scene_path:="res://scenes/prototype_3d/aren_fall_review_actor.tscn"
 var sources:Array=[
  {"label":"Original del juego","path":""},
  {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
@@ -21,9 +22,10 @@ var sources:Array=[
  {"label":"Caminata y arranque ajustados","path":ROOT+"aren_walk_launch_v1/aren.tscn"},
  {"label":"Carrera: apertura −10 % y pie derecho","path":ROOT+"aren_run_refined_v1/aren.tscn"},
  {"label":"Carrera: pies coordinados","path":ROOT+"aren_run_balanced_v1/aren.tscn"},
- {"label":"Paso 6: salto voluntario (revisión)","path":"res://scenes/prototype_3d/aren_jump_review_actor.tscn"}
+ {"label":"Paso 6: salto voluntario (aprobado)","path":"res://scenes/prototype_3d/aren_jump_review_actor.tscn"},
+ {"label":"Paso 7: caída automática (revisión)","path":"res://scenes/prototype_3d/aren_fall_review_actor.tscn"}
 ]
-var MOTIONS:Array=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]+Jump.RECIPES
+var MOTIONS:Array=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]+Jump.RECIPES+Fall.RECIPES
 const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
 var state_selector:OptionButton
 var restart_button:Button
@@ -47,6 +49,10 @@ var grounds:Array[Node3D]=[]
 var jump_bar:HBoxContainer
 var jump_scrub:HSlider
 var jump_label:Label
+var fall_height_selector:OptionButton
+var fall_ledges:Array[MeshInstance3D]=[]
+var fall_markers:Array[MeshInstance3D]=[]
+var fall_marker_height:=-1.0
 func _ready() -> void:
  var paths:=OS.get_cmdline_user_args()
  if paths.size()==1 and paths[0].ends_with(".tscn") and ResourceLoader.exists(paths[0]):scene_path=paths[0]
@@ -57,6 +63,7 @@ func _ready() -> void:
   sources.append({"label":"Generada personalizada","path":scene_path});source_index=sources.size()-1
  if sources[source_index].path.ends_with("aren_transitions_v1/aren.tscn"):motion="transitions"
  if sources[source_index].path.ends_with("aren_jump_review_actor.tscn"):motion="idle"
+ if sources[source_index].path.ends_with("aren_fall_review_actor.tscn"):motion="idle_to_fall"
  if sources[source_index].path.ends_with("aren_run_launch_v1/aren.tscn") or sources[source_index].path.ends_with("aren_short_run_v1/aren.tscn") or sources[source_index].path.ends_with("aren_run_refined_v1/aren.tscn") or sources[source_index].path.ends_with("aren_run_balanced_v1/aren.tscn"):motion="run"
  build_views()
  pose_mirror.configure(actors)
@@ -66,7 +73,7 @@ func _ready() -> void:
  bar.add_child(source_selector);source_selector.select(source_index);source_selector.item_selected.connect(select_source)
  var clips:=OptionButton.new()
  motion_selector=clips
- for label in ["walk","run","idle","Encadenadas","Reposo → caminar","Reposo → correr","Caminar → correr","Correr → caminar","Caminar → reposo","Correr → reposo"]+Jump.LABELS:clips.add_item(label)
+ for label in ["walk","run","idle","Encadenadas","Reposo → caminar","Reposo → correr","Caminar → correr","Correr → caminar","Caminar → reposo","Correr → reposo"]+Jump.LABELS+Fall.LABELS:clips.add_item(label)
  bar.add_child(clips);clips.select(MOTIONS.find(motion));clips.item_selected.connect(select_motion)
  var angles:=Label.new();angles.text="Frente · lateral · espalda · tres cuartos";bar.add_child(angles)
  var pause:=Button.new();pause.text="Pausa";bar.add_child(pause);pause.pressed.connect(func():playing=not playing)
@@ -79,6 +86,7 @@ func _ready() -> void:
  compare_button=Button.new();compare_button.position=Vector2(235,36);add_child(compare_button);compare_button.pressed.connect(compare_posture)
  source_status=Label.new();source_status.position=Vector2(350,36);add_child(source_status)
  build_jump_controls()
+ build_fall_controls()
  refresh_options()
  if transition_motion():reset_trees()
  elif jump_review():actors[0].begin_preview(motion);playing=true;refresh_jump_view()
@@ -105,6 +113,9 @@ func build_views() -> void:
    var p:=line*.25
    for point in [Vector3(p,.002,-10),Vector3(p,.002,10),Vector3(-10,.002,p),Vector3(10,.002,p)]:lines.surface_add_vertex(point)
   lines.surface_end()
+  var ledge:=MeshInstance3D.new();ledge.mesh=BoxMesh.new();ledge.mesh.size=Vector3(3,.08,4);world.add_child(ledge);ledge.visible=false
+  var ledge_material:=StandardMaterial3D.new();ledge_material.albedo_color=Color("79837c");ledge.material_override=ledge_material;fall_ledges.append(ledge)
+  var marker:=MeshInstance3D.new();world.add_child(marker);marker.visible=false;fall_markers.append(marker)
   var actor:=create_actor(world);actors.append(actor)
   var camera:=Camera3D.new();camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.size=2.5;world.add_child(camera);camera.current=true;cameras.append(camera)
 func show_frame(clip:String,seconds:float) -> void:
@@ -169,6 +180,7 @@ func create_actor(world:Node3D) -> Node3D:
  else:actor.tree.active=false
  return actor
 func cycle_info(clip:String) -> Dictionary:
+ if fall_review():return {"duration":actors[0].preview_duration(clip),"speed_mps":actors[0].current_speed}
  if jump_review():return {"duration":Jump.preview_duration(clip),"speed_mps":actors[0].current_speed}
  if source_index!=0:
   var animation:Animation=actors[0].library.get_animation(StringName(clip))
@@ -181,7 +193,7 @@ func cycle_info(clip:String) -> Dictionary:
 func select_source(index:int) -> void:
  if index<0 or index>=sources.size():return
  var phase:float=fposmod(elapsed/cycle_info("walk" if transition_motion() else motion).duration,1.0)
- if motion in Jump.RECIPES:motion="idle";phase=0
+ if motion in Jump.RECIPES or motion in Fall.RECIPES:motion="idle";phase=0
  source_index=index;scene_path=sources[index].path
 
  for i in actors.size():
@@ -202,6 +214,10 @@ func update_source_status() -> void:
   compare_button.disabled=source_index not in [11,12,13,14]
   compare_button.text="Ver antes" if source_index==14 else "Ver después"
  if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
+ if fall_review():
+  var name:String=actors[0].segment_name
+  source_status.text="%s · %s · %.2f m"%[["Normal","Cauteloso","Cansado"][state_selector.selected],Fall.LABELS[Fall.RECIPES.find(name)] if name in Fall.RECIPES else "Caída desde "+name,actors[0].drop_height]
+  return
  if jump_review():
   source_status.text="%s · %s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],Jump.LABELS[Jump.RECIPES.find(actors[0].segment_name)] if actors[0].segment_name in Jump.RECIPES else "Salto completo desde "+motion]
   return
@@ -232,13 +248,27 @@ func transition_motion() -> bool:return motion=="transitions" or motion in CHAIN
 func refresh_options() -> void:
  if not motion_selector:return
  for index in range(4,10):motion_selector.set_item_disabled(index,not advanced() or jump_review())
- for index in range(10,MOTIONS.size()):motion_selector.set_item_disabled(index,not jump_review())
+ for index in range(10,17):motion_selector.set_item_disabled(index,not jump_review() or fall_review())
+ for index in range(17,MOTIONS.size()):motion_selector.set_item_disabled(index,not fall_review())
  motion_selector.set_item_disabled(3,source_index==0 or jump_review())
  if jump_review() and transition_motion():motion="idle"
- if not jump_review() and motion in Jump.RECIPES:motion="idle"
+ if (not jump_review() or fall_review()) and motion in Jump.RECIPES:motion="idle"
+ if not fall_review() and motion in Fall.RECIPES:motion="idle"
  if jump_bar:jump_bar.visible=jump_review()
  if jump_label:jump_label.visible=jump_review()
  if compare_button:compare_button.visible=not jump_review()
+ if fall_height_selector:fall_height_selector.visible=fall_review()
+ if source_status:source_status.position.x=400 if fall_review() else 350
+ for marker in fall_markers:marker.visible=fall_review()
+ for ledge in fall_ledges:ledge.visible=fall_review()
+ if not fall_review():
+  for ground in grounds:ground.position.y=0
+ if jump_bar:
+  jump_bar.get_child(0).text="Caída completa" if fall_review() else "Salto completo"
+  for i in 6:
+   var button:Button=jump_bar.get_child(i+1)
+   button.visible=not fall_review() or i<Fall.PHASES.size()
+   button.text=Fall.PHASES[i] if fall_review() and i<Fall.PHASES.size() else ("Recuperación" if i==5 else Jump.PHASES[i])
  if (motion in CHAIN and not advanced()) or (motion=="transitions" and source_index==0):motion="walk"
  motion_selector.select(MOTIONS.find(motion))
  if state_selector:state_selector.disabled=not advanced()
@@ -316,22 +346,70 @@ func refresh_jump_view() -> void:
  var actor=actors[0]
  var state:Dictionary=actor.jump_state
  if state.is_empty():return
- var phase_label:String=Jump.PHASES[state.phase] if actor.preview_stage!="lead" else "Locomoción de entrada"
+ var labels:Array=Fall.PHASES if fall_review() else Jump.PHASES
+ var phase_label:String=labels[state.phase] if actor.preview_stage!="lead" else "Locomoción de entrada"
  if actor.preview_done:phase_label+=" · revisión terminada"
- jump_label.text="%s · vy %.2f m/s · altura %.2f m"%[phase_label,state.vertical_velocity,state.height]
+ jump_label.text=("%s · vy %.2f m/s · descenso %.2f m" if fall_review() else "%s · vy %.2f m/s · altura %.2f m")%[phase_label,state.vertical_velocity,state.height]
  if not actor.queued_preview.is_empty():jump_label.text+=" · siguiente: "+(Jump.LABELS[Jump.RECIPES.find(actor.queued_preview)] if actor.queued_preview in Jump.RECIPES else actor.queued_preview)
- jump_scrub.max_value=maxf(Jump.preview_duration(motion),actor.preview_clock)
+ jump_scrub.set_block_signals(true)
+ jump_scrub.max_value=maxf(actor.preview_duration(motion) if fall_review() else Jump.preview_duration(motion),actor.preview_clock)
  jump_scrub.set_value_no_signal(actor.preview_clock)
+ jump_scrub.set_block_signals(false)
+ if fall_review():
+  jump_label.text+=" · vh %.2f m/s · IK apoyo %.0f %%"%[actor.jump_speed if actor.preview_stage=="fall" else actor.current_speed,100*actor.fall_response.support_weight]
+  update_fall_markers()
+  for i in grounds.size():
+   grounds[i].position.y=actor.floor_y
+   fall_ledges[i].position=Vector3(0,actor.ledge_y-.04,actor.ledge_z-2-.22)
+   fall_ledges[i].visible=actor.jump_origin!="idle" or actor.preview_stage=="lead"
+  fall_height_selector.disabled=motion in ["fall_short","fall_long"]
+  fall_height_selector.select(Fall.HEIGHTS.find(actor.drop_height))
  update_source_status()
 func show_jump_phase(index:int) -> void:
  playing=false
+ if fall_review():
+  actors[0].begin_preview(motion)
+  elapsed=Fall.phase_time(index,actors[0].drop_height)
+  show_frame(motion,elapsed)
+  return
  var gait:=jump_gait()
  motion=gait;motion_selector.select(MOTIONS.find(gait))
  elapsed=Jump.LEAD_IN+Jump.phase_time(index)
  actors[0].begin_preview(gait);show_frame(gait,elapsed)
 
 func jump_gait() -> String:
+ if fall_review():return Fall.gait_for(motion)
  if motion in ["idle","walk","run"]:return motion
  if motion.ends_with("_to_jump"):return motion.trim_suffix("_to_jump")
  if motion.begins_with("jump_to_"):return motion.trim_prefix("jump_to_")
  return actors[0].jump_origin
+
+func fall_review() -> bool:
+ return not actors.is_empty() and actors[0].has_method("apply_fall_pose")
+func build_fall_controls() -> void:
+ fall_height_selector=OptionButton.new();fall_height_selector.position=Vector2(235,36)
+ for height in Fall.HEIGHTS:fall_height_selector.add_item("Altura: %.2f m"%height)
+ add_child(fall_height_selector);fall_height_selector.select(1)
+ fall_height_selector.item_selected.connect(func(index:int):
+  if not fall_review():return
+  actors[0].review_height=Fall.HEIGHTS[index]
+  actors[0].begin_preview(motion);elapsed=0;playing=true;refresh_jump_view())
+
+func update_fall_markers() -> void:
+ var actor=actors[0]
+ if not is_equal_approx(fall_marker_height,actor.drop_height):
+  fall_marker_height=actor.drop_height
+  var mesh:=ImmediateMesh.new();var material:=StandardMaterial3D.new()
+  material.shading_mode=BaseMaterial3D.SHADING_MODE_UNSHADED;material.albedo_color=Color("859298")
+  mesh.surface_begin(Mesh.PRIMITIVE_LINES,material)
+  mesh.surface_add_vertex(Vector3.ZERO);mesh.surface_add_vertex(Vector3.DOWN*fall_marker_height)
+  var increment:float=.5 if fall_marker_height>3 else .25
+  for index in range(ceili(fall_marker_height/increment)+1):
+   var y:float=-minf(index*increment,fall_marker_height)
+   mesh.surface_add_vertex(Vector3(-.06,y,0));mesh.surface_add_vertex(Vector3(.06,y,0))
+  mesh.surface_end()
+  for marker in fall_markers:marker.mesh=mesh
+ for index in fall_markers.size():
+  var angle:float=[0.0,PI/2,PI,PI/4][index]
+  fall_markers[index].rotation.y=angle
+  fall_markers[index].position=Vector3(cos(angle)*1.25,actor.ledge_y,actor.position.z-sin(angle)*1.25)
