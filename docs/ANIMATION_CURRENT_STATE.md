@@ -43,6 +43,16 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
   26 cm; `aren_terrain_actor.gd` resuelve contactos, pelvis e IK;
   `terrain_foot_support.gd` comprueba la suela; `terrain_cycle_sampler.gd`
   reutiliza muestras idénticas; `terrain_test_patch.gd` construye los terrenos.
+  Los parches conservan un índice de sus triángulos de colisión para consultar
+  la suela sin lanzar un rayo por vértice. Se comprueba primero el volumen del
+  pie contra la física: esta vía solo se usa sobre un único parche estático,
+  sin rotación, que cubra el pie completo. Examina todos los vértices de piel
+  articulados mediante datos compactos precalculados; mantiene normales, margen
+  de suela y validación de superficies transitables. Si coinciden cajas, consulta
+  sus volúmenes y transformaciones completos, eligiendo la primera superficie
+  de cada rayo antes de validar el apoyo. La anticipación de bordes reutiliza
+  los vértices compactos sin reconstruir una rejilla de piel. Huecos, mezclas
+  de geometrías y consultas truncadas conservan el barrido detallado existente.
 - `aren_motion_driver.gd` comparte el movimiento entre el visor de giros y la
   escena provisional. `aren_turn_response.gd` adapta `movement_response.gd`
   sin cambiar el controlador global. Conserva sus envolventes de arranque,
@@ -59,8 +69,11 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
   tarda como máximo 0,10 s y la recuperación 0,18 s, multiplicadas por el factor
   temporal del estado; nunca impone una parada ni una pausa de giro.
   La inclinación acompaña velocidad y velocidad angular con resorte continuo,
-  limitada a 6° en marcha y 12° en carrera, atenuada por el estado. Se aplica
-  antes de resolver contactos, conservando los anclajes y las longitudes de IK.
+  limitada a 2,5° en marcha y 4° en carrera, atenuada por el estado y el ángulo
+  pendiente del giro. La pelvis recibe el 25 %; la columna añade 25/30/20 %
+  y los hombros acompañan su orientación acumulada. Se aplica antes de resolver
+  contactos, conservando los anclajes y las longitudes de IK, sin cambiar el
+  control de giro ni el movimiento relativo a cámara.
   Los pies en transferencia se orientan al desplazamiento real, con un máximo
   de 35° respecto al cuerpo. Los clips, rig y solver permanecen intactos.
 - Orden de evaluación: movimiento y colisiones → desplazamiento real → fase y
@@ -96,5 +109,6 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
   el rendimiento de una GPU física.
 - **Paso 3 en revisión visual:** corrección de giros y orientación de los pies
   preparada en el visor, con respuesta ágil y conservación de velocidad en giros.
-  Pendiente de aprobación visual del usuario antes de
-  comprobar la escena jugable provisional; sin aprobación final de integración.
+  Las correcciones de rendimiento sobre terreno irregular e inclinación lateral
+  se aplican también a la escena jugable provisional. Sin aprobación final de
+  integración; conservar el aislamiento respecto a `main`.

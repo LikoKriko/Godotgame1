@@ -47,4 +47,29 @@ static func build(zone_name:String,size:Vector2,forest:bool) -> StaticBody3D:
  var visual:=MeshInstance3D.new();visual.mesh=mesh;visual.material_override=material
  var collision:=CollisionShape3D.new();collision.shape=mesh.create_trimesh_shape()
  var solid:=StaticBody3D.new();solid.name=zone_name;solid.add_child(visual);solid.add_child(collision)
+ # Store the exact collision triangles, not the smooth generating function.
+ # Static, axis-aligned patches can answer vertical sole samples without
+ # repeating a physics-server ray for every skinned vertex.
+ var planes:Array[Plane]=[]
+ var present:=PackedByteArray()
+ for row in rows:
+  for column in columns:
+   var a:int=row*(columns+1)+column
+   var b:=a+1;var c:=a+columns+1;var d:=c+1
+   planes.append(Plane(vertices[a],vertices[b],vertices[c]))
+   planes.append(Plane(vertices[b],vertices[d],vertices[c]))
+   present.append(1 if vertices[a].y>0 or vertices[b].y>0 or vertices[c].y>0 else 0)
+   present.append(1 if vertices[b].y>0 or vertices[d].y>0 or vertices[c].y>0 else 0)
+ solid.set_meta(&"sole_height_grid",{"size":size,"columns":columns,"rows":rows,"planes":planes,"present":present})
  return solid
+
+static func sample_grid(grid:Dictionary,point:Vector3) -> Vector4:
+ var x:float=(point.x+grid.size.x*.5)/CELL
+ var z:float=(point.z+grid.size.y*.5)/CELL
+ var column:=floori(x);var row:=floori(z)
+ if column<0 or row<0 or column>=grid.columns or row>=grid.rows:return Vector4.ZERO
+ var index:int=(row*grid.columns+column)*2+(1 if x-column+z-row>1 else 0)
+ if grid.present[index]==0:return Vector4.ZERO
+ var plane:Plane=grid.planes[index]
+ var normal:=plane.normal
+ return Vector4(normal.x,normal.y,normal.z,(plane.d-normal.x*point.x-normal.z*point.z)/normal.y)

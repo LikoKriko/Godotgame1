@@ -227,10 +227,8 @@ func anticipate_edge(side:int,frame:Transform3D) -> float:
  if top.is_empty():return 0.0
  # Exact posed skin, not the conservative broad phase, defines the leading
  # edge and its clearance. This work is only needed beside a valid step face.
- var gap:=INF;var low:=INF
- for point in foot_support.skinned_points(native,side):
-  var world:Vector3=frame*point
-  gap=minf(gap,wall.normal.dot(world-wall.position));low=minf(low,world.y)
+ var envelope:=foot_support.edge_minima(native,side,frame,wall.normal,wall.position)
+ var gap:=envelope.x;var low:=envelope.y
  var approach:float=maxf(.01,-wall.normal.dot(direction))
  var distance:float=gap/approach
  if distance>reach:return 0.0
@@ -285,7 +283,10 @@ func solve_contacts() -> void:
   super.solve_contacts();return
  if turn_correction and absf(turn_bank)>.000001:
   var hip:int=native.binding.bone(&"root")
-  Torso.rotate_branch(native,hip,Basis(Vector3.BACK,turn_bank)*native.posed[hip].basis,native.posed[hip].origin)
+  Torso.rotate_branch(native,hip,Basis(Vector3.BACK,turn_bank*.25)*native.posed[hip].basis,native.posed[hip].origin)
+  for index in native.spine.size():
+   var bone:int=native.spine[index]
+   Torso.rotate_branch(native,bone,Basis(Vector3.BACK,turn_bank*[.25,.30,.20][index])*native.posed[bone].basis,native.posed[bone].origin)
  if style_blend<1 and style_pose.size()==native.posed.size():
   var current_pose:Array[Transform3D]=native.posed.duplicate()
   for i in native.posed.size():
@@ -461,13 +462,17 @@ func solve_contacts() -> void:
   for iteration in (2 if skin_time_left<.000001 else 0):
    if not foot_support.may_penetrate(native,side,frame,body.get_world_3d().direct_space_state):break
    var lift:=0.0
-   if foot_support.plane_valid:
-    lift=foot_support.plane_lift(native,side,frame)
-   else:
-    for point in foot_support.skinned_points(native,side):
-     var skin_world:Vector3=frame*point
-     var skin_hit:=probe(skin_world)
-     if not skin_hit.is_empty():lift=maxf(lift,skin_hit.position.y+.003-skin_world.y)
+   if foot_support.grid_valid:lift=foot_support.grid_lift(native,side,frame)
+   elif foot_support.boxes_valid:lift=foot_support.boxes_lift(native,side,frame)
+   if (not foot_support.grid_valid and not foot_support.boxes_valid) or lift<0:
+    if foot_support.plane_valid:
+     lift=foot_support.plane_lift(native,side,frame)
+    else:
+     lift=0.0
+     for point in foot_support.skinned_points(native,side):
+      var skin_world:Vector3=frame*point
+      var skin_hit:=probe(skin_world)
+      if not skin_hit.is_empty():lift=maxf(lift,skin_hit.position.y+.003-skin_world.y)
    if lift<.0001:break
    var hip:Vector3=native.posed[ids[0]].origin
    var horizontal:float=Vector2(goals[side].origin.x-hip.x,goals[side].origin.z-hip.z).length_squared()

@@ -27,6 +27,7 @@ func run() -> void:
      await physics_frame
      var heading:float=actor.rotation.y
      review.advance_review(1.0/30)
+     check(absf(actor.turn_bank)<=deg_to_rad(4)+.0001,"Lateral bank exceeded its balanced range")
      pose_cost+=Vector2(review.drivers[0].pose_ms,review.drivers[1].pose_ms);sampled_frames+=1
      check(is_finite(actor.measured_speed) and actor.measured_speed<actor.speed_for("run")*1.15,"Physical speed exceeded approved envelope")
      check(absf(wrapf(actor.rotation.y-heading,-PI,PI))<=deg_to_rad(360)/30+.0001,"Body rotated too far in one tick")

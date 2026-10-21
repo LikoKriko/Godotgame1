@@ -31,6 +31,7 @@ func advance(body:CharacterBody3D,actor:Node3D,input:Vector2,running:bool,yaw:fl
     var twist:float=wrapf(response.heading-atan2(planted_heading.x,planted_heading.z),-PI,PI)*turn_sign
     var available:float=clampf((deg_to_rad(50)-twist)/deg_to_rad(25),.1,1.0)
     response.support_factor=minf(response.support_factor,available)
+ var turn_angle:float=absf(wrapf(atan2(direction.x,direction.z)-actor.rotation.y,-PI,PI)) if not input.is_zero_approx() else 0.0
  var velocity_input:Vector2=response.advance(Vector2(direction.x,direction.z),running,0,dt)
  if walk_speed==0:walk_speed=actor.speed_for("walk");run_speed=actor.speed_for("run")
  walk_speed=lerpf(walk_speed,actor.speed_for("walk"),1-exp(-dt*8))
@@ -64,8 +65,9 @@ func advance(body:CharacterBody3D,actor:Node3D,input:Vector2,running:bool,yaw:fl
  actor.turn_rate=wrapf(actor.rotation.y-old_heading,-PI,PI)/maxf(dt,.00001) if corrected else 0.0
  actor.turn_correction=corrected
  var actual_speed:=Vector2(displacement.x,displacement.z).length()/maxf(dt,.00001)
- var bank_limit:float=deg_to_rad(lerpf(6,12,response.sprint_weight))/maxf(float(actor.profile.styles[actor.style].timing),1)
- actor.turn_bank_target=clampf(-atan2(actual_speed*actor.turn_rate,9.81)*.3,-bank_limit,bank_limit) if corrected else 0.0
+ var bank_limit:float=deg_to_rad(lerpf(2.5,4,response.sprint_weight))/maxf(float(actor.profile.styles[actor.style].timing),1)
+ var turn_load:=lerpf(.35,1,smoothstep(0,PI*.5,turn_angle))
+ actor.turn_bank_target=clampf(-atan2(actual_speed*actor.turn_rate,9.81)*.09*turn_load,-bank_limit,bank_limit) if corrected else 0.0
  var start:=Time.get_ticks_usec()
  actor.evaluate_motion(dt,displacement/dt,body.is_on_floor())
  pose_ms=(Time.get_ticks_usec()-start)/1000.0
