@@ -47,8 +47,11 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
   la suela sin lanzar un rayo por vértice. Se comprueba primero el volumen del
   pie contra la física: esta vía solo se usa sobre un único parche estático,
   sin rotación, que cubra el pie completo. Examina todos los vértices de piel
-  articulados mediante datos compactos precalculados; mantiene normales, margen
-  de suela y validación de superficies transitables. Si coinciden cajas, consulta
+  articulados mediante datos compactos precalculados. Mezcla los pesos de piel
+  en espacio del modelo y aplica después la transformación del personaje una
+  sola vez, conservando la coincidencia con la malla incluso en bordes de escalón;
+  mantiene normales, margen de suela y validación de superficies transitables.
+  Si coinciden cajas, consulta
   sus volúmenes y transformaciones completos, eligiendo la primera superficie
   de cada rayo antes de validar el apoyo. La anticipación de bordes reutiliza
   los vértices compactos sin reconstruir una rejilla de piel. Huecos, mezclas

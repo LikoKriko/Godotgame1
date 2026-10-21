@@ -150,8 +150,7 @@ func cache_boxes(hits:Array[Dictionary]) -> void:
  boxes_valid=not box_frames.is_empty()
 
 func world_skin_points(native:RefCounted,side:int,frame:Transform3D) -> PackedVector3Array:
- var poses:Array[Transform3D]=[];poses.resize(native.parents.size())
- for bone in bone_bounds[side]:poses[bone]=frame*native.posed[bone]
+ var poses:Array[Transform3D]=native.posed
  var points:PackedVector3Array=packed_points[side]
  var bones:PackedInt32Array=packed_bones[side]
  var weights:PackedFloat32Array=packed_weights[side]
@@ -162,7 +161,11 @@ func world_skin_points(native:RefCounted,side:int,frame:Transform3D) -> PackedVe
   for index in range(offsets[vertex],offsets[vertex+1]):
    var pose:Transform3D=poses[bones[index]]
    point+=pose.basis*points[index]+pose.origin*weights[index]
-  result[vertex]=point
+  # Skin weights from the approved mesh are quantized, not exactly unit-sum.
+  # Blend in model space, then apply the actor transform once, as the mesh
+  # and detailed probes do. Distributing frame.origin over the influences
+  # moves vertices across step edges when the actor translates or rotates.
+  result[vertex]=frame*point
  return result
 
 func boxes_lift(native:RefCounted,side:int,frame:Transform3D) -> float:
