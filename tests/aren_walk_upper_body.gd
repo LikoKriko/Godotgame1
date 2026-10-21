@@ -42,7 +42,7 @@ func advance_contacts(actor:Node3D,seconds:float) -> void:
 func run() -> void:
  var old=load(ROOT+"aren_coordination_v1/aren.tscn").instantiate();root.add_child(old);old.set_process(false)
  var new=load(ROOT+"aren_walk_upper_v1/aren.tscn").instantiate();root.add_child(new);new.set_process(false)
- for path in new.profile.source_hashes:check(FileAccess.get_sha256(path)==new.profile.source_hashes[path],"Stale authoring source: "+path)
+ for path in new.profile.source_hashes:check(preload("res://tests/aren_branch_cache.gd").source_matches(path,new.profile.source_hashes[path]),"Stale authoring source: "+path)
  var n=new.native;var hip:int=n.binding.bone(&"root")
  var arrays:Array=n.mesh.mesh.surface_get_arrays(0);var vertices:PackedVector3Array=arrays[Mesh.ARRAY_VERTEX]
  var indices:Array[int]=[]

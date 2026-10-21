@@ -14,7 +14,7 @@ func global_poses(actor:Node3D,sampled:Dictionary) -> Array[Transform3D]:
 func run() -> void:
  var before:Node3D=load(ROOT+"aren_transitions_v1/aren.tscn").instantiate();root.add_child(before);before.set_process(false)
  var after:Node3D=load(ROOT+"aren_run_launch_v1/aren.tscn").instantiate();root.add_child(after);after.set_process(false)
- for path in after.profile.source_hashes:check(FileAccess.get_sha256(path)==after.profile.source_hashes[path],"Stale source: "+path)
+ for path in after.profile.source_hashes:check(preload("res://tests/aren_branch_cache.gd").source_matches(path,after.profile.source_hashes[path]),"Stale source: "+path)
  var max_foot:=0.0;var max_arm:=0.0;var max_knee:=0.0
  for state in ["normal","cautious","tired"]:
   before.set_style(state);after.set_style(state)

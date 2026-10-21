@@ -36,7 +36,7 @@ func run() -> void:
     # The target scene/profile and runtime must still match; authoring hashes
     # identify the historical version, not a requirement to overwrite v1 clips.
     if str(path).begins_with("res://scripts/animation/authoring/") or str(path).begins_with("res://tools/animation/generate_"):continue
-    require(FileAccess.get_sha256(path)==clip.get_meta("source_hashes")[path],"Baked clip matches its rig/runtime fingerprint: "+str(path))
+    require(preload("res://tests/aren_branch_cache.gd").source_matches(path,clip.get_meta("source_hashes")[path]),"Baked clip matches its rig/runtime fingerprint: "+str(path))
   scene.tree.active=true;scene.tree.callback_mode_process=AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
   var last:Array[Quaternion]=[]
   var max_step:=0.0

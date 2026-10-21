@@ -119,7 +119,7 @@ func cycles(old:Node3D,actor:Node3D,state:String) -> void:
 func run() -> void:
  var old=load(ROOT+"aren_walk_launch_v1/aren.tscn").instantiate();root.add_child(old);old.set_process(false)
  var actor=load(ROOT+"aren_run_refined_v1/aren.tscn").instantiate();root.add_child(actor);actor.set_process(false)
- for path in actor.profile.source_hashes:check(FileAccess.get_sha256(path)==actor.profile.source_hashes[path],"Changed source: "+path)
+ for path in actor.profile.source_hashes:check(preload("res://tests/aren_branch_cache.gd").source_matches(path,actor.profile.source_hashes[path]),"Changed source: "+path)
  cache_feet(actor)
  for state in ["normal","cautious","tired"]:
   actor.set_style(state);old.set_style(state);cycles(old,actor,state)

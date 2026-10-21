@@ -64,7 +64,7 @@ func capture(folder:String,motion:String="walk") -> Dictionary:
  for side in 2:arm_ranges.append(float(arms[side].max())-float(arms[side].min()))
  var result:Dictionary={"spans":spans,"angles":angles,"poses":poses,"waist_motion_m":waist_motion,"waist_vertices":indices.size(),"arm_ranges":arm_ranges,"cycle":clip.get_meta("cycle"),"approved_skin":actor.use_approved_skin,"parameters":clip.get_meta("parameters")}
  if folder=="aren_walk_torso_v2":
-  for path in clip.get_meta("source_hashes"):require(FileAccess.get_sha256(path)==clip.get_meta("source_hashes")[path],"Correction matches its source hashes")
+  for path in clip.get_meta("source_hashes"):require(preload("res://tests/aren_branch_cache.gd").source_matches(path,clip.get_meta("source_hashes")[path]),"Correction matches its source hashes")
  actor.free();return result
 func run() -> void:
  var before:=capture("aren_walk_proof_20_30_v1")

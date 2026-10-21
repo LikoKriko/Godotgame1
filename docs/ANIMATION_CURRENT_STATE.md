@@ -83,6 +83,9 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
   control de giro ni el movimiento relativo a cámara.
   Los pies en transferencia se orientan al desplazamiento real, con un máximo
   de 35° respecto al cuerpo. Los clips, rig y solver permanecen intactos.
+- `RigBinding` prepara una vez las ramas inclusivas del esqueleto en el orden
+  original de huesos. Las rotaciones reutilizan esos índices; no vuelven a buscar
+  ancestros durante cada evaluación ni cambian las operaciones sobre las poses.
 - Orden de evaluación: movimiento y colisiones → desplazamiento real → fase y
   pose aprobada → referencia visual y pelvis → IK y comprobación de suela.
   Las correcciones se calculan desde la pose fuente, sin acumularse entre
@@ -98,6 +101,10 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
   Actor reutilizado: `scenes/prototype_3d/aren_terrain_actor.tscn`.
   Regresión de las seis transiciones, cambios rápidos de estado y cinco terrenos:
   `godot --headless --path . --fixed-fps 60 --script tests/aren_locomotion_integration.gd`.
+  Para medir fuera del editor, ejecutar la misma escena y resolución, por ejemplo
+  `godot --path . --disable-vsync --max-fps 0 scenes/prototype_3d/aren_terrain_test.tscn`.
+  Esta escena no aplica el límite de FPS de los ajustes del juego principal;
+  sin esos argumentos hereda V-Sync del proyecto. F5 carga otra escena.
 - **Visor:** abrir `scenes/prototype_3d/aren_authoring_review.tscn` con **F6**;
   seleccionar **Carrera: pies coordinados**, estado y ciclo/transición.
   Ofrece cuatro vistas, comparación antes/después, secuencias, pausa y velocidad.

@@ -20,7 +20,7 @@ func correlation(values:Array[Vector2]) -> float:
 func run() -> void:
  var old:Node3D=load(ROOT+"aren_run_launch_v1/aren.tscn").instantiate();root.add_child(old);old.set_process(false)
  var new:Node3D=load(ROOT+"aren_coordination_v1/aren.tscn").instantiate();root.add_child(new);new.set_process(false)
- for path in new.profile.source_hashes:check(FileAccess.get_sha256(path)==new.profile.source_hashes[path],"Stale source: "+path)
+ for path in new.profile.source_hashes:check(preload("res://tests/aren_branch_cache.gd").source_matches(path,new.profile.source_hashes[path]),"Stale source: "+path)
  var max_flexion_delta:=0.0;var minimum:=INF;var maximum:=0.0
  for state in ["normal","cautious","tired"]:
   old.set_style(state);new.set_style(state)

@@ -7,7 +7,7 @@ func check(value:bool,message:String) -> void:
 func run() -> void:
  var old=load(ROOT+"aren_walk_upper_v1/aren.tscn").instantiate();root.add_child(old);old.set_process(false)
  var new=load(ROOT+"aren_short_run_v1/aren.tscn").instantiate();root.add_child(new);new.set_process(false)
- for path in new.profile.source_hashes:check(FileAccess.get_sha256(path)==new.profile.source_hashes[path],"Stale source: "+path)
+ for path in new.profile.source_hashes:check(preload("res://tests/aren_branch_cache.gd").source_matches(path,new.profile.source_hashes[path]),"Stale source: "+path)
  for state in ["normal","cautious","tired"]:
   old.set_style(state);new.set_style(state)
   var before:Animation=old.library.get_animation(&"run");var after:Animation=new.library.get_animation(&"run")

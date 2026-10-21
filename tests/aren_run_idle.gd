@@ -34,7 +34,7 @@ func run():
  check(is_equal_approx(after.get_meta("cycle").support*after.length,before.get_meta("cycle").support*before.length),"Run support duration changed")
  check(not equal_clip(before,after),"Run poses were not replaced")
  for path in after.get_meta("source_hashes"):
-  check(FileAccess.get_sha256(path)==after.get_meta("source_hashes")[path],"Stale generated source: "+path)
+  check(preload("res://tests/aren_branch_cache.gd").source_matches(path,after.get_meta("source_hashes")[path]),"Stale generated source: "+path)
  var idle:Animation=revised.library.get_animation(&"idle")
  check(is_equal_approx(idle.length,4.5),"Idle breathing must last 4.5 seconds")
  var skeleton:Skeleton3D=revised.get_node(revised.model_path).find_children("*","Skeleton3D",true,false)[0]

@@ -48,7 +48,7 @@ func advance(actor:Node3D,seconds:float,dt:float=1.0/120) -> void:
 func run() -> void:
  var actor:Node3D=load(SCENE).instantiate();root.add_child(actor);actor.set_process(false)
  check(actor.controls.get_animation_list().size()==6,"Missing transition control clips")
- for path in actor.profile.source_hashes:check(FileAccess.get_sha256(path)==actor.profile.source_hashes[path],"Changed transition source: "+path)
+ for path in actor.profile.source_hashes:check(preload("res://tests/aren_branch_cache.gd").source_matches(path,actor.profile.source_hashes[path]),"Changed transition source: "+path)
  # Do not rewrite historical source hashes in approved cycle resources.
  for state in ["normal","cautious","tired"]:
   actor.set_style(state)

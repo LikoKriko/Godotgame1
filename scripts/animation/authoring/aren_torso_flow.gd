@@ -18,10 +18,7 @@ static func summarize(frames:Array) -> Dictionary:
  return {"centre":centre,"angles":means}
 static func rotate_branch(native:RefCounted,bone:int,basis:Basis,origin:Vector3) -> void:
  var change:Transform3D=Transform3D(basis,origin)*native.posed[bone].affine_inverse()
- for i in native.posed.size():
-  var parent:int=i
-  while parent>=0 and parent!=bone:parent=native.parents[parent]
-  if parent==bone:native.posed[i]=change*native.posed[i]
+ for i in native.binding.branches[bone]:native.posed[i]=change*native.posed[i]
 static func apply(native:RefCounted,phase:float,parameters:Dictionary,reference:Dictionary) -> void:
  var weight:float=parameters.torso_flow
  if weight<=0:return
