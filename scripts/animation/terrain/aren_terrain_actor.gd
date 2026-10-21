@@ -84,7 +84,7 @@ func activate_style(value:String) -> void:
 
 func change_style(value:String) -> void:
  if not style_cache.has(value):return
- if air_motion!=null and air_motion.stage!="grounded":
+ if air_motion!=null and (air_motion.stage!="grounded" or air_motion.landing.active):
   pending_style=value;return
  if value==style:return
  var old_pose:Array[Transform3D]=native.posed.duplicate()
@@ -112,7 +112,7 @@ func change_style(value:String) -> void:
  for shape in old_shapes.size():native.mesh.set_blend_shape_value(shape,old_shapes[shape])
 
 func evaluate_motion(dt:float,velocity:Vector3,on_ground:bool) -> void:
- if on_ground and not pending_style.is_empty():
+ if on_ground and not pending_style.is_empty() and (air_motion==null or not air_motion.landing.active):
   var next:=pending_style;pending_style="";change_style(next)
  measured_velocity=Vector3(velocity.x,0,velocity.z)
  var speed:=measured_velocity.length()

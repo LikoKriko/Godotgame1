@@ -2,8 +2,14 @@ extends RefCounted
 ## Opt-in bridge: approved poses, real CharacterBody motion and terrain contacts.
 const Jump=preload("res://scripts/animation/authoring/aren_jump_motion.gd")
 const Fall=preload("res://scripts/animation/authoring/aren_fall_motion.gd")
+const Landing=preload("res://scripts/animation/authoring/aren_landing_motion.gd")
+const LandingPose=preload("res://scripts/animation/authoring/aren_landing_pose.gd")
 const Detection=preload("res://scripts/animation/terrain/aren_fall_response.gd")
 var detection=Detection.new()
+var deep_landing_enabled:=false # Activate in gameplay only after visual approval.
+var landing=LandingPose.new()
+var landing_clock:=0.0
+var landing_heading:=0.0
 var stage:="grounded"
 var timer:=0.0
 var air_time:=0.0
@@ -35,7 +41,7 @@ var floor_query:=PhysicsRayQueryParameters3D.new()
 func pre_move(body:CharacterBody3D,actor:Node3D,direction:Vector3,target:Vector2,jump:bool,dt:float) -> bool:
  target_travel=target
  var launched:=false
- if jump and body.is_on_floor() and stage=="grounded" and recovery_clock>=recovery_duration:
+ if jump and body.is_on_floor() and stage=="grounded" and recovery_clock>=recovery_duration and not landing.active:
   stage="prepare";timer=0
  if stage=="prepare":
   if not body.is_on_floor():stage="grounded";timer=0
@@ -96,7 +102,10 @@ func after_move(body:CharacterBody3D,actor:Node3D,velocity:Vector3,vertical:floa
    actor.external_support_feet.clear()
    for foot in release_feet:actor.external_support_feet.append(actor.global_transform.affine_inverse()*foot)
    actor.apply_fall_pose(source,neutral,vertical,gap)
+   var predicted_height:float=peak_y-(body.global_position.y-gap)
+   if deep_landing_enabled and Landing.accepts(predicted_height):landing.prepare(actor,gap,-sqrt(2*Jump.GRAVITY*predicted_height))
   return
+ var new_landing:=false
  if was_air and (stage=="flight" or stage=="fall"):
   momentum_offset=Vector2(velocity.x,velocity.z)-target_travel;momentum_time=0
   contacts+=1;landing_height=maxf(0,peak_y-contact_height(body))
@@ -108,8 +117,19 @@ func after_move(body:CharacterBody3D,actor:Node3D,velocity:Vector3,vertical:floa
   actor.terrain_contacts.clear();actor.pelvis_offset=0;actor.reach_velocity=0
   actor.body_height=body.global_position.y;actor.body_height_velocity=0
   impact_loading=0;impact_velocity=0;impact_elapsed=0
+  if deep_landing_enabled and stage=="fall" and Landing.accepts(landing_height):
+   landing.start(actor,landing_height,vertical,velocity,Callable(actor,"probe"))
+   landing_clock=0;landing_heading=actor.rotation.y;new_landing=true
+   recovery_pose.clear();impact_elapsed=100
+   recovery_duration=landing.parameters.duration;recovery_clock=0
  support_y=contact_height(body)
  stage="prepare" if stage=="prepare" else "grounded"
+ if landing.active:
+  if not new_landing:landing_clock+=dt
+  actor.evaluate_motion(dt,velocity,true)
+  landing.apply(actor,landing_clock,actor.capture_pose())
+  recovery_clock=minf(recovery_duration,landing_clock)
+  return
  recovery_clock=minf(recovery_duration,recovery_clock+dt)
  impact_elapsed+=dt
  var goal:float=float(actor.profile.get("loading_m",.028))*impact_scale if impact_elapsed<.22*impact_scale else 0.0
@@ -148,6 +168,10 @@ func contact_height(body:CharacterBody3D) -> float:
  return body.global_position.y
 
 func resume_travel(target:Vector2,dt:float) -> Vector2:
+ if landing.active:
+  var carry:Vector3=landing.initial_velocity*(1-Jump.smooth5(landing_clock/landing.parameters.brake))
+  var resume:=Jump.smooth5((landing_clock-landing.parameters.rise_end)/(landing.parameters.duration-landing.parameters.rise_end))
+  return Vector2(carry.x,carry.z)+target*resume
  var result:=target+momentum_offset*(1-Jump.smooth5(momentum_time/.16))
  momentum_time=minf(.16,momentum_time+dt)
  return result

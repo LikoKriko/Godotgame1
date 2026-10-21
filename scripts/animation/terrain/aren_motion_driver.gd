@@ -78,7 +78,9 @@ func advance(body:CharacterBody3D,actor:Node3D,input:Vector2,running:bool,yaw:fl
  var displacement:=body.position-before
  var old_heading:float=actor.rotation.y
  if corrected:
-  actor.rotation.y=response.heading
+  if aerial_enabled and air.landing.active:
+   actor.rotation.y=air.landing_heading;response.heading=air.landing_heading
+  else:actor.rotation.y=response.heading
  else:
   var planar:=Vector2(displacement.x,displacement.z)
   if planar.length()>.00001:actor.rotation.y=rotate_toward(actor.rotation.y,atan2(planar.x,planar.y),Response.STEER_SPEED*dt)
