@@ -75,6 +75,8 @@ func _ready() -> void:
  refresh_options()
  if transition_motion():reset_trees()
  update_source_status()
+ var turn_review:=Button.new();turn_review.text="Paso 3: comparar giros";turn_review.position=Vector2(990,36);add_child(turn_review)
+ turn_review.pressed.connect(func():get_tree().change_scene_to_file("res://scenes/prototype_3d/aren_turn_review.tscn"))
  get_viewport().size_changed.connect(fit_views);fit_views()
 func fit_views() -> void:
  scale=Vector2.ONE*minf(get_viewport_rect().size.x/1200.0,get_viewport_rect().size.y/905.0)

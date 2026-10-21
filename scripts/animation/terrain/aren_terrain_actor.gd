@@ -34,6 +34,10 @@ var style_cache:Dictionary={}
 var landing_feet:Dictionary={}
 var climb_checked:=false
 var climb_landing:Dictionary={}
+var turn_correction:=true
+var turn_rate:=0.0
+var pivot_weight:=0.0
+var travel_foot_yaw:=0.0
 
 func _ready() -> void:
  super._ready()
@@ -100,12 +104,19 @@ func change_style(value:String) -> void:
 func evaluate_motion(dt:float,velocity:Vector3,on_ground:bool) -> void:
  measured_velocity=Vector3(velocity.x,0,velocity.z)
  var speed:=measured_velocity.length()
+ var foot_yaw_goal:=0.0
+ if turn_correction and speed>.03:
+  var forward:=global_basis.z.normalized()
+  foot_yaw_goal=clampf(wrapf(atan2(measured_velocity.x,measured_velocity.z)-atan2(forward.x,forward.z),-PI,PI),-deg_to_rad(35),deg_to_rad(35))
+ travel_foot_yaw=move_toward(travel_foot_yaw,lerpf(travel_foot_yaw,foot_yaw_goal,1-exp(-dt*15)),deg_to_rad(180)*dt)
  if not height_initialized:
   body_height=global_position.y;body_height_velocity=0; height_initialized=true
   pose_speed=speed;pose_speed_velocity=0
  var height:=spring(body_height,body_height_velocity,global_position.y,dt,25)
  body_height=height.x;body_height_velocity=height.y
- var envelope:=spring(pose_speed,pose_speed_velocity,speed,dt,24)
+ var pivot_target:float=smoothstep(.02,.15,absf(turn_rate))*(1-smoothstep(.02,.2,speed)) if turn_correction else 0.0
+ pivot_weight=lerpf(pivot_weight,pivot_target,1-exp(-dt*18))
+ var envelope:=spring(pose_speed,pose_speed_velocity,maxf(speed,speed_for("walk")*.65*pivot_weight),dt,24)
  pose_speed=maxf(0,envelope.x);pose_speed_velocity=envelope.y
  climb_checked=false;climb_landing.clear()
  measured_speed=speed;grounded=on_ground
@@ -132,6 +143,7 @@ func tick(dt:float) -> void:
  var run:Dictionary=library.get_animation(&"run").get_meta("cycle")
  var stride:float=walk.distance_m*mix if mix<=1 else lerpf(walk.distance_m,run.distance_m,mix-1)
  if measured_speed>.00001:phase+=minf(3.0,measured_speed/maxf(stride,walk.distance_m*.02))*dt
+ if turn_correction:phase+=absf(turn_rate)/PI*2.0*pivot_weight*dt
  distance_m=old_distance+measured_speed*dt
  var preparation:=0.0
  if not recipe.is_empty():preparation=controls.get_animation(StringName(recipe)).value_track_interpolate(1,transition_time/transition_duration)
@@ -152,6 +164,9 @@ func render_pose(prepare:float) -> void:
  super.render_pose(prepare)
  if sampler is TerrainSampler:sampler.end_evaluation()
  current_speed=physical_speed
+
+func support_fraction() -> float:
+ return lerpf(super.support_fraction(),.5,pivot_weight)
 
 func probe(point:Vector3) -> Dictionary:
  ground_query.from=point+Vector3.UP*.65;ground_query.to=point-Vector3.UP*.85
@@ -282,8 +297,14 @@ func solve_contacts() -> void:
  for side in 2:
   var ids:Array=native.legs[side].ids
   var goal:Transform3D=sampled_feet[side]
+  if turn_correction and pivot_weight>.0001:
+   # Pivot steps recover under the hips; retain the approved vertical foot arc.
+   var rest:Transform3D=landing_feet["idle"][side]
+   goal.origin.x=lerpf(goal.origin.x,rest.origin.x,pivot_weight*.85)
+   goal.origin.z=lerpf(goal.origin.z,rest.origin.z,pivot_weight*.85)
   if style_blend<1 and style_feet.size()==2:goal=style_feet[side].interpolate_with(goal,smooth5(style_blend))
   source_feet.append(goal)
+  if turn_correction:goal.basis=Basis(Vector3.UP,travel_foot_yaw)*goal.basis
   var world:Vector3=frame*goal.origin
   var hit:=probe(world)
   if terrain_contacts.size()<=side:terrain_contacts.append({"planted":false,"anchor":world,"basis":goal.basis})
