@@ -2,8 +2,9 @@ extends Control
 ## Four live views of a generated library, on a real fixed ground grid.
 const PoseMirror=preload("res://scripts/animation/authoring/aren_review_pose.gd")
 const Actor=preload("res://scripts/prototype_3d/survivor_model.gd")
+const Jump=preload("res://scripts/animation/authoring/aren_jump_motion.gd")
 const ROOT="res://assets/characters/prototype_3d/generated/"
-@export var scene_path:=ROOT+"aren_run_balanced_v1/aren.tscn"
+@export var scene_path:="res://scenes/prototype_3d/aren_jump_review_actor.tscn"
 var sources:Array=[
  {"label":"Original del juego","path":""},
  {"label":"Generada natural v1","path":ROOT+"aren_natural_v1/aren.tscn"},
@@ -19,7 +20,8 @@ var sources:Array=[
  {"label":"Carrera: zancada contenida","path":ROOT+"aren_short_run_v1/aren.tscn"},
  {"label":"Caminata y arranque ajustados","path":ROOT+"aren_walk_launch_v1/aren.tscn"},
  {"label":"Carrera: apertura −10 % y pie derecho","path":ROOT+"aren_run_refined_v1/aren.tscn"},
- {"label":"Carrera: pies coordinados","path":ROOT+"aren_run_balanced_v1/aren.tscn"}
+ {"label":"Carrera: pies coordinados","path":ROOT+"aren_run_balanced_v1/aren.tscn"},
+ {"label":"Paso 6: salto voluntario (revisión)","path":"res://scenes/prototype_3d/aren_jump_review_actor.tscn"}
 ]
 const MOTIONS=["walk","run","idle","transitions","idle_to_walk","idle_to_run","walk_to_run","run_to_walk","walk_to_idle","run_to_idle"]
 const CHAIN=["idle_to_walk","walk_to_run","run_to_walk","walk_to_idle","idle_to_run","run_to_idle"]
@@ -42,6 +44,9 @@ var travel:=0.0
 var speed_slider:HSlider
 var motion_selector:OptionButton
 var grounds:Array[Node3D]=[]
+var jump_bar:HBoxContainer
+var jump_scrub:HSlider
+var jump_label:Label
 func _ready() -> void:
  var paths:=OS.get_cmdline_user_args()
  if paths.size()==1 and paths[0].ends_with(".tscn") and ResourceLoader.exists(paths[0]):scene_path=paths[0]
@@ -51,6 +56,7 @@ func _ready() -> void:
  if source_index<0:
   sources.append({"label":"Generada personalizada","path":scene_path});source_index=sources.size()-1
  if sources[source_index].path.ends_with("aren_transitions_v1/aren.tscn"):motion="transitions"
+ if sources[source_index].path.ends_with("aren_jump_review_actor.tscn"):motion="idle"
  if sources[source_index].path.ends_with("aren_run_launch_v1/aren.tscn") or sources[source_index].path.ends_with("aren_short_run_v1/aren.tscn") or sources[source_index].path.ends_with("aren_run_refined_v1/aren.tscn") or sources[source_index].path.ends_with("aren_run_balanced_v1/aren.tscn"):motion="run"
  build_views()
  pose_mirror.configure(actors)
@@ -69,9 +75,10 @@ func _ready() -> void:
  for label in ["Normal","Cauteloso","Cansado"]:state_selector.add_item(label)
  add_child(state_selector);state_selector.item_selected.connect(select_state)
  restart_button=Button.new();restart_button.text="Reiniciar";restart_button.position=Vector2(145,36);add_child(restart_button)
- restart_button.pressed.connect(func():reset_trees() if transition_motion() else show_frame(motion,0))
+ restart_button.pressed.connect(restart_preview)
  compare_button=Button.new();compare_button.position=Vector2(235,36);add_child(compare_button);compare_button.pressed.connect(compare_posture)
  source_status=Label.new();source_status.position=Vector2(350,36);add_child(source_status)
+ build_jump_controls()
  refresh_options()
  if transition_motion():reset_trees()
  update_source_status()
@@ -79,10 +86,10 @@ func _ready() -> void:
  turn_review.pressed.connect(func():get_tree().change_scene_to_file("res://scenes/prototype_3d/aren_turn_review.tscn"))
  get_viewport().size_changed.connect(fit_views);fit_views()
 func fit_views() -> void:
- scale=Vector2.ONE*minf(get_viewport_rect().size.x/1200.0,get_viewport_rect().size.y/905.0)
+ scale=Vector2.ONE*minf(get_viewport_rect().size.x/1200.0,get_viewport_rect().size.y/940.0)
 func build_views() -> void:
  for i in 4:
-  var box:=SubViewportContainer.new();box.position=Vector2((i%2)*600,65+(i/2)*420);box.size=Vector2(600,420);add_child(box)
+  var box:=SubViewportContainer.new();box.position=Vector2((i%2)*600,100+(i/2)*420);box.size=Vector2(600,420);add_child(box)
   var viewport:=SubViewport.new();viewport.size=Vector2i(600,420);viewport.own_world_3d=true;viewport.render_target_update_mode=SubViewport.UPDATE_ALWAYS;box.add_child(viewport);viewports.append(viewport)
   var world:=Node3D.new();viewport.add_child(world)
   var environment:=WorldEnvironment.new();environment.environment=Environment.new();environment.environment.background_mode=Environment.BG_COLOR;environment.environment.background_color=Color("36434b");environment.environment.ambient_light_source=Environment.AMBIENT_SOURCE_COLOR;environment.environment.ambient_light_color=Color("dce4ec");environment.environment.ambient_light_energy=.65;world.add_child(environment)
@@ -100,6 +107,14 @@ func build_views() -> void:
   var actor:=create_actor(world);actors.append(actor)
   var camera:=Camera3D.new();camera.projection=Camera3D.PROJECTION_ORTHOGONAL;camera.size=2.5;world.add_child(camera);camera.current=true;cameras.append(camera)
 func show_frame(clip:String,seconds:float) -> void:
+ if jump_review():
+  var t:=fposmod(seconds,Jump.duration()+.65)
+  actors[0].seek_jump(t,clip)
+  sync_pose_views()
+  var state:Dictionary=actors[0].jump_state
+  jump_label.text="%s · vy %.2f m/s · altura %.2f m%s"%[Jump.PHASES[state.phase],state.vertical_velocity,state.height," · corte / reinicio" if state.finished else ""]
+  jump_scrub.set_value_no_signal(state.time)
+  return
  if advanced():
   var actor=actors[0];var info:=cycle_info(clip)
   actor.position.z=seconds*float(info.speed_mps);actor.tree.active=false
@@ -151,6 +166,7 @@ func create_actor(world:Node3D) -> Node3D:
  else:actor.tree.active=false
  return actor
 func cycle_info(clip:String) -> Dictionary:
+ if jump_review():return {"duration":Jump.duration()+.65,"speed_mps":actors[0].speed_for(clip)}
  if source_index!=0:
   var animation:Animation=actors[0].library.get_animation(StringName(clip))
   var result:Dictionary=animation.get_meta("cycle").duplicate();result.duration=animation.length;return result
@@ -182,6 +198,9 @@ func update_source_status() -> void:
   compare_button.disabled=source_index not in [11,12,13,14]
   compare_button.text="Ver antes" if source_index==14 else "Ver después"
  if source_index==0:source_status.text="Original del juego · animación procedural aprobada";return
+ if jump_review():
+  source_status.text="Salto voluntario · %s · desde %s · sin aterrizaje"%[["Normal","Cauteloso","Cansado"][state_selector.selected],motion]
+  return
  if advanced() and transition_motion():
   var actor=actors[0]
   source_status.text="%s · %s · %.2f m/s"%[["Normal","Cauteloso","Cansado"][state_selector.selected],actor.recipe if not actor.recipe.is_empty() else "Ciclo estable",actor.current_speed]
@@ -208,8 +227,11 @@ func advanced() -> bool:return not actors.is_empty() and actors[0].has_method("a
 func transition_motion() -> bool:return motion=="transitions" or motion in CHAIN
 func refresh_options() -> void:
  if not motion_selector:return
- for index in range(4,MOTIONS.size()):motion_selector.set_item_disabled(index,not advanced())
- motion_selector.set_item_disabled(3,source_index==0)
+ for index in range(4,MOTIONS.size()):motion_selector.set_item_disabled(index,not advanced() or jump_review())
+ motion_selector.set_item_disabled(3,source_index==0 or jump_review())
+ if jump_review() and transition_motion():motion="idle"
+ if jump_bar:jump_bar.visible=jump_review()
+ if compare_button:compare_button.visible=not jump_review()
  if (motion in CHAIN and not advanced()) or (motion=="transitions" and source_index==0):motion="walk"
  motion_selector.select(MOTIONS.find(motion))
  if state_selector:state_selector.disabled=not advanced()
@@ -256,3 +278,21 @@ func compare_posture() -> void:
   elapsed=seconds
  else:elapsed=cycle_phase*cycle_info(motion).duration;show_frame(motion,elapsed)
  update_source_status()
+
+func jump_review() -> bool:
+ return not actors.is_empty() and actors[0].has_method("seek_jump")
+func build_jump_controls() -> void:
+ jump_bar=HBoxContainer.new();jump_bar.position=Vector2(12,66);add_child(jump_bar)
+ var sequence:=Button.new();sequence.text="Salto completo";jump_bar.add_child(sequence)
+ sequence.pressed.connect(func():elapsed=0;playing=true;show_frame(motion,0))
+ for index in Jump.PHASES.size():
+  var button:=Button.new();button.text=Jump.PHASES[index];jump_bar.add_child(button)
+  button.pressed.connect(func():playing=false;elapsed=Jump.phase_time(index);show_frame(motion,elapsed))
+ jump_scrub=HSlider.new();jump_scrub.min_value=0;jump_scrub.max_value=Jump.duration();jump_scrub.step=.001;jump_scrub.custom_minimum_size.x=120;jump_bar.add_child(jump_scrub)
+ jump_scrub.value_changed.connect(func(value:float):playing=false;elapsed=value;show_frame(motion,value))
+ jump_label=Label.new();jump_bar.add_child(jump_label)
+
+func restart_preview() -> void:
+ elapsed=0;travel=0
+ if transition_motion():reset_trees()
+ else:show_frame(motion,0)

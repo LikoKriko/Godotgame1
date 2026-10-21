@@ -113,3 +113,28 @@ Leer los `AGENTS.md` aplicables antes de editar; reutilizar los sistemas existen
   herramientas y visor existentes. Caída, aterrizajes y sus transiciones se
   desarrollarán posteriormente. Presentar primero en el visor y validar en la
   escena jugable tras la aprobación visual; conservar el aislamiento de `main`.
+
+### Paso 6: salto voluntario en revisión visual
+
+El visor `aren_authoring_review.tscn` abre **Paso 6: salto voluntario (revisión)**.
+`idle`/`walk`/`run` eligen la locomoción de salida; conserva los tres estados.
+Los botones inferiores permiten aislar preparación, impulso, ascenso, fase aérea
+y descenso; el deslizador permite recorrer la secuencia con las cuatro vistas.
+**Salto completo**, **Pausa**, **Reiniciar** y velocidad controlan la reproducción.
+La secuencia se detiene antes del contacto y reinicia mediante un corte de revisión;
+ese corte no representa una transición ni un aterrizaje.
+
+`aren_jump_actor.gd` extiende el actor aprobado, muestrea sus bibliotecas sin
+modificarlas y reutiliza el rig nativo, las transformaciones de ramas, el solver
+de longitudes fijas y los correctivos de rodilla. El vuelo no ejecuta apoyo
+terrestre ni sondeos de terreno. `aren_jump_motion.gd` define la previsualización:
+preparación 0,18 s, impulso 0,12 s, velocidad inicial 3,6 m/s y gravedad 9,8 m/s².
+El desplazamiento horizontal conserva la velocidad de la locomoción de salida;
+la pose aérea consume velocidad vertical y tiempo en vuelo. Su API de dirección
+aérea conserva la velocidad vertical y el impulso horizontal sin entrada.
+La previsualización es balística: todavía no utiliza colisiones del personaje.
+
+**Pendiente de aprobación visual.** No conectado al controlador jugable.
+Tras la aprobación: conectar a la física existente y validar continuidad,
+apoyo inicial, control aéreo y rendimiento en plano y terrenos. Los clips de
+caída accidental y los aterrizajes definitivos siguen fuera de este paso.
