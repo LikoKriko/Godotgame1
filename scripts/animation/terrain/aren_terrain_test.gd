@@ -1,6 +1,7 @@
 extends Node3D
 ## Independent F6 sandbox; no game singleton or main-scene changes.
 const Patch=preload("res://scripts/animation/terrain/terrain_test_patch.gd")
+const Fall=preload("res://scripts/animation/authoring/aren_fall_motion.gd")
 const Motion=preload("res://scripts/animation/terrain/aren_motion_driver.gd")
 var motion=Motion.new()
 var response=motion.response
@@ -25,6 +26,10 @@ func box(size:Vector3,at:Vector3,angle:float=0.0) -> void:
 
 func _ready() -> void:
  box(Vector3(60,.4,100),Vector3(0,-.2,0))
+ # Isolated ledges share the existing floor and collision/visual builder.
+ for index in 4:
+  var h:float=Fall.HEIGHTS[index]
+  box(Vector3(4,h,7),Vector3(-24+index*6,h*.5,28))
  # A continuous climb, landing and descent, 15 degrees, along -Z.
  var slope:=deg_to_rad(15.0)
  box(Vector3(5,.3,6),Vector3(0,.63,-7),slope)
@@ -50,9 +55,9 @@ func _ready() -> void:
  actor=load("res://scenes/prototype_3d/aren_terrain_actor.tscn").instantiate()
  actor.body=body;body.add_child(actor)
  actor.rotation.y=PI
- response=motion.response
+ response=motion.response;motion.aerial_enabled=true
  camera=Camera3D.new();camera.current=true;camera.fov=58;add_child(camera)
- var layer:=CanvasLayer.new();add_child(layer);label=Label.new();label.position=Vector2(16,16);layer.add_child(label)
+ var layer:=CanvasLayer.new();add_child(layer);label=Label.new();label.position=Vector2(16,16);label.add_theme_color_override("font_outline_color",Color(0,0,0,.8));label.add_theme_constant_override("outline_size",4);layer.add_child(label)
  body.position=Vector3(0,.1,2)
  update_camera()
 
@@ -67,10 +72,15 @@ func _unhandled_input(event:InputEvent) -> void:
    actor.change_style(["normal","cautious","tired"][event.keycode-KEY_1]);motion.requested_gait=""
   if event.keycode in [KEY_4,KEY_5]:
    yaw=0;reset_at(Vector3(-17 if event.keycode==KEY_4 else 19,.1,3))
+  if event.keycode==KEY_SPACE:motion.jump_requested=true
+  if event.keycode in [KEY_6,KEY_7,KEY_8,KEY_9]:
+   var index:int=event.keycode-KEY_6
+   yaw=0;reset_at(Vector3(-24+index*6,Fall.HEIGHTS[index]+.01,30.0))
   if event.keycode==KEY_R:reset_at(Vector3(0,.1,2))
 
 func reset_at(at:Vector3) -> void:
- body.position=at;body.velocity=Vector3.ZERO;motion=Motion.new();response=motion.response
+ body.position=at;body.velocity=Vector3.ZERO;motion=Motion.new();motion.aerial_enabled=true;response=motion.response
+ actor.air_motion=motion.air;actor.pending_style="";actor.recovering=false;actor.recovery_source.clear()
  actor.rotation.y=PI
  actor.turn_rate=0;actor.pivot_weight=0;actor.travel_foot_yaw=0
  actor.turn_bank=0;actor.turn_bank_velocity=0;actor.turn_bank_target=0
@@ -90,6 +100,10 @@ func _physics_process(dt:float) -> void:
  var running:bool=test_run if automated else Input.is_physical_key_pressed(KEY_SHIFT)
  motion.advance(body,actor,input,running,yaw,dt)
  pose_ms=motion.pose_ms
- if body.position.y< -5:reset_at(Vector3(0,.1,2))
+ if body.position.y< -12:reset_at(Vector3(0,.1,2))
  update_camera()
- label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\n4: camino de tierra · 5: terreno forestal\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · %.0f FPS · pose %.2f ms" % [actor.style,actor.measured_speed,actor.support_error*1000,Engine.get_frames_per_second(),pose_ms]
+ label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · Espacio: salto · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\n4: camino de tierra · 5: terreno forestal\n6/7/8/9: bordes 0,55 / 1,50 / 3 / 8 m · W para abandonar el borde\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · %.0f FPS · pose %.2f ms" % [actor.style,actor.measured_speed,actor.support_error*1000,Engine.get_frames_per_second(),pose_ms]
+
+ var phase_label:String={"grounded":"En suelo","prepare":"Preparación / impulso","flight":"Salto","unsupported":"Pérdida de apoyo","fall":"Caída"}[motion.air.stage]
+ label.text+="\n%s · vy %.2f m/s · IK de apoyo %.0f %%"%[phase_label,body.velocity.y,motion.air.detection.support_weight*100]
+ if motion.air.landing_pending:label.text+=" · 8 m: caída al suelo pendiente (recuperación provisional)"

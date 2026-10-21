@@ -1,9 +1,11 @@
-extends "res://scripts/animation/authoring/aren_run_balanced_actor.gd"
-## Collision-driven adapter. Source samplers, clips, binds and the review are read-only.
+extends "res://scripts/animation/authoring/aren_fall_actor.gd"
+## Collision-driven adapter; approved source samplers, clips and binds are retained.
 const TerrainSampler=preload("res://scripts/animation/terrain/terrain_cycle_sampler.gd")
 const Step=preload("res://scripts/animation/terrain/terrain_step.gd")
 const FootSupport=preload("res://scripts/animation/terrain/terrain_foot_support.gd")
 var foot_support=FootSupport.new()
+var air_motion:RefCounted
+var pending_style:=""
 var body:CharacterBody3D
 var measured_speed:=0.0
 var measured_velocity:=Vector3.ZERO
@@ -73,13 +75,18 @@ func cache_style() -> void:
  style_cache[style]={"library":library,"sampler":sampler,"pitch":steady_chest_pitch,"landing":landing}
 
 func activate_style(value:String) -> void:
+ neutral_fall.clear()
+ if air_motion!=null:air_motion.neutral.clear()
  style=value;library=style_cache[value].library;sampler=style_cache[value].sampler
  steady_chest_pitch=style_cache[value].pitch;landing_feet=style_cache[value].landing
  player.remove_animation_library(&"aren");player.add_animation_library(&"aren",library)
  reset_motion()
 
 func change_style(value:String) -> void:
- if value==style or not style_cache.has(value):return
+ if not style_cache.has(value):return
+ if air_motion!=null and air_motion.stage!="grounded":
+  pending_style=value;return
+ if value==style:return
  var old_pose:Array[Transform3D]=native.posed.duplicate()
  var old_source_pose:Array[Transform3D]=source_pose.duplicate()
  var old_source_feet:Array[Transform3D]=source_feet.duplicate()
@@ -105,6 +112,8 @@ func change_style(value:String) -> void:
  for shape in old_shapes.size():native.mesh.set_blend_shape_value(shape,old_shapes[shape])
 
 func evaluate_motion(dt:float,velocity:Vector3,on_ground:bool) -> void:
+ if on_ground and not pending_style.is_empty():
+  var next:=pending_style;pending_style="";change_style(next)
  measured_velocity=Vector3(velocity.x,0,velocity.z)
  var speed:=measured_velocity.length()
  var foot_yaw_goal:=0.0
@@ -296,6 +305,7 @@ func solve_contacts() -> void:
    var local:=old_local.interpolate_with(new_local,smooth5(style_blend))
    if parent>=0:local.origin=local.origin.normalized()*new_local.origin.length()
    native.posed[i]=native.posed[parent]*local if parent>=0 else local
+ if air_motion!=null:air_motion.blend_ground(self)
  # Retain the authored/blended input, never an already terrain-corrected pose.
  source_pose=native.posed.duplicate();source_feet.clear()
  var goals:Array[Transform3D]=[]
@@ -414,7 +424,8 @@ func solve_contacts() -> void:
  pelvis_offset=move_toward(pelvis_offset,filtered.x,.75*dt)
  reach_velocity=clampf(filtered.y,-.75,.75)
  pelvis_lowering=0.0
- for i in native.posed.size():native.posed[i].origin.y+=(pelvis_offset+body_offset)/SCALE
+ var impact:float=air_motion.compression() if air_motion!=null else 0.0
+ for i in native.posed.size():native.posed[i].origin.y+=(pelvis_offset+body_offset-impact)/SCALE
  for side in 2:
   var leg:Dictionary=native.legs[side];var ids:Array=leg.ids
   if not terrain_contacts[side].planted:

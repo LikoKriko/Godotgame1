@@ -16,4 +16,13 @@ static func gait_for(name:String) -> String:
  return "walk"
 static func phase_time(index:int,height:float) -> float:
  var duration:=flight_duration(height)
- return LEAD_IN+[.035,minf(.19,duration*.65),duration*.60,maxf(.20,duration-.055),duration+Jump.RECOVER*.45][index]
+ return LEAD_IN+[.035,minf(.19,duration*.65),duration*.60,maxf(.20,duration-.055),duration+recovery_duration(height)*.45][index]
+
+# Relative to the existing provisional contact, not a new landing catalogue.
+static func recovery_scale(height:float) -> float:
+ if height<=.55:return lerpf(1.0,1.1,clampf(height/.55,0,1))
+ if height<=1.5:return lerpf(1.1,1.2,(height-.55)/.95)
+ if height<=3.0:return lerpf(1.2,1.3,(height-1.5)/1.5)
+ return 1.3
+static func recovery_duration(height:float) -> float:return Jump.RECOVER*recovery_scale(height)
+static func collapse_pending(height:float) -> bool:return height>=8.0-.001

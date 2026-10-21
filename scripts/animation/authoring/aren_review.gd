@@ -352,6 +352,7 @@ func refresh_jump_view() -> void:
  jump_label.text=("%s · vy %.2f m/s · descenso %.2f m" if fall_review() else "%s · vy %.2f m/s · altura %.2f m")%[phase_label,state.vertical_velocity,state.height]
  if not actor.queued_preview.is_empty():jump_label.text+=" · siguiente: "+(Jump.LABELS[Jump.RECIPES.find(actor.queued_preview)] if actor.queued_preview in Jump.RECIPES else actor.queued_preview)
  jump_scrub.set_block_signals(true)
+ if fall_review() and Fall.collapse_pending(actor.drop_height):jump_label.text+=" · caída al suelo pendiente (paso 8)"
  jump_scrub.max_value=maxf(actor.preview_duration(motion) if fall_review() else Jump.preview_duration(motion),actor.preview_clock)
  jump_scrub.set_value_no_signal(actor.preview_clock)
  jump_scrub.set_block_signals(false)

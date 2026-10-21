@@ -152,12 +152,12 @@ carga; no constituye el catálogo de aterrizajes del paso 8. La pose aérea
 consume velocidad vertical y tiempo de vuelo, sin ejecutar apoyos ni sondeos
 terrestres. La previsualización todavía no usa colisiones del personaje.
 
-**Salto aprobado visualmente.** Conservado sin cambios de poses ni bibliotecas.
-La conexión al controlador jugable y la validación conjunta con desniveles
-quedan pendientes; no se integran durante la revisión visual del paso 7.
+**Salto aprobado visualmente.** Sus poses y bibliotecas se conservan.
+`aren_terrain_test.tscn` conecta ahora el salto completo al cuerpo físico mediante
+`aren_air_motion.gd`, utilizando los mismos tiempos, impulso y gravedad del visor.
 
 
-### Paso 7: caída automática en revisión visual
+### Paso 7: caída automática y contacto provisional
 
 `aren_authoring_review.tscn` abre **Paso 7: caída automática (revisión)**. El
 segundo selector ofrece **Reposo → Caída**, **Caminata → Caída**, **Carrera →
@@ -174,7 +174,7 @@ opciones corta y prolongada fijan 0,55 y 8 m. El soporte superior es una referen
 visual; en reposo se retira al iniciar la caída. Una guía vertical acompaña la
 inspección de altura. No son colisiones ni un nivel jugable nuevo.
 
-`aren_fall_actor.gd` extiende el actor de salto sin modificarlo. Reutiliza sus
+`aren_fall_actor.gd` extiende el actor de salto sin modificar sus poses. Reutiliza sus
 objetivos aéreos de descenso, el rig, el solver de longitudes fijas, los
 correctivos, la copia de poses entre vistas y la recuperación provisional.
 Congela la última pose de locomoción al perder apoyo, libera sus anclajes y
@@ -185,8 +185,8 @@ No contiene preparación ni impulso ascendente ni un ciclo de gestos repetidos.
 La muestra neutral se conserva por estado y no se realizan sondeos de terreno
 durante la pose aérea. La gravedad del visor es 9,8 m/s², compartida con el salto.
 
-`terrain/aren_fall_response.gd` es el detector reutilizable, todavía sin conectar
-al controlador. Se alimenta **después de mover el cuerpo** con contacto físico,
+`terrain/aren_fall_response.gd` es el detector reutilizable conectado
+al controlador de la escena de pruebas. Se alimenta **después de mover el cuerpo** con contacto físico,
 velocidad vertical, distancia al suelo y apoyo de escalón validado. No acepta
 contactos del IK como prueba de suelo. Confirma la caída tras 0,10 s sin apoyo,
 8 cm de descenso y un desnivel superior a 28 cm (margen sobre los escalones
@@ -196,7 +196,52 @@ mantiene la clasificación de salto hasta recuperar contacto físico, incluso si
 se alcanza después una velocidad descendente. El evento representa un salto
 realmente ejecutado, no la mera pulsación de la entrada.
 
-**Pendiente de aprobación visual del paso 7.** El visor usa gravedad balística y
-una recuperación provisional; no hay integración en `aren_terrain_test.tscn`
-ni aterrizajes definitivos del paso 8. Las colisiones y desniveles de la escena
-jugable se comprobarán después de la aprobación.
+El visor conserva sus opciones y la recuperación provisional. La absorción de
+contacto y su recuperación aumentan respecto a los parámetros anteriores:
+
+| Altura | Multiplicador de absorción y recuperación | Carga de referencia | Recuperación |
+| --- | --- | --- | --- |
+| 0,55 m | 1,10 | 0,0308 m | 0,374 s |
+| 1,50 m | 1,20 | 0,0336 m | 0,408 s |
+| 3,00 m | 1,30 | 0,0364 m | 0,442 s |
+
+La referencia de carga era 0,028 m y la mezcla de recuperación 0,34 s.
+La retención inicial de carga pasa de 0,22 s a 0,242/0,264/0,286 s.
+`aren_fall_motion.gd` comparte estos factores con el controlador e interpola
+las alturas intermedias; por encima de 3 m limita el factor a 1,30.
+**8 m: caída al suelo pendiente.** Conserva únicamente la recuperación
+provisional, identificada explícitamente en el visor y al tocar suelo en la
+escena jugable. No se ha creado una pose de desplome ni el aterrizaje definitivo
+del paso 8.
+
+### Conexión aérea de la escena jugable de pruebas
+
+Abrir `scenes/prototype_3d/aren_terrain_test.tscn` y ejecutar con F6.
+**Espacio** inicia el salto desde reposo, caminata o carrera; WASD y Mayús
+conservan los controles terrestres. Sin entrada aérea se conserva la velocidad
+horizontal; con entrada se permite una aceleración máxima de 2,5 m/s².
+**1/2/3** seleccionan normal/cauteloso/cansado; una selección en vuelo se aplica
+al recuperar suelo. **4/5** sitúan al actor
+en el camino irregular y el terreno forestal. **6/7/8/9** lo sitúan en plataformas
+reales de 0,55/1,50/3/8 m; avanzar con W para abandonar el borde o con Mayús+W
+para hacerlo corriendo. R vuelve al inicio y botón derecho+ratón controla la cámara.
+
+El controlador existente opta por `aren_air_motion.gd` mediante `aerial_enabled`;
+el visor comparativo de giros conserva su ruta terrestre. Se aplica primero la
+respuesta física y el movimiento con colisiones; después se clasifica el
+contacto y se evalúa la pose. El salto recibe un único evento de impulso real.
+Las pérdidas breves con suelo a menos de 28 cm conservan el evaluador terrestre
+y su filtro de altura, sin activar la animación de caída. Los escalones siguen
+usando `terrain_step.gd` y el contacto físico de su aterrizaje validado.
+
+El actor de terreno hereda las poses aprobadas de salto/caída. Durante el vuelo
+omite los sondeos de pies, la compensación terrestre de pelvis y sus anclajes;
+conserva el solver anatómico de longitudes fijas. La caída libera los apoyos
+previos en coordenadas mundiales durante 0,12 s. La postura recibe velocidad
+vertical real y distancia física al suelo; la gravedad aérea es 9,8 m/s².
+Al contactar, el IK de terreno recupera los apoyos reales mediante una mezcla
+de pose y objetivos de pie, más una carga amortiguada proporcional a la altura.
+La diferencia entre velocidad horizontal real e intención de locomoción se
+libera durante 0,16 s para evitar una frenada instantánea al soltar el control
+en vuelo. La altura del impacto procede del apoyo físico y del contacto final,
+conservando la referencia del borde durante los contactos redondeados de la cápsula.

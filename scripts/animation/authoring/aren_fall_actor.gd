@@ -1,5 +1,5 @@
 extends "res://scripts/animation/authoring/aren_jump_actor.gd"
-## Review-only automatic loss of support. No gameplay controller is connected.
+## Shared falling poses; the viewer supplies ballistics and gameplay supplies collisions.
 const Fall=preload("res://scripts/animation/authoring/aren_fall_motion.gd")
 const FallResponse=preload("res://scripts/animation/terrain/aren_fall_response.gd")
 var fall_response=FallResponse.new()
@@ -13,6 +13,8 @@ var base_y:=0.0
 var fall_contacts:Array[bool]=[]
 var fall_chain:=0
 var neutral_fall:Dictionary={}
+var fall_recovery_scale:=1.0
+var external_support_feet:Array[Transform3D]=[]
 func begin_preview(name:String) -> void:
  recovering=false;recovery_source.clear();airborne_source.clear();queued_preview=""
  preview_name=name;preview_clock=0;preview_done=false;fall_chain=0
@@ -24,7 +26,7 @@ func begin_preview(name:String) -> void:
 func setup_ledge() -> void:
  drop_height=Fall.height_for(segment_name,review_height)
  floor_y=base_y-drop_height;ledge_y=base_y;ledge_z=distance_m+speed_for(jump_origin)*Fall.LEAD_IN
- preview_stage="lead";stage_time=0;fall_time=0;jump_speed=current_speed
+ preview_stage="lead";stage_time=0;fall_time=0;jump_speed=current_speed;fall_recovery_scale=1.0
  fall_response.reset()
  jump_state={"phase":0,"time":0.0,"air_time":0.0,"height":0.0,"vertical_velocity":0.0,"grounded":true,"finished":false}
 func request_preview(name:String) -> void:
@@ -33,7 +35,7 @@ func request_preview(name:String) -> void:
   queued_preview=name;preview_done=false
  else:queued_preview=name
 func preview_duration(name:String="") -> float:
- return Fall.LEAD_IN+Fall.flight_duration(drop_height)+Jump.RECOVER+Jump.SETTLE
+ return Fall.LEAD_IN+Fall.flight_duration(drop_height)+Fall.recovery_duration(drop_height)+Jump.SETTLE
 func step_preview(dt:float) -> void:
  if preview_stage=="lead":
   var limit:float=Fall.LEAD_IN
@@ -63,11 +65,11 @@ func step_preview(dt:float) -> void:
   if dt-step>.0000001:step_preview(dt-step)
   return
  if preview_stage=="recovery":
-  stage_time+=dt;recovery_weight=Jump.smooth5(stage_time/Jump.RECOVER)
+  stage_time+=dt;recovery_weight=Jump.smooth5(stage_time/Fall.recovery_duration(drop_height))
   advance_transition(dt);position=Vector3(0,floor_y,distance_m)
   jump_state.phase=4;jump_state.vertical_velocity=0;jump_state.grounded=true
   fall_response.update(dt,true,0,0)
-  if stage_time>=Jump.RECOVER:
+  if stage_time>=Fall.recovery_duration(drop_height):
    recovering=false;recovery_source.clear();preview_stage="settle";stage_time=0
   return
  if preview_stage=="settle":
@@ -128,7 +130,8 @@ func apply_fall_pose(source:Dictionary,neutral:Dictionary,velocity_y:float,groun
   var radial:Vector3=native.posed[ids[1]].origin-root
   radial=(radial-axis*radial.dot(axis)).normalized()
   var anchor:Transform3D=native.frame*source.feet[side]
-  anchor.origin+=(Vector3(0,base_y,takeoff_distance)-position)/SCALE
+  if external_support_feet.size()==2:anchor=external_support_feet[side]
+  else:anchor.origin+=(Vector3(0,base_y,takeoff_distance)-position)/SCALE
   var support:float=fall_response.support_weight if fall_contacts[side] else 0.0
   var goal:Vector3=foot.origin.lerp(anchor.origin,support)
   var solution:=Solver.joint(root,goal,leg.a,leg.b,radial)
@@ -142,3 +145,14 @@ func apply_fall_pose(source:Dictionary,neutral:Dictionary,velocity_y:float,groun
 func set_style(value:String) -> void:
  neutral_fall.clear()
  super.set_style(value)
+
+func begin_recovery() -> void:
+ fall_recovery_scale=Fall.recovery_scale(drop_height)
+ super.begin_recovery()
+ loading_hold=.22*fall_recovery_scale
+
+func solve_contacts() -> void:
+ var unscaled:=loading
+ loading*=fall_recovery_scale
+ super.solve_contacts()
+ loading=unscaled

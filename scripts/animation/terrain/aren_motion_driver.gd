@@ -3,6 +3,10 @@ extends RefCounted
 const Response=preload("res://scripts/prototype_3d/movement_response.gd")
 const Turning=preload("res://scripts/animation/terrain/aren_turn_response.gd")
 const Step=preload("res://scripts/animation/terrain/terrain_step.gd")
+const Air=preload("res://scripts/animation/terrain/aren_air_motion.gd")
+var air=Air.new()
+var aerial_enabled:=false
+var jump_requested:=false
 var response:RefCounted
 var corrected:=true
 var requested_gait:="idle"
@@ -39,6 +43,7 @@ func advance(body:CharacterBody3D,actor:Node3D,input:Vector2,running:bool,yaw:fl
  var amount:float=velocity_input.length()/lerpf(1,Response.SPRINT_MULTIPLIER,response.sprint_weight)
  var speed:float=lerpf(walk_speed,run_speed,response.sprint_weight)*amount
  var travel:Vector2=velocity_input.normalized()*speed
+ if aerial_enabled and air.stage=="grounded":travel=air.resume_travel(travel,dt)
  var gait:="idle" if speed<.01 else ("run" if running and not response.reversing() else "walk")
  # Select the approved cue from input intent, before the physical envelope
  # changes speed. Measured walk speed can sit slightly above its nominal
@@ -49,16 +54,26 @@ func advance(body:CharacterBody3D,actor:Node3D,input:Vector2,running:bool,yaw:fl
   if corrected and not requested_gait.is_empty():origin=requested_gait
   if origin!=gait:actor.request_transition(origin+"_to_"+gait)
   requested_gait=gait
- body.velocity.x=travel.x;body.velocity.z=travel.y
- if not body.is_on_floor():body.velocity.y-=20*dt
- else:body.velocity.y=-.1
- body.floor_snap_length=maxf(.025,speed*dt*tan(body.floor_max_angle)+.005)
+ var in_air:bool=aerial_enabled and air.stage in ["flight","unsupported","fall"]
+ if not in_air:
+  body.velocity.x=travel.x;body.velocity.z=travel.y
+ var launched:=false
+ if aerial_enabled:
+  actor.air_motion=air
+  launched=air.pre_move(body,actor,direction,travel,jump_requested,dt)
+ jump_requested=false
+ if not launched:
+  if not body.is_on_floor():body.velocity.y-=(Air.Jump.GRAVITY if aerial_enabled else 20.0)*dt
+  else:body.velocity.y=-.1
+ var vertical:=body.velocity.y
+ body.floor_snap_length=0.0 if launched or in_air else maxf(.025,speed*dt*tan(body.floor_max_angle)+.005)
  var before:=body.position
  # The viewer's slow-motion clock must scale physical travel as well as pose.
  var engine_dt:float=body.get_physics_process_delta_time() if Engine.is_in_physics_frame() else body.get_process_delta_time()
  var time_ratio:float=dt/maxf(engine_dt,.000001)
  body.velocity*=time_ratio
- if not Step.move(body,Vector3(travel.x,0,travel.y)*dt):body.move_and_slide()
+ if launched or in_air:body.move_and_slide()
+ elif not Step.move(body,Vector3(travel.x,0,travel.y)*dt):body.move_and_slide()
  body.velocity/=time_ratio
  var displacement:=body.position-before
  var old_heading:float=actor.rotation.y
@@ -74,5 +89,6 @@ func advance(body:CharacterBody3D,actor:Node3D,input:Vector2,running:bool,yaw:fl
  var turn_load:=lerpf(.35,1,smoothstep(0,PI*.5,turn_angle))
  actor.turn_bank_target=clampf(-atan2(actual_speed*actor.turn_rate,9.81)*.09*turn_load,-bank_limit,bank_limit) if corrected else 0.0
  var start:=Time.get_ticks_usec()
- actor.evaluate_motion(dt,displacement/dt,body.is_on_floor())
+ if aerial_enabled:air.after_move(body,actor,displacement/dt,vertical if body.is_on_floor() else body.velocity.y,launched,dt)
+ else:actor.evaluate_motion(dt,displacement/dt,body.is_on_floor())
  pose_ms=(Time.get_ticks_usec()-start)/1000.0
