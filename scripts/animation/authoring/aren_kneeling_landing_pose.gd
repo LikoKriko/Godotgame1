@@ -16,7 +16,7 @@ func _init() -> void:
 
 func set_posture_reference(previous:bool) -> void:
  previous_posture=previous
- leg_poles=[Vector3.BACK,Vector3(.65 if previous else .37,0,1).normalized()]
+ leg_poles=[Vector3.BACK,Vector3(.37,0,1).normalized()]
 
 static func review_profile(velocity_y:float) -> Dictionary:
  var p:=Motion.profile(velocity_y)
@@ -78,19 +78,35 @@ func start(actor:Node3D,height:float,impact_velocity:float,velocity:Vector3=Vect
 
 func bend(actor:Node3D,load:float,drop:float) -> void:
  super.bend(actor,load,drop)
- if not previous_posture and not setting_contact:
-  # Follow the more central pelvis without moving the planted hand target.
+ if not setting_contact:
+  # Lift the chest while preserving the previous posture for comparison.
   var spine:int=actor.native.spine[0]
-  var correction:=deg_to_rad(4)*load
+  var correction:=deg_to_rad(4 if previous_posture else -11)*load
   Torso.rotate_branch(actor.native,spine,Basis(Vector3.RIGHT,correction)*actor.native.posed[spine].basis,actor.native.posed[spine].origin)
   Torso.rotate_branch(actor.native,actor.native.neck,Basis(Vector3.RIGHT,-correction)*actor.native.posed[actor.native.neck].basis,actor.native.posed[actor.native.neck].origin)
  var settle:=Jump.smooth5((time-parameters.absorb)/(parameters.release-parameters.absorb))*load
  var chest:int=actor.native.spine[1]
- Torso.rotate_branch(actor.native,chest,Basis(Vector3.RIGHT,deg_to_rad(6)*settle)*actor.native.posed[chest].basis,actor.native.posed[chest].origin)
+ Torso.rotate_branch(actor.native,chest,Basis(Vector3.RIGHT,deg_to_rad(6 if previous_posture else 7)*settle)*actor.native.posed[chest].basis,actor.native.posed[chest].origin)
  # Move the pelvis into the space between the asymmetric supports.
  var balance:=Jump.smooth5((time-parameters.absorb)/(parameters.release_end-parameters.absorb))
- var shift:Vector3=(Vector3(-.025,0,-.025-.025*balance) if previous_posture else Vector3(-.025,.005,.030+.005*balance))*load/SCALE
+ var shift:Vector3=Vector3(-.025,.005,.030+.005*balance)*load/SCALE
  for bone in actor.native.posed.size():actor.native.posed[bone].origin+=shift
+ if not previous_posture and not setting_contact:rotate_support_torso(actor,load)
+
+func rotate_support_torso(actor:Node3D,load:float) -> void:
+ var native=actor.native
+ var root:int=native.binding.bone(&"root")
+ var bones:Array=[root]+native.spine
+ for index in bones.size():
+  var bone:int=bones[index]
+  var child:int=native.spine[index] if index<native.spine.size() else native.neck
+  var axis:Vector3=(native.posed[child].origin-native.posed[bone].origin).normalized()
+  Torso.rotate_branch(native,bone,Basis(axis,deg_to_rad([2,5,6,7][index])*load)*native.posed[bone].basis,native.posed[bone].origin)
+ var neck_axis:Vector3=(native.posed[native.neck].origin-native.posed[native.spine[-1]].origin).normalized()
+ Torso.rotate_branch(native,native.neck,Basis(neck_axis,-deg_to_rad(8)*load)*native.posed[native.neck].basis,native.posed[native.neck].origin)
+ # Native clavicle rotation lowers the support shoulder without stretching it.
+ var shoulder:int=native.arms[support_side].ids[0]
+ Torso.rotate_branch(native,shoulder,Basis(neck_axis,deg_to_rad(3)*load)*native.posed[shoulder].basis,native.posed[shoulder].origin)
 
 func solve_legs(actor:Node3D,exit:Dictionary) -> void:
  var native=actor.native

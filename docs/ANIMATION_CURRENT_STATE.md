@@ -259,7 +259,7 @@ pausa, velocidad, reinicio y búsqueda temporal. Para la nueva recepción, los
 botones aíslan contacto de pies, absorción, apoyo de rodilla y palma, retirada
 de mano, elevación de pelvis y rodilla, y equilibrio. **Detalle** aproxima y baja la cámara durante la recepción.
 Las fuentes anteriores siguen seleccionables para comparar salto y caída.
-La casilla **Antes** alterna con la postura de `cd1e3e6`, conservando el instante,
+La casilla **Antes** alterna con la postura de `fb76425`, conservando el instante,
 la pausa y los cuatro ángulos. Desactivada muestra la postura corregida; solo
 se ofrece en la revisión del paso 8.
 
@@ -286,14 +286,22 @@ ambas piernas y la flexión de rodilla se limitan antes de resolver el IK.
 La posición de contacto corresponde a la piel de la rodilla, no al centro del
 hueso. El pie posterior conserva separación del suelo durante sus giros.
 
-La pelvis utiliza una traslación de carga de 0,5 cm hacia arriba y 3–3,5 cm
-hacia delante, sustituyendo el retroceso de 2,5–5 cm de la referencia. El IK
+La pelvis conserva una traslación de carga de 0,5 cm hacia arriba y 3–3,5 cm
+hacia delante. El IK
 conserva la longitud del muslo derecho y el contacto de rodilla, de modo que la
 corrección final del centro se adapta a los apoyos. El pie izquierdo conserva su objetivo y apoyo originales; el plano de flexión
 de su rodilla la mantiene alineada sobre ese pie y prioriza el avance, con
-menos apertura lateral. La columna
-acompaña el cambio con una adaptación de 4° y una compensación inversa de
-cuello, conservando las curvas y tiempos restantes.
+menos apertura lateral.
+
+El pecho se eleva reduciendo la inclinación frontal: la corrección lumbar
+durante la carga pasa de +4° a −11°, con compensación inversa del cuello.
+La estabilización torácica utiliza 7° sin cambiar sus tiempos. Para acercar el
+brazo al apoyo, la rotación longitudinal se reparte entre pelvis y los tres
+segmentos de columna (2°/5°/6°/7°), siguiendo los ejes anatómicos de cada
+segmento. El cuello compensa 8° de ese giro y la clavícula de apoyo acompaña
+con 3°, conservando longitudes nativas. Estas adaptaciones siguen la carga
+continua de la recepción; no desplazan los objetivos de rodilla, pie o palma
+ni modifican los tiempos de recuperación.
 
 
 La palma permanece orientada y anclada al suelo mientras soporta peso; el

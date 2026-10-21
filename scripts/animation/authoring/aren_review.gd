@@ -95,7 +95,7 @@ func _ready() -> void:
  landing_detail=CheckButton.new();landing_detail.text="Detalle";landing_detail.position=Vector2(810,36);landing_detail.button_pressed=true;add_child(landing_detail)
  landing_detail.toggled.connect(func(_enabled:bool):sync_pose_views())
  landing_reference=CheckBox.new();landing_reference.text="Antes";landing_reference.position=Vector2(915,36);add_child(landing_reference)
- landing_reference.tooltip_text="Comparar con la postura de cd1e3e6, conservando el instante y los cuatro ángulos. Desactivado: postura corregida."
+ landing_reference.tooltip_text="Comparar con la postura de fb76425, conservando el instante y los cuatro ángulos. Desactivado: postura corregida."
  landing_reference.toggled.connect(func(previous:bool):
   if not landing_review():return
   actors[0].set_posture_reference(previous);refresh_jump_view())
