@@ -52,6 +52,7 @@ var jump_bar:HBoxContainer
 var jump_scrub:HSlider
 var jump_label:Label
 var landing_detail:CheckButton
+var landing_reference:CheckBox
 var fall_height_selector:OptionButton
 var fall_ledges:Array[MeshInstance3D]=[]
 var fall_markers:Array[MeshInstance3D]=[]
@@ -91,8 +92,13 @@ func _ready() -> void:
  source_status=Label.new();source_status.position=Vector2(350,36);add_child(source_status)
  build_jump_controls()
  build_fall_controls()
- landing_detail=CheckButton.new();landing_detail.text="Detalle";landing_detail.position=Vector2(820,36);landing_detail.button_pressed=true;add_child(landing_detail)
+ landing_detail=CheckButton.new();landing_detail.text="Detalle";landing_detail.position=Vector2(810,36);landing_detail.button_pressed=true;add_child(landing_detail)
  landing_detail.toggled.connect(func(_enabled:bool):sync_pose_views())
+ landing_reference=CheckBox.new();landing_reference.text="Antes";landing_reference.position=Vector2(915,36);add_child(landing_reference)
+ landing_reference.tooltip_text="Comparar con la postura de cd1e3e6, conservando el instante y los cuatro ángulos. Desactivado: postura corregida."
+ landing_reference.toggled.connect(func(previous:bool):
+  if not landing_review():return
+  actors[0].set_posture_reference(previous);refresh_jump_view())
  refresh_options()
  if transition_motion():reset_trees()
  elif jump_review():actors[0].begin_preview(motion);playing=true;refresh_jump_view()
@@ -268,6 +274,9 @@ func refresh_options() -> void:
  if jump_label:jump_label.visible=jump_review()
  if compare_button:compare_button.visible=not jump_review()
  if landing_detail:landing_detail.visible=landing_review()
+ if landing_reference:
+  landing_reference.visible=landing_review()
+  if landing_review():actors[0].landing.set_posture_reference(landing_reference.button_pressed)
  if fall_height_selector:
   fall_height_selector.visible=fall_review();fall_height_selector.clear()
   for height in review_heights():fall_height_selector.add_item("Altura: %.2f m"%height)

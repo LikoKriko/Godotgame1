@@ -259,6 +259,9 @@ pausa, velocidad, reinicio y búsqueda temporal. Para la nueva recepción, los
 botones aíslan contacto de pies, absorción, apoyo de rodilla y palma, retirada
 de mano, elevación de pelvis y rodilla, y equilibrio. **Detalle** aproxima y baja la cámara durante la recepción.
 Las fuentes anteriores siguen seleccionables para comparar salto y caída.
+La casilla **Antes** alterna con la postura de `cd1e3e6`, conservando el instante,
+la pausa y los cuatro ángulos. Desactivada muestra la postura corregida; solo
+se ofrece en la revisión del paso 8.
 
 `aren_landing_actor.gd` extiende el actor de caída; `aren_landing_motion.gd`
 define una familia continua y `aren_landing_pose.gd` comparte la evaluación del
@@ -283,6 +286,16 @@ ambas piernas y la flexión de rodilla se limitan antes de resolver el IK.
 La posición de contacto corresponde a la piel de la rodilla, no al centro del
 hueso. El pie posterior conserva separación del suelo durante sus giros.
 
+La pelvis utiliza una traslación de carga de 0,5 cm hacia arriba y 3–3,5 cm
+hacia delante, sustituyendo el retroceso de 2,5–5 cm de la referencia. El IK
+conserva la longitud del muslo derecho y el contacto de rodilla, de modo que la
+corrección final del centro se adapta a los apoyos. El pie izquierdo conserva su objetivo y apoyo originales; el plano de flexión
+de su rodilla la mantiene alineada sobre ese pie y prioriza el avance, con
+menos apertura lateral. La columna
+acompaña el cambio con una adaptación de 4° y una compensación inversa de
+cuello, conservando las curvas y tiempos restantes.
+
+
 La palma permanece orientada y anclada al suelo mientras soporta peso; el
 contacto utiliza piel de palma y eminencia tenar, respetando las proporciones
 nativas de mano y dedos. El codo responde a la absorción y al traslado gradual
@@ -302,3 +315,8 @@ voluntario aprobado y la detección de caída conservan su ruta existente. Esta
 conexión sigue utilizando el solver anterior: la postura con apoyo de rodilla
 se carga exclusivamente desde el visor y espera aprobación visual antes de
 integrarse en la escena jugable.
+
+Las comprobaciones de recepción se ejecutan con `tests/aren_deep_landing.gd`
+(contactos, orientación y continuidad) y `tests/aren_landing_surface_clearance.gd`
+(piel de rodilla frente a triángulos reales del torso y brazo). Para esta última,
+usar `godot --headless --path . --fixed-fps 60 --script tests/aren_landing_surface_clearance.gd`.

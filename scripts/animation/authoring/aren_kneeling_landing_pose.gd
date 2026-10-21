@@ -1,5 +1,7 @@
 extends "res://scripts/animation/authoring/aren_landing_pose.gd"
 ## Authoring-only contact transfer: left sole, right knee and right palm.
+var previous_posture:=false
+var setting_contact:=false
 var knee_anchor:=Vector3.ZERO
 var knee_minimum:=0.0
 var knee_planted:=false
@@ -10,7 +12,11 @@ var rear_height:=.08
 var knee_ready:=false
 
 func _init() -> void:
- leg_poles=[Vector3.BACK,Vector3(.65,0,1).normalized()]
+ set_posture_reference(false)
+
+func set_posture_reference(previous:bool) -> void:
+ previous_posture=previous
+ leg_poles=[Vector3.BACK,Vector3(.65 if previous else .37,0,1).normalized()]
 
 static func review_profile(velocity_y:float) -> Dictionary:
  var p:=Motion.profile(velocity_y)
@@ -53,8 +59,9 @@ func preparation_foot(actor:Node3D,rest:Dictionary,_p:Dictionary,side:int) -> Tr
  return goal
 
 func start(actor:Node3D,height:float,impact_velocity:float,velocity:Vector3=Vector3.ZERO,query:Callable=Callable()) -> void:
- time=0
+ time=0;setting_contact=true
  super.start(actor,height,impact_velocity,velocity,query)
+ setting_contact=false
  parameters=review_profile(impact_velocity)
  knee_anchor=contact_position+actor.global_basis.orthonormalized()*Vector3(-.13,.05,.27)
  # Dorsum of the rear foot faces the floor; toes trail behind the knee.
@@ -71,12 +78,18 @@ func start(actor:Node3D,height:float,impact_velocity:float,velocity:Vector3=Vect
 
 func bend(actor:Node3D,load:float,drop:float) -> void:
  super.bend(actor,load,drop)
+ if not previous_posture and not setting_contact:
+  # Follow the more central pelvis without moving the planted hand target.
+  var spine:int=actor.native.spine[0]
+  var correction:=deg_to_rad(4)*load
+  Torso.rotate_branch(actor.native,spine,Basis(Vector3.RIGHT,correction)*actor.native.posed[spine].basis,actor.native.posed[spine].origin)
+  Torso.rotate_branch(actor.native,actor.native.neck,Basis(Vector3.RIGHT,-correction)*actor.native.posed[actor.native.neck].basis,actor.native.posed[actor.native.neck].origin)
  var settle:=Jump.smooth5((time-parameters.absorb)/(parameters.release-parameters.absorb))*load
  var chest:int=actor.native.spine[1]
  Torso.rotate_branch(actor.native,chest,Basis(Vector3.RIGHT,deg_to_rad(6)*settle)*actor.native.posed[chest].basis,actor.native.posed[chest].origin)
  # Move the pelvis into the space between the asymmetric supports.
  var balance:=Jump.smooth5((time-parameters.absorb)/(parameters.release_end-parameters.absorb))
- var shift:=Vector3(-.025,0,-.025-.025*balance)*load/SCALE
+ var shift:Vector3=(Vector3(-.025,0,-.025-.025*balance) if previous_posture else Vector3(-.025,.005,.030+.005*balance))*load/SCALE
  for bone in actor.native.posed.size():actor.native.posed[bone].origin+=shift
 
 func solve_legs(actor:Node3D,exit:Dictionary) -> void:

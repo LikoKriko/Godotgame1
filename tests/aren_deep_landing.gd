@@ -57,8 +57,11 @@ func run() -> void:
        check(Vector2(knee.x-actor.landing.knee_anchor.x,knee.z-actor.landing.knee_anchor.z).length()<.001,"right knee slid")
        check(absf(actor.landing.knee_minimum)<.001,"right knee skin left floor")
        var left_knee:Vector3=native.posed[native.legs[1].ids[1]].origin
-       var left_shoulder:Vector3=native.posed[native.arms[1].ids[1]].origin
-       check(left_knee.distance_to(left_shoulder)*actor.SCALE>.13,"left knee crowds upper torso/shoulder")
+       var left_hip:Vector3=native.posed[native.legs[1].ids[0]].origin
+       var heading:=absf(rad_to_deg(atan2(left_knee.x-left_hip.x,left_knee.z-left_hip.z)))
+       check(heading<30,"left knee points sideways")
+       var left_ankle:Vector3=native.posed[native.legs[1].ids[2]].origin
+       check(absf(left_knee.x-left_ankle.x)*actor.SCALE<.06,"left knee not aligned over supporting foot")
        var ankle:Vector3=actor.global_transform*native.posed[native.legs[0].ids[2]].origin
        check(ankle.z<knee.z-.25,"right shin did not trail behind knee")
       for bone in actor.landing.finger_bones:

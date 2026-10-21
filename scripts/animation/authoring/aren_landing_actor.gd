@@ -45,3 +45,9 @@ func step_preview(dt:float) -> void:
  if dt-step>.0000001:step_preview(dt-step)
 
 func landing_profile() -> Dictionary:return landing.review_profile(-sqrt(2*Jump.GRAVITY*drop_height))
+
+func set_posture_reference(previous:bool) -> void:
+ var at:=preview_clock
+ landing.set_posture_reference(previous)
+ begin_preview(preview_name)
+ advance_jump_preview(at)
