@@ -17,8 +17,9 @@ func run() -> void:
  var case_index:=0
  for style in ["normal","cautious","tired"]:
   for running in [false,true]:
-   for angle in [45.0,90.0,180.0]:
-    review.state=style;review.running=running;review.turn_angle=angle
+   for angle in [45.0,90.0,135.0,180.0,-1.0]:
+    review.state=style;review.running=running;review.turn_angle=angle if angle>0 else 90.0
+    review.consecutive=angle<0
     review.gradual=case_index%2==0;review.moving_camera=case_index%3!=0;review.irregular=case_index%2==1
     review.restart()
     var previous:Array[Dictionary]=[]
@@ -28,7 +29,10 @@ func run() -> void:
      review.advance_review(1.0/30)
      pose_cost+=Vector2(review.drivers[0].pose_ms,review.drivers[1].pose_ms);sampled_frames+=1
      check(is_finite(actor.measured_speed) and actor.measured_speed<actor.speed_for("run")*1.15,"Physical speed exceeded approved envelope")
-     check(absf(wrapf(actor.rotation.y-heading,-PI,PI))<=deg_to_rad(180)/30+.0001,"Body rotated too far in one tick")
+     check(absf(wrapf(actor.rotation.y-heading,-PI,PI))<=deg_to_rad(360)/30+.0001,"Body rotated too far in one tick")
+     if review.elapsed>2.9 and review.elapsed<6.9:
+      check(actor.measured_speed>.08,"Turn unexpectedly stopped locomotion")
+      check(not review.drivers[1].response.reversing(),"Turn reintroduced braking/hold stages")
      for side in actor.terrain_contacts.size():
       var contact:Dictionary=actor.terrain_contacts[side]
       if previous.size()>side and contact.planted and previous[side].planted and contact.anchor.is_equal_approx(previous[side].anchor):
@@ -43,7 +47,7 @@ func run() -> void:
      previous.clear()
      for contact in actor.terrain_contacts:previous.append(contact.duplicate())
     check(actor.measured_speed<.03,"Release did not stop locomotion")
-    print("PASS turn review ",style," run=",running," angle=",angle," irregular=",review.irregular," camera=",review.moving_camera," smooth=",review.gradual)
+    print("PASS turn review ",style," run=",running," angle=",angle," consecutive=",review.consecutive," irregular=",review.irregular," camera=",review.moving_camera," smooth=",review.gradual)
     case_index+=1
  print("Turn viewer: ",checks," checks; failures ",failures.size(),"; planted XZ drift ",maximum_slide*1000," mm; rotation ",rad_to_deg(maximum_twist)," deg; average pose ms before/after ",pose_cost/maxi(1,sampled_frames))
  review.free();quit(0 if failures.is_empty() else 1)

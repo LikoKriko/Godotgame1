@@ -63,6 +63,9 @@ func advance(body:CharacterBody3D,actor:Node3D,input:Vector2,running:bool,yaw:fl
   if planar.length()>.00001:actor.rotation.y=rotate_toward(actor.rotation.y,atan2(planar.x,planar.y),Response.STEER_SPEED*dt)
  actor.turn_rate=wrapf(actor.rotation.y-old_heading,-PI,PI)/maxf(dt,.00001) if corrected else 0.0
  actor.turn_correction=corrected
+ var actual_speed:=Vector2(displacement.x,displacement.z).length()/maxf(dt,.00001)
+ var bank_limit:float=deg_to_rad(lerpf(6,12,response.sprint_weight))/maxf(float(actor.profile.styles[actor.style].timing),1)
+ actor.turn_bank_target=clampf(-atan2(actual_speed*actor.turn_rate,9.81)*.3,-bank_limit,bank_limit) if corrected else 0.0
  var start:=Time.get_ticks_usec()
  actor.evaluate_motion(dt,displacement/dt,body.is_on_floor())
  pose_ms=(Time.get_ticks_usec()-start)/1000.0

@@ -12,6 +12,7 @@ var turn_angle:=180.0
 var gradual:=false
 var moving_camera:=false
 var irregular:=false
+var consecutive:=false
 var status:Label
 var gait_choice:OptionButton
 var state_choice:OptionButton
@@ -32,9 +33,9 @@ func _ready() -> void:
  for title in ["Caminata","Carrera"]:gait_choice.add_item(title)
  bar.add_child(gait_choice);gait_choice.item_selected.connect(func(index):running=index==1;restart())
  angle_choice=OptionButton.new()
- for title in ["45°","90°","180° · W ↔ S"]:angle_choice.add_item(title)
- angle_choice.select(2);bar.add_child(angle_choice)
- angle_choice.item_selected.connect(func(index):turn_angle=[45.0,90.0,180.0][index];restart())
+ for title in ["45°","90°","135°","180° · W ↔ S"]:angle_choice.add_item(title)
+ angle_choice.select(3);bar.add_child(angle_choice)
+ angle_choice.item_selected.connect(func(index):turn_angle=[45.0,90.0,135.0,180.0][index];restart())
  for item in [["Suave", "gradual"],["Cámara en movimiento","moving_camera"],["Suelo irregular","irregular"]]:
   var toggle:=CheckButton.new();toggle.text=item[0];bar.add_child(toggle)
   var property:String=item[1]
@@ -43,6 +44,8 @@ func _ready() -> void:
  var reset:=Button.new();reset.text="Reiniciar";bar.add_child(reset);reset.pressed.connect(restart)
  speed_slider=HSlider.new();speed_slider.min_value=.1;speed_slider.max_value=1;speed_slider.value=1;speed_slider.custom_minimum_size.x=80;bar.add_child(speed_slider)
  status=Label.new();status.position=Vector2(12,37);add_child(status)
+ var chain:=CheckButton.new();chain.text="Consecutivos";chain.position=Vector2(1030,33);add_child(chain)
+ chain.toggled.connect(func(value):consecutive=value;restart())
  for i in 4:
   var title:=Label.new();title.position=Vector2((i%2)*600+15,80+(i/2)*420)
   title.text=("ANTES" if i%2==0 else "DESPUÉS")+(" · tres cuartos" if i<2 else " · apoyos desde arriba")
@@ -70,6 +73,7 @@ func restart() -> void:
   bodies[i].position=Vector3(0,.8 if irregular else .03,2);bodies[i].velocity=Vector3.ZERO
   actor.change_style(state);actor.rotation.y=PI
   actor.turn_rate=0;actor.pivot_weight=0;actor.travel_foot_yaw=0;actor.turn_correction=i%2==1
+  actor.turn_bank=0;actor.turn_bank_velocity=0;actor.turn_bank_target=0
   actor.terrain_contacts.clear();actor.pelvis_offset=0;actor.reach_velocity=0;actor.height_initialized=false
   actor.previous_speed=0;actor.pose_speed=0;actor.pose_speed_velocity=0
   actor.style_pose.clear();actor.style_blend=1;actor.grounded=false;actor.measured_speed=0
@@ -89,6 +93,12 @@ func advance_review(dt:float) -> void:
  elapsed+=dt
  var progress:float=smoothstep(3,4.5,elapsed) if gradual else (1.0 if elapsed>=3 else 0.0)
  var input:=Vector2(0,-1).rotated(-deg_to_rad(turn_angle)*progress)
+ if consecutive and elapsed>=3:
+  var leg:=floori((elapsed-3)/.85)
+  var from:float=[0.0,turn_angle,-turn_angle,180.0][leg%4]
+  var to:float=[turn_angle,-turn_angle,180.0,0.0][leg%4]
+  var blend:float=smoothstep(0,.45,fposmod(elapsed-3,.85)) if gradual else 1.0
+  input=Vector2(0,-1).rotated(-deg_to_rad(from+wrapf(to-from,-180,180)*blend))
  if elapsed>=7:input=Vector2.ZERO
  var yaw:float=sin(elapsed*.45)*.8 if moving_camera else 0.0
  for i in 2:drivers[i].advance(bodies[i],actors[i],input,running,yaw,dt)
@@ -97,7 +107,7 @@ func advance_review(dt:float) -> void:
   bodies[i+2].global_transform=bodies[i].global_transform
   actors[i+2].transform=actors[i].transform
  for i in 4:point_camera(i)
- status.text="Paso 3 · comparación sincronizada · %.1f s · %.0f FPS · pose antes %.2f / después %.2f ms · %s"%[elapsed,Engine.get_frames_per_second(),drivers[0].pose_ms,drivers[1].pose_ms,drivers[1].response.stage]
+ status.text="Paso 3 · %.1f s · %.0f FPS · velocidad antes %.2f / después %.2f m/s · CPU %.2f / %.2f ms"%[elapsed,Engine.get_frames_per_second(),actors[0].measured_speed,actors[1].measured_speed,drivers[0].pose_ms,drivers[1].pose_ms]
 
 func _physics_process(dt:float) -> void:
  if not playing:return

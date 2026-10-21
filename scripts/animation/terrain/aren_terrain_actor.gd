@@ -38,6 +38,9 @@ var turn_correction:=true
 var turn_rate:=0.0
 var pivot_weight:=0.0
 var travel_foot_yaw:=0.0
+var turn_bank_target:=0.0
+var turn_bank:=0.0
+var turn_bank_velocity:=0.0
 
 func _ready() -> void:
  super._ready()
@@ -151,6 +154,8 @@ func tick(dt:float) -> void:
  lean=physical_lean.x;lean_velocity=physical_lean.y
  style_blend=minf(1,style_blend+dt/.3)
  tick_dt=dt;correction_tick=dt
+ var bank:=spring(turn_bank,turn_bank_velocity,turn_bank_target,dt,22)
+ turn_bank=bank.x;turn_bank_velocity=bank.y
  render_pose(preparation)
  tick_dt=0;correction_tick=0
 
@@ -278,6 +283,9 @@ func settle_foot(side:int,goal:Transform3D,base_y:float) -> Transform3D:
 func solve_contacts() -> void:
  if body==null or changing_style:
   super.solve_contacts();return
+ if turn_correction and absf(turn_bank)>.000001:
+  var hip:int=native.binding.bone(&"root")
+  Torso.rotate_branch(native,hip,Basis(Vector3.BACK,turn_bank)*native.posed[hip].basis,native.posed[hip].origin)
  if style_blend<1 and style_pose.size()==native.posed.size():
   var current_pose:Array[Transform3D]=native.posed.duplicate()
   for i in native.posed.size():

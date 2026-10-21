@@ -73,6 +73,7 @@ func reset_at(at:Vector3) -> void:
  body.position=at;body.velocity=Vector3.ZERO;motion=Motion.new();response=motion.response
  actor.rotation.y=PI
  actor.turn_rate=0;actor.pivot_weight=0;actor.travel_foot_yaw=0
+ actor.turn_bank=0;actor.turn_bank_velocity=0;actor.turn_bank_target=0
  actor.terrain_contacts.clear();actor.pelvis_offset=0;actor.reach_velocity=0;actor.height_initialized=false;actor.previous_speed=0
  actor.style_pose.clear();actor.style_blend=1;actor.grounded=false;actor.measured_speed=0
  actor.reset_motion()

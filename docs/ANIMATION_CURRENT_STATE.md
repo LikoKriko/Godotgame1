@@ -45,19 +45,24 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
   reutiliza muestras idénticas; `terrain_test_patch.gd` construye los terrenos.
 - `aren_motion_driver.gd` comparte el movimiento entre el visor de giros y la
   escena provisional. `aren_turn_response.gd` adapta `movement_response.gd`
-  sin cambiar su comportamiento global: conserva frenada y arranque; limita
-  el giro a 180°/s caminando y 135°/s corriendo, dividido por el factor temporal
-  del estado y reducido al 75 % con doble apoyo. Atenúa adicionalmente el giro
-  al acercarse a 50° de torsión respecto a un apoyo conservado, hasta que el pie
-  se libere en su fase normal. La respuesta angular es 8/s,
-  con aceleración angular de 720°/s² dividida por el factor temporal del estado.
-  Las inversiones mayores de 135° frenan antes de girar; el arranque espera
-  hasta quedar a 3° de la dirección pendiente. Soltar la entrada cancela el
-  reinicio. Los apoyos mantienen su anclaje y base en mundo; los pies en
-  transferencia recuperan orientación hacia el desplazamiento real, limitada
-  a 35° respecto al cuerpo. El pivote reutiliza el ciclo aprobado de caminata,
-  con pasos recogidos bajo las caderas y reloj angular independiente de la
-  distancia física; no modifica clips, rig ni solver de IK.
+  sin cambiar el controlador global. Conserva sus envolventes de arranque,
+  frenada al soltar y peso de carrera; los cambios de dirección no activan
+  `reverse_brake` ni `reverse_hold`, ni reinician el arranque desde reposo.
+  El rumbo y cada diferencia angular se normalizan a [-π, π]; cada muestra
+  avanza por el arco más corto, sin sobrepasar el objetivo ni acumular vueltas.
+  Solo un 180° exacto conserva el sentido del último giro como desempate.
+  La velocidad angular máxima es 300°/s en marcha y 360°/s en carrera, dividida
+  por el factor temporal del estado, con aceleración de 3600°/s² y respuesta
+  de 24/s. El factor de apoyo queda entre 0,8 y 1, evitando esperas prolongadas.
+  Hasta 45° conserva la velocidad; entre 45° y 180° reduce progresivamente
+  hasta un objetivo mínimo del 30 % en marcha o 20 % en carrera. La reducción
+  tarda como máximo 0,10 s y la recuperación 0,18 s, multiplicadas por el factor
+  temporal del estado; nunca impone una parada ni una pausa de giro.
+  La inclinación acompaña velocidad y velocidad angular con resorte continuo,
+  limitada a 6° en marcha y 12° en carrera, atenuada por el estado. Se aplica
+  antes de resolver contactos, conservando los anclajes y las longitudes de IK.
+  Los pies en transferencia se orientan al desplazamiento real, con un máximo
+  de 35° respecto al cuerpo. Los clips, rig y solver permanecen intactos.
 - Orden de evaluación: movimiento y colisiones → desplazamiento real → fase y
   pose aprobada → referencia visual y pelvis → IK y comprobación de suela.
   Las correcciones se calculan desde la pose fuente, sin acumularse entre
@@ -77,7 +82,8 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
 - **Paso 3, comparación de giros:** botón **Paso 3: comparar giros** en ese
   visor o F6 en `scenes/prototype_3d/aren_turn_review.tscn`. Izquierda: respuesta
   anterior; derecha: corrección. Vistas tres cuartos y superior sincronizadas;
-  controles de estado, caminata/carrera, 45°/90°/180°, giro suave, cámara móvil,
+  controles de estado, caminata/carrera, 45°/90°/135°/180°, giros consecutivos,
+  giro suave, cámara móvil,
   suelo irregular, pausa, reinicio y velocidad. Reutiliza el escenario del visor,
   los contactos y el terreno existentes; no ejecuta la escena jugable.
 
@@ -89,5 +95,6 @@ Rutas relativas al proyecto Godot 4. Leer los `AGENTS.md` aplicables antes de ed
 - El entorno de validación usa renderizado por software; sus FPS no representan
   el rendimiento de una GPU física.
 - **Paso 3 en revisión visual:** corrección de giros y orientación de los pies
-  preparada en el visor. Pendiente de aprobación visual del usuario antes de
+  preparada en el visor, con respuesta ágil y conservación de velocidad en giros.
+  Pendiente de aprobación visual del usuario antes de
   comprobar la escena jugable provisional; sin aprobación final de integración.
