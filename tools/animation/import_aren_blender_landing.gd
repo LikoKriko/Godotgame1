@@ -4,8 +4,9 @@ const OUTPUT="res://assets/characters/prototype_3d/generated/aren_landing_blende
 const SCALE=1.75/64
 func _initialize():call_deferred("run")
 func run() -> void:
+ var stem:="landing_heavy" if "--heavy" in OS.get_cmdline_user_args() else "landing_3m"
  var document:=GLTFDocument.new();var state:=GLTFState.new()
- if document.append_from_file(OUTPUT+"landing_3m.glb",state)!=OK:quit(1);return
+ if document.append_from_file(OUTPUT+stem+".glb",state)!=OK:quit(1);return
  var source:Node3D=document.generate_scene(state,60.0,false,false);root.add_child(source)
  var skeleton:Skeleton3D=source.find_children("*","Skeleton3D",true,false)[0]
  var player:AnimationPlayer=source.find_children("*","AnimationPlayer",true,false)[0]
@@ -33,7 +34,7 @@ func run() -> void:
  assert(not animation_name.is_empty(),"Blender bake has no animation")
  var imported:Animation=player.get_animation(animation_name)
  print("BLENDER IMPORT ",animation_name," duration ",imported.length," rest delta ",maximum_rest_error)
- var clip:=Animation.new();clip.resource_name="ArenLanding3m_BlenderPilot";clip.length=155.0/60;clip.step=1.0/60;clip.loop_mode=Animation.LOOP_NONE
+ var clip:=Animation.new();clip.resource_name="ArenLanding_Blender_"+stem;clip.length=155.0/60;clip.step=1.0/60;clip.loop_mode=Animation.LOOP_NONE
  for bone in native.parents.size():
   for type in [Animation.TYPE_POSITION_3D,Animation.TYPE_ROTATION_3D,Animation.TYPE_SCALE_3D]:
    var track:=clip.add_track(type);clip.track_set_path(track,NodePath("Skeleton3D:"+str(native.skeleton.get_bone_name(bone))));clip.track_set_interpolation_type(track,Animation.INTERPOLATION_LINEAR)
@@ -51,6 +52,6 @@ func run() -> void:
    clip.position_track_insert_key(bone*3,seconds,local.origin)
    clip.rotation_track_insert_key(bone*3+1,seconds,local.basis.orthonormalized().get_rotation_quaternion())
    clip.scale_track_insert_key(bone*3+2,seconds,local.basis.get_scale())
- clip.set_meta("source_blend",OUTPUT+"authoring/aren_landing_3m.blend");clip.set_meta("source_glb_sha256",FileAccess.get_sha256(OUTPUT+"landing_3m.glb"));clip.set_meta("whole_body_keys",[1,17,37,48,60,71,104,156]);clip.set_meta("impact_time",47.0/60)
- var error:=ResourceSaver.save(clip,OUTPUT+"landing_3m.res");assert(error==OK)
+ clip.set_meta("source_blend",OUTPUT+"authoring/aren_"+stem+".blend");clip.set_meta("source_glb_sha256",FileAccess.get_sha256(OUTPUT+stem+".glb"));clip.set_meta("whole_body_keys",[1,17,37,48,60,71,87,104,156]);clip.set_meta("impact_time",47.0/60)
+ var error:=ResourceSaver.save(clip,OUTPUT+stem+".res");assert(error==OK)
  actor.free();source.free();print("NATIVE BLENDER CLIP SAVED: 66 bones, 156 baked samples");quit()

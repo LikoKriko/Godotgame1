@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/prototype_3d/aren_blender_landing_review_actor.tscn" id="1"]
+
+[node name="ArenBlenderPreviousReview" instance=ExtResource("1")]
+previous_clip = true

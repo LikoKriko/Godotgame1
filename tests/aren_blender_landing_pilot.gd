@@ -11,7 +11,7 @@ func run() -> void:
  var n=actor.native;var previous:Array[Vector3]=[];var seen:=0;var palm_xz:=Vector2.ZERO;var first:=true
  var maximum_step:=0.0;var minimum_knee:=INF;var maximum_knee:=0.0;var minimum_elbow:=180.0
  check(n.parents.size()==66,"native bone count")
- check(actor.PilotClip.get_meta("whole_body_keys").size()==8,"eight authored whole-body keys")
+ check(actor.PilotClip.get_meta("whole_body_keys").size()==9,"nine coordinated whole-body keys")
  for frame in 900:
   actor.advance_jump_preview(1.0/120)
   for bone in n.parents.size():check(n.posed[bone].is_finite(),"finite pose")
@@ -60,7 +60,7 @@ func run() -> void:
  check(r.source_index==r.pilot_index,"pilot available in existing viewer")
  r.show_jump_phase(2);var clock:float=r.actors[0].preview_clock
  var pose:Dictionary=r.actors[0].capture_pose();r.compare_pilot()
- check(r.source_index==17,"procedural comparison")
+ check(r.source_index==17 and r.actors[0].previous_clip,"previous Blender comparison")
  check(absf(r.actors[0].preview_clock-clock)<.00001 and not r.playing,"comparison preserves time/pause")
  r.compare_pilot()
  var after:Dictionary=r.actors[0].capture_pose()
@@ -79,7 +79,7 @@ func run() -> void:
    r.show_frame("idle_to_fall",time);r.playing=true
    r.comparison_selector.item_selected.emit(0)
    check(absf(r.actors[0].preview_clock-time)<.00001 and r.playing,"anterior preserves playing time")
-   check(not r.landing_reference.visible and r.review_heights()==[3.0],"comparison has one baseline without old variants")
+   check(not r.landing_reference.visible and r.review_heights()==r.Family.HEIGHTS,"single comparison with supported family heights")
    r.comparison_selector.item_selected.emit(1)
    check(absf(r.actors[0].preview_clock-time)<.00001 and r.playing,"actual preserves playing time")
  r.restart_button.pressed.emit()
@@ -98,4 +98,10 @@ func run() -> void:
    for phase in range(1,5):r.show_jump_phase(phase)
  r.select_catalog_item(r.source_selector.get_item_index(r.pilot_index))
  check(r.source_index==r.pilot_index and r.comparison_selector.visible,"single development entry")
+ r.fall_height_selector.item_selected.emit(r.review_heights().find(6.0))
+ r.show_frame("idle_to_fall",2.1);r.playing=false
+ r.compare_pilot()
+ check(is_equal_approx(r.actors[0].drop_height,6.0) and is_equal_approx(r.actors[0].preview_clock,2.1) and not r.playing,"previous preserves selected height, time and pause")
+ r.compare_pilot()
+ check(is_equal_approx(r.actors[0].drop_height,6.0),"corrected family preserves height after comparison")
  r.free();print("BLENDER PILOT ",checks," checks; maximum tracked step ",maximum_step," knee ",minimum_knee,"..",maximum_knee," support elbow minimum ",minimum_elbow," failures ",errors);quit(0 if errors.is_empty() else 1)
