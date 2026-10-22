@@ -1,7 +1,8 @@
 # Aren: piloto de recepción mediante poses completas en Blender
 
 Familia de recepción aislada de **3 a menos de 8 m, estado normal y entrada desde reposo**.
-La base de comparación es el piloto Blender anterior (`60a4056`); los dos
+La base de comparación es la familia visible anterior al refuerzo de absorción
+(`4217d0f`); los dos
 extremos corregidos se editan en Blender y se mezclan como poses completas
 según la velocidad vertical de impacto. Solo se carga
 en `aren_authoring_review.tscn`; no sustituye clips aprobados ni se conecta a
@@ -27,9 +28,10 @@ procedural muestreada. Las otras poses, objetivos, trayectorias y tiempos se
 han definido como decisiones completas de autoría para este piloto.
 
 El archivo `authoring/aren_landing_3m.blend` contiene el rig original, malla,
-materiales, nueve marcadores de pose, controladores IK de manos/pies, polos de
-codos/rodillas y cámaras. La acción editable es
-`ArenLanding3m_EightWholePoses` (nombre histórico, ahora con nueve poses).
+materiales, marcadores de pose, controladores IK de manos/pies, polos de
+codos/rodillas y cámaras. La acción editable activa es
+`Aren_ContactAbsorption_WholePoses`. Las acciones de autoría anteriores se
+conservan en el archivo como referencias inactivas.
 El exportador genera `ArenLanding3m_Baked` sobre una copia evaluada, sin
 reescribir la autoría editable.
 Los controladores son objetos externos al esqueleto: no añaden huesos al rig.
@@ -40,7 +42,8 @@ Los controladores son objetos externos al esqueleto: no añaden huesos al rig.
 | 17 | Preparación aérea coordinada |
 | 37 | Postura previa al contacto |
 | 48 | Impacto físico de los pies |
-| 60 | Absorción y apoyo de palma |
+| 49–59 | Compresión reactiva coordinada; mínimo de pelvis en 54 (+100 ms a 3 m) |
+| 60 | Enlace exacto con la absorción existente y apoyo de palma |
 | 71 | Estabilización breve y transferencia de apoyo |
 | 87 | Transferencia coordinada de apoyos y arco de retirada de palma |
 | 104 | Incorporación, mano retirada y pie derecho recuperado |
@@ -97,10 +100,11 @@ autoría tiene `.gdignore` para impedir la importación automática del `.blend`
 
 Abrir `scenes/prototype_3d/aren_authoring_review.tscn` y ejecutar con F6. La fuente
 **Blender · recepción 3–<8 m** ofrece las cuatro cámaras, pausa, reinicio,
-velocidad y selección de fases existentes. **Anterior (piloto Blender) / Actual (Blender corregido)**
+velocidad y selección de fases existentes. **Anterior (absorción previa) / Actual (absorción reforzada)**
 conserva altura, instante y pausa; el clip anterior es una
-copia independiente del piloto previo, reproducida con el mismo reloj de
-impacto. Solo Actual mezcla los extremos corregidos. No se acumulan variantes
+copia independiente de los dos extremos de la familia previa, reproducida con
+el mismo reloj de impacto. Ambas opciones mezclan por la misma velocidad;
+solo Actual añade la compresión. No se acumulan variantes
 en el catálogo ni se modifican las fuentes procedurales históricas.
 
 Las pruebas del piloto se ejecutan con:
@@ -125,13 +129,15 @@ la prueba en desarrollo y su pareja de comparación, sin añadir un historial.
 
 ## Extremos corregidos y reproducción
 
-- `authoring/aren_landing_3m.blend`: nueve poses coordinadas. Se abre el torso
-  sobre la rodilla adelantada, se separa la mano libre del muslo y se define
-  una pose completa de transferencia a fotograma 87.
-- `authoring/aren_landing_heavy.blend`: extremo más pesado, con preparación y
-  absorción propias sobre el mismo rig; no representa un desplome desde 8 m.
-- `landing_3m_previous.res`: piloto anterior conservado para comparación, sin
-  alterar sus pistas. `landing_3m.res` y `landing_heavy.res` son los extremos actuales.
+- `authoring/aren_landing_3m.blend`: conserva la secuencia visible previa y
+  refuerza únicamente la absorción en 48–60. Las acciones editables anteriores
+  siguen disponibles como referencias inactivas.
+- `authoring/aren_landing_heavy.blend`: conserva la referencia visible del
+  extremo de impactos altos y recibe la misma compresión breve sobre el mismo
+  rig. La escala temporal por velocidad mantiene su recuperación más lenta;
+  no representa un desplome desde 8 m.
+- `landing_3m_previous.res` y `landing_heavy_previous.res`: familia anterior
+  conservada para comparar exclusivamente el refuerzo de absorción. `landing_3m.res` y `landing_heavy.res` son los extremos actuales.
 - `aren_blender_landing_motion.gd`: mezcla quíntica continua según velocidad de
   impacto entre los valores balísticos de 3 y 8 m. El visor ofrece alturas
   representativas hasta 7,9 m; el evaluador admite cualquier valor 3 ≤ h < 8.
@@ -154,3 +160,38 @@ los aterrizajes de 0,55 y 1,50 m, el rig, fuentes, binds y clips aprobados.
 Las comprobaciones automáticas de contactos, longitudes y separación anatómica
 se complementan con la revisión visual; no certifican todas las intersecciones
 de la malla ni sustituyen la aprobación del usuario.
+
+## Compresión de impacto aislada
+
+La edición corporal queda limitada a los fotogramas **48–60**. El contacto
+físico de los pies sigue en 48. La pelvis alcanza una compresión única en 54
+y enlaza con la pose existente en 60, sin cambiar los tiempos de palma, pasos,
+estabilización ni recuperación. Las rodillas y tobillos reaccionan mediante
+IK de Blender contra los mismos objetivos; pelvis, columna, hombros y cabeza
+acompañan con una pose completa. No hay escalado de huesos ni corrección corporal
+procedural añadida en Godot. La duración de la familia y el zoom se conservan.
+
+El exportador desactiva **Export all Armature Actions**
+(`export_anim_single_armature=False`). Fusionar acciones históricas en
+`ACTIVE_ACTIONS` podía sustituir silenciosamente las pistas recién horneadas.
+Para preservar las poses que realmente mostraba el visor, la edición usa una
+referencia de los clips nativos anteriores sobre el mismo rig; las acciones
+editables previas permanecen inactivas, sin descartarse. No se reconstruye
+movimiento fuera de la absorción.
+
+Herramientas de esa edición inicial (no repetir sobre archivos ya corregidos):
+
+```sh
+godot --headless --path . --script tools/animation/export_aren_landing_reference.gd
+blender -b assets/characters/prototype_3d/generated/aren_landing_blender_pilot_v1/authoring/aren_landing_3m.blend \
+  -t 4 --python tools/animation/compress_aren_landing_blender.py -- --reference work/landing_absorption_reference/previous.json
+# Para el extremo pesado, usar su .blend y previous_heavy.json.
+```
+
+Para futuras correcciones, editar la acción activa del `.blend` y utilizar los
+comandos `--bake-only` anteriores. `tests/aren_landing_absorption.gd` comprueba
+la conservación de poses fuera del tramo, duración, flexión reactiva, una sola
+compresión, continuidad de objetivos y sincronización con contacto físico.
+En el visor se puede desactivar **Detalle** para comparar a cámara fija y luego
+reactivarlo para revisar con el zoom habitual. La integración jugable sigue
+pendiente de aprobación visual.

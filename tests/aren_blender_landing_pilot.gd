@@ -11,7 +11,7 @@ func run() -> void:
  var n=actor.native;var previous:Array[Vector3]=[];var seen:=0;var palm_xz:=Vector2.ZERO;var first:=true
  var maximum_step:=0.0;var minimum_knee:=INF;var maximum_knee:=0.0;var minimum_elbow:=180.0
  check(n.parents.size()==66,"native bone count")
- check(actor.PilotClip.get_meta("whole_body_keys").size()==9,"nine coordinated whole-body keys")
+ check(actor.PilotClip.get_meta("whole_body_keys").size()==20,"coordinated whole-body keys with localized absorption")
  for frame in 900:
   actor.advance_jump_preview(1.0/120)
   for bone in n.parents.size():check(n.posed[bone].is_finite(),"finite pose")

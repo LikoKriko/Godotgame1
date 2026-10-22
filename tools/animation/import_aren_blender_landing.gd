@@ -52,6 +52,10 @@ func run() -> void:
    clip.position_track_insert_key(bone*3,seconds,local.origin)
    clip.rotation_track_insert_key(bone*3+1,seconds,local.basis.orthonormalized().get_rotation_quaternion())
    clip.scale_track_insert_key(bone*3+2,seconds,local.basis.get_scale())
- clip.set_meta("source_blend",OUTPUT+"authoring/aren_"+stem+".blend");clip.set_meta("source_glb_sha256",FileAccess.get_sha256(OUTPUT+stem+".glb"));clip.set_meta("whole_body_keys",[1,17,37,48,60,71,87,104,156]);clip.set_meta("impact_time",47.0/60)
+ var whole_keys:Array=[1,17,37]
+ for key in range(48,61):whole_keys.append(key)
+ whole_keys.append_array([71,87,104,156])
+ clip.set_meta("source_blend",OUTPUT+"authoring/aren_"+stem+".blend");clip.set_meta("source_glb_sha256",FileAccess.get_sha256(OUTPUT+stem+".glb"));clip.set_meta("whole_body_keys",whole_keys);clip.set_meta("impact_time",47.0/60)
+ clip.set_meta("absorption_frames",[48,54,60])
  var error:=ResourceSaver.save(clip,OUTPUT+stem+".res");assert(error==OK)
  actor.free();source.free();print("NATIVE BLENDER CLIP SAVED: 66 bones, 156 baked samples");quit()

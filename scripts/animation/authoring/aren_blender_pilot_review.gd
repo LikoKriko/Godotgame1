@@ -10,7 +10,7 @@ var speed_presets:OptionButton
 var catalog_ready:=false
 var turn_review_button:Button
 func _ready() -> void:
- sources[PREVIOUS_INDEX]={"label":"Anterior · piloto Blender", "path":"res://scenes/prototype_3d/aren_blender_previous_review_actor.tscn"}
+ sources[PREVIOUS_INDEX]={"label":"Anterior · absorción Blender", "path":"res://scenes/prototype_3d/aren_blender_previous_review_actor.tscn"}
  pilot_index=sources.size();sources.append({"label":"Blender · recepción 3–<8 m","path":PILOT_SCENE})
  scene_path=PILOT_SCENE;motion="idle_to_fall"
  super._ready()
@@ -28,7 +28,7 @@ func _ready() -> void:
  source_selector.add_item("Blender · recepción 3–<8 m",pilot_index)
  source_selector.item_selected.connect(select_catalog_item)
  comparison_selector=OptionButton.new();comparison_selector.position=Vector2(965,36)
- comparison_selector.add_item("Anterior (piloto Blender)");comparison_selector.add_item("Actual (Blender corregido)")
+ comparison_selector.add_item("Anterior (absorción previa)");comparison_selector.add_item("Actual (absorción reforzada)")
  comparison_selector.item_selected.connect(select_comparison);add_child(comparison_selector)
  speed_slider.step=.001;speed_slider.value=1.0;speed_slider.hide()
  speed_presets=OptionButton.new();speed_presets.add_item("1,0×");speed_presets.add_item("0,25×")

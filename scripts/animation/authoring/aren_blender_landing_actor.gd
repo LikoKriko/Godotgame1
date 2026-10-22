@@ -3,6 +3,7 @@ extends "res://scripts/animation/authoring/aren_fall_actor.gd"
 const PilotClip=preload("res://assets/characters/prototype_3d/generated/aren_landing_blender_pilot_v1/landing_3m.res")
 const HeavyClip=preload("res://assets/characters/prototype_3d/generated/aren_landing_blender_pilot_v1/landing_heavy.res")
 const PreviousClip=preload("res://assets/characters/prototype_3d/generated/aren_landing_blender_pilot_v1/landing_3m_previous.res")
+const PreviousHeavyClip=preload("res://assets/characters/prototype_3d/generated/aren_landing_blender_pilot_v1/landing_heavy_previous.res")
 const Family=preload("res://scripts/animation/authoring/aren_blender_landing_motion.gd")
 const CycleSampler=preload("res://scripts/animation/authoring/aren_cycle_sampler.gd")
 const PilotContacts=preload("res://scripts/animation/authoring/aren_blender_landing_contacts.gd")
@@ -15,8 +16,8 @@ func _ready() -> void:
  review_height=3
  super._ready()
  pilot_sampler.configure(library,native.skeleton)
- for key in ["pilot","heavy","previous"]:
-  var clip:Animation={"pilot":PilotClip,"heavy":HeavyClip,"previous":PreviousClip}[key]
+ for key in ["pilot","heavy","previous","previous_heavy"]:
+  var clip:Animation={"pilot":PilotClip,"heavy":HeavyClip,"previous":PreviousClip,"previous_heavy":PreviousHeavyClip}[key]
   pilot_sampler.clips[key]=clip
   var bindings:Array=[]
   for track in clip.get_track_count():bindings.append(native.skeleton.find_bone(str(clip.track_get_path(track).get_subname(0))))
@@ -33,10 +34,9 @@ func preview_duration(_name:String="") -> float:return Fall.LEAD_IN+Fall.flight_
 func apply_clip(seconds:float,entry_weight:float=1.0) -> void:
  var sample_time:=clampf(seconds,0,PilotClip.length-.000001)
  var pose:Dictionary=pilot_sampler.sample("previous" if previous_clip else "pilot",sample_time)
- if not previous_clip:
-  var heavy:Dictionary=pilot_sampler.sample("heavy",sample_time)
-  var weight:float=landing_profile().intensity
-  for bone in native.parents.size():pose.poses[bone]=pose.poses[bone].interpolate_with(heavy.poses[bone],weight)
+ var heavy:Dictionary=pilot_sampler.sample("previous_heavy" if previous_clip else "heavy",sample_time)
+ var weight:float=landing_profile().intensity
+ for bone in native.parents.size():pose.poses[bone]=pose.poses[bone].interpolate_with(heavy.poses[bone],weight)
  if entry_weight<1:
   for bone in native.parents.size():pose.poses[bone]=airborne_source.poses[bone].interpolate_with(pose.poses[bone],entry_weight)
  var finish:=Jump.smooth5((seconds-IMPACT-1.55)/.25)

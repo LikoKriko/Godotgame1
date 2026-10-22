@@ -26,7 +26,7 @@ def bake_native(rig):
  proxy=bpy.data.objects.new('ExportSkin',mesh);bpy.context.collection.objects.link(proxy);proxy.matrix_world=baked.matrix_world.copy();proxy.parent=baked
  vg=proxy.vertex_groups.new(name='smartrig:Hips');vg.add([0,1,2],1,'REPLACE');mod=proxy.modifiers.new('NativeSkin','ARMATURE');mod.object=baked
  bpy.ops.object.select_all(action='DESELECT');baked.select_set(True);proxy.select_set(True);bpy.context.view_layer.objects.active=baked
- bpy.ops.export_scene.gltf(filepath=str(OUT/(STEM+'.glb')),export_format='GLB',use_selection=True,export_animations=True,export_animation_mode='ACTIVE_ACTIONS',export_frame_range=True,export_force_sampling=True,export_def_bones=False,export_materials='NONE',export_yup=True)
+ bpy.ops.export_scene.gltf(filepath=str(OUT/(STEM+'.glb')),export_format='GLB',use_selection=True,export_animations=True,export_animation_mode='ACTIVE_ACTIONS',export_anim_single_armature=False,export_frame_range=True,export_force_sampling=True,export_def_bones=False,export_materials='NONE',export_yup=True)
  # Blender's active-action exporter emits identity object tracks for this pose bake.
  # Keep the armature's fixed native normalization in the node, animate bones only.
  path=OUT/(STEM+'.glb');raw=path.read_bytes();length=struct.unpack_from('<I',raw,12)[0]

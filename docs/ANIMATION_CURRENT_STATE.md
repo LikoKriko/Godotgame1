@@ -1,7 +1,7 @@
 # Aren: contexto vigente de animaciones
 
 Rama exclusiva: **`test/animation-system-v1`**. No modificar `main`.
-Base de esta iteración: **`a2b9751`**, sobre la limpieza del visor `5e93839`
+Base de esta iteración de absorción: **`4217d0f`**, sobre la limpieza del visor `5e93839`
 y el piloto `60a4056`. Obtener el último commit con `git log -1 --oneline`. Leer los `AGENTS.md` aplicables antes de editar.
 
 ## Metodología aprobada y arquitectura
@@ -61,8 +61,9 @@ creados en Blender; aún mantiene estado normal y entrada desde reposo.
 - Carpeta: `assets/characters/prototype_3d/generated/aren_landing_blender_pilot_v1/`.
   Contiene `authoring/aren_landing_3m.blend`, `authoring/reference_pose.json`,
   exportación `landing_3m.glb` y clip nativo `landing_3m.res`.
-- Nueve poses completas en la corrección actual (ocho en el piloto), rig original y controles IK externos; acciones editables
-  `ArenLanding3m_EightWholePoses` (nombre histórico); el exportador genera
+- Poses completas, rig original y controles IK externos. La acción activa
+  `Aren_ContactAbsorption_WholePoses` conserva la referencia visible y añade
+  compresión solo en 48–60; las acciones previas siguen inactivas. El exportador genera
   `ArenLanding3m_Baked` sobre una copia evaluada.
   Referencia anatómica acordada, sin mocap: pie izquierdo adelantado y rodilla
   hacia delante, antepié derecho estabilizador, rodilla derecha suspendida a
@@ -85,12 +86,12 @@ creados en Blender; aún mantiene estado normal y entrada desde reposo.
 - `scenes/prototype_3d/aren_authoring_review.tscn` (**F6**): limpieza publicada
   en `5e93839`. Categorías **Animaciones aprobadas** (locomoción, salto, caída
   automática y acceso a giros) y **Animación en desarrollo**, con un único
-  **Blender · recepción 3–<8 m**. Comparación **Anterior (piloto Blender) /
-  Actual (Blender corregido)** al mismo instante, conservando pausa; velocidades 1,0× y
+  **Blender · recepción 3–<8 m**. Comparación **Anterior (absorción previa) /
+  Actual (absorción reforzada)** al mismo instante, conservando pausa; velocidades 1,0× y
   0,25×, fases, reinicio y vistas frontal/lateral/trasera/diagonal. Las fuentes
   históricas están fuera del catálogo, conservadas en disco. La próxima prueba
   debe sustituir la actual y su pareja, sin acumular variantes ni presentarse
-  como definitiva. La referencia anterior conserva el clip del piloto; los históricos procedurales
+  como definitiva. La referencia anterior conserva los dos clips de la familia de `4217d0f`; los históricos procedurales
   permanecen sin modificar y fuera del catálogo.
 - `scenes/prototype_3d/aren_turn_review.tscn`: comparación de giros existente.
 - `scenes/prototype_3d/aren_terrain_test.tscn` (**F6**), actor
@@ -99,7 +100,8 @@ creados en Blender; aún mantiene estado normal y entrada desde reposo.
   4/5 camino/bosque, 6/7/8/9 plataformas de 0,55/1,50/3/8 m; R reinicia,
   botón derecho+ratón controla cámara. El piloto no está integrado;
   `deep_landing_enabled=false` en `aren_air_motion.gd`.
-- Pruebas existentes: `tests/aren_blender_landing_family.gd` (alturas intermedias, contactos y separación),
+- Pruebas existentes: `tests/aren_landing_absorption.gd` (edición limitada al impacto),
+  `tests/aren_blender_landing_family.gd` (alturas intermedias, contactos y separación),
   `tests/aren_blender_landing_pilot.gd` (clip, contactos,
   continuidad y catálogo), `tests/aren_air_integration.gd`,
   `tests/aren_locomotion_integration.gd`, `tests/aren_turn_review.gd`.
