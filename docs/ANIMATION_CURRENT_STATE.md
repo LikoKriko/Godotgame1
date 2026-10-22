@@ -1,348 +1,129 @@
-# Aren: estado actual del sistema de animaciones
+# Aren: contexto vigente de animaciones
 
-**Fase 1: locomoción (paso 5) y salto voluntario (paso 6) aprobados visualmente.**
-Salto aprobado por el usuario en `343af25` (`Refine Aren jump timing and add continuous review transitions`).
-Paso 7: caída automática conectada a la escena jugable provisional.
-Paso 8: recepción con rodilla derecha y palma en revisión visual, exclusivamente en el visor.
-Rama exclusiva: `test/animation-system-v1`. Commit de cierre funcional de locomoción: `651b81a97a0dfe652d3f6af09b38bd2c90e330a9`
-(`Cache rig branches for identical Aren pose transforms`). El cierre posterior
-es únicamente documental. No integrar en `main` sin autorización expresa.
+Rama exclusiva: **`test/animation-system-v1`**. No modificar `main`.
+Último commit funcional publicado: **`5e93839`** (limpieza del visor), sobre el
+piloto **`60a4056`**. Este cierre es documental; obtener su hash con
+`git log -1 --oneline`. Leer los `AGENTS.md` aplicables antes de editar.
 
-## Arquitectura y herramientas
+## Metodología aprobada y arquitectura
 
-Sistema provisional de Godot 4, aislado del juego principal. Conservar las
-animaciones, perfiles, rig, binds, materiales e identificadores aprobados.
-Leer los `AGENTS.md` aplicables antes de editar; reutilizar los sistemas existentes.
+**Blender es la herramienta principal aprobada para crear y corregir
+animaciones mediante poses completas coordinadas.** Godot conserva física,
+transiciones, sincronización y contactos/IK. No seguir construyendo movimientos
+nuevos como curvas independientes de articulaciones. Las animaciones antiguas
+podrán exportarse y hornearse para corregirlas en Blender cuando sea viable;
+no rehacer automáticamente las versiones que funcionan bien ni sustituir clips
+aprobados sin revisión.
 
-- Modelo: `assets/characters/prototype_3d/composite/model.scn`.
-  Rig nativo de 66 huesos: `data/animation/characters/survivor_native.tres`.
-  Enlace: `scripts/animation/characters/native_survivor.gd`;
-  utilidades compartidas: `scripts/animation/shared/`.
-- Variante aprobada: `assets/characters/prototype_3d/generated/aren_run_balanced_v1/`
-  (`aren.tscn`, `profile.json`). Herramientas de autoría en `tools/animation/`
-  y `scripts/animation/authoring/`; evaluación mediante
-  `aren_run_balanced_actor.gd`, `aren_run_balanced_sampler.gd` y
-  `aren_transition_actor.gd` de este último directorio.
-- En `scripts/animation/terrain/`, `aren_motion_driver.gd` comparte movimiento
-  entre visor y escena jugable, reutilizando
-  `scripts/prototype_3d/movement_response.gd`; `aren_turn_response.gd` adapta
-  los giros. `aren_terrain_test.gd` gestiona física, cámara, entradas y HUD.
-- `aren_terrain_actor.gd` resuelve pelvis, contactos e IK de longitudes fijas;
-  `terrain_foot_support.gd` valida las suelas; `terrain_cycle_sampler.gd`
-  reutiliza muestras; `terrain_test_patch.gd` construye los terrenos;
-  `terrain_step.gd` valida escalones de hasta 26 cm. Cápsula de 1,65 m,
-  radio de 22 cm y pendiente máxima de 42°.
-- Evaluación: movimiento y colisiones → desplazamiento real → fase y pose
-  aprobada → referencia corporal y pelvis → IK y suelas. Las correcciones
-  parten de la pose fuente, sin acumularse entre fotogramas.
+- Herramientas verificadas en este entorno: Blender 4.3.2 y Godot 4.6.3.
+- Fuente original: `entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx`.
+  Modelo Godot: `assets/characters/prototype_3d/composite/model.scn`.
+  Rig nativo de **66 huesos**, perfil `data/animation/characters/survivor_native.tres`,
+  enlace `scripts/animation/characters/native_survivor.gd`. Conservar jerarquía,
+  binds, longitudes, materiales y proporciones aprobadas.
+- Locomoción aprobada: `assets/characters/prototype_3d/generated/aren_run_balanced_v1/`;
+  actores y muestreadores en `scripts/animation/authoring/`, utilidades de rig
+  en `scripts/animation/shared/`. Los sistemas procedurales siguen funcionando.
+- `scripts/animation/terrain/`: `aren_motion_driver.gd` comparte locomoción;
+  `aren_air_motion.gd` controla salto/caída; `aren_fall_response.gd` clasifica
+  pérdida de apoyo físico; `aren_terrain_actor.gd` resuelve pelvis y pies.
+  `terrain_foot_support.gd` valida suelas; `terrain_step.gd` conserva escalones
+  de hasta 26 cm. Flujo: física/contacto real → fase/pose → contactos e IK.
+- Detalles del sistema existente: [ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md).
 
-## Animaciones, estados y transiciones
+## Fase 1: implementación, pruebas y aprobación
 
-- Reposo, caminata y carrera en `normal`, `cautious` y `tired`
-  (normal, cauteloso y cansado), conservando sus diferencias de estilo y ritmo.
-- Seis transiciones entre reposo, caminata y carrera, encadenables e
-  interrumpibles. Se seleccionan por intención de movimiento; los cambios
-  rápidos no dependen de alcanzar una velocidad nominal exacta.
-- Aceleración, frenada, locomoción relativa a cámara y fase sincronizada con
-  el desplazamiento físico real. El cambio de estado mezcla durante 0,3 s
-  conservando la fase.
-- Giros ágiles por el arco más corto, con diferencias angulares en [-π, π],
-  sin vueltas acumuladas. Límites de 300°/s caminando y 360°/s corriendo,
-  ajustados por estado. Los giros moderados conservan movimiento; las
-  inversiones coordinan frenada breve, apoyo y recuperación sin pausa impuesta.
-- Inclinación proporcional al giro y la velocidad, limitada a 2,5° caminando
-  y 4° corriendo, distribuida entre pelvis y columna. Girar solo la cámara
-  mantiene el comportamiento aprobado.
-- Pies apoyados anclados en mundo; durante la transferencia siguen la dirección
-  real, hasta 35° respecto al cuerpo. IK con límites anatómicos, superficies
-  transitables y compensación de pelvis, conservando la oscilación natural.
+| Paso | Estado al cierre |
+| --- | --- |
+| 1–4 | Base terrestre implementada: reposo, caminata, carrera, giros y transiciones. Aprobada como conjunto previo al cierre del paso 5; no consta aquí el desglose original por número (el visor histórico identifica giros como paso 3). |
+| 5 | Locomoción y adaptación al terreno aprobadas visualmente; cierre funcional `651b81a`. Tres estados: normal, cauteloso y cansado. Conservar poses y rendimiento. |
+| 6 | Salto voluntario aprobado visualmente en `343af25`, integrado en pruebas en `019a52b`. Reducción del 60 % de preparación **ya aplicada** en `2bc9e89`: 0,50 → 0,20 s, mismas poses; impulso 0,105 s. Visor y física comparten tiempos; despegue tras 0,305 s, sujeto al tick físico. No repetir la reducción. |
+| 7 | Caída automática implementada e integrada en `019a52b`, conservada en el catálogo aprobado. Distingue salto y pérdida de apoyo; recuperación provisional por altura. No equivale a aprobar el aterrizaje nuevo del paso 8. |
+| 8 | **Pendiente de finalizar.** Piloto Blender de 3 m disponible solo en el visor, con valoración visual positiva del usuario; falta cierre visual de la familia, adaptación a alturas/estados/velocidades y posterior integración jugable. |
+| 9 | Pendiente; alcance y aprobación no documentados. Confirmar el plan antes de implementarlo. |
+| 10 | Pendiente; alcance y aprobación no documentados. Confirmar el plan antes de implementarlo. |
 
-## Escenas y validación
+Conservar los aterrizajes aprobados de **0,55 y 1,50 m**. La familia nueva abarca
+**3 a menos de 8 m**, aproximadamente 1,8 s de recepción a 3 m, progresivamente
+más pesada a mayor impacto. **Desde 8 m el desplome completo sigue sin implementar.**
 
-- Jugable provisional: `scenes/prototype_3d/aren_terrain_test.tscn` (**F6**).
-  Actor: `scenes/prototype_3d/aren_terrain_actor.tscn`.
-  Incluye plano, rampas, baches, escalones de 5–25 cm, camino irregular y bosque.
-  WASD mueve; Mayús corre; botón derecho y ratón controlan cámara;
-  1/2/3 seleccionan estado; R reinicia; 4/5 llevan a camino/bosque.
-  HUD con velocidad, error de apoyo, FPS y coste CPU de evaluación.
-- Visor: `scenes/prototype_3d/aren_authoring_review.tscn`. El catálogo separa
-  **Animaciones aprobadas** (locomoción, salto, caída automática y giros) de
-  **Animación en desarrollo**: únicamente **Piloto Blender · recepción 3 m**,
-  con **Anterior (procedural) / Actual (Blender)** al mismo instante.
-  Conserva cuatro vistas, estados, ciclos, transiciones, pausa, fases y
-  velocidades 1,0× / 0,25×. Las fuentes históricas quedan fuera del selector.
-- Giros: `scenes/prototype_3d/aren_turn_review.tscn` o la opción
-  **Giros y cambios de dirección** del catálogo aprobado. Comparación de 45°/90°/135°/180°,
-  cambios consecutivos, cámara fija/móvil y suelo irregular.
-- Regresiones principales en `tests/`: `aren_locomotion_integration.gd`,
-  `aren_turn_response.gd`, `aren_turn_review.gd`, `aren_stair_support.gd`,
-  `aren_terrain_sampling.gd`, `aren_branch_cache.gd` y `aren_review_playback.gd`.
-  Cubren transiciones e interrupciones, tres estados, cinco terrenos,
-  escalones en distintas direcciones, apoyos, giros y equivalencia de poses.
-  Ejemplo: `godot --headless --path . --fixed-fps 60 --script tests/aren_locomotion_integration.gd`.
+## Piloto Blender reutilizable (`60a4056`)
 
-## Correcciones y rendimiento integrados
+El usuario estima una **mejora visual de al menos el 80 %** frente a la versión
+procedural. Es una valoración subjetiva suya, no una medición técnica ni una
+aprobación de integración o de todas las alturas. El cambio de metodología sí
+está aprobado. El piloto cubre solo **3 m, normal y entrada desde reposo**.
 
-- Apoyos estables en bordes y escalones, límites articulares y continuidad
-  corporal. Las consultas de piel mezclan pesos en espacio del modelo y aplican
-  una sola vez la transformación del personaje, manteniendo su coincidencia
-  con la malla durante giros y desniveles.
-- Consultas de suela con datos compactos precalculados, descarte conservador,
-  consultas de planos, cajas e índices de triángulos estáticos; barrido detallado
-  cuando la geometría lo requiere. Reutilización de muestras idénticas por
-  evaluación, sin cuantizar el tiempo ni reducir la cadencia de contactos.
-- `RigBinding` precalcula las ramas del esqueleto y las rotaciones reutilizan
-  sus índices, conservando el orden y los resultados de las operaciones.
-  Se mantienen animaciones, IK, sondeos necesarios y calidad de apoyos.
-- Rendimiento comprobado por el usuario en i5-10400F, RTX 3060 y 16 GB RAM,
-  ejecutando con F6 y monitor de 240 Hz: **160–180 FPS en suelo plano y
-  140–160 FPS en terreno irregular**. Las mediciones con renderizado por
-  software del entorno automatizado no son comparables a esta GPU.
-- La escena provisional no aplica el límite de FPS del juego principal.
-  F5 ejecuta otra escena; para comparar con ejecución independiente, mantener
-  escena y resolución y comprobar V-Sync/límites del editor y del controlador.
-  Ejemplo sin límite: `godot --path . --disable-vsync --max-fps 0 scenes/prototype_3d/aren_terrain_test.tscn`.
+- Carpeta: `assets/characters/prototype_3d/generated/aren_landing_blender_pilot_v1/`.
+  Contiene `authoring/aren_landing_3m.blend`, `authoring/reference_pose.json`,
+  exportación `landing_3m.glb` y clip nativo `landing_3m.res`.
+- Ocho poses completas, rig original y controles IK externos; acciones editables
+  `ArenLanding3m_EightWholePoses` y horneada `ArenLanding3m_Baked`.
+  Referencia anatómica acordada, sin mocap: pie izquierdo adelantado y rodilla
+  hacia delante, antepié derecho estabilizador, rodilla derecha suspendida a
+  3–5 cm, pelvis equilibrada, columna curvada y palma complementaria.
+- Autoría: `tools/animation/author_aren_landing_blender.py`.
+  Importación: `tools/animation/import_aren_blender_landing.gd`.
+  Reproducción/contactos: `scripts/animation/authoring/aren_blender_landing_actor.gd`
+  y `aren_blender_landing_contacts.gd`; reutilizan el rig y los solvers actuales.
+- Procedimiento: editar poses/controladores en el `.blend`, revisar visualmente,
+  guardar, hornear/exportar con `--bake-only`, importar el clip y comparar en
+  Godot. **Sin `--bake-only` se sobrescribe la autoría con las poses iniciales.**
+  Comandos exactos, fotogramas y límites en [ANIMATION_BLENDER_PILOT.md](ANIMATION_BLENDER_PILOT.md).
+- Automático: IK, interpolación, horneado visual y conversión del mismo rig.
+  Requieren autoría: referencia, poses, equilibrio, trayectorias y tiempos.
+  Requieren revisión: silueta, intersecciones y continuidad. No hay retargeting
+  general ni generación automática de biomecánica válida.
 
-## Limitaciones pendientes y siguiente objetivo
+## Visores, escena jugable y comprobaciones
 
-- Alcance actual: locomoción terrestre sobre colisiones estáticas; plataformas
-  móviles todavía pendientes. Salto y caída usan el controlador físico compartido.
-  No existe generación universal de movimientos desde texto.
-- Desfase histórico de hashes: `tests/aren_torso_coordination.gd` conserva
-  cuatro discrepancias de procedencia de herramientas en los metadatos de
-  `aren_walk_torso_v2`; no corresponden a fallos de poses o contactos.
-  Conservar los hashes históricos y los clips aprobados; no regenerarlos para
-  silenciar esa comprobación. Las demás regresiones del cierre pasan.
-- **Objetivo actual: Fase 1, paso 8, recepción profunda de 3 a menos de 8 m**.
-  Revisar primero en el visor antes de activar la nueva familia en la escena jugable.
+- `scenes/prototype_3d/aren_authoring_review.tscn` (**F6**): limpieza publicada
+  en `5e93839`. Categorías **Animaciones aprobadas** (locomoción, salto, caída
+  automática y acceso a giros) y **Animación en desarrollo**, con un único
+  **Piloto Blender · recepción 3 m**. Comparación **Anterior (procedural) /
+  Actual (Blender)** al mismo instante, conservando pausa; velocidades 1,0× y
+  0,25×, fases, reinicio y vistas frontal/lateral/trasera/diagonal. Las fuentes
+  históricas están fuera del catálogo, conservadas en disco. La próxima prueba
+  debe sustituir la actual y su pareja, sin acumular variantes ni presentarse
+  como definitiva. La referencia procedural refleja los cambios locales presentes.
+- `scenes/prototype_3d/aren_turn_review.tscn`: comparación de giros existente.
+- `scenes/prototype_3d/aren_terrain_test.tscn` (**F6**), actor
+  `scenes/prototype_3d/aren_terrain_actor.tscn`: plano, terreno irregular y
+  desniveles físicos. WASD, Mayús para correr, Espacio para saltar, 1/2/3 estados,
+  4/5 camino/bosque, 6/7/8/9 plataformas de 0,55/1,50/3/8 m; R reinicia,
+  botón derecho+ratón controla cámara. El piloto no está integrado;
+  `deep_landing_enabled=false` en `aren_air_motion.gd`.
+- Pruebas existentes: `tests/aren_blender_landing_pilot.gd` (clip, contactos,
+  continuidad y catálogo), `tests/aren_air_integration.gd`,
+  `tests/aren_locomotion_integration.gd`, `tests/aren_turn_review.gd`.
+  Recepción procedural: `tests/aren_deep_landing.gd` y
+  `tests/aren_landing_surface_clearance.gd`.
+  Ejemplo: `godot --headless --path . --script tests/aren_blender_landing_pilot.gd`.
+- **Probado previamente:** importación/render de Blender y Godot, rig nativo,
+  contactos de palma/pies, rodilla suspendida, continuidad y controles del visor.
+  La limpieza pasó sus comprobaciones automáticas y revisión de interfaz.
+  Este cierre no modifica movimientos ni repite pruebas funcionales.
+  **Pendiente:** validación visual definitiva y pruebas jugables de la nueva
+  recepción en alturas intermedias, terreno real y locomoción de entrada/salida.
 
-### Paso 6: salto voluntario aprobado
+## Trabajo local conservado y siguientes acciones
 
-El visor conserva **Paso 6: salto voluntario (aprobado)**, versión `343af25`.
-`idle`/`walk`/`run` muestran un salto completo desde esa locomoción, con entrada
-terrestre y recuperación provisional. Conserva los tres estados. El segundo
-selector incluye **Reposo → Salto**, **Caminata → Salto**, **Carrera → Salto**,
-**Salto → Reposo**, **Salto → Caminata**, **Salto → Carrera** y
-**Saltos encadenados**. Las entradas terminan en el ápice; las salidas aisladas
-parten de esa misma fase y terminan en su locomoción de destino. La cadena
-alterna reposo → salto → caminata → salto → carrera → salto → reposo,
-conservando pose, desplazamiento y contactos entre segmentos, sin cortes.
+Hay correcciones procedurales **locales, sin publicar ni aprobar como versión
+final**, anteriores al piloto. No descartarlas ni incluirlas automáticamente
+junto al cierre documental:
 
-Los botones inferiores aíslan preparación, impulso, ascenso, fase aérea,
-descenso y recuperación provisional. El deslizador, pausa, velocidad y
-**Reiniciar** permiten inspección individual. Cambiar a una salida durante el
-vuelo conserva el salto actual; los otros cambios se encolan hasta recuperar
-el suelo. **Reiniciar** inicia explícitamente la opción elegida. Las opciones
-individuales se detienen al terminar, sin reinicios automáticos.
+- `scripts/animation/authoring/aren_kneeling_landing_pose.gd`:
+  preparación aérea coordinada, polos de rodilla y recuperación de manos.
+- `scripts/animation/authoring/aren_landing_actor.gd` y `aren_landing_pose.gd`:
+  conexión de esa preparación, continuidad de salida y objetivos de retirada.
+- `scripts/animation/authoring/aren_review.gd`: etiquetas/referencia procedural.
+- `tests/aren_deep_landing.gd` y `tests/aren_landing_surface_clearance.gd`:
+  comprobaciones asociadas. La documentación extensa local se consolida aquí.
 
-`aren_jump_actor.gd` extiende el actor aprobado y conserva sus bibliotecas.
-Reutiliza el rig nativo, las transformaciones de ramas, el solver de longitudes
-fijas y los correctivos de rodilla. La entrada y recuperación reutilizan el
-reloj y los contactos del actor terrestre, incluidos sus cambios de velocidad.
-Durante la preparación la pelvis desciende hasta 6,5 cm y la inclinación de
-11° se reparte entre pelvis (30 %) y columna (16/24/30 %), con flexión local
-progresiva. El impulso conserva 4° hacia delante; la espalda se endereza de
-forma continua durante el ascenso, hasta la postura neutral cerca del ápice.
-
-`aren_jump_motion.gd` define preparación de 0,20 s, impulso de 0,105 s,
-velocidad inicial de 3,8 m/s y gravedad de 9,8 m/s². Preparación y curvas
-de flexión/inclinación recorren sus mismas poses en el 40 % del tiempo anterior;
-el despegue físico ocurre al completar preparación e impulso (0,305 s,
-redondeado al siguiente tick de física). El vuelo balístico dura
-aproximadamente 0,78 s y conserva la velocidad horizontal de salida. La
-recuperación provisional mezcla durante 0,34 s; devuelve antes los objetivos
-de pie y pelvis para alcanzar el siguiente apoyo sin prolongar su anclaje.
-El descenso prepara un apoyo adelantado al moverse y conserva flexión de
-rodilla para el contacto. El apoyo consume el solver terrestre existente y una compresión pequeña de
-carga; no constituye el catálogo de aterrizajes del paso 8. La pose aérea
-consume velocidad vertical y tiempo de vuelo, sin ejecutar apoyos ni sondeos
-terrestres. La previsualización todavía no usa colisiones del personaje.
-
-**Salto aprobado visualmente.** Sus poses y bibliotecas se conservan.
-`aren_terrain_test.tscn` conecta ahora el salto completo al cuerpo físico mediante
-`aren_air_motion.gd`, utilizando los mismos tiempos, impulso y gravedad del visor.
-
-
-### Paso 7: caída automática y contacto provisional
-
-El visor conserva **Paso 7: caída automática (revisión)** como referencia. El
-segundo selector ofrece **Reposo → Caída**, **Caminata → Caída**, **Carrera →
-Caída**, **Caída corta**, **Caída prolongada** y **Caídas encadenadas**. Conserva
-los tres estados y las cuatro vistas, pausa, velocidad, reinicio y deslizador.
-Los botones aíslan pérdida de apoyo, reacción, caída, preparación de contacto y
-recuperación provisional. Las opciones individuales se detienen al finalizar;
-la cadena alterna los tres orígenes en niveles sucesivamente inferiores, sin
-reiniciar la posición del personaje. Las actualizaciones del rango temporal no
-deben emitir la señal de búsqueda manual ni pausar la cadena.
-
-El selector de altura permite 0,55/1,5/3/8 m en las entradas y cadenas. Las
-opciones corta y prolongada fijan 0,55 y 8 m. El soporte superior es una referencia
-visual; en reposo se retira al iniciar la caída. Una guía vertical acompaña la
-inspección de altura. No son colisiones ni un nivel jugable nuevo.
-
-`aren_fall_actor.gd` extiende el actor de salto sin modificar sus poses. Reutiliza sus
-objetivos aéreos de descenso, el rig, el solver de longitudes fijas, los
-correctivos, la copia de poses entre vistas y la recuperación provisional.
-Congela la última pose de locomoción al perder apoyo, libera sus anclajes y
-mezcla progresivamente una reacción de equilibrio: inclinación contenida,
-brazos más abiertos y asimétricos, y piernas recogidas. La respuesta aumenta con
-la velocidad vertical real; la proximidad del suelo adapta los objetivos de pie.
-No contiene preparación ni impulso ascendente ni un ciclo de gestos repetidos.
-La muestra neutral se conserva por estado y no se realizan sondeos de terreno
-durante la pose aérea. La gravedad del visor es 9,8 m/s², compartida con el salto.
-
-`terrain/aren_fall_response.gd` es el detector reutilizable conectado
-al controlador de la escena de pruebas. Se alimenta **después de mover el cuerpo** con contacto físico,
-velocidad vertical, distancia al suelo y apoyo de escalón validado. No acepta
-contactos del IK como prueba de suelo. Confirma la caída tras 0,10 s sin apoyo,
-8 cm de descenso y un desnivel superior a 28 cm (margen sobre los escalones
-aprobados de 26 cm). La pérdida de apoyo libera el peso terrestre durante 0,12 s;
-la recuperación lo devuelve progresivamente. Un evento de impulso voluntario
-mantiene la clasificación de salto hasta recuperar contacto físico, incluso si
-se alcanza después una velocidad descendente. El evento representa un salto
-realmente ejecutado, no la mera pulsación de la entrada.
-
-El visor conserva sus opciones y la recuperación provisional. La absorción de
-contacto y su recuperación aumentan respecto a los parámetros anteriores:
-
-| Altura | Multiplicador de absorción y recuperación | Carga de referencia | Recuperación |
-| --- | --- | --- | --- |
-| 0,55 m | 1,10 | 0,0308 m | 0,374 s |
-| 1,50 m | 1,20 | 0,0336 m | 0,408 s |
-| 3,00 m | 1,30 | 0,0364 m | 0,442 s |
-
-La referencia de carga era 0,028 m y la mezcla de recuperación 0,34 s.
-La retención inicial de carga pasa de 0,22 s a 0,242/0,264/0,286 s.
-`aren_fall_motion.gd` comparte estos factores con el controlador e interpola
-las alturas intermedias; por encima de 3 m limita el factor a 1,30.
-**8 m: caída al suelo pendiente.** Conserva únicamente la recuperación
-provisional, identificada explícitamente en el visor y al tocar suelo en la
-escena jugable. No se ha creado una pose de desplome ni el aterrizaje definitivo
-del paso 8.
-
-### Conexión aérea de la escena jugable de pruebas
-
-Abrir `scenes/prototype_3d/aren_terrain_test.tscn` y ejecutar con F6.
-**Espacio** inicia el salto desde reposo, caminata o carrera; WASD y Mayús
-conservan los controles terrestres. Sin entrada aérea se conserva la velocidad
-horizontal; con entrada se permite una aceleración máxima de 2,5 m/s².
-**1/2/3** seleccionan normal/cauteloso/cansado; una selección en vuelo se aplica
-al recuperar suelo. **4/5** sitúan al actor
-en el camino irregular y el terreno forestal. **6/7/8/9** lo sitúan en plataformas
-reales de 0,55/1,50/3/8 m; avanzar con W para abandonar el borde o con Mayús+W
-para hacerlo corriendo. R vuelve al inicio y botón derecho+ratón controla la cámara.
-
-El controlador existente opta por `aren_air_motion.gd` mediante `aerial_enabled`;
-el visor comparativo de giros conserva su ruta terrestre. Se aplica primero la
-respuesta física y el movimiento con colisiones; después se clasifica el
-contacto y se evalúa la pose. El salto recibe un único evento de impulso real.
-Las pérdidas breves con suelo a menos de 28 cm conservan el evaluador terrestre
-y su filtro de altura, sin activar la animación de caída. Los escalones siguen
-usando `terrain_step.gd` y el contacto físico de su aterrizaje validado.
-
-El actor de terreno hereda las poses aprobadas de salto/caída. Durante el vuelo
-omite los sondeos de pies, la compensación terrestre de pelvis y sus anclajes;
-conserva el solver anatómico de longitudes fijas. La caída libera los apoyos
-previos en coordenadas mundiales durante 0,12 s. La postura recibe velocidad
-vertical real y distancia física al suelo; la gravedad aérea es 9,8 m/s².
-Al contactar, el IK de terreno recupera los apoyos reales mediante una mezcla
-de pose y objetivos de pie, más una carga amortiguada proporcional a la altura.
-La diferencia entre velocidad horizontal real e intención de locomoción se
-libera durante 0,16 s para evitar una frenada instantánea al soltar el control
-en vuelo. La altura del impacto procede del apoyo físico y del contacto final,
-conservando la referencia del borde durante los contactos redondeados de la cápsula.
-
-
-### Paso 8: recepción profunda con apoyo de palma
-
-`aren_authoring_review.tscn` abre **Paso 8: recepción con palma**.
-El selector ofrece 0,55/1,50/3/3,5/4/4,8/5,5/6/6,8/7,5/7,9/8 m. Conserva
-entradas desde reposo, caminata y carrera, cadenas, tres estados, cuatro ángulos,
-pausa, velocidad, reinicio y búsqueda temporal. Para la nueva recepción, los
-botones aíslan contacto de pies, absorción, palma con rodilla suspendida, retirada
-de mano, elevación de pelvis y rodilla, y equilibrio. **Detalle** aproxima y baja la cámara durante la recepción.
-Las fuentes anteriores siguen seleccionables para comparar salto y caída.
-La casilla **Antes** alterna con la postura de `5ac786d`, conservando el instante,
-la pausa y los cuatro ángulos. Desactivada muestra la postura corregida; solo
-se ofrece en la revisión del paso 8.
-
-`aren_landing_actor.gd` extiende el actor de caída; `aren_landing_motion.gd`
-define una familia continua y `aren_landing_pose.gd` comparte la evaluación del
-rig nativo, transformaciones de ramas, IK de longitudes fijas y correctivos.
-No modifica clips ni perfiles aprobados. 0,55/1,50 m conservan íntegramente su
-ruta anterior; desde 8 m se conserva la recuperación provisional con aviso de
-desplome pendiente, sin crear la caída completa al suelo.
-
-Entre 3 y menos de 8 m la intensidad depende de la velocidad vertical del
-impacto, interpolada suavemente entre las referencias balísticas de 3 y 8 m.
-El contacto inicial de pies conserva el instante balístico original. La absorción
-dura 0,34–0,40 s; la recuperación completa ocupa 1,8 s hasta 4 m y aumenta
-continuamente hasta aproximadamente 2,5 s al acercarse a 8 m.
-
-El actor del visor utiliza `aren_kneeling_landing_pose.gd`, que extiende el solver
-existente sin cambiar su ruta jugable. Durante el descenso coloca el pie
-izquierdo adelantado. Al absorber el impacto, la pelvis baja y se desplaza entre
-los apoyos. La tibia derecha queda hacia atrás y el antepié derecho se apoya
-con el talón elevado; la rodilla permanece suspendida, sin soportar peso.
-El pie izquierdo permanece fijado, con la rodilla hacia delante, como apoyo
-principal; la palma complementa el equilibrio. El reparto visual de referencia
-es 50/30/20 % entre pie izquierdo, pie derecho y palma, sin imponer fuerzas
-artificiales. El muslo derecho conserva su longitud alrededor del objetivo
-de rodilla; el alcance de ambas piernas y su flexión se limitan antes del IK.
-El solver calibra la piel real de la rodilla a 4 cm del suelo durante la carga
-y la piel del antepié sobre el plano. El pie posterior conserva separación
-del suelo durante sus giros. **Antes** conserva el apoyo anterior de rodilla.
-
-La pelvis conserva una traslación de carga de 0,5 cm hacia arriba y 3–3,5 cm
-hacia delante. El IK
-conserva la longitud del muslo derecho y la separación de rodilla, de modo que la
-corrección final del centro se adapta a los apoyos. El pie izquierdo conserva su objetivo y apoyo originales; el plano de flexión
-de su rodilla la mantiene alineada sobre ese pie y prioriza el avance, con
-menos apertura lateral. El objetivo derecho avanza entre 1,2 y 3,7 cm según
-la velocidad horizontal para equilibrar la pelvis sin retrasarla al correr.
-
-El pecho se eleva reduciendo la inclinación frontal: la corrección lumbar
-durante la carga mantiene −11°, con compensación inversa del cuello.
-La estabilización torácica utiliza 7° sin cambiar sus tiempos. Para acercar el
-brazo al apoyo, la rotación longitudinal se reparte entre pelvis y los tres
-segmentos de columna (2°/6°/7°/9°), siguiendo los ejes anatómicos de cada
-segmento. El cuello compensa 10° de ese giro y la clavícula de apoyo acompaña
-con 4°, conservando longitudes nativas. La curvatura sagital se redistribuye
-−3°/+1°/+2° entre los tres segmentos sin añadir inclinación frontal neta.
-Estas adaptaciones siguen la carga continua de la recepción y conservan
-los tiempos de recuperación y el anclaje de palma.
-
-
-La palma permanece orientada y anclada al suelo mientras soporta peso; el
-contacto utiliza piel de palma y eminencia tenar, respetando las proporciones
-nativas de mano y dedos. El codo responde a la absorción y al traslado gradual
-del peso durante la estabilización. La mano libre equilibra fuera del muslo
-izquierdo; la columna distribuye su curvatura y la cabeza acompaña la carga.
-La mano transfiere progresivamente el apoyo a los pies y se retira antes de
-elevar pelvis y rodilla. El pie derecho se recupera
-con un arco bajo, después el izquierdo vuelve a la separación normal mediante
-un paso corto, y el evaluador devuelve la postura erguida y la locomoción.
-
-La conexión previa de recepción profunda está preparada en `aren_air_motion.gd` mediante
-`deep_landing_enabled`, **desactivado por defecto hasta aprobación visual**.
-Al activarlo utiliza velocidad de impacto y consultas reales de superficie para
-palma y pies, conserva el instante de contacto, frena progresivamente el avance
-durante la absorción y devuelve el control durante el equilibrio. Mantiene el
-rumbo durante el apoyo y encola cambios de estado hasta terminar. El salto
-voluntario aprobado y la detección de caída conservan su ruta existente. Esta
-conexión sigue utilizando el solver anterior: la postura con rodilla suspendida
-se carga exclusivamente desde el visor y espera aprobación visual antes de
-integrarse en la escena jugable.
-
-Las comprobaciones de recepción se ejecutan con `tests/aren_deep_landing.gd`
-(contactos, orientación y continuidad) y `tests/aren_landing_surface_clearance.gd`
-(piel de rodilla frente a triángulos reales del torso y brazo). Para esta última,
-usar `godot --headless --path . --fixed-fps 60 --script tests/aren_landing_surface_clearance.gd`.
-
-
-## Piloto de autoría en Blender
-
-El visor ofrece un piloto independiente de recepción desde 3 m mediante ocho
-poses completas y un clip horneado en Blender. Solo cubre normal y reposo;
-conserva la versión procedural para comparación y no se integra en la escena
-jugable. Autoría, comandos y alcance en [ANIMATION_BLENDER_PILOT.md](ANIMATION_BLENDER_PILOT.md).
+Prioridad: terminar la recepción en Blender y revisar la comparación; adaptar
+continuamente a 3–<8 m y a las entradas/estados necesarios; integrar solo tras
+aprobación visual y validar contactos, continuidad y rendimiento en terreno real.
+No cambiar los aterrizajes bajos ni reabrir locomoción/salto aprobados.
+Problemas históricos: cuatro discrepancias de procedencia de herramientas en
+metadatos de `aren_walk_torso_v2` detectadas por `tests/aren_torso_coordination.gd`;
+no regenerar clips aprobados para silenciar hashes. Plataformas móviles pendientes.
