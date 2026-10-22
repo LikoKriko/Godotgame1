@@ -428,7 +428,7 @@ func fall_review() -> bool:
 func build_fall_controls() -> void:
  fall_height_selector=OptionButton.new();fall_height_selector.position=Vector2(235,36)
  for height in review_heights():fall_height_selector.add_item("Altura: %.2f m"%height)
- add_child(fall_height_selector);fall_height_selector.select(1)
+ add_child(fall_height_selector);fall_height_selector.select(mini(1,review_heights().size()-1))
  fall_height_selector.item_selected.connect(func(index:int):
   if not fall_review():return
   actors[0].review_height=review_heights()[index]

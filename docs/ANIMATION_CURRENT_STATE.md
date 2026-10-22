@@ -335,3 +335,11 @@ Las comprobaciones de recepción se ejecutan con `tests/aren_deep_landing.gd`
 (contactos, orientación y continuidad) y `tests/aren_landing_surface_clearance.gd`
 (piel de rodilla frente a triángulos reales del torso y brazo). Para esta última,
 usar `godot --headless --path . --fixed-fps 60 --script tests/aren_landing_surface_clearance.gd`.
+
+
+## Piloto de autoría en Blender
+
+El visor ofrece un piloto independiente de recepción desde 3 m mediante ocho
+poses completas y un clip horneado en Blender. Solo cubre normal y reposo;
+conserva la versión procedural para comparación y no se integra en la escena
+jugable. Autoría, comandos y alcance en [ANIMATION_BLENDER_PILOT.md](ANIMATION_BLENDER_PILOT.md).
