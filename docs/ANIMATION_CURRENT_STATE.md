@@ -65,11 +65,14 @@ Leer los `AGENTS.md` aplicables antes de editar; reutilizar los sistemas existen
   WASD mueve; Mayús corre; botón derecho y ratón controlan cámara;
   1/2/3 seleccionan estado; R reinicia; 4/5 llevan a camino/bosque.
   HUD con velocidad, error de apoyo, FPS y coste CPU de evaluación.
-- Visor: `scenes/prototype_3d/aren_authoring_review.tscn`, opción
-  **Carrera: pies coordinados**; cuatro vistas, comparación antes/después,
-  estados, ciclos, transiciones, pausa y velocidad.
-- Giros: `scenes/prototype_3d/aren_turn_review.tscn` o botón
-  **Paso 3: comparar giros** del visor. Comparación de 45°/90°/135°/180°,
+- Visor: `scenes/prototype_3d/aren_authoring_review.tscn`. El catálogo separa
+  **Animaciones aprobadas** (locomoción, salto, caída automática y giros) de
+  **Animación en desarrollo**: únicamente **Piloto Blender · recepción 3 m**,
+  con **Anterior (procedural) / Actual (Blender)** al mismo instante.
+  Conserva cuatro vistas, estados, ciclos, transiciones, pausa, fases y
+  velocidades 1,0× / 0,25×. Las fuentes históricas quedan fuera del selector.
+- Giros: `scenes/prototype_3d/aren_turn_review.tscn` o la opción
+  **Giros y cambios de dirección** del catálogo aprobado. Comparación de 45°/90°/135°/180°,
   cambios consecutivos, cámara fija/móvil y suelo irregular.
 - Regresiones principales en `tests/`: `aren_locomotion_integration.gd`,
   `aren_turn_response.gd`, `aren_turn_review.gd`, `aren_stair_support.gd`,

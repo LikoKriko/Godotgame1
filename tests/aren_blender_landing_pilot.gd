@@ -67,9 +67,35 @@ func run() -> void:
  for bone in pose.poses.size():check(pose.poses[bone].is_equal_approx(after.poses[bone]),"comparison restores Blender pose")
  for mirror in range(1,4):
   for bone in pose.poses.size():check(r.actors[mirror].native.skeleton.get_bone_pose(bone).is_equal_approx(r.actors[0].native.skeleton.get_bone_pose(bone)),"four camera pose mirrors")
- r.select_source(14)
- check(r.compare_button.visible and not r.compare_button.disabled,"approved locomotion comparison retained")
- check(not r.motion_selector.is_item_disabled(0) and not r.motion_selector.is_item_disabled(1),"approved locomotion selectors retained")
- r.compare_button.pressed.emit()
- check(r.source_index==13,"approved comparison action retained")
+ check(r.source_selector.item_count==7,"two catalog headings, four approved entries and one development entry")
+ check(r.source_selector.get_item_text(0)=="Animaciones aprobadas" and r.source_selector.get_item_text(5)=="Animación en desarrollo","explicit catalog categories")
+ for item in r.source_selector.item_count:
+  check(r.source_selector.get_item_id(item) not in range(0,14),"historical sources excluded from catalog")
+ check(r.cameras.size()==4,"four viewing angles retained")
+ for speed_index in 2:
+  r.speed_presets.select(speed_index);r.speed_presets.item_selected.emit(speed_index)
+  check(is_equal_approx(r.speed_slider.value,1.0 if speed_index==0 else .25),"exact speed preset")
+  for time in [.2,1.0,1.6,2.2,2.7]:
+   r.show_frame("idle_to_fall",time);r.playing=true
+   r.comparison_selector.item_selected.emit(0)
+   check(absf(r.actors[0].preview_clock-time)<.00001 and r.playing,"anterior preserves playing time")
+   check(not r.landing_reference.visible and r.review_heights()==[3.0],"comparison has one baseline without old variants")
+   r.comparison_selector.item_selected.emit(1)
+   check(absf(r.actors[0].preview_clock-time)<.00001 and r.playing,"actual preserves playing time")
+ r.restart_button.pressed.emit()
+ check(is_zero_approx(r.actors[0].preview_clock),"restart control")
+ for id in [14,15,16]:
+  r.select_catalog_item(r.source_selector.get_item_index(id))
+  check(r.source_index==id and not r.comparison_selector.visible and not r.compare_button.visible,"approved catalog entry without historical comparisons")
+  for state in 3:
+   r.state_selector.select(state);r.state_selector.item_selected.emit(state)
+   check(not r.state_selector.disabled,"approved states retained")
+  if id==14:
+   for recipe in range(10):
+    r.motion_selector.item_selected.emit(recipe);r._process(.05)
+    check(not r.motion_selector.is_item_disabled(recipe),"locomotion and transition controls")
+  else:
+   for phase in range(1,5):r.show_jump_phase(phase)
+ r.select_catalog_item(r.source_selector.get_item_index(r.pilot_index))
+ check(r.source_index==r.pilot_index and r.comparison_selector.visible,"single development entry")
  r.free();print("BLENDER PILOT ",checks," checks; maximum tracked step ",maximum_step," knee ",minimum_knee,"..",maximum_knee," support elbow minimum ",minimum_elbow," failures ",errors);quit(0 if errors.is_empty() else 1)

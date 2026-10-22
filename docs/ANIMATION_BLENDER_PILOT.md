@@ -88,7 +88,7 @@ autoría tiene `.gdignore` para impedir la importación automática del `.blend`
 
 Abrir `scenes/prototype_3d/aren_authoring_review.tscn` y ejecutar con F6. La fuente
 **Piloto Blender · recepción 3 m** ofrece las cuatro cámaras, pausa, reinicio,
-velocidad y selección de fases existentes. **Ver procedural / Ver Blender**
+velocidad y selección de fases existentes. **Anterior (procedural) / Actual (Blender)**
 alterna las fuentes conservando el instante y la pausa. La comparación usa la
 versión procedural presente en el checkout, incluyendo cambios locales
 pendientes; no los reemplaza ni los publica automáticamente.
@@ -102,3 +102,11 @@ godot --headless --path . --script tests/aren_blender_landing_pilot.gd
 El método puede reutilizarse para otras acciones de Aren mediante nuevas poses
 y clips independientes. Este piloto no generaliza alturas, estados, otras
 criaturas ni un sistema automático de captura de movimiento.
+
+El selector principal separa **Animaciones aprobadas** (locomoción, salto,
+caída automática y acceso al visor de giros) de **Animación en desarrollo**.
+Esta última contiene únicamente el piloto de recepción a 3 m, pendiente de
+aprobación. La comparación conserva el instante y la pausa en ambas direcciones;
+los controles de velocidad ofrecen 1,0× y 0,25×. Las fuentes históricas siguen
+en disco, fuera del catálogo visible. Una próxima corrección debe sustituir
+la prueba en desarrollo y su pareja de comparación, sin añadir un historial.
