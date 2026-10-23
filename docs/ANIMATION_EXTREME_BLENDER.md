@@ -3,6 +3,9 @@
 Rama exclusiva: `test/animation-system-v1`. Escena de revisión:
 `scenes/prototype_3d/aren_authoring_review.tscn`. La incorporación nueva
 requiere aprobación visual antes de entrar en `aren_terrain_test.tscn`.
+Entrega funcional publicada: **`1b210062`**. El cierre documental no cambia
+animaciones ni integra la caída extrema en la escena jugable. Las pruebas
+técnicas son independientes de la aprobación visual, que sigue pendiente.
 
 ## Clips y aislamiento
 
@@ -90,10 +93,30 @@ el horneado nativo utiliza 60 Hz. No se alteran rig, pesos, proporciones ni carr
 - `getup_v2.glb` / `getup_v2.res`: clip independiente, 376 muestras / 6,25 s.
 - `timing.json`: claves, duración, apoyos y referencias.
 
-Para editar manualmente, trabajar sobre la acción de contactos o seleccionar
-la acción de poses como bloqueo de referencia. **Hornear con `--bake-only`
-para conservar las ediciones manuales**; las otras opciones reconstruyen la
-nueva autoría a partir de sus decisiones declaradas.
+Para continuar la autoría existente, abrir el `.blend`, editar y guardar la
+acción `ArenGetupV2_ContactBaked`; la acción de 12 poses sirve como bloqueo de
+referencia. **Hornear con `--bake-only` para conservar las ediciones manuales**.
+No ejecutar `--keys-only` ni `--animate` sobre una fuente editada: reconstruyen
+y sobrescriben la nueva autoría a partir de `poses.json` y los dos extremos.
+
+Flujo habitual de edición → horneado → validación → importación, desde la raíz:
+
+```sh
+# Seleccionar Godot 4.7.2 en esta sesión; el PATH del entorno apunta a 4.6.3.
+godot() { /workspace/shared/godot/4.7.2/Godot_v4.7.2-stable_linux.x86_64 "$@"; }
+blender -b assets/characters/prototype_3d/generated/aren_getup_blender_v2/authoring/aren_getup_v2.blend -t 4 --python tools/animation/author_aren_getup_v2.py -- --bake-only
+blender -b assets/characters/prototype_3d/generated/aren_getup_blender_v2/authoring/aren_getup_v2.blend -t 4 --python-exit-code 1 --python tools/animation/validate_aren_getup_v2.py
+godot --headless --path . --script tools/animation/import_aren_blender_landing.gd -- --getup-v2
+```
+
+Usar Blender **4.3.2** y Godot **4.7.2**. La función anterior selecciona el
+ejecutable verificado para todos los comandos `godot` de este documento;
+adaptar su ruta si el siguiente entorno instala las herramientas en otro lugar.
+Si faltan cachés de importación, abrir el proyecto en ese editor antes de las
+pruebas; conservar los `.uid`, `.import` y `project.godot` versionados.
+
+Solo para regenerar deliberadamente el bloqueo y sus intermedios, conservando
+antes cualquier edición manual:
 
 ```sh
 # Generación del bloqueo: revisar las 12 poses antes de interpolar.
@@ -104,8 +127,6 @@ blender -b assets/characters/prototype_3d/generated/aren_getup_blender_v2/author
 blender -b -t 4 --python tools/animation/author_aren_getup_v2.py -- --animate
 # Comprobar todos los fotogramas de la piel horneada antes de importar.
 blender -b assets/characters/prototype_3d/generated/aren_getup_blender_v2/authoring/aren_getup_v2.blend -t 4 --python-exit-code 1 --python tools/animation/validate_aren_getup_v2.py
-# Alternativa: exportar la acción editada sin reconstruirla.
-blender -b assets/characters/prototype_3d/generated/aren_getup_blender_v2/authoring/aren_getup_v2.blend -t 4 --python tools/animation/author_aren_getup_v2.py -- --bake-only
 # Importación del mismo rig, sin retargeting.
 godot --headless --path . --script tools/animation/import_aren_blender_landing.gd -- --getup-v2
 ```

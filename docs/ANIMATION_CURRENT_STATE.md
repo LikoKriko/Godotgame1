@@ -4,6 +4,20 @@ Rama exclusiva: **`test/animation-system-v1`**. No modificar `main`.
 Base de la integración jugable: **`2a106af1`**, aprobado visualmente por el usuario, sobre la limpieza del visor `5e93839`
 y el piloto `60a4056`. Obtener el último commit con `git log -1 --oneline`. Leer los `AGENTS.md` aplicables antes de editar.
 
+## Punto de continuación
+
+Último commit funcional publicado: **`1b210062`**. Incluye el `.blend` editable,
+GLB/clip nativo, tiempos, herramientas, actor y pruebas de la incorporación nueva.
+El commit de cierre documental se obtiene con `git log -1 --oneline`; comprobar
+la publicación con `git ls-remote origin refs/heads/test/animation-system-v1`.
+Al iniciar este cierre no había cambios locales ni trabajo funcional sin publicar.
+Las versiones anteriores se conservan; **la Fase 1 continúa abierta**.
+
+La recepción de `2a106af1` tiene aprobación visual; la incorporación extrema
+de `1b210062` **solo tiene validación técnica y sigue pendiente de aprobación
+visual del usuario**. Revisarla primero en el visor. No trasladarla a la escena
+jugable ni integrar en `main` sin la autorización correspondiente.
+
 ## Metodología aprobada y arquitectura
 
 **Blender es la herramienta principal aprobada para crear y corregir
@@ -53,7 +67,7 @@ en [ANIMATION_EXTREME_BLENDER.md](ANIMATION_EXTREME_BLENDER.md).
 | 7 | Caída automática implementada e integrada en `019a52b`, conservada en el catálogo aprobado. Distingue salto y pérdida de apoyo; recuperación provisional por altura. No equivale a aprobar el aterrizaje nuevo del paso 8. |
 | 8 | **Recepción Blender aprobada visualmente (`2a106af1`) e integrada en `aren_terrain_test.tscn`.** Reutiliza los clips para 3–<8 m y adapta compresión/recuperación a velocidad vertical física; conserva entradas y salidas de locomoción en los tres estados. Las recepciones bajas se mantienen. Caída extrema ≥8 m en revisión independiente, solo visor y pendiente de aprobación visual. No se integra en `main`. |
 | 9 | En curso: corregida la entrada de locomoción a caída automática desde el primer tick sin apoyo. El reloj visual se independiza de la confirmación física; contactos Blender precalculados al cargar y reutilizados al reiniciar. Resto de transiciones pendiente. |
-| 10 | Pendiente; alcance y aprobación no documentados. Confirmar el plan antes de implementarlo. |
+| 10 | Pendiente: validación general de la Fase 1 y revisión antes de integrar en `main`. La integración requiere aprobación expresa; la fase no está terminada. |
 
 Conservar los aterrizajes aprobados de **0,55 y 1,50 m**. La familia nueva abarca
 **3 a menos de 8 m**, 1,8 s de recepción a 3 m y hasta casi 2,4 s, progresivamente
@@ -96,16 +110,14 @@ aprobadas de locomoción al entrar y salir.
 
 ## Visores, escena jugable y comprobaciones
 
-- `scenes/prototype_3d/aren_authoring_review.tscn` (**F6**): limpieza publicada
-  en `5e93839`. Categorías **Animaciones aprobadas** (locomoción, salto, caída
-  automática y acceso a giros) y **Animación en desarrollo**, con un único
-  **Blender · recepción 3–<8 m**. Comparación **Anterior (absorción previa) /
-  Actual (absorción reforzada)** al mismo instante, conservando pausa; velocidades 1,0× y
-  0,25×, fases, reinicio y vistas frontal/lateral/trasera/diagonal. Las fuentes
-  históricas están fuera del catálogo, conservadas en disco. La próxima prueba
-  debe sustituir la actual y su pareja, sin acumular variantes ni presentarse
-  como definitiva. La referencia anterior conserva los dos clips de la familia de `4217d0f`; los históricos procedurales
-  permanecen sin modificar y fuera del catálogo.
+- `scenes/prototype_3d/aren_authoring_review.tscn` (**F6**): conserva el catálogo
+  aprobado de locomoción, salto, caída automática y acceso a giros, y la revisión
+  de **Blender · recepción 3–<8 m** con su comparación de absorción. La entrega
+  actual se revisa en **Blender · caída extrema ≥8 m → Previsualizar: sobrevive
+  → Comparar: Nueva**; **Anterior** conserva la incorporación de ocho segundos.
+  Usar **Secuencia completa**, pausa/barra temporal, velocidades **1× / 0,25×**
+  y vistas frontal/lateral/trasera/diagonal. Se conservan los clips históricos
+  en disco; no añadir más versiones al catálogo.
 - `scenes/prototype_3d/aren_turn_review.tscn`: comparación de giros existente.
 - `scenes/prototype_3d/aren_terrain_test.tscn` (**F6**), actor
   `scenes/prototype_3d/aren_terrain_actor.tscn`: plano, terreno irregular y
@@ -178,27 +190,32 @@ aéreo no construye esos datos al abandonar una plataforma. El reloj visual
 no altera gravedad, velocidad horizontal, orientación ni el contacto físico
 que inicia la recepción.
 
-## Trabajo local conservado y siguientes acciones
+## Validación, límites y próximos trabajos
 
-El traspaso anterior documentó correcciones procedurales **locales, sin
-publicar ni aprobar como versión final**, anteriores al piloto. El checkout
-sincronizado estaba limpio; estas fuentes no se modifican ni se recrean:
+La entrega actual corrige la incorporación mediante 12 poses nuevas, apoyos
+intermedios de rodillas, entrada secuencial de pies y retirada de palmas sin
+una segunda mezcla hacia el contacto anterior. Conserva las cuatro fases
+previas, muerte, rig/pesos y el enlace exacto al Idle aprobado. Las fuentes
+procedurales anteriores permanecen en Git; no hay una versión local adicional
+pendiente de rescatar ni se deben reconstruir por referencias históricas.
 
-- `scripts/animation/authoring/aren_kneeling_landing_pose.gd`:
-  preparación aérea coordinada, polos de rodilla y recuperación de manos.
-- `scripts/animation/authoring/aren_landing_actor.gd` y `aren_landing_pose.gd`:
-  conexión de esa preparación, continuidad de salida y objetivos de retirada.
-- `scripts/animation/authoring/aren_review.gd`: etiquetas/referencia procedural.
-- `tests/aren_deep_landing.gd` y `tests/aren_landing_surface_clearance.gd`:
-  comprobaciones asociadas. La documentación extensa local se consolida aquí.
+Comprobaciones reproducibles y comandos en
+[ANIMATION_EXTREME_BLENDER.md](ANIMATION_EXTREME_BLENDER.md): piel en todos los
+fotogramas Blender, continuidad/contactos/colisión y controles en Godot a 1×
+y 0,25×, y catálogo del visor. Se repitieron durante el cierre y todas pasaron,
+sin regresiones detectadas en ese alcance. Las pruebas técnicas superadas no aprueban la
+biomecánica visual ni sustituyen la validación jugable posterior de la caída extrema.
 
-La aprobación visual permite la integración en la escena de pruebas. Las
-fases siguientes y la integración en `main` requieren instrucciones propias.
-No cambiar los aterrizajes bajos ni reabrir locomoción/salto aprobados.
-Problemas históricos: cuatro discrepancias de procedencia de herramientas en
-metadatos de `aren_walk_torso_v2` detectadas por `tests/aren_torso_coordination.gd`;
-no regenerar clips aprobados para silenciar hashes. Plataformas móviles pendientes.
+Siguiente acción: revisión visual de **Nueva** frente a **Anterior**. Tras la
+aprobación, integrar la caída extrema mediante los sistemas vigentes de daño,
+salud, física e IK y comprobar supervivencia/muerte en la escena jugable.
+Después, completar las transiciones restantes del paso 9 y la validación del
+paso 10. La reducción del salto ya está aplicada; no repetirla. Conservar las
+recepciones bajas, la familia 3–<8 m y la locomoción aprobadas.
 
-Limitación anterior conservada: discontinuidad de contacto del salto normal
-en la pendiente de 15° detectada por `aren_air_integration.gd`; no se modifica
-la animación aprobada del salto para ocultar esa incidencia.
+Incidencias previas aún abiertas: discontinuidad de contacto del salto normal
+en pendiente de 15° (`aren_air_integration.gd`) y cuatro discrepancias de
+procedencia en metadatos de `aren_walk_torso_v2`
+(`aren_torso_coordination.gd`). No regenerar clips aprobados para ocultarlas.
+Las plataformas móviles siguen pendientes. Estas incidencias no se han
+corregido ni vuelto a certificar durante el cierre documental.
