@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/prototype_3d/aren_extreme_review_actor.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/animation/authoring/aren_getup_v2_actor.gd" id="2"]
+
+[node name="ArenGetupV2Review" instance=ExtResource("1")]
+script = ExtResource("2")

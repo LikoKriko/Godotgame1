@@ -1,9 +1,10 @@
 extends "res://scripts/animation/authoring/aren_blender_pilot_review.gd"
 ## Adds one isolated development sequence to the existing approved catalog.
-const EXTREME_SCENE="res://scenes/prototype_3d/aren_extreme_review_actor.tscn"
+const EXTREME_SCENE="res://scenes/prototype_3d/aren_getup_v2_review_actor.tscn"
 const EXTREME_PHASES=["Desequilibrio","Inclinación · 19 %","Impacto y rebote","Tumbado","Incorporación"]
 var extreme_index:=-1
 var outcome_selector:OptionButton
+var getup_comparison:OptionButton
 func extreme_review() -> bool:return source_index==extreme_index and extreme_index>=0
 func _ready() -> void:
  extreme_index=sources.size();sources.append({"label":"Blender · caída extrema ≥8 m","path":EXTREME_SCENE})
@@ -14,11 +15,19 @@ func _ready() -> void:
  outcome_selector.tooltip_text="Resultados de revisión. La integración futura consultará la vida real después del daño."
  outcome_selector.item_selected.connect(func(index:int):actors[0].outcome="survive" if index==0 else "die";restart_preview())
  add_child(outcome_selector)
+ getup_comparison=OptionButton.new();getup_comparison.position=Vector2(1000,36)
+ getup_comparison.add_item("Comparar: Anterior");getup_comparison.add_item("Comparar: Nueva")
+ getup_comparison.select(1)
+ getup_comparison.tooltip_text="Solo cambia la incorporación; caída, impacto y muerte se conservan."
+ getup_comparison.item_selected.connect(func(index:int):actors[0].set_getup_variant(index==1);restart_preview())
+ add_child(getup_comparison)
  select_source(extreme_index)
 func select_source(index:int) -> void:
  super.select_source(index)
  if outcome_selector:outcome_selector.visible=extreme_review()
+ if getup_comparison:getup_comparison.visible=extreme_review()
  if not extreme_review():return
+ if getup_comparison:actors[0].set_getup_variant(getup_comparison.selected==1)
  motion="idle_to_fall"
  motion_selector.select(MOTIONS.find(motion))
  for item in MOTIONS.size():motion_selector.set_item_disabled(item,MOTIONS[item]!=motion)

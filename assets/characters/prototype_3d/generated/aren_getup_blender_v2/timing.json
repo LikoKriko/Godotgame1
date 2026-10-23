@@ -1,0 +1,63 @@
+{
+  "fps": 60,
+  "frames": 376,
+  "duration": 6.25,
+  "keys": [
+    1,
+    43,
+    79,
+    115,
+    145,
+    193,
+    232,
+    265,
+    298,
+    325,
+    349,
+    376
+  ],
+  "contacts": {
+    "palms": [
+      0.7,
+      0.34
+    ],
+    "palm_release": [
+      2.4,
+      2.4166666666666665
+    ],
+    "feet": [
+      3.85,
+      4.95
+    ],
+    "foot_swings": [
+      [
+        4.95,
+        5.8
+      ],
+      [
+        99,
+        100
+      ]
+    ],
+    "final_settle": [
+      5.8,
+      6.25
+    ],
+    "left_knee": [
+      2.4,
+      3.85
+    ],
+    "right_knee": [
+      2.4,
+      3.2
+    ],
+    "palm_exit": [
+      2.4,
+      2.85
+    ]
+  },
+  "references": [
+    "https://github.com/una-dinosauria/cmu-mocap/blob/master/data/140/140_01.bvh",
+    "https://github.com/una-dinosauria/cmu-mocap/blob/master/data/140/140_02.bvh"
+  ]
+}

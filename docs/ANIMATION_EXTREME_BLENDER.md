@@ -1,148 +1,139 @@
 # Aren: caída extrema Blender (revisión visual)
 
-Rama: `test/animation-system-v1`. Entrega exclusivamente en
-`scenes/prototype_3d/aren_authoring_review.tscn`. No sustituye recepciones
-aprobadas ni conecta esta secuencia a `aren_terrain_test.tscn`.
+Rama exclusiva: `test/animation-system-v1`. Escena de revisión:
+`scenes/prototype_3d/aren_authoring_review.tscn`. La incorporación nueva
+requiere aprobación visual antes de entrar en `aren_terrain_test.tscn`.
 
-## Autoría
+## Clips y aislamiento
 
-`assets/characters/prototype_3d/generated/aren_extreme_blender_v1/` contiene:
+Las cuatro primeras fases y la variante de muerte conservan el clip y actor
+`aren_extreme_blender_v1` / `aren_extreme_actor.gd`. Su fuente
+`authoring/aren_extreme.blend`, curvas, poses y contactos permanecen intactos.
+El visor ofrece una sola comparación **Anterior / Nueva** para la incorporación:
 
-- `authoring/aren_extreme.blend`: rig original de 66 huesos, piel original,
-  controles del piloto, decisiones de poses completas, acción FK editable,
-  copia horneada de exportación y cámaras. Carpeta excluida del importador.
-- `extreme.glb` / `extreme.res`: clip esquelético independiente, 60 Hz.
-- `timing.json`: claves y marcadores de las cinco fases.
+| Variante | Incorporación | Reloj completo del clip |
+| --- | --- | --- |
+| Anterior | 8,00 s | 0–10,40 s |
+| Nueva | 6,25 s | 0–8,65 s; clip independiente 0–6,25 s desde 2,40 s |
 
-Se reutilizan el rig y la referencia del piloto; no se importa una secuencia
-procedural. Los planos articulares se calibran con el rig original y las
-poses resueltas se guardan como claves FK completas para evitar inversiones
-del IK entre poses. La copia nativa se hornea con `blender_native_export.py`,
-compartido con el piloto y conservando sus opciones anteriores por defecto.
-La corrección de apoyos usa el solver nativo existente de Godot.
+`aren_getup_v2_actor.gd` extiende el actor existente y sustituye únicamente
+la fase de incorporación al sobrevivir. Reutiliza muestreador, física,
+contactos e IK nativos. Godot reproduce las poses horneadas; no genera una
+incorporación corporal procedural. El resultado «muere» permanece tumbado
+con el control bloqueado y nunca entra en el clip nuevo.
 
-```sh
-blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/coordinate_aren_extreme_support.py
-godot --headless --path . --script tools/animation/import_aren_blender_landing.gd -- --extreme
-godot --headless --path . --script tests/aren_extreme_review.gd
-```
+## Referencias y diseño de la incorporación nueva
 
-Para hornear ediciones manuales sin reconstruir ni sobrescribir el `.blend`:
+Se estudian dos **capturas de movimiento de personas reales**, CMU subject 140,
+«Getting Up From Ground»: [140_01](https://github.com/una-dinosauria/cmu-mocap/blob/master/data/140/140_01.bvh)
+y [140_02](https://github.com/una-dinosauria/cmu-mocap/blob/master/data/140/140_02.bvh),
+ambas «Get Up Face Down». El [índice y README del espejo público](https://github.com/una-dinosauria/cmu-mocap)
+identifican las tomas y la conversión BVH de Bruce Hahne/cgspeed.
+Se analizan secuencia de apoyos, desplazamiento de pelvis, avance de piernas
+y duración. Las tomas sirven como referencia biomecánica: **no se retargetean
+ni se copian sus poses o curvas al rig de Aren**.
 
-```sh
-blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/author_aren_extreme_blender.py -- --bake-only
-```
+Atribución de la base CMU: “The data used in this project was obtained from
+mocap.cs.cmu.edu. The database was created with funding from NSF EIA-0196217.”
+Los BVH de referencia no se incorporan al juego.
 
-Conservar el rango 1–625 y sus marcadores al editar; después repetir la
-importación nativa y las pruebas anteriores.
+La nueva acción parte del rig original de 66 huesos del piloto Blender.
+Solo conserva los dos estados autorizados: boca abajo y el Idle aprobado,
+exportados en `authoring/endpoints.json`. No carga curvas, poses o trayectorias
+de la incorporación anterior. La duración se diseña para mostrar el esfuerzo
+tras la caída, sin imponer los ocho segundos anteriores.
 
-## Secuencia y sincronización
+Se utiliza un apoyo intermedio de rodillas para elevar el tronco antes de
+adelantar el pie derecho. Esto adapta el principio observado en las capturas
+a los brazos y piernas nativos de Aren y evita exigir una flexión de cadera
+extrema bajo un abdomen todavía horizontal. La base de rodillas y empeines
+sostiene el cuerpo mientras se descargan las manos; después el pie derecho
+y la rodilla izquierda sostienen la elevación y el avance del pie izquierdo.
+El pequeño paso derecho final ocurre con el peso sobre el pie izquierdo.
 
-1. Pérdida de equilibrio: circunducción nueva desde los hombros. Un círculo
-   moderado, cono de 15° y desfase de 0,45 rad entre lados; los codos permanecen
-   en 20° ±1,2° y las muñecas mantienen su orientación local de reposo.
-   Pelvis, torso y piernas conservan su animación. No hay impulso de salto.
-2. Inclinación: empieza al alcanzar el 19 % del recorrido vertical real.
-   El cuerpo gira completo hacia delante y prepara una recepción horizontal.
-3. Impacto: lo activa `move_and_collide` contra el suelo físico del visor.
-   Compresión, rebote pequeño y amortiguación se reproducen desde ese evento.
-4. Boca abajo: postura relajada mantenida. El resultado «muere» no reproduce
-   incorporación y conserva bloqueado el estado de recuperación.
-5. Supervivencia: incorporación de ocho segundos, editada sobre las poses de
-   `653c927f`. La palma izquierda se coloca a los 0,433 s y la derecha a los
-   0,60 s. El hombro izquierdo inicia el empuje y el derecho estabiliza antes
-   de colaborar. La pelvis se eleva y desplaza sobre las palmas; su inclinación
-   se compensa progresivamente en la columna para abrir el pliegue de la cadera.
-   La derecha avanza desde 1,10 s y su planta queda apoyada a los 3,10 s.
-   La izquierda se extiende durante la colocación inicial de palmas, enlazando
-   con la postura tumbada existente sin cambiarla; permanece extendida hasta
-   3,25 s y coloca su planta a los 4,85 s. Se conserva así el enlace inicial
-   con la flexión que ya tenía la pierna en la postura boca abajo aprobada.
-   Las manos mantienen sus contactos hasta la base estable de ambos pies;
-   descargan entre 5,00 y 5,60 s. La masa vuelve progresivamente hacia los pies.
-   Los pasos de recolocación final ocurren con cada pie descargado, antes del
-   cierre al Idle. El tramo que antes ocupaba el último segundo se reproduce
-   entre 7,70 y 8,00 s: **0,30 s**, conservando ocho segundos en total.
+| Tiempo local | Pose completa / apoyo |
+| --- | --- |
+| 0,00 | Boca abajo aprobado |
+| 0,70 | Palmas cerca del pecho; piernas extendidas y relajadas |
+| 1,30 | Empuje inicial con hombro izquierdo adelantado |
+| 1,90 | Pelvis elevada antes de recoger las piernas |
+| 2,40 | Rodillas apoyadas; manos preparadas para descargar |
+| 3,20 | Tronco elevado sobre rodillas; manos libres |
+| 3,85 | Planta derecha apoyada; rodilla izquierda estabiliza |
+| 4,40 | Elevación sobre la derecha; izquierda avanza |
+| 4,95 | Ambas plantas sostienen el cuerpo |
+| 5,40 | Peso sobre la izquierda; derecha recoge la postura |
+| 5,80 | Base equilibrada para el cierre |
+| 6,25 | Idle aprobado exacto |
 
-El visor conoce el suelo y la altura inicial (8, 10, 12 y 16 m); mide el
-recorrido, en vez de usar un temporizador para declarar el 19 %. El clip
-adapta su reloj aéreo al recorrido real y separa el reloj posterior al
-impacto. La envolvente de piel se normaliza a la base del controlador desde
-el vuelo, evitando una corrección de posición repentina al contactar.
+La palma izquierda se coloca a los 0,34 s y estabiliza mientras se coloca
+la derecha (0,70 s), por arcos descargados. La descarga entre 2,40 y 2,85 s
+precede a la relajación gradual de muñecas al elevar el tronco. El contacto
+IK se descarga en el primer fotograma de salida: el clip ya contiene el
+arco de retirada, y no debe mezclarse de nuevo hacia la palma bloqueada.
+`palm_release` describe esa salida del IK y `palm_exit` el arco Blender. El pie derecho
+avanza con un arco de despeje y llega a planta completa; no se fuerza el antepié.
+Los tiempos de apoyo y salida se almacenan en `timing.json`. El IK de autoría
+resuelve contactos y longitudes originales antes de hornear poses completas.
+La interpolación corporal cúbica conserva continuidad sin sobrepasar las claves;
+el horneado nativo utiliza 60 Hz. No se alteran rig, pesos, proporciones ni carrera.
 
-## Correcciones acotadas sobre la fuente
+## Fuente editable, horneado e importación
 
-La acción activa `ArenExtreme_SequentialSupport_WholeBodyPoses` contiene
-625 poses completas a 60 Hz. La base de esta edición se conserva como
-`ArenExtreme_SupportBase_653c927f`, sin sobrescribir sus curvas. La herramienta
-`coordinate_aren_extreme_support.py` edita exclusivamente la quinta fase,
-remuestreando las decisiones existentes de torso, arcos de colocación de manos,
-trayectorias de entrada de pies y el cierre al Idle. Sus ajustes de altura,
-inclinación, distribución de masa y planos de flexión resuelven los apoyos de
-cuerpo completo en Blender. No hay generación de poses corporales en Godot.
+`assets/characters/prototype_3d/generated/aren_getup_blender_v2/` contiene:
 
-Los planos de rodilla y el giro axial se calibran con el Idle del rig original,
-para que la tibia no gire rápidamente respecto al tobillo al cambiar el apoyo.
-Los pies cargados conservan la orientación mundial de la planta del Idle;
-los huesos de antepié y dedos no reciben correcciones nuevas. Las palmas se
-colocan 0,15 m más delante para permitir el desplazamiento de masa con alcance
-real de los brazos. Los controles antiguos del piloto quedan como referencias;
-la fuente editable actual es la acción FK completa.
+- `authoring/aren_getup_v2.blend`: malla y rig originales, acción de **12 poses
+  completas** `ArenGetupV2_TwelveWholeBodyPoses`, acción de contactos horneada
+  `ArenGetupV2_ContactBaked` y copia separada de exportación.
+- `authoring/poses.json`: decisiones nuevas de cuerpo completo.
+- `authoring/endpoints.json`: únicamente boca abajo e Idle autorizados.
+- `getup_v2.glb` / `getup_v2.res`: clip independiente, 376 muestras / 6,25 s.
+- `timing.json`: claves, duración, apoyos y referencias.
 
-`author_aren_extreme_shoulders.py` construye desde el reposo del rig los ocho
-huesos de clavículas, húmeros, antebrazos y muñecas en 1–34. Excluye los
-canales antiguos de esos huesos de las muestras de entrada de esa fase:
-no reutiliza ni mezcla sus curvas. Los hombros generan la circunducción;
-la flexión del codo solo varía 2,4° en total y las muñecas no giran por su cuenta.
-Se conserva la proporción de manos de 0,90 y los canales de dedos existentes.
-
-El enlace de hombros ocupa 35–45, durante los primeros 0,20 s de inclinación.
-Sus rotaciones igualan la velocidad angular a ambos lados de los fotogramas
-34 y 46. Esta edición conserva ese enlace, el resto de las cuatro primeras
-fases y la variante de muerte. La incorporación cambia únicamente después
-del fotograma 145 y conserva el final del clip en 10,4 s.
-
-`retime_aren_extreme_getup.py` conserva la ampliación anterior de cuatro a ocho
-segundos desde `ArenExtreme_GetupTimingBase_d69986ad`; reconstruye aquella versión
-anterior, no esta coordinación. La herramienta actual usa su propia base guardada
-para evitar acumular cambios en ejecuciones sucesivas. Los generadores anteriores
-de hombros y coordinación reconstruyen también sus versiones históricas.
-
-Godot reproduce el clip horneado y utiliza `getup_contacts` de `timing.json`
-para fijar palmas y plantas únicamente durante sus apoyos. Conserva el solver
-existente de longitudes nativas y envolventes de piel. La mezcla final al Idle
-ocupa los mismos 0,30 s del cierre Blender. El importador obtiene el número de
-muestras de `timing.json`; el horneado manual respeta el final del rango Blender.
-Las cuatro primeras fases y el resultado de muerte conservan sus tiempos.
-
-Después de editar manualmente la acción activa en Blender, usar el horneado
-existente para conservar esas ediciones:
+Para editar manualmente, trabajar sobre la acción de contactos o seleccionar
+la acción de poses como bloqueo de referencia. **Hornear con `--bake-only`
+para conservar las ediciones manuales**; las otras opciones reconstruyen la
+nueva autoría a partir de sus decisiones declaradas.
 
 ```sh
-blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/author_aren_extreme_blender.py -- --bake-only
+# Generación del bloqueo: revisar las 12 poses antes de interpolar.
+blender -b -t 4 --python tools/animation/author_aren_getup_v2.py -- --keys-only
+# Comprobar la piel real del bloqueo.
+blender -b assets/characters/prototype_3d/generated/aren_getup_blender_v2/authoring/aren_getup_v2.blend -t 4 --python-exit-code 1 --python tools/animation/validate_aren_getup_v2.py -- --keys-only
+# Tras validar el bloqueo: resolver intermedios y exportar la acción nueva.
+blender -b -t 4 --python tools/animation/author_aren_getup_v2.py -- --animate
+# Comprobar todos los fotogramas de la piel horneada antes de importar.
+blender -b assets/characters/prototype_3d/generated/aren_getup_blender_v2/authoring/aren_getup_v2.blend -t 4 --python-exit-code 1 --python tools/animation/validate_aren_getup_v2.py
+# Alternativa: exportar la acción editada sin reconstruirla.
+blender -b assets/characters/prototype_3d/generated/aren_getup_blender_v2/authoring/aren_getup_v2.blend -t 4 --python tools/animation/author_aren_getup_v2.py -- --bake-only
+# Importación del mismo rig, sin retargeting.
+godot --headless --path . --script tools/animation/import_aren_blender_landing.gd -- --getup-v2
 ```
 
-Volver a importar el clip tras hornear. Ejecutar el autor original sin
-`--bake-only` reconstruye la primera versión y sobrescribe la fuente actual.
-La prueba `tests/aren_extreme_review.gd` admite `-- --probe --quarter` para
-repetir el escenario de 8 m a 0,25×, además de sus escenarios completos a 1×.
+El importador compartido conserva sus opciones anteriores de piloto y caída
+extrema. Comprueba los 66 huesos y la coincidencia de reposo/unidades antes
+de guardar los 198 canales nativos. Los archivos anteriores no se regeneran.
 
 ## Revisión y futura integración
 
-F6 abre el catálogo y selecciona la caída extrema. Conserva las animaciones
-anteriores, las cuatro cámaras y los controles 1× / 0,25×. Los cinco botones
-permiten revisar fases; la barra temporal y Pausa permiten inspeccionar
-contactos. El selector de resultado previsualiza supervivencia o muerte.
+Abrir `aren_authoring_review.tscn` y ejecutar **F6**. Seleccionar
+**Blender · caída extrema ≥8 m → Previsualizar: sobrevive → Comparar: Nueva**.
+**Secuencia completa** reproduce la caída y la incorporación; **Incorporación**
+permite inspeccionar directamente esa fase. Comparar con **Anterior**, usar
+**1× / 0,25×**, Pausa y la barra temporal. Se mantienen vistas frontal, lateral,
+trasera y diagonal, alturas 8/10/12/16 m y previsualización de muerte.
 
-El selector representa un resultado de revisión, **no calcula daño ni crea
-vida paralela**. La futura integración, pendiente de aprobación visual,
-deberá aplicar el daño mediante el sistema vigente y consultar
-`game.player_health` (usado por `scripts/prototype_3d/player.gd`) antes de
-permitir la incorporación. Deberá trasladar `controls_locked` al controlador
-real de acciones. No se añaden reglas de daño ni umbrales de muerte aquí.
+Comprobar la malla visible, no solo huesos: abdomen/muslos, espacio para la
+pierna, estabilidad de contactos, pies y tobillos, transferencia de peso,
+continuidad articular y enlace al Idle. Pruebas de soporte y regresión:
 
-La detección jugable con altura incierta también queda para esa integración:
-se debe conservar el detector físico existente, confirmar el suelo previsto
-mediante consultas fiables y mantener el perfil aprobado mientras no pueda
-confirmarse una caída extrema. Este visor solo presenta escenarios de altura
-conocida y no afirma resolver anticipadamente geometría desconocida.
+```sh
+godot --headless --path . --script tests/aren_getup_v2_review.gd
+godot --headless --path . --script tests/aren_getup_v2_review.gd -- --quarter
+godot --headless --path . --script tests/aren_extreme_catalog.gd
+```
+
+La futura integración jugable deberá consultar `game.player_health` después
+del daño mediante el sistema vigente. El selector del visor solo presenta
+resultados de revisión; no crea vida ni daño paralelos. La predicción física
+de caídas sobre geometría desconocida sigue fuera de esta entrega.

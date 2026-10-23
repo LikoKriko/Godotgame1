@@ -4,11 +4,14 @@ const OUTPUT="res://assets/characters/prototype_3d/generated/aren_landing_blende
 const SCALE=1.75/64
 func _initialize():call_deferred("run")
 func run() -> void:
+ var getup_v2:bool="--getup-v2" in OS.get_cmdline_user_args()
  var extreme:bool="--extreme" in OS.get_cmdline_user_args()
  var output:String="res://assets/characters/prototype_3d/generated/aren_extreme_blender_v1/" if extreme else OUTPUT
- var samples:int=int(JSON.parse_string(FileAccess.get_file_as_string(output+"timing.json")).get("frames",385)) if extreme else 156
+ if getup_v2:output="res://assets/characters/prototype_3d/generated/aren_getup_blender_v2/"
+ var samples:int=int(JSON.parse_string(FileAccess.get_file_as_string(output+"timing.json")).get("frames",385)) if extreme or getup_v2 else 156
  var stem:="landing_heavy" if "--heavy" in OS.get_cmdline_user_args() else "landing_3m"
  if extreme:stem="extreme"
+ if getup_v2:stem="getup_v2"
  var document:=GLTFDocument.new();var state:=GLTFState.new()
  if document.append_from_file(output+stem+".glb",state)!=OK:quit(1);return
  var source:Node3D=document.generate_scene(state,60.0,false,false);root.add_child(source)
@@ -56,12 +59,16 @@ func run() -> void:
    clip.position_track_insert_key(bone*3,seconds,local.origin)
    clip.rotation_track_insert_key(bone*3+1,seconds,local.basis.orthonormalized().get_rotation_quaternion())
    clip.scale_track_insert_key(bone*3+2,seconds,local.basis.get_scale())
+ if getup_v2:clip.resource_name="ArenGetupV2_Blender"
  var whole_keys:Array=[1,17,37]
  for key in range(48,61):whole_keys.append(key)
  whole_keys.append_array([71,87,104,156])
- if extreme:whole_keys=JSON.parse_string(FileAccess.get_file_as_string(output+"timing.json")).get("keys")
+ if extreme or getup_v2:whole_keys=JSON.parse_string(FileAccess.get_file_as_string(output+"timing.json")).get("keys")
  clip.set_meta("source_blend",output+("authoring/aren_extreme.blend" if extreme else "authoring/aren_"+stem+".blend"));clip.set_meta("source_glb_sha256",FileAccess.get_sha256(output+stem+".glb"));clip.set_meta("whole_body_keys",whole_keys);clip.set_meta("impact_time",47.0/60)
  clip.set_meta("absorption_frames",[78,81,85,91] if extreme else [48,54,60])
  if extreme:clip.set_meta("impact_time",77.0/60)
+ if getup_v2:
+  clip.set_meta("source_blend",output+"authoring/aren_getup_v2.blend")
+  clip.remove_meta("impact_time");clip.remove_meta("absorption_frames")
  var error:=ResourceSaver.save(clip,output+stem+".res");assert(error==OK)
  actor.free();source.free();print("NATIVE BLENDER CLIP SAVED: 66 bones, ",samples," baked samples");quit()

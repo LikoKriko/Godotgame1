@@ -32,6 +32,17 @@ aprobados sin revisión.
   de hasta 26 cm. Flujo: física/contacto real → fase/pose → contactos e IK.
 - Detalles del sistema existente: [ANIMATION_SYSTEMS.md](ANIMATION_SYSTEMS.md).
 
+## Incorporación extrema en revisión
+
+La quinta fase dispone de un clip Blender nuevo e independiente de **6,25 s**,
+con 12 poses completas y únicamente boca abajo/Idle como estados heredados.
+El visor permite **Anterior / Nueva**; la anterior conserva sus ocho segundos.
+Se emplea un apoyo intermedio de rodillas antes de adelantar el pie derecho,
+para dejar espacio al muslo con las proporciones nativas de Aren. Las cuatro
+primeras fases, muerte, otras animaciones y escena jugable se conservan.
+**Pendiente de aprobación visual.** Fuente, referencias CMU, apoyos y comandos
+en [ANIMATION_EXTREME_BLENDER.md](ANIMATION_EXTREME_BLENDER.md).
+
 ## Fase 1: implementación, pruebas y aprobación
 
 | Paso | Estado al cierre |
@@ -129,7 +140,7 @@ aprobadas de locomoción al entrar y salir.
   La integración jugable añade cobertura de contactos físicos, terreno
   irregular, entradas y salidas, estados y respuesta a Espacio.
 
-## Caída extrema ≥8 m: primera revisión
+## Caída extrema ≥8 m: visor
 
 Nueva secuencia completa creada en Blender sobre el rig original, documentada
 en [ANIMATION_EXTREME_BLENDER.md](ANIMATION_EXTREME_BLENDER.md). El visor permite
@@ -139,17 +150,17 @@ cero en Blender sobre `fc492dc8`: circunducción generada por los hombros,
 codos pasivos de 20° ±1,2° y muñecas sin giro independiente. Solo se ajusta
 un enlace breve de brazos al inicio de la inclinación; el resto del cuerpo
 y las cuatro fases anteriores a la incorporación conservan sus poses y tiempos.
-La quinta fase mantiene **8 s** y utiliza como base la fuente de `653c927f`:
-el brazo izquierdo inicia el impulso, la pelvis libera espacio para la derecha
-y la izquierda se mantiene extendida hasta el apoyo derecho. Pie derecho
-plantado a los 3,10 s; la izquierda avanza desde 3,25 s y planta a los 4,85 s.
-Las palmas se descargan entre 5,00 y 5,60 s, con ambos pies estables. El IK de
-apoyos lee estos eventos del mismo `timing.json` que documenta la fuente Blender.
-La orientación axial de piernas se calibra con el plano articular del Idle del
-rig; las plantas cargadas mantienen su orientación natural. El último segundo
-anterior ocupa **0,30 s**, de 7,70 a 8,00 s. El clip completo conserva 10,4 s y
-la variante de muerte conserva la postura tumbada y sus tiempos.
-Los huesos del antepié se han inspeccionado; sus canales y pesos permanecen
+La quinta fase ofrece **Anterior / Nueva**. Anterior conserva la fuente de
+`f87bdc13`, sus ocho segundos y el clip completo de 10,4 s. Nueva utiliza un
+clip independiente de **6,25 s**, con 12 poses completas recién diseñadas;
+solo hereda boca abajo e Idle. No reutiliza curvas, poses ni trayectorias de
+la incorporación anterior. Sus apoyos intermedios de rodillas permiten elevar
+el tronco antes de plantar el pie derecho (3,85 s) y adelantar la izquierda
+(4,95 s). El cierre al Idle ocupa 0,45 s. El reloj completo termina en 8,65 s.
+El IK lee los apoyos de su propio `timing.json`; la retirada de manos ya está
+horneada y no se vuelve a mezclar hacia el apoyo anterior. La variante de
+muerte y las cuatro primeras fases conservan sus clips y tiempos originales.
+Los huesos del antepié se han inspeccionado; rig, pesos y carrera permanecen
 intactos. **Sin integración jugable hasta aprobación visual.**
 La plataforma de 8 m conserva su recuperación provisional.
 

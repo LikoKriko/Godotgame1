@@ -10,6 +10,11 @@ func run() -> void:
  var review=load("res://scenes/prototype_3d/aren_authoring_review.tscn").instantiate();root.add_child(review);review.set_process(false)
  await physics_frame
  check(review.extreme_review(),"extreme sequence opens in the required viewer")
+ check(review.getup_comparison.visible and review.getup_comparison.selected==1,"new getup opens by default")
+ review.getup_comparison.select(0);review.getup_comparison.item_selected.emit(0)
+ check(not review.actors[0].new_getup and is_equal_approx(review.actors[0].END,10.4),"Anterior plays the preserved eight-second getup")
+ review.getup_comparison.select(1);review.getup_comparison.item_selected.emit(1)
+ check(review.actors[0].new_getup and is_equal_approx(review.actors[0].END,8.65),"Nueva selects the independent clip")
  check(review.cameras.size()==4 and review.actors.size()==4,"four independent views")
  review.speed_presets.select(1);review.speed_presets.item_selected.emit(1)
  check(is_equal_approx(review.speed_slider.value,.25),"quarter speed")
@@ -29,6 +34,7 @@ func run() -> void:
   review.select_source(source);await physics_frame
   check(review.actors[0].native.skeleton.get_bone_count()==66,"approved native source "+str(source))
   check(not review.outcome_selector.visible,"outcome control isolated to extreme")
+  check(not review.getup_comparison.visible,"getup comparison hidden for approved sources")
  review.select_comparison(0);check(review.source_index==review.PREVIOUS_INDEX,"existing previous reception")
  review.select_comparison(1);check(review.source_index==review.pilot_index,"existing current reception")
  review.select_source(review.extreme_index);await physics_frame
