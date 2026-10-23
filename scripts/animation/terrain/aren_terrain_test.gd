@@ -50,6 +50,8 @@ func _ready() -> void:
   var h:float=Fall.HEIGHTS[index]
   box(Vector3(4,h,7),Vector3(-24+index*6,h*.5,28))
   if index==2:blender_ledge=get_child(get_child_count()-1)
+ # Fixed 7 m comparison ledge; existing ledges and their selectors stay unchanged.
+ box(Vector3(4,7,7),Vector3(0,3.5,28))
  # A continuous climb, landing and descent, 15 degrees, along -Z.
  var slope:=deg_to_rad(15.0)
  box(Vector3(5,.3,6),Vector3(0,.63,-7),slope)
@@ -100,6 +102,9 @@ func _unhandled_input(event:InputEvent) -> void:
    clear_drop_ledge()
    var index:int=event.keycode-KEY_6
    yaw=0;reset_at(Vector3(-24+index*6,(blender_height if index==2 else Fall.HEIGHTS[index])+.01,30.0))
+  if event.keycode==KEY_0:
+   clear_drop_ledge()
+   yaw=0;reset_at(Vector3(0,7.01,30.0))
   if event.keycode in [KEY_MINUS,KEY_KP_SUBTRACT,KEY_PLUS,KEY_EQUAL,KEY_KP_ADD]:
    clear_drop_ledge()
    var heights:Array=motion.air.BlenderLanding.Family.HEIGHTS
@@ -137,7 +142,7 @@ func _physics_process(dt:float) -> void:
  pose_ms=motion.pose_ms
  if body.position.y< -12:reset_at(Vector3(0,.1,2))
  update_camera()
- label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · Espacio: salto · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\n4: camino de tierra · 5: terreno forestal\n6/7/8/9: bordes 0,55 / 1,50 / %.2f / 8 m · W para abandonar el borde\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · %.0f FPS · pose %.2f ms" % [blender_height,actor.style,actor.measured_speed,actor.support_error*1000,Engine.get_frames_per_second(),pose_ms]
+ label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · Espacio: salto · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\n4: camino de tierra · 5: terreno forestal\n6/7/8/9: bordes 0,55 / 1,50 / %.2f / 8 m · 0: borde fijo de 7 m · W para abandonar el borde\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · %.0f FPS · pose %.2f ms" % [blender_height,actor.style,actor.measured_speed,actor.support_error*1000,Engine.get_frames_per_second(),pose_ms]
 
  var phase_label:String={"grounded":"En suelo","prepare":"Preparación / impulso","flight":"Salto","unsupported":"Pérdida de apoyo","fall":"Caída"}[motion.air.stage]
  label.text+="\n%s · vy %.2f m/s · IK de apoyo %.0f %%"%[phase_label,body.velocity.y,motion.air.detection.support_weight*100]

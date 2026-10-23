@@ -99,7 +99,8 @@ aprobadas de locomoción al entrar y salir.
 - `scenes/prototype_3d/aren_terrain_test.tscn` (**F6**), actor
   `scenes/prototype_3d/aren_terrain_actor.tscn`: plano, terreno irregular y
   desniveles físicos. WASD, Mayús para correr, Espacio para saltar, 1/2/3 estados,
-  4/5 camino/bosque, 6/7/8/9 plataformas de 0,55/1,50/3/8 m; R reinicia,
+  4/5 camino/bosque, 6/7/8/9 plataformas de 0,55/1,50/3/8 m; **0** accede a
+  una plataforma fija de **7 m**, independiente del selector −/+; R reinicia,
   botón derecho+ratón controla cámara. La escena activa `blender_landings=true`;
   el controlador compartido mantiene la integración desactivada por defecto.
   **−/+** cambia el borde Blender entre 3 y 7,9 m; **Mayús+4/5** crea un borde
