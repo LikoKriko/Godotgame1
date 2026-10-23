@@ -16,6 +16,25 @@ var test_input:=Vector2.ZERO
 var test_run:=false
 var elapsed:=0.0
 var pose_ms:=0.0
+@export var blender_landings:=false
+var blender_height:=3.0
+var blender_ledge:StaticBody3D
+var drop_ledge:StaticBody3D
+
+func clear_drop_ledge() -> void:
+ if is_instance_valid(drop_ledge):drop_ledge.queue_free()
+ drop_ledge=null
+
+func spawn_drop_ledge(x:float) -> void:
+ var excluded:Array[RID]=[body.get_rid()]
+ if is_instance_valid(drop_ledge):excluded.append(drop_ledge.get_rid())
+ clear_drop_ledge()
+ var query:=PhysicsRayQueryParameters3D.create(Vector3(x,2,-4),Vector3(x,-1,-4),1,excluded)
+ var hit:=get_world_3d().direct_space_state.intersect_ray(query)
+ var top:float=blender_height+(hit.position.y if not hit.is_empty() else 0.0)
+ box(Vector3(3,top,2),Vector3(x,top*.5,-4))
+ drop_ledge=get_child(get_child_count()-1)
+ yaw=0;reset_at(Vector3(x,top+.01,-3.5))
 
 func box(size:Vector3,at:Vector3,angle:float=0.0) -> void:
  var solid:=StaticBody3D.new();solid.position=at;solid.rotation.x=angle;add_child(solid)
@@ -30,6 +49,7 @@ func _ready() -> void:
  for index in 4:
   var h:float=Fall.HEIGHTS[index]
   box(Vector3(4,h,7),Vector3(-24+index*6,h*.5,28))
+  if index==2:blender_ledge=get_child(get_child_count()-1)
  # A continuous climb, landing and descent, 15 degrees, along -Z.
  var slope:=deg_to_rad(15.0)
  box(Vector3(5,.3,6),Vector3(0,.63,-7),slope)
@@ -56,6 +76,7 @@ func _ready() -> void:
  actor.body=body;body.add_child(actor)
  actor.rotation.y=PI
  response=motion.response;motion.aerial_enabled=true
+ motion.air.deep_landing_enabled=blender_landings
  camera=Camera3D.new();camera.current=true;camera.fov=58;add_child(camera)
  var layer:=CanvasLayer.new();add_child(layer);label=Label.new();label.position=Vector2(16,16);label.add_theme_color_override("font_outline_color",Color(0,0,0,.8));label.add_theme_constant_override("outline_size",4);layer.add_child(label)
  body.position=Vector3(0,.1,2)
@@ -71,15 +92,29 @@ func _unhandled_input(event:InputEvent) -> void:
   if event.keycode in [KEY_1,KEY_2,KEY_3]:
    actor.change_style(["normal","cautious","tired"][event.keycode-KEY_1]);motion.requested_gait=""
   if event.keycode in [KEY_4,KEY_5]:
-   yaw=0;reset_at(Vector3(-17 if event.keycode==KEY_4 else 19,.1,3))
+   var x:float=-17 if event.keycode==KEY_4 else 19
+   if event.shift_pressed:spawn_drop_ledge(x)
+   else:clear_drop_ledge();yaw=0;reset_at(Vector3(x,.1,3))
   if event.keycode==KEY_SPACE:motion.jump_requested=true
   if event.keycode in [KEY_6,KEY_7,KEY_8,KEY_9]:
+   clear_drop_ledge()
    var index:int=event.keycode-KEY_6
-   yaw=0;reset_at(Vector3(-24+index*6,Fall.HEIGHTS[index]+.01,30.0))
-  if event.keycode==KEY_R:reset_at(Vector3(0,.1,2))
+   yaw=0;reset_at(Vector3(-24+index*6,(blender_height if index==2 else Fall.HEIGHTS[index])+.01,30.0))
+  if event.keycode in [KEY_MINUS,KEY_KP_SUBTRACT,KEY_PLUS,KEY_EQUAL,KEY_KP_ADD]:
+   clear_drop_ledge()
+   var heights:Array=motion.air.BlenderLanding.Family.HEIGHTS
+   var change:=-1 if event.keycode in [KEY_MINUS,KEY_KP_SUBTRACT] else 1
+   blender_height=heights[clampi(heights.find(blender_height)+change,0,heights.size()-1)]
+   blender_ledge.position.y=blender_height*.5
+   blender_ledge.get_child(0).shape.size.y=blender_height
+   blender_ledge.get_child(1).mesh.size.y=blender_height
+   yaw=0;reset_at(Vector3(-12,blender_height+.01,30))
+  if event.keycode==KEY_BACKSPACE:clear_drop_ledge()
+  if event.keycode==KEY_R:clear_drop_ledge();reset_at(Vector3(0,.1,2))
 
 func reset_at(at:Vector3) -> void:
  body.position=at;body.velocity=Vector3.ZERO;motion=Motion.new();motion.aerial_enabled=true;response=motion.response
+ motion.air.deep_landing_enabled=blender_landings
  actor.air_motion=motion.air;actor.pending_style="";actor.recovering=false;actor.recovery_source.clear()
  actor.rotation.y=PI
  actor.turn_rate=0;actor.pivot_weight=0;actor.travel_foot_yaw=0
@@ -102,8 +137,11 @@ func _physics_process(dt:float) -> void:
  pose_ms=motion.pose_ms
  if body.position.y< -12:reset_at(Vector3(0,.1,2))
  update_camera()
- label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · Espacio: salto · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\n4: camino de tierra · 5: terreno forestal\n6/7/8/9: bordes 0,55 / 1,50 / 3 / 8 m · W para abandonar el borde\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · %.0f FPS · pose %.2f ms" % [actor.style,actor.measured_speed,actor.support_error*1000,Engine.get_frames_per_second(),pose_ms]
+ label.text="Aren · prueba de terreno\nWASD: mover · Mayús: correr · Espacio: salto · botón derecho + ratón: cámara\n1: normal · 2: cauteloso · 3: cansado · R: reiniciar\n4: camino de tierra · 5: terreno forestal\n6/7/8/9: bordes 0,55 / 1,50 / %.2f / 8 m · W para abandonar el borde\nCentro: subida / bajada 15° · izquierda: baches · derecha: desniveles 5–25 cm\n%s · %.2f m/s · IK %.1f mm · %.0f FPS · pose %.2f ms" % [blender_height,actor.style,actor.measured_speed,actor.support_error*1000,Engine.get_frames_per_second(),pose_ms]
 
  var phase_label:String={"grounded":"En suelo","prepare":"Preparación / impulso","flight":"Salto","unsupported":"Pérdida de apoyo","fall":"Caída"}[motion.air.stage]
  label.text+="\n%s · vy %.2f m/s · IK de apoyo %.0f %%"%[phase_label,body.velocity.y,motion.air.detection.support_weight*100]
  if motion.air.landing_pending:label.text+=" · 8 m: caída al suelo pendiente (recuperación provisional)"
+ if blender_landings:label.text+="\n−/+: borde Blender %.2f m (3–<8 m)"%blender_height
+ if blender_landings:label.text+=" · Mayús+4/5: borde en tierra/bosque · Retroceso: retirar plataforma"
+ if motion.air.landing.active:label.text+=" · Blender %.2f s · impacto %.2f m/s"%[motion.air.landing.parameters.duration,motion.air.landing.impact_speed]

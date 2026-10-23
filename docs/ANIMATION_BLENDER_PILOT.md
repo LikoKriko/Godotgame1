@@ -4,9 +4,9 @@ Familia de recepción aislada de **3 a menos de 8 m, estado normal y entrada des
 La base de comparación es la familia visible anterior al refuerzo de absorción
 (`4217d0f`); los dos
 extremos corregidos se editan en Blender y se mezclan como poses completas
-según la velocidad vertical de impacto. Solo se carga
-en `aren_authoring_review.tscn`; no sustituye clips aprobados ni se conecta a
-`aren_terrain_test.tscn`. El visor conserva una única pareja Anterior / Actual. La fuente procedural
+según la velocidad vertical de impacto. La recepción y su compresión están aprobadas visualmente en `2a106af1`.
+Se revisan en `aren_authoring_review.tscn` y se reutilizan en
+`aren_terrain_test.tscn`, conservando las recepciones bajas. El visor conserva una única pareja Anterior / Actual. La fuente procedural
 histórica sigue en disco y fuera del catálogo.
 
 ## Autoría y referencia
@@ -115,9 +115,9 @@ godot --headless --path . --script tests/aren_blender_landing_pilot.gd
 
 El método puede reutilizarse para otras acciones de Aren mediante nuevas poses
 y clips independientes. La familia generaliza continuamente las alturas del intervalo mediante
-velocidad vertical balística y mezcla de dos clips completos. No autoriza
-integración jugable, estados cauteloso/cansado ni entradas desde caminar/correr;
-no es un sistema automático de captura ni de validación biomecánica.
+velocidad vertical balística y mezcla de dos clips completos. La integración jugable está autorizada tras la aprobación de `2a106af1` y
+reutiliza la misma recepción para los tres estados y entradas de locomoción.
+No es un sistema automático de captura ni de validación biomecánica.
 
 El selector principal separa **Animaciones aprobadas** (locomoción, salto,
 caída automática y acceso al visor de giros) de **Animación en desarrollo**.
@@ -193,5 +193,29 @@ comandos `--bake-only` anteriores. `tests/aren_landing_absorption.gd` comprueba
 la conservación de poses fuera del tramo, duración, flexión reactiva, una sola
 compresión, continuidad de objetivos y sincronización con contacto físico.
 En el visor se puede desactivar **Detalle** para comparar a cámara fija y luego
-reactivarlo para revisar con el zoom habitual. La integración jugable sigue
-pendiente de aprobación visual.
+reactivarlo para revisar con el zoom habitual. La integración jugable se activa únicamente en la escena de pruebas autorizada.
+
+## Integración con física y terreno
+
+`aren_blender_landing.gd` adapta los clips existentes al controlador físico,
+sin modificar el visor ni añadir curvas independientes de huesos. El reloj
+de compresión comienza en la colisión real; el tiempo restante hasta el
+contacto dirige la preparación aérea. La velocidad vertical previa a resolver
+la colisión selecciona continuamente intensidad y recuperación. La absorción
+recorre las mismas poses en 0,20–0,16 s según impacto, con recuperación total
+de 1,8–2,4 s y cesión progresiva a la locomoción del estado seleccionado.
+
+Los pies y la palma conservan anclajes mundiales durante el apoyo. El IK nativo
+adapta suelas y piel a las superficies físicas. Una caché acotada por cada
+frame usa las cajas y triángulos exactos de terreno existentes; geometría
+no reconocida conserva consulta física directa. La pequeña traslación del
+frenado se compensa durante el apoyo para evitar cargar la rodilla suspendida.
+Una corrección de pelvis limitada al relieve mantiene libre la rodilla
+suspendida sin cambiar los clips. La liberación de pies y la devolución de
+movimiento se mezclan al final.
+
+El detector de caída automática y las recepciones de 0,55 y 1,50 m no cambian.
+La preparación de salto ya era 0,20 s, más 0,105 s de impulso; no se vuelve a
+reducir. Desde 8 m permanece la recuperación provisional, sin implementar
+desplome completo. En irregularidades la altura efectiva se mide contra el
+suelo real, no contra el número elegido para el borde.

@@ -4,3 +4,4 @@
 
 [node name="ArenTerrainTest" type="Node3D"]
 script = ExtResource("1")
+blender_landings = true

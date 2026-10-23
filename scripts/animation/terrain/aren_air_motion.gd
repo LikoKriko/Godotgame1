@@ -2,12 +2,11 @@ extends RefCounted
 ## Opt-in bridge: approved poses, real CharacterBody motion and terrain contacts.
 const Jump=preload("res://scripts/animation/authoring/aren_jump_motion.gd")
 const Fall=preload("res://scripts/animation/authoring/aren_fall_motion.gd")
-const Landing=preload("res://scripts/animation/authoring/aren_landing_motion.gd")
-const LandingPose=preload("res://scripts/animation/authoring/aren_landing_pose.gd")
+const BlenderLanding=preload("res://scripts/animation/terrain/aren_blender_landing.gd")
 const Detection=preload("res://scripts/animation/terrain/aren_fall_response.gd")
 var detection=Detection.new()
-var deep_landing_enabled:=false # Activate in gameplay only after visual approval.
-var landing=LandingPose.new()
+var deep_landing_enabled:=false # Opt in from the approved terrain sandbox.
+var landing=BlenderLanding.new()
 var landing_clock:=0.0
 var landing_heading:=0.0
 var stage:="grounded"
@@ -37,6 +36,10 @@ var target_travel:=Vector2.ZERO
 var momentum_offset:=Vector2.ZERO
 var momentum_time:=.16
 var floor_query:=PhysicsRayQueryParameters3D.new()
+var support_history:Array[Vector2]=[]
+var physics_clock:=0.0
+var blender_peak_y:=0.0
+var blender_height:=0.0
 
 func pre_move(body:CharacterBody3D,actor:Node3D,direction:Vector3,target:Vector2,jump:bool,dt:float) -> bool:
  target_travel=target
@@ -69,8 +72,12 @@ func ground_gap(body:CharacterBody3D) -> float:
  return maxf(0,body.global_position.y-hit.position.y) if not hit.is_empty() else 30.0
 
 func after_move(body:CharacterBody3D,actor:Node3D,velocity:Vector3,vertical:float,launched:bool,dt:float) -> void:
+ physics_clock+=dt
  var on_floor:=body.is_on_floor()
  var was_air:=stage in ["flight","unsupported","fall"]
+ while not support_history.is_empty() and physics_clock-support_history[0].x>.25:support_history.pop_front()
+ if on_floor and not was_air and not landing.active:support_history.append(Vector2(physics_clock,maxf(body.global_position.y,contact_height(body))))
+ if launched:blender_peak_y=body.global_position.y
  var gap:=0.0 if on_floor else ground_gap(body)
  detection.update(dt,on_floor,vertical,gap,false,launched)
  if not on_floor:
@@ -83,6 +90,8 @@ func after_move(body:CharacterBody3D,actor:Node3D,velocity:Vector3,vertical:floa
   if not was_air:
    stage="unsupported";air_time=0;source=actor.capture_pose()
    peak_y=maxf(last_position.y,support_y)
+   blender_peak_y=peak_y
+   for supported in support_history:blender_peak_y=maxf(blender_peak_y,supported.y)
    release_feet.clear()
    var release_frame:Transform3D=actor.global_transform
    release_frame.origin+=last_position-body.global_position
@@ -91,6 +100,7 @@ func after_move(body:CharacterBody3D,actor:Node3D,velocity:Vector3,vertical:floa
    actor.fall_contacts.clear()
    for side in 2:actor.fall_contacts.append(actor.terrain_contacts.size()>side and actor.terrain_contacts[side].planted)
   air_time+=dt;peak_y=maxf(peak_y,body.global_position.y)
+  blender_peak_y=maxf(blender_peak_y,body.global_position.y)
   if detection.mode=="falling" and stage!="fall":stage="fall";falls+=1
   actor.grounded=false;actor.measured_speed=Vector2(velocity.x,velocity.z).length()
   actor.body_height=body.global_position.y;actor.body_height_velocity=vertical
@@ -102,13 +112,14 @@ func after_move(body:CharacterBody3D,actor:Node3D,velocity:Vector3,vertical:floa
    actor.external_support_feet.clear()
    for foot in release_feet:actor.external_support_feet.append(actor.global_transform.affine_inverse()*foot)
    actor.apply_fall_pose(source,neutral,vertical,gap)
-   var predicted_height:float=peak_y-(body.global_position.y-gap)
-   if deep_landing_enabled and Landing.accepts(predicted_height):landing.prepare(actor,gap,-sqrt(2*Jump.GRAVITY*predicted_height))
+  var predicted_height:float=blender_peak_y-(body.global_position.y-gap)
+  if deep_landing_enabled and vertical<0 and BlenderLanding.Family.accepts(predicted_height):landing.prepare(actor,gap,vertical)
   return
  var new_landing:=false
  if was_air and (stage=="flight" or stage=="fall"):
   momentum_offset=Vector2(velocity.x,velocity.z)-target_travel;momentum_time=0
   contacts+=1;landing_height=maxf(0,peak_y-contact_height(body))
+  blender_height=maxf(0,blender_peak_y-contact_height(body))
   impact_scale=Fall.recovery_scale(landing_height) if stage=="fall" else 1.0
   landing_pending=stage=="fall" and Fall.collapse_pending(landing_height)
   recovery_duration=Jump.RECOVER*impact_scale;recovery_clock=0
@@ -117,8 +128,8 @@ func after_move(body:CharacterBody3D,actor:Node3D,velocity:Vector3,vertical:floa
   actor.terrain_contacts.clear();actor.pelvis_offset=0;actor.reach_velocity=0
   actor.body_height=body.global_position.y;actor.body_height_velocity=0
   impact_loading=0;impact_velocity=0;impact_elapsed=0
-  if deep_landing_enabled and stage=="fall" and Landing.accepts(landing_height):
-   landing.start(actor,landing_height,vertical,velocity,Callable(actor,"probe"))
+  if deep_landing_enabled and BlenderLanding.Family.accepts(blender_height):
+   landing.start(actor,blender_height,vertical,velocity,Callable(actor,"probe"))
    landing_clock=0;landing_heading=actor.rotation.y;new_landing=true
    recovery_pose.clear();impact_elapsed=100
    recovery_duration=landing.parameters.duration;recovery_clock=0
@@ -126,8 +137,13 @@ func after_move(body:CharacterBody3D,actor:Node3D,velocity:Vector3,vertical:floa
  stage="prepare" if stage=="prepare" else "grounded"
  if landing.active:
   if not new_landing:landing_clock+=dt
-  actor.evaluate_motion(dt,velocity,true)
-  landing.apply(actor,landing_clock,actor.capture_pose())
+  var exit:Dictionary={}
+  if landing_clock>=landing.parameters.rise_end:
+   actor.evaluate_motion(dt,velocity,true);exit=actor.capture_pose()
+  else:
+   actor.measured_speed=Vector2(velocity.x,velocity.z).length();actor.measured_velocity=Vector3(velocity.x,0,velocity.z)
+   actor.body_height=body.global_position.y;actor.grounded=true;actor.ray_count=0
+  landing.apply(actor,landing_clock,exit)
   recovery_clock=minf(recovery_duration,landing_clock)
   return
  recovery_clock=minf(recovery_duration,recovery_clock+dt)

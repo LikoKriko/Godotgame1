@@ -1,7 +1,7 @@
 # Aren: contexto vigente de animaciones
 
 Rama exclusiva: **`test/animation-system-v1`**. No modificar `main`.
-Base de esta iteración de absorción: **`4217d0f`**, sobre la limpieza del visor `5e93839`
+Base de la integración jugable: **`2a106af1`**, aprobado visualmente por el usuario, sobre la limpieza del visor `5e93839`
 y el piloto `60a4056`. Obtener el último commit con `git log -1 --oneline`. Leer los `AGENTS.md` aplicables antes de editar.
 
 ## Metodología aprobada y arquitectura
@@ -40,7 +40,7 @@ aprobados sin revisión.
 | 5 | Locomoción y adaptación al terreno aprobadas visualmente; cierre funcional `651b81a`. Tres estados: normal, cauteloso y cansado. Conservar poses y rendimiento. |
 | 6 | Salto voluntario aprobado visualmente en `343af25`, integrado en pruebas en `019a52b`. Reducción del 60 % de preparación **ya aplicada** en `2bc9e89`: 0,50 → 0,20 s, mismas poses; impulso 0,105 s. Visor y física comparten tiempos; despegue tras 0,305 s, sujeto al tick físico. No repetir la reducción. |
 | 7 | Caída automática implementada e integrada en `019a52b`, conservada en el catálogo aprobado. Distingue salto y pérdida de apoyo; recuperación provisional por altura. No equivale a aprobar el aterrizaje nuevo del paso 8. |
-| 8 | **Pendiente de finalizar.** Piloto Blender de 3 m disponible solo en el visor, con valoración visual positiva del usuario; familia Blender corregida 3–<8 m disponible solo en el visor, con mezcla continua por velocidad de impacto. Falta aprobación visual, entradas/estados adicionales y posterior integración jugable. |
+| 8 | **Recepción Blender aprobada visualmente (`2a106af1`) e integrada en `aren_terrain_test.tscn`.** Reutiliza los clips para 3–<8 m y adapta compresión/recuperación a velocidad vertical física; conserva entradas y salidas de locomoción en los tres estados. Las recepciones bajas y el visor se mantienen. No se integra en `main`. |
 | 9 | Pendiente; alcance y aprobación no documentados. Confirmar el plan antes de implementarlo. |
 | 10 | Pendiente; alcance y aprobación no documentados. Confirmar el plan antes de implementarlo. |
 
@@ -56,7 +56,9 @@ procedural. Es una valoración subjetiva suya, no una medición técnica ni una
 aprobación de integración o de todas las alturas. El cambio de metodología sí
 está aprobado. El piloto original cubre solo **3 m, normal y entrada desde reposo**. La
 corrección actual amplía alturas a **3–<8 m** mediante dos clips completos
-creados en Blender; aún mantiene estado normal y entrada desde reposo.
+creados en Blender. La prueba jugable reutiliza esas poses completas para los
+tres estados y entradas desde reposo, caminata y carrera; conserva las fuentes
+aprobadas de locomoción al entrar y salir.
 
 - Carpeta: `assets/characters/prototype_3d/generated/aren_landing_blender_pilot_v1/`.
   Contiene `authoring/aren_landing_3m.blend`, `authoring/reference_pose.json`,
@@ -98,9 +100,19 @@ creados en Blender; aún mantiene estado normal y entrada desde reposo.
   `scenes/prototype_3d/aren_terrain_actor.tscn`: plano, terreno irregular y
   desniveles físicos. WASD, Mayús para correr, Espacio para saltar, 1/2/3 estados,
   4/5 camino/bosque, 6/7/8/9 plataformas de 0,55/1,50/3/8 m; R reinicia,
-  botón derecho+ratón controla cámara. El piloto no está integrado;
-  `deep_landing_enabled=false` en `aren_air_motion.gd`.
-- Pruebas existentes: `tests/aren_landing_absorption.gd` (edición limitada al impacto),
+  botón derecho+ratón controla cámara. La escena activa `blender_landings=true`;
+  el controlador compartido mantiene la integración desactivada por defecto.
+  **−/+** cambia el borde Blender entre 3 y 7,9 m; **Mayús+4/5** crea un borde
+  sobre tierra/bosque a esa altura; **Retroceso** retira esa plataforma para
+  probar pérdida de apoyo desde reposo. Caminar/correr permite abandonar el
+  borde normalmente. Los otros atajos conservan su comportamiento.
+- Integración: `scripts/animation/terrain/aren_blender_landing.gd` reutiliza
+  muestreador nativo, clips y solver de contactos del visor. Usa el impacto
+  vertical previo a resolver la colisión, nunca velocidad vertical ya anulada.
+  Adapta apoyos a las colisiones reales y conserva el rumbo durante absorción;
+  devuelve movimiento y control al finalizar la recuperación.
+- Pruebas existentes: `tests/aren_blender_landing_integration.gd` (caídas reales),
+  `tests/aren_blender_landing_controls.gd` (saltos, estados y control), `tests/aren_landing_absorption.gd` (edición limitada al impacto),
   `tests/aren_blender_landing_family.gd` (alturas intermedias, contactos y separación),
   `tests/aren_blender_landing_pilot.gd` (clip, contactos,
   continuidad y catálogo), `tests/aren_air_integration.gd`,
@@ -111,9 +123,9 @@ creados en Blender; aún mantiene estado normal y entrada desde reposo.
 - **Probado previamente:** importación/render de Blender y Godot, rig nativo,
   contactos de palma/pies, rodilla suspendida, continuidad y controles del visor.
   La familia corregida añade comprobaciones de alturas intermedias y conserva
-  la comparación y los controles del visor. La aprobación artística sigue pendiente.
-  **Pendiente:** validación visual definitiva y pruebas jugables de la nueva
-  recepción en alturas intermedias, terreno real y locomoción de entrada/salida.
+  la comparación y los controles del visor. La recepción y su compresión de `2a106af1` están aprobadas visualmente.
+  La integración jugable añade cobertura de contactos físicos, terreno
+  irregular, entradas y salidas, estados y respuesta a Espacio.
 
 ## Trabajo local conservado y siguientes acciones
 
@@ -129,10 +141,13 @@ sincronizado estaba limpio; estas fuentes no se modifican ni se recrean:
 - `tests/aren_deep_landing.gd` y `tests/aren_landing_surface_clearance.gd`:
   comprobaciones asociadas. La documentación extensa local se consolida aquí.
 
-Prioridad: terminar la recepción en Blender y revisar la comparación; adaptar
-continuamente a 3–<8 m y a las entradas/estados necesarios; integrar solo tras
-aprobación visual y validar contactos, continuidad y rendimiento en terreno real.
+La aprobación visual permite la integración en la escena de pruebas. Las
+fases siguientes y la integración en `main` requieren instrucciones propias.
 No cambiar los aterrizajes bajos ni reabrir locomoción/salto aprobados.
 Problemas históricos: cuatro discrepancias de procedencia de herramientas en
 metadatos de `aren_walk_torso_v2` detectadas por `tests/aren_torso_coordination.gd`;
 no regenerar clips aprobados para silenciar hashes. Plataformas móviles pendientes.
+
+Limitación anterior conservada: discontinuidad de contacto del salto normal
+en la pendiente de 15° detectada por `aren_air_integration.gd`; no se modifica
+la animación aprobada del salto para ocultar esa incidencia.
