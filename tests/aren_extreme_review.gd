@@ -7,6 +7,7 @@ var worst_angle:=0.0
 var worst_at:=""
 var lowest_skin:=0.0
 var label:=""
+var maximum_loaded_shin:=0.0
 var surfaces:Array=[]
 var owners:Array[PackedInt32Array]=[]
 func _initialize():call_deferred("run")
@@ -104,6 +105,10 @@ func run() -> void:
   owners.append(owned)
  check_shoulder_phase(actor)
  check(is_equal_approx(actor.END-actor.GETUP,8.0),"eight-second survival getup")
+ check(is_equal_approx(actor.getup_contacts.final_settle[1]-actor.getup_contacts.final_settle[0],.3),"final source second occupies .3 seconds")
+ actor.apply_extreme(actor.END)
+ var idle_feet:Array[Basis]=[]
+ for leg in actor.native.legs:idle_feet.append(actor.native.posed[leg.ids[2]].basis.orthonormalized())
  await physics_frame
  var probe:bool="--probe" in OS.get_cmdline_user_args()
  var rate:float=.25 if "--quarter" in OS.get_cmdline_user_args() else 1.0
@@ -114,20 +119,42 @@ func run() -> void:
    var phases:Dictionary={};var floor_seen:=false
    var getup_feet:Array[Vector3]=[];var leg_onsets:Dictionary={}
    var early_left_palm:=Vector3.ZERO;var early_palm_seen:=false
+   var planted_feet:Dictionary={}
    for tick in int(800/rate):
     await physics_frame
     var started:=Time.get_ticks_usec();actor.advance_jump_preview(rate/60);timings.append((Time.get_ticks_usec()-started)/1000.0)
     phases[actor.phase_index]=true
     if actor.preview_stage=="getup":
-     var contact_time:float=actor.support_time(actor.clip_time)
+     var contact_time:float=actor.clip_time-actor.GETUP
      var feet:Array[Vector3]=[]
      for leg in actor.native.legs:feet.append(actor.global_transform*actor.native.posed[leg.ids[2]].origin)
      if getup_feet.is_empty():getup_feet=feet.duplicate()
+     var left:Dictionary=actor.native.legs[1]
+     var l0:Vector3=actor.native.posed[left.ids[0]].origin
+     var l1:Vector3=actor.native.posed[left.ids[1]].origin
+     var l2:Vector3=actor.native.posed[left.ids[2]].origin
+     var left_bend:float=rad_to_deg((l1-l0).angle_to(l2-l1))
+     if contact_time>=.75 and contact_time<3.25:check(left_bend<15,"left leg stays extended until right sole plants")
+     if contact_time>=3.25 and left_bend>25 and not leg_onsets.has(1):
+      leg_onsets[1]=actor.clip_time
+      check(contact_time>3.1,"left folds only after right foot lands")
+     if contact_time>=.9 and contact_time<=1.1:
+      var rs:int=actor.native.arms[0].ids[1];var ls:int=actor.native.arms[1].ids[1]
+      check((actor.native.posed[ls].origin.y-actor.native.posed[rs].origin.y)*actor.SCALE>.01,"left shoulder leads chest push")
      for side in 2:
-      if not leg_onsets.has(side) and feet[side].z-getup_feet[side].z>.01:
-       leg_onsets[side]=actor.clip_time
-       if side==1:check(feet[0].z-getup_feet[0].z>.01 and feet[0].z-getup_feet[0].z<.70,"left leg begins while right still advances")
-     if contact_time>=2.64 and contact_time<2.69:
+      var swing:Array=actor.getup_contacts.foot_swings[side]
+      var loaded:bool=contact_time>=actor.getup_contacts.feet[side] and (contact_time<swing[0] or contact_time>=swing[1])
+      if not loaded:planted_feet.erase(side);continue
+      var leg:Dictionary=actor.native.legs[side]
+      var shin:Vector3=(actor.native.posed[leg.ids[1]].origin-actor.native.posed[leg.ids[2]].origin).normalized()
+      var tilt:float=rad_to_deg(shin.angle_to(Vector3.UP));maximum_loaded_shin=maxf(maximum_loaded_shin,tilt)
+      check(tilt<35,"loaded shin avoids extreme ankle flexion")
+      var foot:Basis=actor.native.posed[leg.ids[2]].basis.orthonormalized()
+      check(rad_to_deg(foot.get_rotation_quaternion().angle_to(idle_feet[side].get_rotation_quaternion()))<3,"loaded foot retains natural sole orientation")
+      var point:Vector3=actor.global_transform*actor.native.posed[leg.ids[2]].origin
+      if not planted_feet.has(side):planted_feet[side]=point
+      check(Vector2(point.x,point.z).distance_to(Vector2(planted_feet[side].x,planted_feet[side].z))<.003,"loaded soles stay planted")
+     if contact_time>=.46 and contact_time<.55:
       var wrist:Vector3=actor.global_transform*actor.native.posed[actor.native.arms[1].ids[3]].origin
       if not early_palm_seen:early_left_palm=wrist;early_palm_seen=true
       check(Vector2(wrist.x,wrist.z).distance_to(Vector2(early_left_palm.x,early_left_palm.z))<.0015,"early left palm stays planted")
@@ -159,9 +186,9 @@ func run() -> void:
       var minima:=scan_skin(actor);lowest_skin=minf(lowest_skin,minima.x)
       check(minima.x>=-.002,"full visible skin clears floor")
       if actor.preview_stage=="prone":check(minima.w<.05,"prone torso rests near floor")
-      if actor.support_time(actor.clip_time)>=2.75 and actor.support_time(actor.clip_time)<=4.0:
+      if actor.clip_time-actor.GETUP>=.7 and actor.clip_time-actor.GETUP<=4.95:
        check(minima.y<.025 and minima.z<.025,"both palms support chest push")
-      if actor.support_time(actor.clip_time)>=3.65 and actor.support_time(actor.clip_time)<=4.45:
+      if actor.clip_time-actor.GETUP>=4.95 and actor.clip_time-actor.GETUP<=5.6:
        for side in 2:
         var sole:=INF
         for point in actor.contact_writer.sole_support.world_skin_points(actor.native,side,actor.global_transform):sole=minf(sole,point.y)
@@ -181,11 +208,11 @@ func run() -> void:
    else:
     check(absf(actor.phase_clock-8.0)<=rate/60+.00001,"getup respects eight-second playback clock")
     check(early_palm_seen,"early left support sampled")
-    check(leg_onsets.size()==2 and leg_onsets.get(1,0)-leg_onsets.get(0,0)>.26 and leg_onsets.get(1,0)-leg_onsets.get(0,0)<.60,"distinct overlapping right then left leg timing")
+    check(leg_onsets.has(1),"sequential left-leg fold sampled")
     var idle:Dictionary=actor.sampler.sample("idle",0);var final:Dictionary=actor.capture_pose()
     for bone in idle.poses.size():check(final.poses[bone].is_equal_approx(idle.poses[bone]),"exact approved Idle endpoint")
    print(label," tilt ",actor.tilt_fraction," flight ",actor.fall_time," lift ",actor.ground_lift)
  actor.free();await process_frame
  timings.sort()
- print("EXTREME ",checks," checks; pose max step ",worst_angle," deg at ",worst_at,"; skin ",lowest_skin,"; p95 ",timings[int(timings.size()*.95)]," ms; failures ",failures)
+ print("EXTREME ",checks," checks; pose max step ",worst_angle," deg at ",worst_at,"; loaded shin ",maximum_loaded_shin,"; skin ",lowest_skin,"; p95 ",timings[int(timings.size()*.95)]," ms; failures ",failures)
  quit(0 if failures.is_empty() else 1)

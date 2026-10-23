@@ -138,13 +138,17 @@ revisar cinco fases y los resultados de supervivencia/muerte; las recepciones
 cero en Blender sobre `fc492dc8`: circunducción generada por los hombros,
 codos pasivos de 20° ±1,2° y muñecas sin giro independiente. Solo se ajusta
 un enlace breve de brazos al inicio de la inclinación; el resto del cuerpo
-y las fases posteriores conservan sus poses. La incorporación mantiene el
-apoyo izquierdo anticipado, la separación de piernas de unos 0,40 s y la
-alineación progresiva del torso con la pelvis antes de soltar las manos.
-La quinta fase dura **8 s** (antes 4 s): tiempo escalado proporcionalmente en
-Blender, sin cambiar poses ni recorridos. El clip completo pasa de 6,4 a 10,4 s;
-las cuatro fases anteriores y la muerte conservan sus tiempos. El IK de apoyos
-y la salida a Idle siguen el mismo reloj proporcional.
+y las cuatro fases anteriores a la incorporación conservan sus poses y tiempos.
+La quinta fase mantiene **8 s** y utiliza como base la fuente de `653c927f`:
+el brazo izquierdo inicia el impulso, la pelvis libera espacio para la derecha
+y la izquierda se mantiene extendida hasta el apoyo derecho. Pie derecho
+plantado a los 3,10 s; la izquierda avanza desde 3,25 s y planta a los 4,85 s.
+Las palmas se descargan entre 5,00 y 5,60 s, con ambos pies estables. El IK de
+apoyos lee estos eventos del mismo `timing.json` que documenta la fuente Blender.
+La orientación axial de piernas se calibra con el plano articular del Idle del
+rig; las plantas cargadas mantienen su orientación natural. El último segundo
+anterior ocupa **0,30 s**, de 7,70 a 8,00 s. El clip completo conserva 10,4 s y
+la variante de muerte conserva la postura tumbada y sus tiempos.
 Los huesos del antepié se han inspeccionado; sus canales y pesos permanecen
 intactos. **Sin integración jugable hasta aprobación visual.**
 La plataforma de 8 m conserva su recuperación provisional.

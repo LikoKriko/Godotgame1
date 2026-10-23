@@ -7,7 +7,6 @@ const TILT=33.0/60
 const IMPACT=77.0/60
 const PRONE=108.0/60
 const GETUP=144.0/60
-const SUPPORT_END=384.0/60
 var END:float=ExtremeClip.length
 var extreme_sampler=Sample.new()
 var contact_writer=Contacts.new()
@@ -26,7 +25,8 @@ var skin_bones:=PackedInt32Array()
 var skin_weights:=PackedFloat32Array()
 var skin_offsets:=PackedInt32Array()
 var ground_lift:=0.0
-var palm_locks:Array[Vector3]=[]
+var palm_locks:Dictionary={}
+var getup_contacts:Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://assets/characters/prototype_3d/generated/aren_extreme_blender_v1/timing.json")).get("getup_contacts",{})
 var foot_locks:Dictionary={}
 var hand_vertices:Array[PackedInt32Array]=[PackedInt32Array(),PackedInt32Array()]
 func _ready() -> void:
@@ -113,14 +113,10 @@ func skin_minimum() -> float:
    point+=transform.basis*skin_local[at]+transform.origin*skin_weights[at]
   lowest=minf(lowest,(global_transform*point).y)
  return lowest
-func support_time(seconds:float) -> float:
- # Preserve the approved contact/blend trajectories on the retimed Blender clock.
- return seconds if seconds<=GETUP else GETUP+(seconds-GETUP)*(SUPPORT_END-GETUP)/(END-GETUP)
 func apply_extreme(seconds:float) -> void:
  clip_time=seconds
  var pose:Dictionary=extreme_sampler.sample("extreme",minf(seconds,ExtremeClip.length-.000001))
- var contact_time:=support_time(seconds)
- var finish:=Jump.smooth5((contact_time-(SUPPORT_END-.45))/.45)
+ var finish:=Jump.smooth5((seconds-(END-.3))/.3)
  if finish>0:
   var idle:Dictionary=sampler.sample("idle",0)
   for bone in pose.poses.size():pose.poses[bone]=pose.poses[bone].interpolate_with(idle.poses[bone],finish)
@@ -133,7 +129,7 @@ func apply_extreme(seconds:float) -> void:
  if seconds<END:
   ground_lift=maxf(0,.008-(skin_minimum()-global_position.y))*(1-finish)
   for bone in native.posed.size():native.posed[bone].origin.y+=ground_lift/SCALE
- if contact_time>=IMPACT-.18 and contact_time<SUPPORT_END-.45:fit_supports(contact_time,authored_hands)
+ if seconds>=IMPACT-.18 and seconds<END-.3:fit_supports(seconds,authored_hands)
  for side in 2:contact_writer.correct_knee(self,side)
  contact_writer.write(self)
 
@@ -147,33 +143,28 @@ func hand_minimum(side:int) -> float:
   lowest=minf(lowest,(global_transform*point).y)
  return lowest
 func fit_supports(seconds:float,authored_hands:Array[Vector3]) -> void:
- # Contacts use the baked pose's joint planes and existing native fixed-length IK.
- # Counter only the geometric body lift: retain the authored hand trajectory
- # through brace, rebound, prone rest and the two-hand placement arc.
- if seconds<2.7:
-  for side in 2:
-   var arm:Dictionary=native.arms[side]
-   var goal:Vector3=global_transform.affine_inverse()*authored_hands[side]
-   for iteration in 3:
-    contact_writer.adjust_chain(self,arm.ids,1,arm.a,arm.b,goal)
-    var low:=hand_minimum(side)
-    if low>=.0078:break
-    goal.y+=(.008-low)/SCALE
- if seconds>=2.7 and seconds<=4.25:
-  if palm_locks.is_empty():
-   palm_locks=authored_hands.duplicate()
-  var release:float=Jump.smooth5((seconds-4.0)/.25)
-  for side in 2:
-   var arm:Dictionary=native.arms[side]
-   var goal:Vector3=(global_transform.affine_inverse()*palm_locks[side]).lerp(native.posed[arm.ids[3]].origin,release)
-   for iteration in 3:
-    contact_writer.adjust_chain(self,arm.ids,1,arm.a,arm.b,goal)
-    var low:=hand_minimum(side)
-    if absf(low-.008)<.0003:break
-    goal.y+=(.008-low)*(1-release)/SCALE
-   palm_locks[side]=global_transform*native.posed[arm.ids[3]].origin
+ # Blender owns body coordination. Fit only the current authored support goals.
+ var elapsed:=seconds-GETUP
+ var release_window:Array=getup_contacts.palm_release
+ var release:float=Jump.smooth5((elapsed-release_window[0])/(release_window[1]-release_window[0]))
  for side in 2:
-  var planted:bool=seconds>=3.6 and (seconds<=5.15 or seconds>=5.7) if side==0 else (seconds>=3.6 and (seconds<=4.55 or seconds>=5.1))
+  var arm:Dictionary=native.arms[side]
+  var goal:Vector3=global_transform.affine_inverse()*authored_hands[side]
+  var planted:bool=elapsed>=float(getup_contacts.palms[side]) and elapsed<=float(release_window[1])
+  if planted:
+   if not palm_locks.has(side):palm_locks[side]=authored_hands[side]
+   goal=(global_transform.affine_inverse()*palm_locks[side]).lerp(native.posed[arm.ids[3]].origin,release)
+  # Keep the approved brace/prone/placement arcs; counter the geometric lift.
+  if elapsed<0 or planted or elapsed<float(getup_contacts.palms[side]):
+   for iteration in 3:
+    contact_writer.adjust_chain(self,arm.ids,1,arm.a,arm.b,goal)
+    var low:=hand_minimum(side)
+    if (absf(low-.008)<.0003 if planted else low>=.0078):break
+    goal.y+=(.008-low)*(1-release)/SCALE
+   if planted:palm_locks[side]=global_transform*native.posed[arm.ids[3]].origin
+ for side in 2:
+  var swing:Array=getup_contacts.foot_swings[side]
+  var planted:bool=elapsed>=float(getup_contacts.feet[side]) and (elapsed<float(swing[0]) or elapsed>=float(swing[1]))
   if not planted:foot_locks.erase(side);continue
   var leg:Dictionary=native.legs[side]
   if not foot_locks.has(side):foot_locks[side]=global_transform*native.posed[leg.ids[2]].origin
