@@ -4,9 +4,13 @@ const OUTPUT="res://assets/characters/prototype_3d/generated/aren_landing_blende
 const SCALE=1.75/64
 func _initialize():call_deferred("run")
 func run() -> void:
+ var extreme:bool="--extreme" in OS.get_cmdline_user_args()
+ var output:String="res://assets/characters/prototype_3d/generated/aren_extreme_blender_v1/" if extreme else OUTPUT
+ var samples:int=385 if extreme else 156
  var stem:="landing_heavy" if "--heavy" in OS.get_cmdline_user_args() else "landing_3m"
+ if extreme:stem="extreme"
  var document:=GLTFDocument.new();var state:=GLTFState.new()
- if document.append_from_file(OUTPUT+stem+".glb",state)!=OK:quit(1);return
+ if document.append_from_file(output+stem+".glb",state)!=OK:quit(1);return
  var source:Node3D=document.generate_scene(state,60.0,false,false);root.add_child(source)
  var skeleton:Skeleton3D=source.find_children("*","Skeleton3D",true,false)[0]
  var player:AnimationPlayer=source.find_children("*","AnimationPlayer",true,false)[0]
@@ -34,12 +38,12 @@ func run() -> void:
  assert(not animation_name.is_empty(),"Blender bake has no animation")
  var imported:Animation=player.get_animation(animation_name)
  print("BLENDER IMPORT ",animation_name," duration ",imported.length," rest delta ",maximum_rest_error)
- var clip:=Animation.new();clip.resource_name="ArenLanding_Blender_"+stem;clip.length=155.0/60;clip.step=1.0/60;clip.loop_mode=Animation.LOOP_NONE
+ var clip:=Animation.new();clip.resource_name="ArenExtreme_Blender" if extreme else "ArenLanding_Blender_"+stem;clip.length=(samples-1)/60.0;clip.step=1.0/60;clip.loop_mode=Animation.LOOP_NONE
  for bone in native.parents.size():
   for type in [Animation.TYPE_POSITION_3D,Animation.TYPE_ROTATION_3D,Animation.TYPE_SCALE_3D]:
    var track:=clip.add_track(type);clip.track_set_path(track,NodePath("Skeleton3D:"+str(native.skeleton.get_bone_name(bone))));clip.track_set_interpolation_type(track,Animation.INTERPOLATION_LINEAR)
  player.play(animation_name)
- for sample in 156:
+ for sample in samples:
   var seconds:=sample/60.0;player.seek(minf(seconds+1.0/60,imported.length),true);skeleton.force_update_all_bone_transforms()
   var poses:Array[Transform3D]=[]
   for bone in native.parents.size():
@@ -55,7 +59,9 @@ func run() -> void:
  var whole_keys:Array=[1,17,37]
  for key in range(48,61):whole_keys.append(key)
  whole_keys.append_array([71,87,104,156])
- clip.set_meta("source_blend",OUTPUT+"authoring/aren_"+stem+".blend");clip.set_meta("source_glb_sha256",FileAccess.get_sha256(OUTPUT+stem+".glb"));clip.set_meta("whole_body_keys",whole_keys);clip.set_meta("impact_time",47.0/60)
- clip.set_meta("absorption_frames",[48,54,60])
- var error:=ResourceSaver.save(clip,OUTPUT+stem+".res");assert(error==OK)
- actor.free();source.free();print("NATIVE BLENDER CLIP SAVED: 66 bones, 156 baked samples");quit()
+ if extreme:whole_keys=JSON.parse_string(FileAccess.get_file_as_string(output+"timing.json")).get("keys")
+ clip.set_meta("source_blend",output+("authoring/aren_extreme.blend" if extreme else "authoring/aren_"+stem+".blend"));clip.set_meta("source_glb_sha256",FileAccess.get_sha256(output+stem+".glb"));clip.set_meta("whole_body_keys",whole_keys);clip.set_meta("impact_time",47.0/60)
+ clip.set_meta("absorption_frames",[78,81,85,91] if extreme else [48,54,60])
+ if extreme:clip.set_meta("impact_time",77.0/60)
+ var error:=ResourceSaver.save(clip,output+stem+".res");assert(error==OK)
+ actor.free();source.free();print("NATIVE BLENDER CLIP SAVED: 66 bones, ",samples," baked samples");quit()

@@ -57,6 +57,7 @@ func run() -> void:
  check(actor.preview_done and seen>15,"complete clip with sustained contact")
  actor.free()
  var r=load("res://scenes/prototype_3d/aren_authoring_review.tscn").instantiate();root.add_child(r);r.set_process(false)
+ r.select_source(r.pilot_index) # The viewer now opens the extreme fall under review.
  check(r.source_index==r.pilot_index,"pilot available in existing viewer")
  r.show_jump_phase(2);var clock:float=r.actors[0].preview_clock
  var pose:Dictionary=r.actors[0].capture_pose();r.compare_pilot()
@@ -67,7 +68,7 @@ func run() -> void:
  for bone in pose.poses.size():check(pose.poses[bone].is_equal_approx(after.poses[bone]),"comparison restores Blender pose")
  for mirror in range(1,4):
   for bone in pose.poses.size():check(r.actors[mirror].native.skeleton.get_bone_pose(bone).is_equal_approx(r.actors[0].native.skeleton.get_bone_pose(bone)),"four camera pose mirrors")
- check(r.source_selector.item_count==7,"two catalog headings, four approved entries and one development entry")
+ check(r.source_selector.item_count==8,"two headings, four approved entries and two review entries")
  check(r.source_selector.get_item_text(0)=="Animaciones aprobadas" and r.source_selector.get_item_text(5)=="Animación en desarrollo","explicit catalog categories")
  for item in r.source_selector.item_count:
   check(r.source_selector.get_item_id(item) not in range(0,14),"historical sources excluded from catalog")
@@ -97,7 +98,7 @@ func run() -> void:
   else:
    for phase in range(1,5):r.show_jump_phase(phase)
  r.select_catalog_item(r.source_selector.get_item_index(r.pilot_index))
- check(r.source_index==r.pilot_index and r.comparison_selector.visible,"single development entry")
+ check(r.source_index==r.pilot_index and r.comparison_selector.visible,"existing reception comparison retained")
  r.fall_height_selector.item_selected.emit(r.review_heights().find(6.0))
  r.show_frame("idle_to_fall",2.1);r.playing=false
  r.compare_pilot()

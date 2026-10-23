@@ -40,7 +40,7 @@ aprobados sin revisión.
 | 5 | Locomoción y adaptación al terreno aprobadas visualmente; cierre funcional `651b81a`. Tres estados: normal, cauteloso y cansado. Conservar poses y rendimiento. |
 | 6 | Salto voluntario aprobado visualmente en `343af25`, integrado en pruebas en `019a52b`. Reducción del 60 % de preparación **ya aplicada** en `2bc9e89`: 0,50 → 0,20 s, mismas poses; impulso 0,105 s. Visor y física comparten tiempos; despegue tras 0,305 s, sujeto al tick físico. No repetir la reducción. |
 | 7 | Caída automática implementada e integrada en `019a52b`, conservada en el catálogo aprobado. Distingue salto y pérdida de apoyo; recuperación provisional por altura. No equivale a aprobar el aterrizaje nuevo del paso 8. |
-| 8 | **Recepción Blender aprobada visualmente (`2a106af1`) e integrada en `aren_terrain_test.tscn`.** Reutiliza los clips para 3–<8 m y adapta compresión/recuperación a velocidad vertical física; conserva entradas y salidas de locomoción en los tres estados. Las recepciones bajas y el visor se mantienen. No se integra en `main`. |
+| 8 | **Recepción Blender aprobada visualmente (`2a106af1`) e integrada en `aren_terrain_test.tscn`.** Reutiliza los clips para 3–<8 m y adapta compresión/recuperación a velocidad vertical física; conserva entradas y salidas de locomoción en los tres estados. Las recepciones bajas se mantienen. Caída extrema ≥8 m en revisión independiente, solo visor y pendiente de aprobación visual. No se integra en `main`. |
 | 9 | En curso: corregida la entrada de locomoción a caída automática desde el primer tick sin apoyo. El reloj visual se independiza de la confirmación física; contactos Blender precalculados al cargar y reutilizados al reiniciar. Resto de transiciones pendiente. |
 | 10 | Pendiente; alcance y aprobación no documentados. Confirmar el plan antes de implementarlo. |
 
@@ -128,6 +128,14 @@ aprobadas de locomoción al entrar y salir.
   la comparación y los controles del visor. La recepción y su compresión de `2a106af1` están aprobadas visualmente.
   La integración jugable añade cobertura de contactos físicos, terreno
   irregular, entradas y salidas, estados y respuesta a Espacio.
+
+## Caída extrema ≥8 m: primera revisión
+
+Nueva secuencia completa creada en Blender sobre el rig original, documentada
+en [ANIMATION_EXTREME_BLENDER.md](ANIMATION_EXTREME_BLENDER.md). El visor permite
+revisar cinco fases y los resultados de supervivencia/muerte; las recepciones
+3–<8 m continúan disponibles. **Sin integración jugable hasta aprobación visual.**
+La plataforma de 8 m conserva su recuperación provisional.
 
 ## Transición de locomoción a caída automática
 

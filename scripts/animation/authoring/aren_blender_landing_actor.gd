@@ -44,7 +44,7 @@ func apply_clip(seconds:float,entry_weight:float=1.0) -> void:
   var neutral:Dictionary=sampler.sample("idle",0)
   for bone in native.parents.size():pose.poses[bone]=pose.poses[bone].interpolate_with(neutral.poses[bone],finish)
  landing.restore(self,pose.poses);landing.write(self)
-func apply_fall_pose(_source:Dictionary,_neutral:Dictionary,_vy:float,_gap:float) -> void:
+func apply_fall_pose(_source:Dictionary,_neutral:Dictionary,_vy:float,_gap:float,_release_time:float=-1.0) -> void:
  apply_clip(IMPACT*fall_time/Fall.flight_duration(drop_height),Jump.smooth5(fall_time/.16))
  landing.palm_planted=false;landing.support_loaded=false
 func begin_recovery() -> void:
