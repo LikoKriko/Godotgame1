@@ -137,6 +137,9 @@ revisar cinco fases y los resultados de supervivencia/muerte; las recepciones
 3–<8 m continúan disponibles. La acción extrema corregida conserva la base
 `9dcd03ed`: arcos de brazos más cerrados y una incorporación iniciada por la
 pierna derecha, seguida por la izquierda, con giro coordinado de pelvis/torso.
+La coordinación sobre `b91fb769` adelanta el apoyo izquierdo, amplía la separación
+entre inicios de piernas a unos 0,20 s y recupera la alineación del torso con
+la pelvis antes de soltar las manos; conserva duración, intensidad y fases previas.
 Los huesos del antepié se han inspeccionado; sus canales y pesos permanecen
 intactos. **Sin integración jugable hasta aprobación visual.**
 La plataforma de 8 m conserva su recuperación provisional.

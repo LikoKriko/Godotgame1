@@ -46,12 +46,15 @@ importación nativa y las pruebas anteriores.
    Compresión, rebote pequeño y amortiguación se reproducen desde ese evento.
 4. Boca abajo: postura relajada mantenida. El resultado «muere» no reproduce
    incorporación y conserva bloqueado el estado de recuperación.
-5. Supervivencia: incorporación de cuatro segundos. Las palmas se colocan
-   a los 0,30 s; la derecha empieza a avanzar en ese apoyo y la izquierda
-   sigue unos 0,10 s después, con recorridos solapados. La pelvis rota
-   progresivamente hasta 11°; el torso acompaña el 46 % de ese giro,
-   conservando la curvatura. Los pies se cargan antes de ceder el apoyo
-   de las manos al 40 % del progreso.
+5. Supervivencia: incorporación de cuatro segundos. La palma izquierda
+   llega al apoyo a los 0,217 s y la derecha a los 0,30 s. La pierna derecha
+   comienza primero; la izquierda sigue unos 0,20 s después, con recorridos
+   solapados y la misma colocación final de ambos pies. La pelvis comienza
+   su giro durante el empuje y conserva el máximo de 11°; el torso acompaña
+   inicialmente el 46 % de ese giro, conservando la curvatura. Durante la
+   descarga de los brazos elimina gradualmente la torsión relativa:
+   alineación con la pelvis a los 1,40 s y ambos hacia delante a los 1,60 s.
+   Los pies se cargan antes de ceder el apoyo de las manos al 40 % del progreso.
    La salida se mezcla al Idle aprobado, sin trasladar ni girar al personaje.
 
 El visor conoce el suelo y la altura inicial (8, 10, 12 y 16 m); mide el
@@ -63,18 +66,23 @@ el vuelo, evitando una corrección de posición repentina al contactar.
 ## Correcciones acotadas sobre la fuente
 
 La acción activa `ArenExtreme_Refined_WholeBodyPoses` conserva 385 poses
-completas a 60 Hz; `ArenExtreme_Base_9dcd03ed` retiene la autoría de partida.
+completas a 60 Hz; `ArenExtreme_Base_9dcd03ed` retiene la autoría de partida
+y `ArenExtreme_GetupBase_b91fb769` conserva la incorporación anterior.
 Los brazos siguen arcos de equilibrio más cerrados y suaves antes de
-inclinarse. Solo se editan las ramas de brazos en 2–33 y la coordinación de
-la incorporación en 155–240. Se conservan las demás poses muestreadas,
-las piernas de la primera fase, los canales de dedos y los 6,4 s del clip.
-Las palmas mantienen las trayectorias de apoyo con el IK de contacto existente.
+inclinarse. La corrección de coordinación actual solo edita 146–240 sobre
+esa segunda base: coloca antes la palma izquierda en el mismo destino,
+retarda seis fotogramas el inicio izquierdo y deshace gradualmente el giro
+relativo de la columna durante el empuje. El recorrido derecho, la curva de
+elevación de pelvis, el máximo del giro y la extensión corporal se conservan.
+Las otras fases, la variante de muerte, los canales de dedos, la recuperación
+final y los 6,4 s del clip permanecen iguales. El IK de contacto existente
+mantiene los apoyos; no hay nuevas curvas corporales en Godot.
 
-Para reproducir esta corrección sobre la fuente de partida o sobre el archivo
-actual (reutiliza la acción base, sin acumular el ajuste):
+Para reproducir la coordinación sobre la fuente de `b91fb769` o el archivo
+actual (reutiliza esa acción base, sin acumular el ajuste):
 
 ```sh
-blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/refine_aren_extreme_blender.py
+blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/refine_aren_extreme_blender.py -- --coordination
 godot --headless --path . --script tools/animation/import_aren_blender_landing.gd -- --extreme
 ```
 
@@ -87,6 +95,8 @@ blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/auth
 
 Volver a importar el clip tras hornear. Ejecutar el autor original sin
 `--bake-only` reconstruye la primera versión y sobrescribe la fuente actual.
+El refinador sin `--coordination` reproduce el ajuste anterior de `9dcd03ed`,
+sin la nueva sincronización de la incorporación.
 La prueba `tests/aren_extreme_review.gd` admite `-- --probe --quarter` para
 repetir el escenario de 8 m a 0,25×, además de sus escenarios completos a 1×.
 

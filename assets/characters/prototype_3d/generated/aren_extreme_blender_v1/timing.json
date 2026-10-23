@@ -397,7 +397,10 @@
   "leg_load": 4.0,
   "end": 6.4,
   "right_foot_start": 2.7,
-  "left_foot_start": 2.8,
+  "left_foot_start": 2.9,
   "pelvis_yaw_degrees": 11,
-  "torso_yaw_fraction": 0.46
+  "torso_yaw_fraction": 0.46,
+  "left_palm": 2.6166666666666667,
+  "torso_align": 3.8,
+  "torso_forward": 4.0
 }

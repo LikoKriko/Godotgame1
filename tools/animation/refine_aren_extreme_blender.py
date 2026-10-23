@@ -1,7 +1,8 @@
 """Targeted whole-pose edit of the 9dcd03ed extreme-fall Blender source.
 Run on authoring/aren_extreme.blend. Retains the base action for repeatable edits;
 only arm branches in frames 2..33 and the getup in 155..240 are corrected.
-No skeleton, mesh, weights, toe channels, timing or gameplay changes.
+Use --coordination to retime only the b91fb769 getup; all earlier phases stay fixed.
+No skeleton, mesh, weights, toe channels, total duration or gameplay changes.
 """
 import bpy, json, math, sys
 from pathlib import Path
@@ -14,11 +15,13 @@ OUT=ROOT/'assets/characters/prototype_3d/generated/aren_extreme_blender_v1'
 rig=bpy.data.objects['Aren_Native_66_Authoring']
 scene=bpy.context.scene
 bpy.context.preferences.filepaths.save_version=0
-BASE='ArenExtreme_Base_9dcd03ed'
+coordination='--coordination' in sys.argv
+BASE='ArenExtreme_GetupBase_b91fb769' if coordination else 'ArenExtreme_Base_9dcd03ed'
 base=bpy.data.actions.get(BASE)
 if base is None:
  base=rig.animation_data.action
- assert base.name=='ArenExtreme_WholeBodyPoses', 'Open the original extreme authoring blend'
+ expected='ArenExtreme_Refined_WholeBodyPoses' if coordination else 'ArenExtreme_WholeBodyPoses'
+ assert base.name==expected, 'Open the matching extreme authoring blend'
 base.name=BASE
 base.use_fake_user=True
 rig.animation_data.action=base
@@ -89,13 +92,46 @@ def solve_chain(side,mid,end,target,pole,lock_orientation=True,keep_plane=False)
 right_keys=[(145,0),(154,0),(163,12),(175,8),(190,7),(205,3),(217,0)]
 left_keys=[(145,0),(163,0),(170,6),(184,4),(200,3),(217,0)]
 yaw_keys=[(145,0),(154,0),(163,3),(175,8),(190,11),(205,7),(217,3),(241,0)]
+# Relative timing edits of the current whole-pose getup. The right leg, body
+# rise, peak yaw and all endpoint poses remain on their existing clocks.
+left_delay=[(145,0),(156,0),(174,-6),(190,-6),(205,-3),(217,0)]
+push_yaw=[(145,0),(158,0),(169,5),(190,11),(205,7),(217,3),(241,0)]
+torso_follow=[(145,.46),(190,.46),(205,.62),(217,.90),(229,1),(241,1)]
+def coordinate_getup(frame,pose,world):
+ # Advance the existing left-hand placement arc from 18 to 13 frames. The
+ # same palm destination is then held until the original bilateral support.
+ hand_time=145+(frame-145)*18/13 if frame<158 else (163 if frame<163 else frame)
+ if frame<163:
+  hand_basis,hand_world=sample(hand_time)
+  left_hand=hand_world['smartrig:LeftHand'].copy()
+  left_elbow=hand_world['smartrig:LeftForeArm'].translation.copy()
+  pose['smartrig:LeftShoulder']=hand_basis['smartrig:LeftShoulder'].copy()
+ else:
+  left_hand=world['smartrig:LeftHand'].copy()
+  left_elbow=world['smartrig:LeftForeArm'].translation.copy()
+ _,left_world=sample(frame+curve(frame,left_delay))
+ apply_basis(pose)
+ old_yaw=curve(frame,yaw_keys);new_yaw=curve(frame,push_yaw)
+ rotate_world('smartrig:Hips',new_yaw-old_yaw)
+ # Counter only the relative yaw. Spine curvature and extension stay authored.
+ # While the palms still push, progressively remove the counter-rotation so
+ # torso and pelvis align before both finish facing forward at frame 241.
+ torso_delta=new_yaw*curve(frame,torso_follow)-old_yaw*.46-(new_yaw-old_yaw)
+ for spine in ['Spine','Spine1','Spine2']:rotate_world('smartrig:'+spine,torso_delta/3)
+ for side,goal,pole in [
+  ('Right',world['smartrig:RightFoot'],world['smartrig:RightLeg'].translation),
+  ('Left',left_world['smartrig:LeftFoot'],left_world['smartrig:LeftLeg'].translation)]:
+  solve_chain(side,'Leg','Foot',goal,pole)
+ solve_chain('Right','ForeArm','Hand',world['smartrig:RightHand'],world['smartrig:RightForeArm'].translation)
+ solve_chain('Left','ForeArm','Hand',left_hand,left_elbow)
+
 result={}
 assert len(rig.data.bones)==66
 for frame in range(1,386):
  original,world=samples[frame]
  pose={n:m.copy() for n,m in original.items()}
  apply_basis(pose)
- if 1<frame<34:
+ if not coordination and 1<frame<34:
   u=(frame-1)/33
   _,slower=sample(frame-2.2*math.sin(math.pi*u))
   apply_basis(pose)
@@ -109,7 +145,7 @@ for frame in range(1,386):
    # Edit the coordinated shoulder/elbow/wrist pose through a closed hand arc.
    # Free wrists retain their local authored flex instead of world locking.
    solve_chain(side,'ForeArm','Hand',target,pole,False,True)
- if 154<frame<241:
+ if not coordination and 154<frame<241:
   yaw=curve(frame,yaw_keys)
   # Upper torso follows 46% of the pelvic yaw; curvature stays authored.
   for side,keys in [('Right',right_keys),('Left',left_keys)]:
@@ -127,6 +163,7 @@ for frame in range(1,386):
   # accommodating the new pelvic/torso coordination with the original arms.
   for side in ['Right','Left']:
    solve_chain(side,'ForeArm','Hand',world['smartrig:'+side+'Hand'],world['smartrig:'+side+'ForeArm'].translation)
+ if coordination and 145<frame<241:coordinate_getup(frame,pose,world)
  pose={b.name:b.matrix_basis.copy() for b in rig.pose.bones}
  # No animation of toes is introduced by this refinement.
  for n in pose:
@@ -142,9 +179,9 @@ for frame,pose in result.items():
  for name,mat in pose.items():
   source=samples[frame][0][name]
   assert (mat.translation-source.translation).length<.00001, 'Native joint translation changed'
-  preserve=(not (1<frame<34 or 154<frame<241) or 'Toe' in name or (frame<34 and name not in arm_branches))
+  preserve=(not (145<frame<241) or 'Toe' in name) if coordination else (not (1<frame<34 or 154<frame<241) or 'Toe' in name or (frame<34 and name not in arm_branches))
   if preserve:assert max(abs(mat[i][j]-source[i][j]) for i in range(4) for j in range(4))<.000005, 'Edit escaped its phase/branch'
-# Preserve approved interpolation outside the two edit intervals. Dense FK keys
+# Preserve approved interpolation outside the edited intervals. Dense FK keys
 # are the authored whole-pose result, with linear interpolation as in the bake.
 for old in list(bpy.data.actions):
  if old.name.startswith('ArenExtreme_Refined_WholeBodyPoses'):bpy.data.actions.remove(old)
@@ -161,7 +198,7 @@ for frame,pose in result.items():
   for path in ['location','rotation_quaternion','scale']:bone.keyframe_insert(path,frame=frame,group=bone.name)
 for fc in action.fcurves:
  for key in fc.keyframe_points:key.interpolation='LINEAR'
-rig['refinement']='9dcd03ed: reduced balance arm circles; right-led overlapping getup; fixed native rig/toes'
+rig['refinement']='b91fb769: getup timing only; left palm earlier; overlapping right/left legs; progressive torso alignment' if coordination else '9dcd03ed: reduced balance arm circles; right-led overlapping getup; fixed native rig/toes'
 rig['whole_body_keys']=list(range(1,386))
 # Remove previous generated exports, retaining the source and base actions.
 for old in list(bpy.data.actions):
@@ -171,13 +208,27 @@ for old in list(bpy.data.actions):
  if old.users==0 and old not in [base,action,baked.animation_data.action]:bpy.data.actions.remove(old)
 timing=json.loads((OUT/'timing.json').read_text())
 timing.update(keys=list(range(1,386)),feet=162/60,right_foot_start=162/60,left_foot_start=168/60,pelvis_yaw_degrees=11,torso_yaw_fraction=.46)
+if coordination:timing.update(left_palm=157/60,left_foot_start=174/60,torso_align=228/60,torso_forward=240/60)
+else:
+ for key in ['left_palm','torso_align','torso_forward']:timing.pop(key,None)
 (OUT/'timing.json').write_text(json.dumps(timing,indent=2)+'\n')
 # Markers describe the revised coordination without moving phase boundaries.
 for marker in scene.timeline_markers:
- if marker.frame==163:marker.name='Palms planted; right leg begins'
- if marker.frame==175:marker.name='Overlapping leg advance'
+ if marker.name=='Both palms planted':marker.name='Palms planted; right leg begins'
+ if marker.name=='Feet placement begins +0.20s':marker.name='Overlapping leg advance'
 for name,frame in [('Left leg follows',169),('Pelvis yaw peak',190)]:
- if not scene.timeline_markers.get(name):scene.timeline_markers.new(name,frame=frame)
+ marker=scene.timeline_markers.get(name)
+ if marker:marker.frame=frame
+ else:scene.timeline_markers.new(name,frame=frame)
+if coordination:
+ for name,frame in [('Left palm placed',158),('Left leg follows',175),('Torso aligned with pelvis',229)]:
+  marker=scene.timeline_markers.get(name)
+  if marker:marker.frame=frame
+  else:scene.timeline_markers.new(name,frame=frame)
+else:
+ for name in ['Left palm placed','Torso aligned with pelvis']:
+  marker=scene.timeline_markers.get(name)
+  if marker:scene.timeline_markers.remove(marker)
 scene.frame_set(190)
 bpy.ops.object.select_all(action='DESELECT');rig.hide_set(False);rig.select_set(True);bpy.context.view_layer.objects.active=rig
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'authoring/aren_extreme.blend'),compress=True)

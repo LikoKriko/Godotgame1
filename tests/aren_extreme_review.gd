@@ -60,10 +60,25 @@ func run() -> void:
    label=str(height)+"/"+outcome;actor.review_height=height;actor.outcome=outcome;actor.begin_preview("idle_to_fall")
    var previous:Array[Transform3D]=[]
    var phases:Dictionary={};var floor_seen:=false
+   var getup_feet:Array[Vector3]=[];var leg_onsets:Dictionary={}
+   var early_left_palm:=Vector3.ZERO;var early_palm_seen:=false
    for tick in int(800/rate):
     await physics_frame
     var started:=Time.get_ticks_usec();actor.advance_jump_preview(rate/60);timings.append((Time.get_ticks_usec()-started)/1000.0)
     phases[actor.phase_index]=true
+    if actor.preview_stage=="getup":
+     var feet:Array[Vector3]=[]
+     for leg in actor.native.legs:feet.append(actor.global_transform*actor.native.posed[leg.ids[2]].origin)
+     if getup_feet.is_empty():getup_feet=feet.duplicate()
+     for side in 2:
+      if not leg_onsets.has(side) and feet[side].z-getup_feet[side].z>.01:
+       leg_onsets[side]=actor.clip_time
+       if side==1:check(feet[0].z-getup_feet[0].z>.01 and feet[0].z-getup_feet[0].z<.70,"left leg begins while right still advances")
+     if actor.clip_time>=2.64 and actor.clip_time<2.69:
+      var wrist:Vector3=actor.global_transform*actor.native.posed[actor.native.arms[1].ids[3]].origin
+      if not early_palm_seen:early_left_palm=wrist;early_palm_seen=true
+      check(Vector2(wrist.x,wrist.z).distance_to(Vector2(early_left_palm.x,early_left_palm.z))<.0015,"early left palm stays planted")
+      check(scan_skin(actor).z<.025,"left palm supports before bilateral contact")
     for pose in actor.native.posed:check(pose.is_finite(),"finite whole body pose")
     for leg in actor.native.legs:
      for index in 2:
@@ -111,6 +126,8 @@ func run() -> void:
     check(actor.controls_locked and actor.preview_stage=="prone","death never gets up or unlocks")
     for bone in frozen.poses.size():check(frozen.poses[bone].is_equal_approx(actor.capture_pose().poses[bone]),"dead body remains prone")
    else:
+    check(early_palm_seen,"early left support sampled")
+    check(leg_onsets.size()==2 and leg_onsets.get(1,0)-leg_onsets.get(0,0)>.13 and leg_onsets.get(1,0)-leg_onsets.get(0,0)<.30,"distinct overlapping right then left leg timing")
     var idle:Dictionary=actor.sampler.sample("idle",0);var final:Dictionary=actor.capture_pose()
     for bone in idle.poses.size():check(final.poses[bone].is_equal_approx(idle.poses[bone]),"exact approved Idle endpoint")
    print(label," tilt ",actor.tilt_fraction," flight ",actor.fall_time," lift ",actor.ground_lift)
