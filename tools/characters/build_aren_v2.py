@@ -308,6 +308,10 @@ for z,rx,ry in [(1.005,.136,.093),(.978,.148,.102)]:
  for j in range(48):
   a=j*2*math.pi/48;vv.append((rx*math.sin(a),.023-ry*math.cos(a),z))
 for j in range(48):ff.append((j,(j+1)%48,48+(j+1)%48,48+j))
+# Fold the waistband inward to the skin so elevated review views cannot see a gap.
+for j in range(48):
+ a=j*2*math.pi/48;vv.append((.110*math.sin(a),.018-.066*math.cos(a),1.005))
+for j in range(48):ff.append((j,(j+1)%48,96+(j+1)%48,96+j))
 waist=mesh('Waistband',vv,ff,cloth)
 for p in waist.data.polygons:p.use_smooth=True
 # Waistband and reinforced hems, seam tubes and angular thigh pocket.
