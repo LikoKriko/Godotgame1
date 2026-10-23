@@ -142,7 +142,8 @@ func run() -> void:
    print("PASS ",case_name)
  # Control in flight, input release conserves horizontal momentum.
  case_name="air control"
- await reset(Vector3(0,.01,40),"normal","run")
+ # Keep the steering test away from the fixed 7 m ledge at x=0, z=28.
+ await reset(Vector3(10,.01,40),"normal","run")
  for tick in 90:await step()
  scene.motion.jump_requested=true
  while scene.motion.air.stage!="flight":await step()

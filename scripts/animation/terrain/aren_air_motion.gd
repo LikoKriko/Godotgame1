@@ -111,7 +111,7 @@ func after_move(body:CharacterBody3D,actor:Node3D,velocity:Vector3,vertical:floa
    actor.fall_response=detection;actor.fall_time=air_time
    actor.external_support_feet.clear()
    for foot in release_feet:actor.external_support_feet.append(actor.global_transform.affine_inverse()*foot)
-   actor.apply_fall_pose(source,neutral,vertical,gap)
+   actor.apply_fall_pose(source,neutral,vertical,gap,air_time)
   var predicted_height:float=blender_peak_y-(body.global_position.y-gap)
   if deep_landing_enabled and vertical<0 and BlenderLanding.Family.accepts(predicted_height):landing.prepare(actor,gap,vertical)
   return

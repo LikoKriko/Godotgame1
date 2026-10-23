@@ -41,7 +41,7 @@ aprobados sin revisión.
 | 6 | Salto voluntario aprobado visualmente en `343af25`, integrado en pruebas en `019a52b`. Reducción del 60 % de preparación **ya aplicada** en `2bc9e89`: 0,50 → 0,20 s, mismas poses; impulso 0,105 s. Visor y física comparten tiempos; despegue tras 0,305 s, sujeto al tick físico. No repetir la reducción. |
 | 7 | Caída automática implementada e integrada en `019a52b`, conservada en el catálogo aprobado. Distingue salto y pérdida de apoyo; recuperación provisional por altura. No equivale a aprobar el aterrizaje nuevo del paso 8. |
 | 8 | **Recepción Blender aprobada visualmente (`2a106af1`) e integrada en `aren_terrain_test.tscn`.** Reutiliza los clips para 3–<8 m y adapta compresión/recuperación a velocidad vertical física; conserva entradas y salidas de locomoción en los tres estados. Las recepciones bajas y el visor se mantienen. No se integra en `main`. |
-| 9 | Pendiente; alcance y aprobación no documentados. Confirmar el plan antes de implementarlo. |
+| 9 | En curso: corregida la entrada de locomoción a caída automática desde el primer tick sin apoyo. El reloj visual se independiza de la confirmación física; contactos Blender precalculados al cargar y reutilizados al reiniciar. Resto de transiciones pendiente. |
 | 10 | Pendiente; alcance y aprobación no documentados. Confirmar el plan antes de implementarlo. |
 
 Conservar los aterrizajes aprobados de **0,55 y 1,50 m**. La familia nueva abarca
@@ -112,7 +112,8 @@ aprobadas de locomoción al entrar y salir.
   vertical previo a resolver la colisión, nunca velocidad vertical ya anulada.
   Adapta apoyos a las colisiones reales y conserva el rumbo durante absorción;
   devuelve movimiento y control al finalizar la recuperación.
-- Pruebas existentes: `tests/aren_blender_landing_integration.gd` (caídas reales),
+- Pruebas existentes: `tests/aren_fall_entry_integration.gd` (pérdida de apoyo, continuidad y caché),
+  `tests/aren_blender_landing_integration.gd` (caídas reales),
   `tests/aren_blender_landing_controls.gd` (saltos, estados y control), `tests/aren_landing_absorption.gd` (edición limitada al impacto),
   `tests/aren_blender_landing_family.gd` (alturas intermedias, contactos y separación),
   `tests/aren_blender_landing_pilot.gd` (clip, contactos,
@@ -127,6 +128,20 @@ aprobadas de locomoción al entrar y salir.
   la comparación y los controles del visor. La recepción y su compresión de `2a106af1` están aprobadas visualmente.
   La integración jugable añade cobertura de contactos físicos, terreno
   irregular, entradas y salidas, estados y respuesta a Espacio.
+
+## Transición de locomoción a caída automática
+
+La mezcla hacia la postura aérea usa `air_time` desde el primer tick sin
+apoyo, conservando la duración `BODY_RELEASE` existente. El detector mantiene
+`GRACE`/`MIN_DROP` para clasificar caídas sin reaccionar a pequeños escalones;
+su reloj de confirmación no retiene la última pose de locomoción. La llamada
+del visor conserva su reloj anterior. No se cambian clips, impulso ni recepción.
+
+La escena prepara los datos inmutables de piel/contactos Blender durante
+`_ready`, y `reset_at` reutiliza esa caché del mismo rig. Así el primer tick
+aéreo no construye esos datos al abandonar una plataforma. El reloj visual
+no altera gravedad, velocidad horizontal, orientación ni el contacto físico
+que inicia la recepción.
 
 ## Trabajo local conservado y siguientes acciones
 

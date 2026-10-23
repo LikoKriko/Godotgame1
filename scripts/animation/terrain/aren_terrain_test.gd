@@ -79,6 +79,8 @@ func _ready() -> void:
  actor.rotation.y=PI
  response=motion.response;motion.aerial_enabled=true
  motion.air.deep_landing_enabled=blender_landings
+ # Build immutable skin/contact samples during scene load, never on a fall tick.
+ if blender_landings:motion.air.landing.configure(actor)
  camera=Camera3D.new();camera.current=true;camera.fov=58;add_child(camera)
  var layer:=CanvasLayer.new();add_child(layer);label=Label.new();label.position=Vector2(16,16);label.add_theme_color_override("font_outline_color",Color(0,0,0,.8));label.add_theme_constant_override("outline_size",4);layer.add_child(label)
  body.position=Vector3(0,.1,2)
@@ -118,7 +120,11 @@ func _unhandled_input(event:InputEvent) -> void:
   if event.keycode==KEY_R:clear_drop_ledge();reset_at(Vector3(0,.1,2))
 
 func reset_at(at:Vector3) -> void:
+ # Reset the controller, retaining contact data bound to this unchanged rig.
+ var cached_landing=motion.air.landing
+ cached_landing.active=false
  body.position=at;body.velocity=Vector3.ZERO;motion=Motion.new();motion.aerial_enabled=true;response=motion.response
+ motion.air.landing=cached_landing
  motion.air.deep_landing_enabled=blender_landings
  actor.air_motion=motion.air;actor.pending_style="";actor.recovering=false;actor.recovery_source.clear()
  actor.rotation.y=PI

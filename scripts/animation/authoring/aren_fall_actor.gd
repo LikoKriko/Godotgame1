@@ -91,7 +91,7 @@ func fall_phase() -> int:
  if fall_response.mode!="falling":return 0
  if fall_time>Fall.flight_duration(drop_height)-.10:return 3
  return 1 if fall_response.fall_time<.22 else 2
-func apply_fall_pose(source:Dictionary,neutral:Dictionary,velocity_y:float,ground_gap:float) -> void:
+func apply_fall_pose(source:Dictionary,neutral:Dictionary,velocity_y:float,ground_gap:float,release_time:float=-1.0) -> void:
  # Reuse approved descending leg/torso targets, never the launch or anticipation.
  var near_ground:float=1-Jump.smooth5(ground_gap/.65)
  var synthetic_vy:float=lerpf(-1.2,-Jump.LAUNCH_SPEED,near_ground)
@@ -115,7 +115,10 @@ func apply_fall_pose(source:Dictionary,neutral:Dictionary,velocity_y:float,groun
   Torso.rotate_branch(native,arm[1],Basis(Vector3.FORWARD,spread*sign_side)*Basis(Vector3.RIGHT,pitch)*native.posed[arm[1]].basis,native.posed[arm[1]].origin)
   Torso.rotate_branch(native,arm[2],Basis(Vector3.RIGHT,-deg_to_rad(8+10*speed_weight))*native.posed[arm[2]].basis,native.posed[arm[2]].origin)
  var target:=capture_pose()
- var weight:=Jump.smooth5(fall_response.fall_time/Fall.BODY_RELEASE) if fall_response.mode=="falling" else 0.0
+ # Gameplay releases the body from the first unsupported tick. Classification
+ # grace still rejects small terrain gaps; the approved viewer keeps its clock.
+ var release:float=release_time if release_time>=0 else (fall_response.fall_time if fall_response.mode=="falling" else 0.0)
+ var weight:=Jump.smooth5(release/Fall.BODY_RELEASE)
  for i in native.parents.size():
   var local:Transform3D=source.poses[i].interpolate_with(target.poses[i],weight)
   var parent:int=native.parents[i]
