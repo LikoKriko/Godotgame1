@@ -22,7 +22,7 @@ compartido con el piloto y conservando sus opciones anteriores por defecto.
 La corrección de apoyos usa el solver nativo existente de Godot.
 
 ```sh
-blender -b -t 4 --python tools/animation/author_aren_extreme_blender.py
+blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/author_aren_extreme_shoulders.py
 godot --headless --path . --script tools/animation/import_aren_blender_landing.gd -- --extreme
 godot --headless --path . --script tests/aren_extreme_review.gd
 ```
@@ -38,8 +38,10 @@ importación nativa y las pruebas anteriores.
 
 ## Secuencia y sincronización
 
-1. Pérdida de equilibrio: alternancia de brazos, muñecas y piernas; pelvis
-   y torso acompañan. No se reproduce anticipación ni impulso de salto.
+1. Pérdida de equilibrio: circunducción nueva desde los hombros. Un círculo
+   moderado, cono de 15° y desfase de 0,45 rad entre lados; los codos permanecen
+   en 20° ±1,2° y las muñecas mantienen su orientación local de reposo.
+   Pelvis, torso y piernas conservan su animación. No hay impulso de salto.
 2. Inclinación: empieza al alcanzar el 19 % del recorrido vertical real.
    El cuerpo gira completo hacia delante y prepara una recepción horizontal.
 3. Impacto: lo activa `move_and_collide` contra el suelo físico del visor.
@@ -65,26 +67,30 @@ el vuelo, evitando una corrección de posición repentina al contactar.
 
 ## Correcciones acotadas sobre la fuente
 
-La acción activa `ArenExtreme_Refined_WholeBodyPoses` conserva 385 poses
-completas a 60 Hz; `ArenExtreme_Base_9dcd03ed` retiene la autoría de partida
-y `ArenExtreme_GetupBase_b91fb769` conserva la incorporación anterior.
-Los brazos siguen arcos de equilibrio más cerrados y suaves antes de
-inclinarse. La corrección de coordinación actual solo edita 146–240 sobre
-esa segunda base: coloca antes la palma izquierda en el mismo destino,
-retarda seis fotogramas el inicio izquierdo y deshace gradualmente el giro
-relativo de la columna durante el empuje. El recorrido derecho, la curva de
-elevación de pelvis, el máximo del giro y la extensión corporal se conservan.
-Las otras fases, la variante de muerte, los canales de dedos, la recuperación
-final y los 6,4 s del clip permanecen iguales. El IK de contacto existente
-mantiene los apoyos; no hay nuevas curvas corporales en Godot.
+La acción activa `ArenExtreme_ShoulderCircles_WholeBodyPoses` conserva
+385 poses completas a 60 Hz. `ArenExtreme_BodyBase_fc492dc8` retiene la
+fuente anterior para conservar el cuerpo y las fases posteriores.
 
-Para reproducir la coordinación sobre la fuente de `b91fb769` o el archivo
-actual (reutiliza esa acción base, sin acumular el ajuste):
+`author_aren_extreme_shoulders.py` construye desde el reposo del rig los ocho
+huesos de clavículas, húmeros, antebrazos y muñecas en 1–34. Excluye los
+canales antiguos de esos huesos de las muestras de entrada de esa fase:
+no reutiliza ni mezcla sus curvas. Los hombros generan la circunducción;
+la flexión del codo solo varía 2,4° en total y las muñecas no giran por su cuenta.
+Se conserva la proporción de manos de 0,90 y los canales de dedos existentes.
 
-```sh
-blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/refine_aren_extreme_blender.py -- --coordination
-godot --headless --path . --script tools/animation/import_aren_blender_landing.gd -- --extreme
-```
+El enlace modifica únicamente los brazos en 35–45, durante los primeros
+0,20 s de inclinación. Las rotaciones interpoladas igualan la velocidad
+angular a ambos lados de los fotogramas 34 y 46. Desde 46 se recuperan
+exactamente las poses anteriores; el resto del cuerpo, la incorporación,
+la variante de muerte, los contactos y los 6,4 s del clip permanecen iguales.
+No se añaden curvas corporales ni sistemas nuevos a Godot.
+
+El comando de autoría anterior reproduce el resultado desde la base guardada
+sin acumular el ajuste. La incorporación conserva las herramientas y acciones
+anteriores `ArenExtreme_Base_9dcd03ed` y `ArenExtreme_GetupBase_b91fb769`.
+Ejecutar los refinadores anteriores reconstruye sus versiones de brazos;
+para conservar la circunducción nueva, usar la herramienta de hombros o
+editar la acción actual y hornear sin reconstruir.
 
 Después de editar manualmente la acción activa en Blender, usar el horneado
 existente para conservar esas ediciones:
@@ -95,8 +101,6 @@ blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/auth
 
 Volver a importar el clip tras hornear. Ejecutar el autor original sin
 `--bake-only` reconstruye la primera versión y sobrescribe la fuente actual.
-El refinador sin `--coordination` reproduce el ajuste anterior de `9dcd03ed`,
-sin la nueva sincronización de la incorporación.
 La prueba `tests/aren_extreme_review.gd` admite `-- --probe --quarter` para
 repetir el escenario de 8 m a 0,25×, además de sus escenarios completos a 1×.
 

@@ -134,12 +134,13 @@ aprobadas de locomoción al entrar y salir.
 Nueva secuencia completa creada en Blender sobre el rig original, documentada
 en [ANIMATION_EXTREME_BLENDER.md](ANIMATION_EXTREME_BLENDER.md). El visor permite
 revisar cinco fases y los resultados de supervivencia/muerte; las recepciones
-3–<8 m continúan disponibles. La acción extrema corregida conserva la base
-`9dcd03ed`: arcos de brazos más cerrados y una incorporación iniciada por la
-pierna derecha, seguida por la izquierda, con giro coordinado de pelvis/torso.
-La coordinación sobre `b91fb769` adelanta el apoyo izquierdo, amplía la separación
-entre inicios de piernas a unos 0,20 s y recupera la alineación del torso con
-la pelvis antes de soltar las manos; conserva duración, intensidad y fases previas.
+3–<8 m continúan disponibles. La primera fase de brazos se ha recreado desde
+cero en Blender sobre `fc492dc8`: circunducción generada por los hombros,
+codos pasivos de 20° ±1,2° y muñecas sin giro independiente. Solo se ajusta
+un enlace breve de brazos al inicio de la inclinación; el resto del cuerpo
+y las fases posteriores conservan sus poses. La incorporación mantiene el
+apoyo izquierdo anticipado, la separación de piernas de unos 0,20 s y la
+alineación progresiva del torso con la pelvis antes de soltar las manos.
 Los huesos del antepié se han inspeccionado; sus canales y pesos permanecen
 intactos. **Sin integración jugable hasta aprobación visual.**
 La plataforma de 8 m conserva su recuperación provisional.

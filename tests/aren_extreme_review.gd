@@ -34,6 +34,56 @@ func scan_skin(actor:Node3D) -> Vector4:
    for side in 2:
     if owners[surface][vertex]==side+1:minima[side+1]=minf(minima[side+1],point.y)
  return minima
+func angular_step(a:Quaternion,b:Quaternion) -> Vector3:
+ var q:=a.inverse()*b
+ if q.w<0:q=-q
+ return q.get_axis()*q.get_angle()
+func check_shoulder_phase(actor:Node3D) -> void:
+ label="fresh shoulder circles"
+ var first:Array[Transform3D]=[];var previous:Array[Transform3D]=[]
+ var excursion:=Vector2.ZERO
+ var bilateral_offset:=0.0
+ for frame in 34:
+  var pose:Array[Transform3D]=actor.extreme_sampler.sample("extreme",frame/60.0).poses
+  if first.is_empty():first=pose.duplicate()
+  var globals:Array[Transform3D]=[]
+  for bone in pose.size():
+   var parent:int=actor.native.parents[bone]
+   globals.append(globals[parent]*pose[bone] if parent>=0 else pose[bone])
+  for side in 2:
+   var ids:Array[int]=actor.native.arms[side].ids
+   var upper:Vector3=globals[ids[2]].origin-globals[ids[1]].origin
+   var lower:Vector3=globals[ids[3]].origin-globals[ids[2]].origin
+   var flex:float=rad_to_deg(upper.angle_to(lower))
+   check(flex>=15 and flex<=25,"passive elbows stay between 15 and 25 degrees")
+   var wrist:Quaternion=pose[ids[3]].basis.orthonormalized().get_rotation_quaternion()
+   var rest_wrist:Quaternion=first[ids[3]].basis.orthonormalized().get_rotation_quaternion()
+   check(1-absf(wrist.dot(rest_wrist))<.000001,"wrist has no independent rotation")
+   for index in [1,2]:
+    var q:Quaternion=pose[ids[index]].basis.orthonormalized().get_rotation_quaternion()
+    var initial:Quaternion=first[ids[index]].basis.orthonormalized().get_rotation_quaternion()
+    var distance:float=rad_to_deg(angular_step(initial,q).length())
+    if index==1:excursion[side]=maxf(excursion[side],distance)
+    else:check(distance<3,"elbow variation cannot drive the circle")
+    if not previous.is_empty():
+     var before:Quaternion=previous[ids[index]].basis.orthonormalized().get_rotation_quaternion()
+     check(rad_to_deg(angular_step(before,q).length())*60<(260 if index==1 else 25),"moderate shoulder and passive elbow speeds")
+  var right:Array[int]=actor.native.arms[0].ids;var left:Array[int]=actor.native.arms[1].ids
+  var lateral:Vector3=(globals[left[1]].origin-globals[right[1]].origin).normalized()
+  var r:Vector3=(globals[right[2]].origin-globals[right[1]].origin).normalized()
+  var l:Vector3=(globals[left[2]].origin-globals[left[1]].origin).normalized()
+  var offset:float=rad_to_deg((r-2*lateral*r.dot(lateral)).angle_to(l))
+  bilateral_offset=maxf(bilateral_offset,offset)
+  check(offset<12,"bilateral circles have only a small phase offset")
+  previous=pose
+ check(bilateral_offset>3,"bilateral circles retain a visible slight offset")
+ for side in 2:check(excursion[side]>20,"shoulder generates a circular excursion")
+ for seam in [33,45]: # Source frames 34 and 46; exact baked velocity matching.
+  for arm in actor.native.arms:
+   for bone in arm.ids:
+    var q:Array[Quaternion]=[]
+    for frame in [seam-1,seam,seam+1]:q.append(actor.extreme_sampler.sample("extreme",frame/60.0).poses[bone].basis.orthonormalized().get_rotation_quaternion())
+    check(rad_to_deg((angular_step(q[0],q[1])-angular_step(q[1],q[2])).length())*60<.05,"continuous arm angular velocity at entry seam")
 func run() -> void:
  Engine.physics_ticks_per_second=240
  var actor=load("res://scenes/prototype_3d/aren_extreme_review_actor.tscn").instantiate();root.add_child(actor);actor.set_process(false)
@@ -52,6 +102,7 @@ func run() -> void:
      if ancestor==actor.native.arms[side].ids[3]:totals[side]+=weights[at]
    if maxf(totals.x,totals.y)>.9:owned[vertex]=1 if totals.x>totals.y else 2
   owners.append(owned)
+ check_shoulder_phase(actor)
  await physics_frame
  var probe:bool="--probe" in OS.get_cmdline_user_args()
  var rate:float=.25 if "--quarter" in OS.get_cmdline_user_args() else 1.0
