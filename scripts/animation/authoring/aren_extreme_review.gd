@@ -55,7 +55,7 @@ func show_jump_phase(index:int) -> void:
  if not extreme_review():super.show_jump_phase(index);return
  var actor=actors[0]
  var flight:float=Fall.flight_duration(actor.drop_height)
- var at:float=[.20,flight*sqrt(.19)+.08,flight+.10,flight+(actor.PRONE-actor.IMPACT)+.15,flight+(actor.GETUP-actor.IMPACT)+1.6][mini(index,4)]
+ var at:float=[.20,flight*sqrt(.19)+.08,flight+.10,flight+(actor.PRONE-actor.IMPACT)+.15,flight+(actor.GETUP-actor.IMPACT)+(actor.END-actor.GETUP)*.4][mini(index,4)]
  if index==4 and actor.outcome=="die":
   outcome_selector.select(0);actor.outcome="survive";actor.begin_preview(motion)
  playing=false;elapsed=at;actor.seek_preview(motion,at);refresh_jump_view()

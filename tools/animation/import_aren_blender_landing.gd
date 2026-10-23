@@ -6,7 +6,7 @@ func _initialize():call_deferred("run")
 func run() -> void:
  var extreme:bool="--extreme" in OS.get_cmdline_user_args()
  var output:String="res://assets/characters/prototype_3d/generated/aren_extreme_blender_v1/" if extreme else OUTPUT
- var samples:int=385 if extreme else 156
+ var samples:int=int(JSON.parse_string(FileAccess.get_file_as_string(output+"timing.json")).get("frames",385)) if extreme else 156
  var stem:="landing_heavy" if "--heavy" in OS.get_cmdline_user_args() else "landing_3m"
  if extreme:stem="extreme"
  var document:=GLTFDocument.new();var state:=GLTFState.new()

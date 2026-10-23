@@ -139,8 +139,12 @@ cero en Blender sobre `fc492dc8`: circunducción generada por los hombros,
 codos pasivos de 20° ±1,2° y muñecas sin giro independiente. Solo se ajusta
 un enlace breve de brazos al inicio de la inclinación; el resto del cuerpo
 y las fases posteriores conservan sus poses. La incorporación mantiene el
-apoyo izquierdo anticipado, la separación de piernas de unos 0,20 s y la
+apoyo izquierdo anticipado, la separación de piernas de unos 0,40 s y la
 alineación progresiva del torso con la pelvis antes de soltar las manos.
+La quinta fase dura **8 s** (antes 4 s): tiempo escalado proporcionalmente en
+Blender, sin cambiar poses ni recorridos. El clip completo pasa de 6,4 a 10,4 s;
+las cuatro fases anteriores y la muerte conservan sus tiempos. El IK de apoyos
+y la salida a Idle siguen el mismo reloj proporcional.
 Los huesos del antepié se han inspeccionado; sus canales y pesos permanecen
 intactos. **Sin integración jugable hasta aprobación visual.**
 La plataforma de 8 m conserva su recuperación provisional.

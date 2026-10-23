@@ -22,7 +22,7 @@ compartido con el piloto y conservando sus opciones anteriores por defecto.
 La corrección de apoyos usa el solver nativo existente de Godot.
 
 ```sh
-blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/author_aren_extreme_shoulders.py
+blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/retime_aren_extreme_getup.py
 godot --headless --path . --script tools/animation/import_aren_blender_landing.gd -- --extreme
 godot --headless --path . --script tests/aren_extreme_review.gd
 ```
@@ -33,7 +33,7 @@ Para hornear ediciones manuales sin reconstruir ni sobrescribir el `.blend`:
 blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/author_aren_extreme_blender.py -- --bake-only
 ```
 
-Conservar el rango 1–385 y sus marcadores al editar; después repetir la
+Conservar el rango 1–625 y sus marcadores al editar; después repetir la
 importación nativa y las pruebas anteriores.
 
 ## Secuencia y sincronización
@@ -48,14 +48,14 @@ importación nativa y las pruebas anteriores.
    Compresión, rebote pequeño y amortiguación se reproducen desde ese evento.
 4. Boca abajo: postura relajada mantenida. El resultado «muere» no reproduce
    incorporación y conserva bloqueado el estado de recuperación.
-5. Supervivencia: incorporación de cuatro segundos. La palma izquierda
-   llega al apoyo a los 0,217 s y la derecha a los 0,30 s. La pierna derecha
-   comienza primero; la izquierda sigue unos 0,20 s después, con recorridos
+5. Supervivencia: incorporación de ocho segundos (antes, cuatro). La palma izquierda
+   llega al apoyo a los 0,433 s y la derecha a los 0,60 s. La pierna derecha
+   comienza primero; la izquierda sigue unos 0,40 s después, con recorridos
    solapados y la misma colocación final de ambos pies. La pelvis comienza
    su giro durante el empuje y conserva el máximo de 11°; el torso acompaña
    inicialmente el 46 % de ese giro, conservando la curvatura. Durante la
    descarga de los brazos elimina gradualmente la torsión relativa:
-   alineación con la pelvis a los 1,40 s y ambos hacia delante a los 1,60 s.
+   alineación con la pelvis a los 2,80 s y ambos hacia delante a los 3,20 s.
    Los pies se cargan antes de ceder el apoyo de las manos al 40 % del progreso.
    La salida se mezcla al Idle aprobado, sin trasladar ni girar al personaje.
 
@@ -67,8 +67,8 @@ el vuelo, evitando una corrección de posición repentina al contactar.
 
 ## Correcciones acotadas sobre la fuente
 
-La acción activa `ArenExtreme_ShoulderCircles_WholeBodyPoses` conserva
-385 poses completas a 60 Hz. `ArenExtreme_BodyBase_fc492dc8` retiene la
+La acción activa `ArenExtreme_SlowGetup_WholeBodyPoses` conserva las
+385 poses completas de origen y se hornea en 625 muestras a 60 Hz. `ArenExtreme_BodyBase_fc492dc8` retiene la
 fuente anterior para conservar el cuerpo y las fases posteriores.
 
 `author_aren_extreme_shoulders.py` construye desde el reposo del rig los ocho
@@ -82,15 +82,28 @@ El enlace modifica únicamente los brazos en 35–45, durante los primeros
 0,20 s de inclinación. Las rotaciones interpoladas igualan la velocidad
 angular a ambos lados de los fotogramas 34 y 46. Desde 46 se recuperan
 exactamente las poses anteriores; el resto del cuerpo, la incorporación,
-la variante de muerte, los contactos y los 6,4 s del clip permanecen iguales.
+la variante de muerte y los contactos permanecen iguales. El retiming posterior
+aumenta el clip de 6,4 a 10,4 s, exclusivamente después del fotograma 145.
 No se añaden curvas corporales ni sistemas nuevos a Godot.
 
-El comando de autoría anterior reproduce el resultado desde la base guardada
-sin acumular el ajuste. La incorporación conserva las herramientas y acciones
-anteriores `ArenExtreme_Base_9dcd03ed` y `ArenExtreme_GetupBase_b91fb769`.
-Ejecutar los refinadores anteriores reconstruye sus versiones de brazos;
-para conservar la circunducción nueva, usar la herramienta de hombros o
-editar la acción actual y hornear sin reconstruir.
+`retime_aren_extreme_getup.py` escala por dos únicamente el tiempo de las
+claves y sus manejadores posteriores al fotograma 145, desde la base conservada
+`ArenExtreme_GetupTimingBase_d69986ad`. Mantiene los valores de las claves,
+trayectorias, orden y solapamientos; no añade esperas. Los controles y marcadores
+siguen el mismo tiempo. Es idempotente respecto a esa base; para conservar nuevas
+ediciones manuales se debe usar `--bake-only`.
+
+La preparación, el empuje, la colocación de piernas, la carga y el enderezamiento
+reciben el mismo factor dos. La mezcla final al Idle pasa de 0,45 a 0,90 s.
+Godot reproduce el clip ya ralentizado; únicamente convierte su reloj al tiempo
+original para el IK de apoyos y la mezcla final existentes. El importador obtiene
+el número de muestras de `timing.json`, y el horneado manual utiliza el final del
+rango de Blender. Las cuatro primeras fases y el resultado de muerte conservan
+sus tiempos. La duración total visible sigue dependiendo de la altura de caída.
+
+Los generadores anteriores de hombros y coordinación reconstruyen sus versiones
+anteriores y sus tiempos originales. Para conservar esta incorporación, editar
+la acción activa y hornear sin reconstruir.
 
 Después de editar manualmente la acción activa en Blender, usar el horneado
 existente para conservar esas ediciones:

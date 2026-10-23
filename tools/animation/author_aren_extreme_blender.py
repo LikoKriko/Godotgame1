@@ -15,7 +15,7 @@ sys.dont_write_bytecode=True
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from blender_native_export import export_native
 if '--bake-only' in sys.argv:
- export_native(bpy.data.objects['Aren_Native_66_Authoring'],OUT,'extreme',385,'ArenExtreme_Baked')
+ export_native(bpy.data.objects['Aren_Native_66_Authoring'],OUT,'extreme',bpy.context.scene.frame_end,'ArenExtreme_Baked')
  print('EDITED EXTREME BAKED; authoring blend left untouched')
  raise SystemExit(0)
 bpy.ops.wm.open_mainfile(filepath=str(PILOT/'authoring/aren_landing_3m.blend'))
