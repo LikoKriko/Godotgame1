@@ -47,7 +47,7 @@ aprobados sin revisión.
 Conservar los aterrizajes aprobados de **0,55 y 1,50 m**. La familia nueva abarca
 **3 a menos de 8 m**, 1,8 s de recepción a 3 m y hasta casi 2,4 s, progresivamente
 más pesada a mayor impacto. Dos extremos editables: `aren_landing_3m.blend` y
-`aren_landing_heavy.blend`; comandos y límites en ANIMATION_BLENDER_PILOT.md. **Desde 8 m el desplome completo sigue sin implementar.**
+`aren_landing_heavy.blend`; comandos y límites en ANIMATION_BLENDER_PILOT.md. **Desde 8 m el desplome completo es exclusivo del visor; su integración jugable sigue pendiente.**
 
 ## Piloto Blender reutilizable (`60a4056`)
 
@@ -134,7 +134,11 @@ aprobadas de locomoción al entrar y salir.
 Nueva secuencia completa creada en Blender sobre el rig original, documentada
 en [ANIMATION_EXTREME_BLENDER.md](ANIMATION_EXTREME_BLENDER.md). El visor permite
 revisar cinco fases y los resultados de supervivencia/muerte; las recepciones
-3–<8 m continúan disponibles. **Sin integración jugable hasta aprobación visual.**
+3–<8 m continúan disponibles. La acción extrema corregida conserva la base
+`9dcd03ed`: arcos de brazos más cerrados y una incorporación iniciada por la
+pierna derecha, seguida por la izquierda, con giro coordinado de pelvis/torso.
+Los huesos del antepié se han inspeccionado; sus canales y pesos permanecen
+intactos. **Sin integración jugable hasta aprobación visual.**
 La plataforma de 8 m conserva su recuperación provisional.
 
 ## Transición de locomoción a caída automática

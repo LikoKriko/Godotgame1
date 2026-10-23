@@ -54,14 +54,15 @@ func run() -> void:
   owners.append(owned)
  await physics_frame
  var probe:bool="--probe" in OS.get_cmdline_user_args()
+ var rate:float=.25 if "--quarter" in OS.get_cmdline_user_args() else 1.0
  for height in ([8.0] if probe else [8.0,12.0,16.0]):
   for outcome in (["survive"] if probe else ["survive","die"]):
    label=str(height)+"/"+outcome;actor.review_height=height;actor.outcome=outcome;actor.begin_preview("idle_to_fall")
    var previous:Array[Transform3D]=[]
    var phases:Dictionary={};var floor_seen:=false
-   for tick in 800:
+   for tick in int(800/rate):
     await physics_frame
-    var started:=Time.get_ticks_usec();actor.advance_jump_preview(1.0/60);timings.append((Time.get_ticks_usec()-started)/1000.0)
+    var started:=Time.get_ticks_usec();actor.advance_jump_preview(rate/60);timings.append((Time.get_ticks_usec()-started)/1000.0)
     phases[actor.phase_index]=true
     for pose in actor.native.posed:check(pose.is_finite(),"finite whole body pose")
     for leg in actor.native.legs:

@@ -22,6 +22,14 @@ la palma. El lado 0 de los controles corresponde a Right del rig suministrado;
 el lado 1 a Left. Los dedos originales acompañan los agarres. El modelo y el retrato
 comparten la malla y los binds inmutables, con esqueletos independientes.
 
+Cada pie nativo tiene la cadena `Foot → ToeBase → Toe_End`, independiente
+del tobillo y con pesos de deformación en ambos huesos distales. Permite
+ensayar una flexión leve del antepié hacia arriba sin añadir huesos. No hay
+articulación separada para cada dedo. Los ejes de estos huesos pequeños
+requieren calibrar el giro anatómico; los pesos son suaves y asimétricos
+(el efecto será menor en el izquierdo). Esto confirma viabilidad para una
+prueba futura, sin modificar rig, pesos, canales de dedos ni carrera.
+
 La cabeza aprobada conserva sus UV, normales, tangentes, máscaras y materiales.
 Se liga a Neck/Head del rig nuevo. Dos contornos del cuello se unen con
 triángulos conformes y los mismos pesos en sus bordes; el color de transición

@@ -47,8 +47,11 @@ importación nativa y las pruebas anteriores.
 4. Boca abajo: postura relajada mantenida. El resultado «muere» no reproduce
    incorporación y conserva bloqueado el estado de recuperación.
 5. Supervivencia: incorporación de cuatro segundos. Las palmas se colocan
-   a los 0,30 s; los pies empiezan a prepararse a los 0,50 s. Los pies se
-   cargan antes de ceder el apoyo de las manos al 40 % del progreso.
+   a los 0,30 s; la derecha empieza a avanzar en ese apoyo y la izquierda
+   sigue unos 0,10 s después, con recorridos solapados. La pelvis rota
+   progresivamente hasta 11°; el torso acompaña el 46 % de ese giro,
+   conservando la curvatura. Los pies se cargan antes de ceder el apoyo
+   de las manos al 40 % del progreso.
    La salida se mezcla al Idle aprobado, sin trasladar ni girar al personaje.
 
 El visor conoce el suelo y la altura inicial (8, 10, 12 y 16 m); mide el
@@ -56,6 +59,36 @@ recorrido, en vez de usar un temporizador para declarar el 19 %. El clip
 adapta su reloj aéreo al recorrido real y separa el reloj posterior al
 impacto. La envolvente de piel se normaliza a la base del controlador desde
 el vuelo, evitando una corrección de posición repentina al contactar.
+
+## Correcciones acotadas sobre la fuente
+
+La acción activa `ArenExtreme_Refined_WholeBodyPoses` conserva 385 poses
+completas a 60 Hz; `ArenExtreme_Base_9dcd03ed` retiene la autoría de partida.
+Los brazos siguen arcos de equilibrio más cerrados y suaves antes de
+inclinarse. Solo se editan las ramas de brazos en 2–33 y la coordinación de
+la incorporación en 155–240. Se conservan las demás poses muestreadas,
+las piernas de la primera fase, los canales de dedos y los 6,4 s del clip.
+Las palmas mantienen las trayectorias de apoyo con el IK de contacto existente.
+
+Para reproducir esta corrección sobre la fuente de partida o sobre el archivo
+actual (reutiliza la acción base, sin acumular el ajuste):
+
+```sh
+blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/refine_aren_extreme_blender.py
+godot --headless --path . --script tools/animation/import_aren_blender_landing.gd -- --extreme
+```
+
+Después de editar manualmente la acción activa en Blender, usar el horneado
+existente para conservar esas ediciones:
+
+```sh
+blender -b assets/characters/prototype_3d/generated/aren_extreme_blender_v1/authoring/aren_extreme.blend -t 4 --python tools/animation/author_aren_extreme_blender.py -- --bake-only
+```
+
+Volver a importar el clip tras hornear. Ejecutar el autor original sin
+`--bake-only` reconstruye la primera versión y sobrescribe la fuente actual.
+La prueba `tests/aren_extreme_review.gd` admite `-- --probe --quarter` para
+repetir el escenario de 8 m a 0,25×, además de sus escenarios completos a 1×.
 
 ## Revisión y futura integración
 
