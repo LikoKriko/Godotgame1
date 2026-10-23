@@ -1,0 +1,26 @@
+{
+  "atlas_resolution": [
+    2048,
+    2048
+  ],
+  "stage": "visual_only_unapproved",
+  "source_commit": "b6f96efe63e09ed31a651a7b0fa8d6ffdf7919ac",
+  "source_fbx": "entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx",
+  "source_fbx_sha256": "38225f96a62affdc03d38d1741631fb71ee55cbefb8e1e7bdfb01c3240b54322",
+  "rig_reference_bones": 66,
+  "rig_exported": false,
+  "animations_exported": false,
+  "height_m": 1.7271798849105835,
+  "meshes": 50,
+  "triangles": 61992,
+  "cameras": [
+    "Front",
+    "Left",
+    "Right",
+    "Back",
+    "ThreeQuarter",
+    "High",
+    "Face"
+  ],
+  "body_method": "Original anatomy donor; lowered-arm static copy; authored head, hair, garment and tattoos; consolidated visual surface. Deformation topology and skinning await approval."
+}
