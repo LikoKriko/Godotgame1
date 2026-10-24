@@ -1,0 +1,23 @@
+{
+  "stage": "high_density_likeness_study",
+  "source_commit": "bd1471c8",
+  "donor_source": "entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx",
+  "reference": "User-supplied character sheet in chat",
+  "faces_by_collection": {
+    "01 \u00b7 HIGH \u00b7 editable anatomy": 388747,
+    "02 \u00b7 HIGH \u00b7 swept hair locks": 712771,
+    "03 \u00b7 HIGH \u00b7 eyes and brows": 30600
+  },
+  "remesh_applied": false,
+  "rigging_applied": false,
+  "cameras": [
+    "Front",
+    "Left",
+    "Right",
+    "Back",
+    "ThreeQuarter",
+    "High",
+    "Ear",
+    "Eye"
+  ]
+}
