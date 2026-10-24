@@ -6,7 +6,7 @@
   "faces_by_collection": {
     "01 \u00b7 HIGH \u00b7 editable anatomy": 388743,
     "02 \u00b7 HIGH \u00b7 swept hair locks": 712771,
-    "03 \u00b7 HIGH \u00b7 eyes and brows": 30600
+    "03 \u00b7 HIGH \u00b7 eyes and brows": 39048
   },
   "primary_volume_revision": "primary_volumes_02",
   "remesh_applied": false,
@@ -19,6 +19,9 @@
     "ThreeQuarter",
     "High",
     "Ear",
-    "Eye"
-  ]
+    "Eye",
+    "EyesFront"
+  ],
+  "eye_revision": "eye_likeness_01",
+  "eye_review_status": "pending_visual_approval"
 }

@@ -427,9 +427,12 @@ sys.path.insert(0,str(Path(__file__).resolve().parent))
 from aren_head_volumes import refine_primary_volumes, REVISION
 refine_primary_volumes(head)
 scene['volume_revision']=REVISION
+from aren_eye_likeness import refine_eye_likeness, REVISION as EYE_REVISION
+refine_eye_likeness(head)
+cameras['EyesFront']=bpy.data.objects['Head review · EyesFront']
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'authoring/aren_head_high.blend'),compress=True)
 counts={col.name:sum(len(o.data.polygons)for o in col.objects if o.type=='MESH')for col in [HEAD,HAIR,EYES]}
-(OUT/'source.json').write_text(json.dumps({'stage':'high_density_likeness_study','source_commit':'bd1471c8','donor_source':str(source.relative_to(R)),'reference':'User-supplied character sheet in chat','faces_by_collection':counts,'primary_volume_revision':REVISION,'remesh_applied':False,'rigging_applied':False,'cameras':list(cameras)},indent=2)+'\n');print('HEAD_COUNTS',counts)
+(OUT/'source.json').write_text(json.dumps({'stage':'high_density_likeness_study','source_commit':'bd1471c8','donor_source':str(source.relative_to(R)),'reference':'User-supplied character sheet in chat','faces_by_collection':counts,'primary_volume_revision':REVISION,'eye_revision':EYE_REVISION,'eye_review_status':'pending_visual_approval','remesh_applied':False,'rigging_applied':False,'cameras':list(cameras)},indent=2)+'\n');print('HEAD_COUNTS',counts)
 views=['Front','ThreeQuarter','Left','Ear','Eye','Back'] if '--quick' in sys.argv else list(cameras)
 if '--no-render' in sys.argv:views=[]
 for name in views:

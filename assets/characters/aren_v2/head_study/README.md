@@ -30,13 +30,31 @@ auricles and ocular meshes retain their coordinates and transforms. The pass
 does not resample or reduce the mesh. Aperture rims follow the actual boundary
 edge cycles with opposite winding so the facial shell has consistent normals.
 
+The separate `eye_likeness_01` stage is pending visual approval. It adjusts only
+the orbital envelope, eyelids, brows and ocular components: a tapered almond
+opening, closer eye centers, a slightly raised outer canthus, a hooded upper
+lid and a recessed globe. Slate blue-gray irises, a transparent corneal surface
+and a fine lower tear meniscus remain separate editable meshes. Hair, auricles,
+the lower nose, lips, jaw and neck retain their existing geometry. The saved
+`EyesFront` camera provides a bilateral close-up under the same studio lights.
+
+Apply this stage once to a `primary_volumes_02` source without an eye revision:
+
+```sh
+blender -b baseline.blend --python tools/characters/aren_eye_likeness.py -- \
+  --output eye-review.blend
+```
+
+Do not continue the general facial review or integrate this eye study into
+gameplay until its visual approval is supplied.
+
 Rebuild with Blender 4.3 or newer from the repository root:
 
 ```sh
 blender -b --python tools/characters/sculpt_aren_head.py -- --no-render
 ```
 
-Omit `--no-render` for eight rendered views in the ignored `work/aren-head/`
+Omit `--no-render` for nine rendered views in the ignored `work/aren-head/`
 directory. `--quick` uses six views and fewer rendering samples. Rebuilding
 overwrites the generated source: preserve manual sculpt edits separately.
 The builder applies `tools/characters/aren_head_volumes.py` after constructing
