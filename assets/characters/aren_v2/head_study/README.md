@@ -21,9 +21,11 @@ front, profiles, back, elevated, ear and eye views. For surface inspection,
 use solid shading with a single studio material; the `Neutral clay inspection`
 material is also available. The study contains no rig or animation.
 
-The `primary_volumes_01` pass refines cheekbone planes, the mandibular border,
-chin and the neck transition on the existing dense surface. It uses bounded,
-feathered displacements with pinned nose, lip and orbital regions. Hair,
+The `primary_volumes_02` pipeline refines cheekbone planes, the mandibular border,
+chin and the neck transition on the existing dense surface. The zygomatic crest
+is higher than the lower cheek hollow; the mandibular border ascends toward the
+ear and the chin has a flatter mental plane. It uses bounded, feathered
+displacements with pinned nose, lip, orbital and ear attachment regions. Hair,
 auricles and ocular meshes retain their coordinates and transforms. The pass
 does not resample or reduce the mesh. Aperture rims follow the actual boundary
 edge cycles with opposite winding so the facial shell has consistent normals.
@@ -38,8 +40,9 @@ Omit `--no-render` for eight rendered views in the ignored `work/aren-head/`
 directory. `--quick` uses six views and fewer rendering samples. Rebuilding
 overwrites the generated source: preserve manual sculpt edits separately.
 The builder applies `tools/characters/aren_head_volumes.py` after constructing
-the dense surface. That pass refuses repeated application to an already
-refined source, preventing cumulative deformation.
+the dense surface. An existing `primary_volumes_01` source can receive the plane
+refinement directly with that script and `--output refined-head.blend`. A source
+already carrying the current revision is refused, preventing cumulative deformation.
 
 To retain an existing studio and every nonfacial object exactly when updating
 only the facial shell, open that baseline and transfer the rebuilt surface:

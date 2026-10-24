@@ -1,7 +1,7 @@
 """Primary-volume pass for Aren's dense head; no resampling or feature edits.
 
-Blender: open the unmodified high-density source, then run this file with
---output <blend>. The generator also calls refine_primary_volumes directly.
+Blender: open an unrefined source or the first volume pass, then run this file
+with --output <blend>. The generator calls refine_primary_volumes directly.
 """
 import hashlib
 import json
@@ -12,7 +12,8 @@ from pathlib import Path
 import bpy
 import numpy as np
 
-REVISION = 'primary_volumes_01'
+BASE_REVISION = 'primary_volumes_01'
+REVISION = 'primary_volumes_02'
 Z0 = 1.44
 
 
@@ -66,8 +67,8 @@ def protected_digest(head):
     return digest.hexdigest()
 
 
-def refine_primary_volumes(head):
-    if head.get('volume_revision') == REVISION:
+def _refine_base_volumes(head):
+    if head.get('volume_revision'):
         raise RuntimeError('Volume pass already applied; use the baseline source.')
     before = coordinates(head)
     digest_before = protected_digest(head)
@@ -172,19 +173,99 @@ def refine_primary_volumes(head):
     after=relax(after,.40*neck_mask,420)
     head.data.vertices.foreach_set('co',after.astype(np.float32).ravel())
     head.data.update()
-    head['volume_revision'] = REVISION
+    head['volume_revision'] = BASE_REVISION
     head['scope'] = 'Primary head volumes, cheekbones, jaw, chin and neck only'
     fixed = (guard == 0) | (volume_mask == 0)
     assert np.array_equal(before[fixed].astype(np.float32),coordinates(head)[fixed].astype(np.float32))
     assert protected_digest(head) == digest_before
     assert np.isfinite(after).all()
-    result = dict(revision=REVISION,vertices=len(after),polygons=len(head.data.polygons),
+    result = dict(revision=BASE_REVISION,vertices=len(after),polygons=len(head.data.polygons),
                   topology_unchanged=True,protected_meshes_unchanged=True,
                   feature_vertices_unchanged=int(fixed.sum()),
                   moved_vertices=int(np.count_nonzero(np.linalg.norm(after-before,axis=1)>1e-7)),
                   remesh_applied=False)
     print('VOLUME_PASS',json.dumps(result),flush=True)
     return result
+
+
+def refine_primary_planes(head):
+    """Continue the volume study with cheek, mandibular and mental planes."""
+    if head.get('volume_revision') != BASE_REVISION:
+        raise RuntimeError('Plane refinement requires the first volume pass exactly once.')
+    before = coordinates(head)
+    digest_before = protected_digest(head)
+    x,y,z = before[:,0],before[:,1],before[:,2]-Z0
+    ax=np.abs(x)
+    front=1-smooth(.015,.075,y)
+    region=smooth(-.095,-.075,z)*(1-smooth(.160,.180,z))*front
+    nose=np.sqrt((x/.025)**2+((z-.093)/.037)**2)
+    mouth=np.sqrt((x/.034)**2+((z-.050)/.014)**2)
+    eyes=np.minimum(np.sqrt(((x-.0345)/.026)**2+((z-.128)/.019)**2),
+                    np.sqrt(((x+.0345)/.026)**2+((z-.128)/.019)**2))
+    ear=np.sqrt(((ax-.080)/.015)**2+((z-.111)/.034)**2+((y-.013)/.030)**2)
+    guard=np.minimum.reduce([smooth(1,1.8,nose),smooth(1,2.2,mouth),
+                             smooth(1,1.8,eyes),smooth(1,1.6,ear)])
+    delta=np.zeros_like(before)
+    # Narrow the lower cheek while keeping the zygomatic crest higher and broader.
+    delta[:,0]-=np.sign(x)*.0036*gaussian(ax,.059,.025)*gaussian(z,.078,.037)
+    delta[:,0]-=np.sign(x)*.0013*smooth(.060,.075,ax)*gaussian(z,.155,.023)
+    delta[:,0]+=np.sign(x)*.0011*gaussian(ax,.065,.014)*gaussian(z,.110,.015)
+    delta[:,1]-=.0037*gaussian(ax,.055,.020)*gaussian(z,.108,.018)
+    delta[:,1]+=.0022*gaussian(ax,.048,.020)*gaussian(z,.076,.024)
+    # An ascending mandibular border; no circular ridge around the neck.
+    border=.015+.041*smooth(-.075,.030,y)
+    lateral=smooth(.020,.048,ax)*(1-smooth(.040,.085,y))
+    ridge=gaussian(z,border,.010)*lateral
+    under=gaussian(z,border-.017,.016)*lateral
+    delta[:,0]+=np.sign(x)*(.0017*ridge-.0018*under)
+    # A shallower curved chin front reads as a plane rather than a spherical knob.
+    chin=gaussian(x,0,.028)*gaussian(z,.017,.018)
+    plane=-.086+.006*(x/.030)**2
+    delta[:,1]+=np.clip(plane-y,-.0035,.0035)*chin
+    delta[:,1]+=.0008*gaussian(x,0,.023)*gaussian(z,.031,.006)
+    delta[:,0]+=np.sign(x)*.0009*gaussian(ax,.022,.009)*gaussian(z,.014,.014)
+    # Give the upper neck the athletic breadth of the sheet and soften the
+    # excessive hollow below the chin, with continuous oblique SCM volumes.
+    delta[:,0]+=np.sign(x)*.0024*gaussian(ax,.041,.018)*gaussian(z,-.025,.034)
+    delta[:,1]-=.0035*gaussian(x,0,.031)*gaussian(z,-.022,.032)
+    delta[:,1]-=.0012*gaussian(ax,.022+np.maximum(-z,0)*.24,.009)*gaussian(z,-.046,.035)
+    displacement=delta*(region*guard)[:,None]
+    # Fair only the displacement. Existing details and the dense topology survive.
+    edges=np.empty(len(head.data.edges)*2,dtype=np.int32)
+    head.data.edges.foreach_get('vertices',edges);edges=edges.reshape(-1,2)
+    active=region*guard>0
+    edges=edges[active[edges].any(axis=1)]
+    a,b=edges[:,0],edges[:,1]
+    degree=np.maximum(1,np.bincount(a,minlength=len(z))+np.bincount(b,minlength=len(z)))
+    for _ in range(160):
+        mean=np.column_stack([(np.bincount(a,weights=displacement[b,k],minlength=len(z))
+                               +np.bincount(b,weights=displacement[a,k],minlength=len(z)))/degree
+                              for k in range(3)])
+        displacement+=.45*active[:,None]*(mean-displacement)
+    after=before+displacement
+    head.data.vertices.foreach_set('co',after.astype(np.float32).ravel());head.data.update()
+    pinned=(region==0)|(guard==0)
+    assert np.array_equal(before[pinned].astype(np.float32),coordinates(head)[pinned].astype(np.float32))
+    assert protected_digest(head)==digest_before
+    assert np.isfinite(after).all()
+    head['volume_revision']=REVISION
+    head['scope']='Primary head volumes, cheekbones, jaw, chin and neck only'
+    result=dict(revision=REVISION,vertices=len(after),polygons=len(head.data.polygons),
+                topology_unchanged=True,protected_meshes_unchanged=True,
+                pinned_vertices=int(pinned.sum()),
+                max_displacement_m=float(np.linalg.norm(displacement,axis=1).max()),
+                remesh_applied=False)
+    print('PRIMARY_PLANES',json.dumps(result),flush=True)
+    return result
+
+
+def refine_primary_volumes(head):
+    revision=head.get('volume_revision')
+    if revision is None:
+        _refine_base_volumes(head)
+    elif revision!=BASE_REVISION:
+        raise RuntimeError('Volume pass already applied or incompatible; use the baseline source.')
+    return refine_primary_planes(head)
 
 
 if __name__ == '__main__':
