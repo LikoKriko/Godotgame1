@@ -30,7 +30,7 @@ auricles and ocular meshes retain their coordinates and transforms. The pass
 does not resample or reduce the mesh. Aperture rims follow the actual boundary
 edge cycles with opposite winding so the facial shell has consistent normals.
 
-The separate `eye_likeness_03` stage is pending visual approval. It adjusts only
+The separate `eye_likeness_04` stage is pending visual approval. It adjusts only
 the orbital envelope, eyelids, brows and ocular components: a tapered almond
 opening, closer eye centers, a slightly raised outer canthus, a hooded upper
 lid and a recessed globe. Slate blue-gray irises, a transparent corneal surface
@@ -51,15 +51,25 @@ width, iris geometry and gaze stay fixed. Pupils are slightly smaller, paired
 lacrimal caruncles are separate editable meshes, and brows sit closer to the
 upper lids with a flatter, fuller silhouette.
 
+The fourth pass uses interpolated contour guides for a less circular upper
+lid and a tapered dark ciliary band offset along the skin normal so it remains
+legible in profile. The opening is lowered 1.3 mm and the
+optical axis pitched upward 3 degrees to increase upper iris coverage while
+retaining visible lower iris. Sclera and iris point colors add an ivory shadow
+gradient, slate-blue sectors and a dark limbus; corneal reflections are reduced.
+A narrow painted crease and warm lower lid plane are limited to the orbital
+region. Brow tufts vary in spacing, angle and length over a painted angular
+foundation. Existing facial and ocular mesh counts are retained.
+
 Apply the complete eye pipeline once to a `primary_volumes_02` source without
-an eye revision, or upgrade an existing `eye_likeness_01` or `eye_likeness_02` source:
+an eye revision, or upgrade an existing `eye_likeness_01`, `eye_likeness_02` or `eye_likeness_03` source:
 
 ```sh
 blender -b baseline.blend --python tools/characters/aren_eye_likeness.py -- \
   --output eye-review.blend
 ```
 
-A source already marked `eye_likeness_03` is refused to prevent cumulative edits.
+A source already marked `eye_likeness_04` is refused to prevent cumulative edits.
 
 Do not continue the general facial review or integrate this eye study into
 gameplay until its visual approval is supplied.

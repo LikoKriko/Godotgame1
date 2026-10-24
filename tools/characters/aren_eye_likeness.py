@@ -13,13 +13,14 @@ from pathlib import Path
 
 import bpy
 import numpy as np
-from mathutils import Vector
+from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
 
 BASE_REVISION = 'eye_likeness_01'
 SURFACE_REVISION = 'eye_likeness_02'
-REVISION = 'eye_likeness_03'
+EXPRESSION_REVISION = 'eye_likeness_03'
+REVISION = 'eye_likeness_04'
 Z0 = 1.44
 OLD_X, OLD_Z, OLD_Y = .0345, .128, -.046
 CX, CZ, CY = .0328, .1287, -.0448
@@ -456,10 +457,156 @@ def _refine_eye_expression_03(head):
         pupil=bpy.data.objects['Pupil '+str(side)];pupil.scale.x=.00225;pupil.scale.z=.00225
     assert signature(head,eyes)==locked
     assert np.array_equal(before[before[:,2]<1.540],coords(head)[before[:,2]<1.540])
+    head['eye_revision']=EXPRESSION_REVISION
+    bpy.context.scene['eye_revision']=EXPRESSION_REVISION
+    bpy.context.scene['eye_review_status']='pending_visual_approval'
+    print('EYE_EXPRESSION',EXPRESSION_REVISION,flush=True)
+    return dict(revision=EXPRESSION_REVISION,head_topology_unchanged=True,
+                protected_meshes_unchanged=True,remesh_applied=False)
+
+
+def _refine_eye_style_04(head):
+    """Match the enlarged reference's lid drawing, iris coverage and painted finish."""
+    eyes=bpy.data.collections['03 · HIGH · eyes and brows']
+    bpy.context.view_layer.update()
+    locked=signature(head,eyes)
+    before=coords(head);old_tree=tree_for(head)
+    def curve(x,knots,values):
+        k=np.array(knots);v=np.array(values);d=np.diff(v)/np.diff(k);m=np.r_[d[0],(d[:-1]+d[1:])/2,d[-1]]
+        m[1:-1]=np.where(d[:-1]*d[1:]<=0,0,m[1:-1]);i=np.clip(np.searchsorted(k,x)-1,0,len(k)-2)
+        h=k[i+1]-k[i];t=np.clip((x-k[i])/h,0,1)
+        return (2*t**3-3*t*t+1)*v[i]+(t**3-2*t*t+t)*h*m[i]+(-2*t**3+3*t*t)*v[i+1]+(t**3-t*t)*h*m[i+1]
+    def edge(v,upper):
+        if upper:return curve(v,[-1,-.72,-.35,.10,.55,.85,1],[-.00025,.0032,.00525,.00555,.0039,.00185,.00105])-.0013
+        return curve(v,[-1,-.65,-.1,.45,.8,1],[-.00025,-.0027,-.0037,-.0028,-.0009,.00105])-.0013
+    def deform(points):
+        result=points.copy()
+        for side in [-1,1]:
+            dx=points[:,0]-side*CX;dz=points[:,2]-Z0-CZ
+            rho=np.sqrt((dx/.029)**2+(dz/.025)**2);v=np.clip(side*dx/HALF_WIDTH,-1,1);sn=np.sqrt(np.maximum(0,1-v*v))
+            upper=dz>=.0004+.00065*v
+            old_edge=.0004+.00065*v+np.where(upper,.0056*sn**1.6*(1-.22*v),-.0045*sn**1.65*(1+.10*v))
+            target=np.where(upper,edge(v,True),edge(v,False))
+            w=(1-smooth(.64,1,rho))*(1-smooth(-.010,.020,points[:,1]))*np.exp(-((dz-old_edge)/.010)**2)*(1-smooth(.008,.012,np.abs(dz)))
+            delta=(target-old_edge)*w
+            rad=dx*dx+dz*dz;sphere=CY-np.sqrt(np.maximum(0,RADIUS**2-rad));skin=1-smooth(.0005,.004,points[:,1]-sphere)
+            result[:,1]+=np.clip(delta*dz/np.sqrt(np.maximum(.000036,RADIUS**2-rad)),-.001,.001)*skin*np.exp(-((dz-old_edge)/.0035)**2)*(1-smooth(.88,1.05,rad/RADIUS**2))
+            result[:,2]+=delta
+        return result
+    assign(head,deform(before));new_tree=tree_for(head)
+    # Paint only the immediate lid planes and one subtle upper crease.
+    points=coords(head);layer=head.data.color_attributes['Tone'];col=np.empty(len(points)*4,np.float32);layer.data.foreach_get('color',col);col=col.reshape(-1,4)
+    for side in [-1,1]:
+        dx=points[:,0]-side*CX;dz=points[:,2]-Z0-CZ;v=np.clip(side*dx/HALF_WIDTH,-1,1);sn=np.sqrt(np.maximum(0,1-v*v))
+        rho=np.sqrt((dx/.030)**2+(dz/.023)**2);mask=(1-smooth(.70,1,rho))*(1-smooth(-.030,-.005,points[:,1]))
+        crease=np.exp(-((dz-edge(v,True)-.00135)/.00032)**2)*sn**1.3*mask
+        tint=np.array((.26,.135,.080,1));col[:,:3]=col[:,:3]*(1-.30*crease[:,None])+tint[:3]*(.30*crease[:,None])
+        lower=np.exp(-((dz-edge(v,False)+.0017)/.0015)**2)*sn**1.5*mask
+        col[:,:3]+=lower[:,None]*np.array((.011,.004,-.001))
+    layer.data.foreach_set('color',col.ravel())
+    # Varied brow tufts, with angular foundation and a fuller medial root.
+    def brow_z(t):return curve(t,[0,.22,.60,.80,1],[.1403,.1412,.1437,.1440,.1416])
+    base=bpy.data.materials['Brows · warm umber']
+    shade=[]
+    for j,color in enumerate([(.025,.016,.010,1),(.038,.024,.014,1),(.030,.019,.011,1)]):
+        m=base.copy();m.name='Brow tuft · painted umber '+str(j);m.node_tree.nodes.get('Principled BSDF').inputs['Base Color'].default_value=color;shade.append(m)
+    for side in [-1,1]:
+        foundation=bpy.data.objects['Brow · dense tapered foundation '+str(side)];vv=[]
+        for i in range(65):
+            t=i/64;x=side*(.012+.048*t);z=float(brow_z(t));half=(.00115+.0016*math.sin(math.pi*t)**.6)*(1-float(smooth(.68,1,t)))
+            for row,zz in enumerate([z-half,z+half]):
+                xx=x+side*(.00045 if row==0 else -.00035)*(1-float(smooth(0,.16,t)))
+                vv.append((xx,surface_y(new_tree,xx,Z0+zz)-.00040,Z0+zz))
+        assign(foundation,vv)
+        m=base.copy();m.name='Brow foundation · painted umber '+str(side)
+        node=m.node_tree.nodes.new('ShaderNodeVertexColor');node.layer_name='BrowTone'
+        m.node_tree.links.new(node.outputs['Color'],m.node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
+        foundation.data.materials[0]=m
+        layer=foundation.data.color_attributes.new(name='BrowTone',type='FLOAT_COLOR',domain='POINT');tone=[]
+        for i in range(65):
+            t=i/64;value=.91+.065*math.sin(t*71)+.025*math.sin(t*27)
+            tone.extend([( .020*value,.012*value,.007*value,1),(.037*value,.022*value,.012*value,1)])
+        layer.data.foreach_set('color',np.array(tone,np.float32).ravel())
+        for i in range(34):
+            obj=bpy.data.objects['Brow strand %d %02d'%(side,i)];vv=coords(obj);t=i/33
+            nt=np.clip(((i//4)*4+1.5)/33+(i%4-1.5)*.014,0,1)
+            oldx=side*(.013+.046*t);oldz=Z0+.1408+.0023*math.sin(math.pi*t)+.0022*t
+            nx=side*(.013+.046*nt);nz=Z0+float(brow_z(nt));theta=side*(.08+.52*t+.16*math.sin(i*2.3));c,s=math.cos(theta),math.sin(theta)
+            length=(.78+.35*math.sin(i*.97+.3)**2)*(1-.65*float(smooth(.75,1,t)))
+            for p in vv:
+                offset=p[1]-surface_y(old_tree,p[0],p[2]);x,z=p[0]-oldx,(p[2]-oldz)*length
+                p[0]=nx+c*x+s*z;p[2]=nz-s*x+c*z;p[1]=surface_y(new_tree,p[0],p[2])+offset
+            if i<3:
+                vv[:,0]-=side*.001
+                for p in vv:p[1]=surface_y(new_tree,p[0],p[2])-.00065
+            extent=np.max(side*vv[:,0])
+            if extent>.060:
+                vv[:,0]-=side*(extent-.060+.0001)
+                for p in vv:p[1]=surface_y(new_tree,p[0],p[2])-.00062
+            assign(obj,vv);obj.data.materials[0]=shade[(i//4)%3]
+    # Eyelid line: tapered, darker and thicker over the outer half.
+    lash=base.copy();lash.name='Upper lid · painted warm charcoal';p=lash.node_tree.nodes.get('Principled BSDF');p.inputs['Base Color'].default_value=(.022,.014,.010,1);p.inputs['Roughness'].default_value=.78
+    for side in [-1,1]:
+        for upper in [True,False]:
+            vv=[];ff=[]
+            for i in range(129):
+                a=i*math.pi/128 if upper else math.pi+i*math.pi/128;dx=HALF_WIDTH*math.cos(a);v=side*dx/HALF_WIDTH;z=float(edge(v,upper))
+                width=(.00057*(.85+.25*v) if upper else .00014)*max(0,math.sin(math.pi*i/128))**.5
+                if upper:width+=.00032*float(smooth(.55,1,v))
+                for off in [0,width if upper else -width]:
+                    zz=Z0+CZ+z+off
+                    xx=side*CX+dx
+                    hit,normal,_,_=new_tree.ray_cast(Vector((xx,-1,zz)),Vector((0,1,0)))
+                    sphere=CY-math.sqrt(max(1e-6,RADIUS**2-dx*dx-(z+off)**2))-.0008
+                    # Follow the full skin normal so the painted edge also clears
+                    # the lid in profile, rather than offsetting only toward front.
+                    if hit is not None and hit.y<=sphere+.001:
+                        point=hit+normal*(.00016 if upper else .00008)
+                        vv.append(tuple(point))
+                    else:
+                        vv.append((xx,sphere,zz))
+            for i in range(128):ff.append((2*i,2*i+1,2*i+3,2*i+2))
+            name=('Upper ciliary edge ' if upper else 'Lower tear meniscus ')+str(side)
+            mat=lash if upper else bpy.data.objects[name].data.materials[0]
+            mesh_object(name,vv,ff,mat,eyes)
+    # Painted sclera: soft ivory below, muted upper half and warm corners.
+    sclera=bpy.data.materials['Sclera · ivory grey'];p=sclera.node_tree.nodes.get('Principled BSDF');p.inputs['Roughness'].default_value=.52;p.inputs['Specular IOR Level'].default_value=.18
+    node=sclera.node_tree.nodes.new('ShaderNodeVertexColor');node.layer_name='EyeTone';sclera.node_tree.links.new(node.outputs['Color'],p.inputs['Base Color'])
+    for side in [-1,1]:
+        obj=bpy.data.objects['Ocular globe '+str(side)];vv=coords(obj);z=vv[:,2];x=vv[:,0]
+        light=.72+.28*(1-smooth(-.004,.003,z));tone=np.ones((len(vv),4));tone[:,:3]=np.array((.30,.315,.30))*light[:,None]
+        warm=smooth(.010,.016,np.abs(x));tone[:,:3]+=warm[:,None]*np.array((.012,-.008,-.012))
+        layer=obj.data.color_attributes.new(name='EyeTone',type='FLOAT_COLOR',domain='POINT');layer.data.foreach_set('color',tone.astype(np.float32).ravel())
+        # Broader painted iris sectors and a controlled dark upper half.
+        obj=bpy.data.objects['Radial iris '+str(side)];vv=coords(obj);theta=-side*GAZE;c,s=math.cos(theta),math.sin(theta)
+        xx=c*(vv[:,0]-side*CX)+s*(vv[:,1]-CY);zz=vv[:,2]-Z0-CZ;r=np.sqrt(xx*xx+zz*zz);a=np.arctan2(zz,xx)
+        fiber=.86+.10*np.sin(29*a+.5*np.sin(9*a))+.06*np.sin(53*a-r*1500)
+        limbus=1-.80*smooth(.82,1,r/IRIS_RADIUS);inner=1-.60*(1-smooth(.31,.49,r/IRIS_RADIUS));light=.60+.48*(1-smooth(-.0035,.004,zz))
+        tone=np.ones((len(vv),4));tone[:,:3]=np.array((.050,.092,.140))*(fiber*limbus*inner*light)[:,None]
+        obj.data.color_attributes['Tone'].data.foreach_set('color',tone.astype(np.float32).ravel())
+    p=bpy.data.materials['Iris · layered slate blue'].node_tree.nodes.get('Principled BSDF');p.inputs['Roughness'].default_value=.48;p.inputs['Specular IOR Level'].default_value=.22
+    mat=bpy.data.materials['Cornea · transparent wet highlight']
+    for node in mat.node_tree.nodes:
+        if node.type=='MIX_SHADER':node.inputs[0].default_value=.13
+        if node.type=='BSDF_GLASS':node.inputs['Roughness'].default_value=.035
+    # Flush scale/location edits made by earlier stages before composing world matrices.
+    bpy.context.view_layer.update()
+    # Raise the optical axis three degrees; lids cover the upper iris as in the reference.
+    for side in [-1,1]:
+        center=Vector((side*CX,CY,Z0+CZ));rotation=Matrix.Rotation(math.radians(-3),4,'X')
+        transform=Matrix.Translation(center)@rotation@Matrix.Translation(-center)
+        for prefix in ['Radial iris ','Corneal wet surface ','Pupil ']:
+            obj=bpy.data.objects[prefix+str(side)]
+            if prefix=='Pupil ':obj.matrix_world=transform@obj.matrix_world
+            else:
+                vv=coords(obj);r=np.array(rotation)[:3,:3];vv=(vv-np.array(center))@r.T+np.array(center);assign(obj,vv)
+        obj=bpy.data.objects['Lacrimal caruncle '+str(side)];vv=coords(obj);vv[:,2]-=.0013;assign(obj,vv)
+    assert signature(head,eyes)==locked
+    assert np.array_equal(before[before[:,2]<1.540],coords(head)[before[:,2]<1.540])
     head['eye_revision']=REVISION
     bpy.context.scene['eye_revision']=REVISION
     bpy.context.scene['eye_review_status']='pending_visual_approval'
-    print('EYE_EXPRESSION',REVISION,flush=True)
+    print('EYE_STYLE',REVISION,flush=True)
     return dict(revision=REVISION,head_topology_unchanged=True,
                 protected_meshes_unchanged=True,remesh_applied=False)
 
@@ -473,7 +620,10 @@ def refine_eye_likeness(head):
         _refine_eye_surface_02(head)
         revision=SURFACE_REVISION
     if revision==SURFACE_REVISION:
-        return _refine_eye_expression_03(head)
+        _refine_eye_expression_03(head)
+        revision=EXPRESSION_REVISION
+    if revision==EXPRESSION_REVISION:
+        return _refine_eye_style_04(head)
     raise RuntimeError('Eye revision already applied or unsupported; open a baseline.')
 
 
