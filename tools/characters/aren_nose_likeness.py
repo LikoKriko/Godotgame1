@@ -13,7 +13,8 @@ sys.dont_write_bytecode=True
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from aren_eye_likeness import coords,assign,smooth,tree_for,surface_y,Z0
 
-REVISION='nose_likeness_01'
+FOUNDATION_REVISION='nose_likeness_01'
+REVISION='nose_likeness_02'
 
 
 def protected_signature(head):
@@ -28,7 +29,7 @@ def protected_signature(head):
     return digest.hexdigest()
 
 
-def refine_nose_likeness(head):
+def _refine_nose_foundation(head):
     if head.get('nose_revision'):
         raise RuntimeError('Nose revision already applied; open the unmodified baseline.')
     if head.get('eye_revision')!='eye_likeness_04':
@@ -124,6 +125,79 @@ def refine_nose_likeness(head):
     held_eyes=(np.abs(xx)>=.011)&(zz>=1.553)
     outside=(np.abs(xx)>=.027)|(zz<=1.506)|(zz>=1.576)|(yy>=-.020)
     assert np.array_equal(before[held_eyes|outside],after[held_eyes|outside])
+    assert protected_signature(head)==locked
+    head['nose_revision']=FOUNDATION_REVISION
+    scene=bpy.context.scene;scene['nose_revision']=FOUNDATION_REVISION
+    scene['nose_review_status']='pending_visual_approval'
+    scene['eye_review_status']='held_by_user';scene['active_feature_review']='nose'
+    result=dict(revision=FOUNDATION_REVISION,head_topology_unchanged=True,
+                protected_meshes_unchanged=True,eyes_held=True,remesh_applied=False)
+    print('NOSE_REVIEW',json.dumps(result),flush=True)
+    return result
+
+
+def refine_nose_likeness(head):
+    """Apply the nose foundation once, then the bounded tip/alar refinement."""
+    revision=head.get('nose_revision')
+    if revision==REVISION:
+        raise RuntimeError('Nose revision already applied; open the unmodified baseline.')
+    if revision not in (None,FOUNDATION_REVISION):
+        raise RuntimeError('Unsupported nose source revision: '+str(revision))
+    if head.get('eye_revision')!='eye_likeness_04':
+        raise RuntimeError('Nose review requires the held eye_likeness_04 source.')
+    if revision is None:
+        _refine_nose_foundation(head)
+    bpy.context.view_layer.update()
+    locked=protected_signature(head)
+    tone_before=np.empty(len(head.data.vertices)*4,np.float32)
+    head.data.color_attributes['Tone'].data.foreach_get('color',tone_before)
+
+    before=coords(head);a=before.copy();x,y,z=before[:,0],before[:,1],before[:,2]-Z0
+    support=smooth(.068,.072,z)*(1-smooth(.091,.099,z))*(1-smooth(.019,.024,np.abs(x)))*(1-smooth(-.050,-.020,y))
+    cavities=[];visible=np.ones(len(a),bool)
+    for cap in head.data.polygons:
+        if len(cap.vertices)==26 and abs(cap.center.z-Z0-.0765)<.008:
+            first=cap.index-20*26;n=26
+            rows=[np.array([head.data.polygons[first+(row-1)*n+j].vertices[3] for j in range(n)]) for row in range(1,21)]
+            cavities.append(rows)
+            for ids in rows[14:]:visible[ids]=False
+    assert len(cavities)==2
+    # A rounded dome broadens the tip shoulders without extending its apex.
+    r2=(x/.0105)**2+((z-.084)/.012)**2
+    dome=-.1000-.0050*np.sqrt(np.maximum(0,1-r2))
+    w=.72*(1-smooth(.58,.96,r2))*support*visible
+    a[:,1]+=w*(dome-a[:,1])
+    # Give each alar lobule a continuous body above and outside the aperture.
+    lobule=np.exp(-((np.abs(x)-.0122)/.0042)**2-((z-.0794)/.0040)**2)*support
+    a[:,1]-=.0016*lobule*visible
+    # Tilt the opening under the wing; the lower rim recedes into the base.
+    for rows in cavities:
+        rim=rows[13];center=before[rim].mean(axis=0);dx=x-center[0];dz=z-(center[2]-Z0)
+        local=np.exp(-(dx/.0055)**4-(dz/.0040)**4)*support
+        a[:,1]+=.0016*np.tanh(-dz/.0014)*local*visible
+        # Gently taper the medial corner and flatten the lower contour.
+        side=np.sign(center[0]);medial=1-smooth(-.001,.002,side*dx)
+        a[:,2]+=.00038*medial*np.exp(-(dx/.0045)**4-(dz/.003)**4)*support*visible
+        taper=.28*(1-smooth(-.003,.002,side*dx))
+        a[:,2]-=dz*taper*np.exp(-(dx/.0055)**4-(dz/.004)**4)*support*visible
+        # Join the cavity to the altered opening, retaining its six native rows.
+        opening=a[rim].copy();center=opening.mean(axis=0)
+        for row,ids in enumerate(rows[14:],1):
+            u=row/6
+            depth=u*u*(2-u)
+            a[ids]=center+(opening-center)*(1-.22*depth)+np.array((0,.007*depth,.0048*depth))
+    assign(head,a)
+    # Warm subdued lower rims avoid an isolated bright tube around the nares.
+    col=np.empty(len(a)*4,np.float32);head.data.color_attributes['Tone'].data.foreach_get('color',col);col=col.reshape(-1,4)
+    for rows in cavities:
+        rim=rows[13];center=before[rim].mean(axis=0);dx=x-center[0];dz=z-(center[2]-Z0)
+        w=(.25+.25*(1-smooth(-.0006,.0012,dz)))*np.exp(-(dx/.0050)**4-(dz/.0030)**4)*support*visible
+        col[:,:3]=col[:,:3]*(1-w[:,None])+np.array((.32,.174,.104))*w[:,None]
+    head.data.color_attributes['Tone'].data.foreach_set('color',col.ravel())
+
+    held=(np.abs(x)>=.024)|(z<=.068)|(z>=.099)|(y>=-.020)
+    assert np.array_equal(before[held],coords(head)[held])
+    assert np.array_equal(tone_before.reshape(-1,4)[held],col[held])
     assert protected_signature(head)==locked
     head['nose_revision']=REVISION
     scene=bpy.context.scene;scene['nose_revision']=REVISION

@@ -89,14 +89,23 @@ Ocular meshes, lids, brows, hair, ears, mouth and jaw retain their geometry.
 The facial shell keeps its vertex and polygon connectivity. `NoseFront` adds
 a saved close-up camera under the existing studio lights.
 
-Apply the nose pass once to an `eye_likeness_04` source without a nose revision:
+The `nose_likeness_02` stage rounds the tip dome and broadens its shoulders,
+adds bounded volume to the alar lobules, and recesses the lower aperture rims.
+The medial nostril corners taper upward instead of retaining a uniform oval.
+The existing six cavity rows follow the changed rims with a gradual inward turn;
+warm point colors subdue the isolated bright rim. This stage keeps the upper
+bridge, eye region, existing materials and `NoseBounce` values unchanged.
+It retains every vertex, polygon and nonfacial mesh.
+
+Apply the complete nose pipeline to an `eye_likeness_04` source without a nose
+revision, or upgrade an existing `nose_likeness_01` source:
 
 ```sh
 blender -b held-eyes.blend --python tools/characters/aren_nose_likeness.py -- \
   --output nose-review.blend
 ```
 
-A source already marked `nose_likeness_01` is refused. The source manifest and
+A source already marked `nose_likeness_02` is refused. The source manifest and
 scene metadata record the held eye review and the pending nose review.
 
 Rebuild with Blender 4.3 or newer from the repository root:
