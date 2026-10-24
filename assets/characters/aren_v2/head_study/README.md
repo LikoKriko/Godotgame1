@@ -30,7 +30,7 @@ auricles and ocular meshes retain their coordinates and transforms. The pass
 does not resample or reduce the mesh. Aperture rims follow the actual boundary
 edge cycles with opposite winding so the facial shell has consistent normals.
 
-The separate `eye_likeness_02` stage is pending visual approval. It adjusts only
+The separate `eye_likeness_03` stage is pending visual approval. It adjusts only
 the orbital envelope, eyelids, brows and ocular components: a tapered almond
 opening, closer eye centers, a slightly raised outer canthus, a hooded upper
 lid and a recessed globe. Slate blue-gray irises, a transparent corneal surface
@@ -44,15 +44,22 @@ scalloped seam marks and duplicated folds. It preserves mesh connectivity,
 polygon count, globe centers, irises and gaze. The eyebrow root is lowered
 slightly and the outer arch is raised using the enlarged head reference.
 
+The third pass reduces the canthal rise from 4.2 mm to 1.3 mm across the
+opening and increases the upper lid arc. The morph fades within the immediate
+lid envelope, retaining the clean outer orbital surface. Globe centers, eye
+width, iris geometry and gaze stay fixed. Pupils are slightly smaller, paired
+lacrimal caruncles are separate editable meshes, and brows sit closer to the
+upper lids with a flatter, fuller silhouette.
+
 Apply the complete eye pipeline once to a `primary_volumes_02` source without
-an eye revision, or upgrade an existing `eye_likeness_01` source:
+an eye revision, or upgrade an existing `eye_likeness_01` or `eye_likeness_02` source:
 
 ```sh
 blender -b baseline.blend --python tools/characters/aren_eye_likeness.py -- \
   --output eye-review.blend
 ```
 
-A source already marked `eye_likeness_02` is refused to prevent cumulative edits.
+A source already marked `eye_likeness_03` is refused to prevent cumulative edits.
 
 Do not continue the general facial review or integrate this eye study into
 gameplay until its visual approval is supplied.

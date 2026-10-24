@@ -18,7 +18,8 @@ from mathutils.bvhtree import BVHTree
 from mathutils.kdtree import KDTree
 
 BASE_REVISION = 'eye_likeness_01'
-REVISION = 'eye_likeness_02'
+SURFACE_REVISION = 'eye_likeness_02'
+REVISION = 'eye_likeness_03'
 Z0 = 1.44
 OLD_X, OLD_Z, OLD_Y = .0345, .128, -.046
 CX, CZ, CY = .0328, .1287, -.0448
@@ -383,22 +384,97 @@ def _refine_eye_surface_02(head):
         assign(obj,vv)
     assert signature(head,eyes)==locked
     assert np.array_equal(before[before[:,2]<1.540],coords(head)[before[:,2]<1.540])
-    head['eye_revision']=REVISION
-    bpy.context.scene['eye_revision']=REVISION
+    head['eye_revision']=SURFACE_REVISION
+    bpy.context.scene['eye_revision']=SURFACE_REVISION
     bpy.context.scene['eye_review_status']='pending_visual_approval'
-    result=dict(revision=REVISION,head_topology_unchanged=True,
+    result=dict(revision=SURFACE_REVISION,head_topology_unchanged=True,
                 protected_meshes_unchanged=True,remesh_applied=False)
     print('EYE_SURFACE',json.dumps(result),flush=True)
     return result
+
+
+def _refine_eye_expression_03(head):
+    """Refine canthal tilt, upper opening and local expression on revision 02."""
+    eyes=bpy.data.collections['03 · HIGH · eyes and brows']
+    locked=signature(head,eyes)
+    before=coords(head);old_tree=tree_for(head)
+    def deform(points):
+        result=points.copy()
+        for side in [-1,1]:
+            dx=points[:,0]-side*CX;dz=points[:,2]-Z0-CZ
+            rho=np.sqrt((dx/.029)**2+(dz/.025)**2)
+            v=np.clip(side*dx/HALF_WIDTH,-1,1);sn=np.sqrt(np.maximum(0,1-v*v))
+            upper=dz>=.0004+.0021*v
+            old_amp=np.where(upper,.0044*sn**2*(1-.12*v),-.0045*sn**1.8*(1+.08*v))
+            new_amp=np.where(upper,.0056*sn**1.6*(1-.22*v),-.0045*sn**1.65*(1+.10*v))
+            old_edge=.0004+.0021*v+old_amp
+            weight=(1-smooth(.64,1,rho))*(1-smooth(-.010,.020,points[:,1]))*np.exp(-((dz-old_edge)/.010)**2)*(1-smooth(.008,.012,np.abs(dz)))
+            delta=(-.00145*v+new_amp-old_amp)*weight
+            rad=dx*dx+dz*dz
+            sphere=CY-np.sqrt(np.maximum(0,RADIUS**2-rad))
+            skin=1-smooth(.0005,.004,points[:,1]-sphere)
+            depth=np.sqrt(np.maximum(.000036,RADIUS**2-rad))
+            result[:,1]+=np.clip(delta*dz/depth,-.001,.001)*skin*np.exp(-((dz-old_edge)/.0035)**2)*(1-smooth(.88,1.05,rad/RADIUS**2))
+            result[:,2]+=delta
+        return result
+    assign(head,deform(before));new_tree=tree_for(head)
+    for obj in eyes.objects:
+        if obj.name.startswith(('Brow strand','Brow · dense')):
+            vv=coords(obj)
+            strand=obj.name.startswith('Brow strand')
+            for i,p in enumerate(vv):
+                t=int(obj.name.split()[-1])/33 if strand else (i//2)/64
+                old_center=.1420+.0040*math.sin(math.pi*t)+.0017*t
+                new_center=.1408+.0023*math.sin(math.pi*t)+.0022*t
+                offset=p[1]-surface_y(old_tree,p[0],p[2])
+                p[2]=Z0+new_center+(p[2]-Z0-old_center)*(1.20-.10*t)
+                p[1]=surface_y(new_tree,p[0],p[2])+offset
+            assign(obj,vv)
+        elif obj.name.startswith(('Upper ciliary edge','Lower tear meniscus')):
+            assign(obj,deform(coords(obj)))
+    # A small lacrimal caruncle at the medial corner, shaded in muted warm skin.
+    mat=bpy.data.materials.get('Lacrimal caruncle · warm muted skin') or bpy.data.materials.new('Lacrimal caruncle · warm muted skin');mat.use_nodes=True
+    bs=mat.node_tree.nodes.get('Principled BSDF');bs.inputs['Base Color'].default_value=(.28,.16,.12,1);bs.inputs['Roughness'].default_value=.38
+    for side in [-1,1]:
+        dx=-side*.0151;dz=.0004+.00065*(-.0151/HALF_WIDTH)
+        center=np.array((side*CX+dx,CY-math.sqrt(RADIUS**2-dx*dx-dz*dz)-.00075,Z0+CZ+dz))
+        vv=[];ff=[];n=32;nr=16
+        # Closed UV sphere with unique poles.
+        vv.append(tuple(center+np.array((0,0,.00035))))
+        for row in range(1,nr):
+            phi=math.pi*row/nr
+            for j in range(n):
+                a=2*math.pi*j/n
+                vv.append(tuple(center+np.array((.00055*math.sin(phi)*math.cos(a),.00025*math.sin(phi)*math.sin(a),.00035*math.cos(phi)))))
+        bottom=len(vv);vv.append(tuple(center+np.array((0,0,-.00035))))
+        for j in range(n):ff.append((0,1+j,1+(j+1)%n))
+        for row in range(nr-2):
+            for j in range(n):ff.append((1+row*n+j,1+(row+1)*n+j,1+(row+1)*n+(j+1)%n,1+row*n+(j+1)%n))
+        for j in range(n):ff.append((bottom,1+(nr-2)*n+(j+1)%n,1+(nr-2)*n+j))
+        mesh_object('Lacrimal caruncle '+str(side),vv,ff,mat,eyes)
+    for side in [-1,1]:
+        pupil=bpy.data.objects['Pupil '+str(side)];pupil.scale.x=.00225;pupil.scale.z=.00225
+    assert signature(head,eyes)==locked
+    assert np.array_equal(before[before[:,2]<1.540],coords(head)[before[:,2]<1.540])
+    head['eye_revision']=REVISION
+    bpy.context.scene['eye_revision']=REVISION
+    bpy.context.scene['eye_review_status']='pending_visual_approval'
+    print('EYE_EXPRESSION',REVISION,flush=True)
+    return dict(revision=REVISION,head_topology_unchanged=True,
+                protected_meshes_unchanged=True,remesh_applied=False)
 
 
 def refine_eye_likeness(head):
     revision=head.get('eye_revision')
     if revision is None:
         _refine_eye_likeness_01(head)
-    elif revision!=BASE_REVISION:
-        raise RuntimeError('Eye revision already applied or unsupported; open a baseline.')
-    return _refine_eye_surface_02(head)
+        revision=BASE_REVISION
+    if revision==BASE_REVISION:
+        _refine_eye_surface_02(head)
+        revision=SURFACE_REVISION
+    if revision==SURFACE_REVISION:
+        return _refine_eye_expression_03(head)
+    raise RuntimeError('Eye revision already applied or unsupported; open a baseline.')
 
 
 if __name__=='__main__':
