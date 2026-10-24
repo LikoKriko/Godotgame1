@@ -15,8 +15,10 @@ import bpy
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
+from mathutils.kdtree import KDTree
 
-REVISION = 'eye_likeness_01'
+BASE_REVISION = 'eye_likeness_01'
+REVISION = 'eye_likeness_02'
 Z0 = 1.44
 OLD_X, OLD_Z, OLD_Y = .0345, .128, -.046
 CX, CZ, CY = .0328, .1287, -.0448
@@ -100,7 +102,7 @@ def signature(head,collection):
     return digest.hexdigest()
 
 
-def refine_eye_likeness(head):
+def _refine_eye_likeness_01(head):
     if head.get('eye_revision'):
         raise RuntimeError('Eye revision already applied; open the unmodified baseline.')
     if head.get('volume_revision')!='primary_volumes_02':
@@ -269,15 +271,134 @@ def refine_eye_likeness(head):
     camera.location=(0,-1.2,Z0+.136)
     camera.rotation_euler=(Vector((0,0,Z0+.136))-camera.location).to_track_quat('-Z','Y').to_euler()
     camera_data.type='ORTHO';camera_data.ortho_scale=.155
-    head['eye_revision']=REVISION
+    head['eye_revision']=BASE_REVISION
     head['eye_scope']='Eyes, eyelids, brows and local orbital integration only; pending approval'
-    bpy.context.scene['eye_revision']=REVISION
+    bpy.context.scene['eye_revision']=BASE_REVISION
     bpy.context.scene['eye_review_status']='pending_visual_approval'
-    result=dict(revision=REVISION,head_vertices=len(before),head_faces=len(head.data.polygons),
+    result=dict(revision=BASE_REVISION,head_vertices=len(before),head_faces=len(head.data.polygons),
                 head_topology_unchanged=True,nonorbital_vertices_unchanged=int((~affected).sum()),
                 protected_meshes_unchanged=True,remesh_applied=False)
     print('EYE_REVIEW',json.dumps(result),flush=True)
     return result
+
+
+def _refine_eye_surface_02(head):
+    """Fair the local lid seam without changing mesh connectivity or eye centers."""
+    eyes=bpy.data.collections['03 · HIGH · eyes and brows']
+    locked=signature(head,eyes)
+    before=coords(head);after=before.copy();N=len(before)
+    norm=np.empty(N*3,np.float32);head.data.vertices.foreach_get('normal',norm);norm=norm.reshape(-1,3)
+    old_tree=tree_for(head)
+    # Reposition the existing 30 skin rows and six cavity rows.
+    # Monotone angular sampling removes backtracking at the stepped grid seam.
+    patches=0
+    for cap in head.data.polygons:
+        if len(cap.vertices)!=188 or abs(cap.center.z-Z0-CZ)>.008:continue
+        n=188;first=cap.index-36*n;ids=[]
+        for k in range(30):ids.append([head.data.polygons[first+k*n+j].vertices[0] for j in range(n)])
+        ids.append([head.data.polygons[first+29*n+j].vertices[3] for j in range(n)])
+        ids=np.array(ids);outer=before[ids[0]].copy();side=1 if outer[:,0].mean()>0 else -1
+        q=(outer[:,[0,2]]-[side*CX,Z0+CZ])/[.021,.010]
+        theta=np.unwrap(np.arctan2(q[:,1],q[:,0]));direction=np.sign(np.median(np.diff(theta)))
+        increments=np.linalg.norm(np.roll(q,-1,axis=0)-q,axis=1)
+        angle=theta[0]+direction*2*math.pi*np.r_[0,np.cumsum(increments[:-1])]/increments.sum()
+        xx,zz=eyelid(angle,side)
+        hood=.0016*np.exp(-(.0158*np.cos(angle)/.025)**2)*np.exp(-((.128+.005*np.maximum(0,np.sin(angle))**.65+side*.0018*np.cos(angle)-.143)/.010)**2)
+        hood+=.0007*np.exp(-(.0158*np.cos(angle)/.024)**2)*np.exp(-((.128-.0045*np.maximum(0,-np.sin(angle))**.90+side*.0018*np.cos(angle)-.116)/.007)**2)
+        inner=np.column_stack((side*CX+xx,CY-np.sqrt(np.maximum(1e-6,RADIUS**2-xx*xx-zz*zz))-.00055-hood,Z0+CZ+zz))
+        for k in range(1,31):
+            t=k/30;after[ids[k],0]=outer[:,0]*(1-t)+inner[:,0]*t;after[ids[k],2]=outer[:,2]*(1-t)+inner[:,2]*t
+            after[ids[k],1]=before[ids[k],1]*(1-t**5)+inner[:,1]*t**5
+        # Relax interior parameter rows with both boundary loops pinned. This
+        # removes compressed columns beside the canthi without resampling faces.
+        patch=after[ids].copy()
+        for _ in range(1600):
+            radial=(patch[:-2]+patch[2:])*2
+            around=(np.roll(patch[1:-1],1,axis=1)+np.roll(patch[1:-1],-1,axis=1))*.5
+            patch[1:-1,:,0]=(radial+around)[:,:,0]/5
+            patch[1:-1,:,2]=(radial+around)[:,:,2]/5
+        after[ids]=patch
+        for layer in range(1,7):
+            row=np.array([head.data.polygons[first+(29+layer)*n+j].vertices[3] for j in range(n)])
+            after[row]=inner
+            after[row,0]=side*CX+(inner[:,0]-side*CX)*(1-.22*layer/6)
+            after[row,2]=Z0+CZ+(inner[:,2]-Z0-CZ)*(1-.22*layer/6)
+            after[row,1]+= .034*layer/6
+        patches+=1
+
+    assert patches==2, 'Expected two native 188-column orbital annuli'
+    for side in [-1,1]:
+        dx=before[:,0]-side*CX;dz=before[:,2]-Z0-CZ
+        rho=np.sqrt((dx/.031)**2+(dz/.025)**2)
+        sphere=CY-np.sqrt(np.maximum(0,RADIUS**2-dx*dx-dz*dz))
+        visible=(before[:,1]<sphere+.0005)&(norm[:,1]<.15)&(rho<1.16)
+        source=np.where(visible)[0]
+        # Equal-area samples prevent the dense annulus from outweighing the facial grid.
+        bins=np.floor(before[source][:,[0,2]]/.00032).astype(int)
+        _,inv=np.unique(bins,axis=0,return_inverse=True)
+        count=np.bincount(inv);samples=np.column_stack([np.bincount(inv,weights=before[source,j])/count for j in range(3)])
+        tree=KDTree(len(samples))
+        for i,p in enumerate(samples):tree.insert((p[0],p[2],0),i)
+        tree.balance()
+        angles=np.linspace(0,2*math.pi,513);ex,ez=eyelid(angles,side)
+        curve=KDTree(len(angles))
+        for i,(xx,zz)in enumerate(zip(ex+side*CX,ez+Z0+CZ)):curve.insert((xx,zz,0),i)
+        curve.balance()
+        changed=0
+        target=np.where((after[:,1]<sphere+.0015)&(rho<1))[0]
+        for idx in target:
+            p=after[idx].copy();dist=curve.find((p[0],p[2],0))[2]
+            weight=float(smooth(.00025,.0015,dist)*(1-smooth(.76,1.0,rho[idx])))
+            if weight==0:continue
+            nearby=tree.find_range((p[0],p[2],0),.0048)
+            if len(nearby)<12:raise RuntimeError('Insufficient orbital surface samples')
+            ids=np.array([v[1]for v in nearby]);q=samples[ids]
+            uv=(q[:,[0,2]]-p[[0,2]])/.002
+            w=np.exp(-np.sum(uv*uv,axis=1)/1.1**2)
+            A=np.column_stack([np.ones(len(q)),uv,uv[:,0]**2,uv[:,0]*uv[:,1],uv[:,1]**2])
+            M=A.T@(w[:,None]*A)+np.eye(6)*1e-9;b=A.T@(w*q[:,1])
+            fitted=np.linalg.solve(M,b)[0]
+            after[idx,1]+=weight*np.clip(fitted-p[1],-.003,.003)
+            changed+=1
+        print('MLS',side,len(source),len(samples),changed,flush=True)
+    assign(head,after)
+    # Reattach brows and refine their arch using the enlarged reference.
+    # The medial root sits lower; the outer half rises without a rounded high arch.
+    new_tree=tree_for(head)
+    for obj in bpy.data.collections['03 · HIGH · eyes and brows'].objects:
+        if not obj.name.startswith(('Brow strand','Brow · dense')):continue
+        vv=coords(obj)
+        if obj.name.startswith('Brow strand'):
+            t=int(obj.name.split()[-1])/33
+            shift=-.0006+.0023*math.sin(math.pi*t)-.0001*t
+            for p in vv:
+                offset=p[1]-surface_y(old_tree,p[0],p[2]);p[2]+=shift
+                p[1]=surface_y(new_tree,p[0],p[2])+offset
+        else:
+            for i,p in enumerate(vv):
+                t=(i//2)/64
+                offset=p[1]-surface_y(old_tree,p[0],p[2])
+                p[2]+=-.0006+.0023*math.sin(math.pi*t)-.0001*t
+                p[1]=surface_y(new_tree,p[0],p[2])+offset
+        assign(obj,vv)
+    assert signature(head,eyes)==locked
+    assert np.array_equal(before[before[:,2]<1.540],coords(head)[before[:,2]<1.540])
+    head['eye_revision']=REVISION
+    bpy.context.scene['eye_revision']=REVISION
+    bpy.context.scene['eye_review_status']='pending_visual_approval'
+    result=dict(revision=REVISION,head_topology_unchanged=True,
+                protected_meshes_unchanged=True,remesh_applied=False)
+    print('EYE_SURFACE',json.dumps(result),flush=True)
+    return result
+
+
+def refine_eye_likeness(head):
+    revision=head.get('eye_revision')
+    if revision is None:
+        _refine_eye_likeness_01(head)
+    elif revision!=BASE_REVISION:
+        raise RuntimeError('Eye revision already applied or unsupported; open a baseline.')
+    return _refine_eye_surface_02(head)
 
 
 if __name__=='__main__':
