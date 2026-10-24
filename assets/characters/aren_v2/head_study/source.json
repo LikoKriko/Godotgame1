@@ -4,10 +4,11 @@
   "donor_source": "entregables/personajes/personaje1/source/psnj1_3d_rigged.fbx",
   "reference": "User-supplied character sheet in chat",
   "faces_by_collection": {
-    "01 \u00b7 HIGH \u00b7 editable anatomy": 388747,
+    "01 \u00b7 HIGH \u00b7 editable anatomy": 388743,
     "02 \u00b7 HIGH \u00b7 swept hair locks": 712771,
     "03 \u00b7 HIGH \u00b7 eyes and brows": 30600
   },
+  "primary_volume_revision": "primary_volumes_01",
   "remesh_applied": false,
   "rigging_applied": false,
   "cameras": [

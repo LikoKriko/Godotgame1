@@ -149,23 +149,28 @@ head=mesh('Aren · dense facial sculpt',verts,faces)
 # Each aperture gets a dense, continuous anatomical rim and a recessed cavity.
 bm=bmesh.new();bm.from_mesh(head.data);loose=[v for v in bm.verts if not v.link_edges]
 if loose:bmesh.ops.delete(bm,geom=loose,context='VERTS')
-boundaries={v for e in bm.edges if e.is_boundary for v in e.verts};rings=[]
+boundaries={e for e in bm.edges if e.is_boundary};rings=[]
 while boundaries:
- seed=next(iter(boundaries));stack=[seed];group=set()
- while stack:
-  v=stack.pop()
-  if v in group:continue
-  group.add(v)
-  for e in v.link_edges:
-   if e.is_boundary:stack.append(e.other_vert(v))
- boundaries-=group;rings.append(list(group))
+ # Preserve actual boundary adjacency and opposite winding. Sorting by polar
+ # angle can reorder the stepped grid boundary and twist the sewn surface.
+ seed=min(boundaries,key=lambda e:min(v.index for v in e.verts))
+ loop=seed.link_loops[0];start=loop.link_loop_next.vert;current=loop.vert
+ ring=[start];previous=seed;boundaries.remove(seed)
+ while current!=start:
+  ring.append(current)
+  candidates=[e for e in current.link_edges if e.is_boundary and e!=previous]
+  if len(candidates)!=1:raise RuntimeError('Aperture boundary is not a simple cycle')
+  edge=candidates[0]
+  if edge not in boundaries:raise RuntimeError('Aperture boundary repeats an edge')
+  boundaries.remove(edge);current=edge.other_vert(current);previous=edge
+ rings.append(ring)
 ring_data=[[tuple(v.co)for v in ring]for ring in rings];bm.free()
 
 def add_rim(name,ring,kind,side=0):
  if kind=='eye':cx=side*.0345;cz=.128;rx=.021;rz=.010;steps=30
  elif kind=='mouth':cx=0;cz=.050;rx=.033;rz=.013;steps=34
  else:cx=side*.0095;cz=.0765;rx=.0027;rz=.0017;steps=14
- ring.sort(key=lambda p:math.atan2((p[2]-Z0-cz)/rz,(p[0]-cx)/rx));angles=[math.atan2((p[2]-Z0-cz)/rz,(p[0]-cx)/rx)for p in ring];n=len(ring);vv=[];ff=[];colors=[]
+ angles=[math.atan2((p[2]-Z0-cz)/rz,(p[0]-cx)/rx)for p in ring];n=len(ring);vv=[];ff=[];colors=[]
  for k in range(steps+1):
   t=k/steps
   for p,a in zip(ring,angles):
@@ -216,11 +221,13 @@ bpy.ops.object.select_all(action='DESELECT');head.select_set(True)
 for o in parts:o.select_set(True)
 bpy.context.view_layer.objects.active=head;bpy.ops.object.join()
 bm=bmesh.new();bm.from_mesh(head.data);bmesh.ops.remove_doubles(bm,verts=list(bm.verts),dist=1e-7)
-# Close four-cell sampling gaps at the orbital boundary without changing the rim.
-bmesh.ops.holes_fill(bm,edges=[e for e in bm.edges if e.is_boundary],sides=4)
+# Sewn apertures must be closed and consistently oriented, without patch faces.
+assert not any(e.is_boundary for e in bm.edges)
 loose=[v for v in bm.verts if not v.link_edges]
 if loose:bmesh.ops.delete(bm,geom=loose,context='VERTS')
-bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces));bm.to_mesh(head.data);bm.free()
+bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces))
+assert not any(e.is_manifold and not e.is_contiguous for e in bm.edges)
+bm.to_mesh(head.data);bm.free()
 
 # Dense globe, curved iris, limbal ring and pupil. Highlights come from studio lights.
 for side in [-1,1]:
@@ -415,9 +422,14 @@ for screen in bpy.data.screens:
  for area in screen.areas:
   if area.type=='VIEW_3D':area.spaces.active.region_3d.view_perspective='CAMERA';area.spaces.active.shading.type='MATERIAL'
 bpy.ops.object.select_all(action='DESELECT');head.select_set(True);bpy.context.view_layer.objects.active=head
+sys.dont_write_bytecode=True
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from aren_head_volumes import refine_primary_volumes, REVISION
+refine_primary_volumes(head)
+scene['volume_revision']=REVISION
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'authoring/aren_head_high.blend'),compress=True)
 counts={col.name:sum(len(o.data.polygons)for o in col.objects if o.type=='MESH')for col in [HEAD,HAIR,EYES]}
-(OUT/'source.json').write_text(json.dumps({'stage':'high_density_likeness_study','source_commit':'bd1471c8','donor_source':str(source.relative_to(R)),'reference':'User-supplied character sheet in chat','faces_by_collection':counts,'remesh_applied':False,'rigging_applied':False,'cameras':list(cameras)},indent=2)+'\n');print('HEAD_COUNTS',counts)
+(OUT/'source.json').write_text(json.dumps({'stage':'high_density_likeness_study','source_commit':'bd1471c8','donor_source':str(source.relative_to(R)),'reference':'User-supplied character sheet in chat','faces_by_collection':counts,'primary_volume_revision':REVISION,'remesh_applied':False,'rigging_applied':False,'cameras':list(cameras)},indent=2)+'\n');print('HEAD_COUNTS',counts)
 views=['Front','ThreeQuarter','Left','Ear','Eye','Back'] if '--quick' in sys.argv else list(cameras)
 if '--no-render' in sys.argv:views=[]
 for name in views:
