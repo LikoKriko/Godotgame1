@@ -71,8 +71,33 @@ blender -b baseline.blend --python tools/characters/aren_eye_likeness.py -- \
 
 A source already marked `eye_likeness_04` is refused to prevent cumulative edits.
 
-Do not continue the general facial review or integrate this eye study into
-gameplay until its visual approval is supplied.
+Eye revision `eye_likeness_04` is held by user direction while nose-only review
+proceeds. The high density study remains separate from gameplay pending visual
+approval.
+
+The `nose_likeness_01` pass requires that held eye source. It uses interpolated
+profile guides to recess the upper root, straighten the dorsal transition and
+project a defined tip. Front and lateral nasal planes receive bounded sculpt
+and point-color adjustments. Nostril apertures widen, flatten and tilt outward;
+their six existing interior rows continue 7 mm backward and 4 mm upward from
+the rim. Interior point colors darken smoothly into the closed cavities. A bounded
+`NoseBounce` point attribute drives a small warm underside fill in a private
+copy of the head skin material; its strength is zero on the held eye region,
+non-nasal surfaces and the interior cavities.
+
+Ocular meshes, lids, brows, hair, ears, mouth and jaw retain their geometry.
+The facial shell keeps its vertex and polygon connectivity. `NoseFront` adds
+a saved close-up camera under the existing studio lights.
+
+Apply the nose pass once to an `eye_likeness_04` source without a nose revision:
+
+```sh
+blender -b held-eyes.blend --python tools/characters/aren_nose_likeness.py -- \
+  --output nose-review.blend
+```
+
+A source already marked `nose_likeness_01` is refused. The source manifest and
+scene metadata record the held eye review and the pending nose review.
 
 Rebuild with Blender 4.3 or newer from the repository root:
 
@@ -80,7 +105,7 @@ Rebuild with Blender 4.3 or newer from the repository root:
 blender -b --python tools/characters/sculpt_aren_head.py -- --no-render
 ```
 
-Omit `--no-render` for nine rendered views in the ignored `work/aren-head/`
+Omit `--no-render` for ten rendered views in the ignored `work/aren-head/`
 directory. `--quick` uses six views and fewer rendering samples. Rebuilding
 overwrites the generated source: preserve manual sculpt edits separately.
 The builder applies `tools/characters/aren_head_volumes.py` after constructing
