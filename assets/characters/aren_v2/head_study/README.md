@@ -97,15 +97,24 @@ warm point colors subdue the isolated bright rim. This stage keeps the upper
 bridge, eye region, existing materials and `NoseBounce` values unchanged.
 It retains every vertex, polygon and nonfacial mesh.
 
+The `nose_likeness_03` stage replaces the flared nasal annuli with continuous
+lofts between the sewn skin boundary and smaller recessed aperture rims. The
+apertures follow fitted local alar planes. Their native six-row cavities recede
+12 mm backward within nested front-view contours, avoiding crossings with the
+rim or surrounding skin. Bounded lobule and columella changes
+ease the tip into the alar base; restrained point-color shading defines the alar
+sulcus. A local addition to `NoseBounce` softens the central underside shadow.
+The upper bridge, eyes and every non-nasal surface remain unchanged in this stage.
+
 Apply the complete nose pipeline to an `eye_likeness_04` source without a nose
-revision, or upgrade an existing `nose_likeness_01` source:
+revision, or upgrade an existing `nose_likeness_01` or `nose_likeness_02` source:
 
 ```sh
 blender -b held-eyes.blend --python tools/characters/aren_nose_likeness.py -- \
   --output nose-review.blend
 ```
 
-A source already marked `nose_likeness_02` is refused. The source manifest and
+A source already marked `nose_likeness_03` is refused. The source manifest and
 scene metadata record the held eye review and the pending nose review.
 
 Rebuild with Blender 4.3 or newer from the repository root:

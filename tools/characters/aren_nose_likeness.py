@@ -14,7 +14,8 @@ sys.path.insert(0,str(Path(__file__).resolve().parent))
 from aren_eye_likeness import coords,assign,smooth,tree_for,surface_y,Z0
 
 FOUNDATION_REVISION='nose_likeness_01'
-REVISION='nose_likeness_02'
+TIP_REVISION='nose_likeness_02'
+REVISION='nose_likeness_03'
 
 
 def protected_signature(head):
@@ -136,10 +137,10 @@ def _refine_nose_foundation(head):
     return result
 
 
-def refine_nose_likeness(head):
+def _refine_nose_tip_alae(head):
     """Apply the nose foundation once, then the bounded tip/alar refinement."""
     revision=head.get('nose_revision')
-    if revision==REVISION:
+    if revision==TIP_REVISION:
         raise RuntimeError('Nose revision already applied; open the unmodified baseline.')
     if revision not in (None,FOUNDATION_REVISION):
         raise RuntimeError('Unsupported nose source revision: '+str(revision))
@@ -198,6 +199,99 @@ def refine_nose_likeness(head):
     held=(np.abs(x)>=.024)|(z<=.068)|(z>=.099)|(y>=-.020)
     assert np.array_equal(before[held],coords(head)[held])
     assert np.array_equal(tone_before.reshape(-1,4)[held],col[held])
+    assert protected_signature(head)==locked
+    head['nose_revision']=TIP_REVISION
+    scene=bpy.context.scene;scene['nose_revision']=TIP_REVISION
+    scene['nose_review_status']='pending_visual_approval'
+    scene['eye_review_status']='held_by_user';scene['active_feature_review']='nose'
+    result=dict(revision=TIP_REVISION,head_topology_unchanged=True,
+                protected_meshes_unchanged=True,eyes_held=True,remesh_applied=False)
+    print('NOSE_REVIEW',json.dumps(result),flush=True)
+    return result
+
+
+def refine_nose_likeness(head):
+    """Upgrade a held-eye source through the noncumulative nose stages."""
+    revision=head.get('nose_revision')
+    if revision==REVISION:
+        raise RuntimeError('Nose revision already applied; open the unmodified baseline.')
+    if revision not in (None,FOUNDATION_REVISION,TIP_REVISION):
+        raise RuntimeError('Unsupported nose source revision: '+str(revision))
+    if head.get('eye_revision')!='eye_likeness_04':
+        raise RuntimeError('Nose review requires the held eye_likeness_04 source.')
+    if revision!=TIP_REVISION:
+        _refine_nose_tip_alae(head)
+    bpy.context.view_layer.update()
+    locked=protected_signature(head)
+    tone_before=np.empty(len(head.data.vertices)*4,np.float32)
+    head.data.color_attributes['Tone'].data.foreach_get('color',tone_before)
+    bounce_before=np.empty(len(head.data.vertices),np.float32)
+    head.data.attributes['NoseBounce'].data.foreach_get('value',bounce_before)
+
+    before=coords(head);a=before.copy();x,y,z=before[:,0],before[:,1],before[:,2]-Z0
+    support=smooth(.066,.071,z)*(1-smooth(.090,.097,z))*(1-smooth(.019,.024,np.abs(x)))*(1-smooth(-.050,-.020,y))
+    cavities=[];visible=np.ones(len(a),bool)
+    for cap in head.data.polygons:
+        if len(cap.vertices)==26 and abs(cap.center.z-Z0-.0765)<.008:
+            first=cap.index-20*26;n=26
+            rows=[np.array([head.data.polygons[first+j].vertices[0] for j in range(n)])]
+            rows += [np.array([head.data.polygons[first+(row-1)*n+j].vertices[3] for j in range(n)]) for row in range(1,21)]
+            cavities.append(rows)
+            for ids in rows[15:]:visible[ids]=False
+    assert len(cavities)==2
+    # Continue the lobule toward the cheek with a shallow, broad alar sulcus.
+    a[:,1]-=.0011*np.exp(-((np.abs(x)-.0135)/.0040)**2-((z-.0798)/.0042)**2)*support*visible
+    a[:,1]+=.00055*np.exp(-((np.abs(x)-.0176)/.0020)**2-((z-.0788)/.0038)**2)*support*visible
+    # Ease the projecting columella into the base without changing the apex.
+    a[:,1]+=.0011*np.exp(-(x/.0042)**4-((z-.0733)/.0029)**2)*support*visible
+    col=np.empty(len(a)*4,np.float32);head.data.color_attributes['Tone'].data.foreach_get('color',col);col=col.reshape(-1,4)
+    crease=.14*np.exp(-((np.abs(x)-.0171)/.0023)**2-((z-.0788)/.0038)**2)*support*visible
+    col[:,:3]=col[:,:3]*(1-crease[:,None])+np.array((.29,.140,.075))*crease[:,None]
+    for rows in cavities:
+        outer=a[rows[0]].copy();center=outer.mean(0)
+        # Fit the opening to its local alar plane while retaining a nested
+        # contour in front projection throughout the annulus and cavity.
+        _,_,basis=np.linalg.svd(outer-center,full_matrices=False)
+        inward=basis[-1].copy();inward*=np.sign(inward[1])
+        assert inward[1]>.08
+        # A smooth aperture stays strictly inside the stepped sewn boundary.
+        # Retain each radial correspondence so loft sectors cannot cross.
+        side=np.sign(center[0]);angle=side*math.radians(11)
+        rotation=np.array(((math.cos(angle),-math.sin(angle)),(math.sin(angle),math.cos(angle))))
+        metric=((outer-center)[:,[0,2]]@rotation)/np.array((.0027,.0010))
+        edges=np.roll(metric,-1,axis=0)-metric
+        t=np.clip(-np.sum(metric*edges,axis=1)/np.sum(edges*edges,axis=1),0,1)
+        radius=.94*np.min(np.linalg.norm(metric+t[:,None]*edges,axis=1))
+        length=np.linalg.norm(metric,axis=1);direction=metric/length[:,None]
+        taper=1-.12*(1-smooth(-.2,.6,side*direction[:,0]))*(1-smooth(-.15,.5,direction[:,1]))
+        opening=center+(outer-center)*(radius*taper/length)[:,None]
+        opening[:,1]=center[1]-(inward[0]*(opening[:,0]-center[0])+inward[2]*(opening[:,2]-center[2]))/inward[1]
+        center=opening.mean(0)
+        rim_color=.62*col[rows[0],:3]+.38*np.array((.23,.110,.061))
+        # Replace the flared annulus by a monotone loft with a restrained lip.
+        for row in range(1,15):
+            t=row/14;ids=rows[row]
+            a[ids]=outer*(1-t)+opening*t
+            a[ids,1]-=.00012*np.sin(np.pi*t)
+            col[ids,:3]=col[rows[0],:3]*(1-t)+rim_color*t
+        for row in range(15,21):
+            u=(row-14)/6;depth=u*u*(2-u);ids=rows[row]
+            a[ids]=center+(opening-center)*(1-.30*depth)+np.array((0,.012*depth,0))
+            t=float(smooth(0,.45,u))
+            col[ids,:3]=rim_color*(1-t)+np.array((.065,.027,.012))*t
+    assign(head,a)
+    head.data.color_attributes['Tone'].data.foreach_set('color',col.ravel())
+    # A bounded painted shadow floor reduces the dark central wedge.
+    normals=np.empty(len(a)*3,np.float32);head.data.vertices.foreach_get('normal',normals);normals=normals.reshape(-1,3)
+    attr=head.data.attributes['NoseBounce'];bounce=np.empty(len(a),np.float32);attr.data.foreach_get('value',bounce)
+    bounce+=.14*np.exp(-(x/.007)**4-((z-.0735)/.0045)**2)*smooth(.12,.65,-normals[:,2])*support*visible
+    bounce+=.055*np.exp(-(x/.0045)**4-((z-.0720)/.0040)**2)*smooth(.25,.75,-normals[:,1])*support*visible
+    attr.data.foreach_set('value',bounce)
+
+    held=(np.abs(x)>=.024)|(z<=.066)|(z>=.097)|(y>=-.020)
+    assert np.array_equal(before[held],coords(head)[held])
+    assert np.array_equal(tone_before.reshape(-1,4)[held],col[held])
+    assert np.array_equal(bounce_before[held],bounce[held])
     assert protected_signature(head)==locked
     head['nose_revision']=REVISION
     scene=bpy.context.scene;scene['nose_revision']=REVISION
