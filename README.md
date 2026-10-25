@@ -1,5 +1,11 @@
 # Capturas del modelo 3D
 
+## Nueva revisión de la cabeza
+
+[Ver ojos, nariz, boca y peinado revisados](cabeza_refinada/README.md)
+
+Las imágenes que siguen corresponden a la versión anterior del modelo.
+
 Revisión del 25 de octubre de 2026. Vistas renderizadas del modelo editable creado a partir de la referencia del usuario. El rostro y el acabado pictórico siguen siendo aproximaciones a la referencia.
 
 Esta rama contiene solamente las capturas y su procedencia.
