@@ -1,5 +1,9 @@
 # Capturas del modelo 3D
 
+## Rostro v3 · última revisión
+
+[Ver las nuevas capturas de frente, tres cuartos y perfil, y la comparación antes/después](rostro_v3/README.md)
+
 ## Nueva revisión de la cabeza
 
 [Ver ojos, nariz, boca y peinado revisados](cabeza_refinada/README.md)
