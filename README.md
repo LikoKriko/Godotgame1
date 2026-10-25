@@ -1,6 +1,10 @@
 # Capturas del modelo 3D
 
-## Rostro y cuello v7 · última revisión
+## Rostro y cuello v8 · última revisión
+
+[Ver las capturas actuales y la comparación con la v7](rostro_v8/README.md)
+
+## Rostro y cuello v7 · revisión anterior
 
 [Ver las capturas actuales y la comparación con la v6](rostro_v7/README.md)
 
