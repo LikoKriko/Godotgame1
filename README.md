@@ -1,5 +1,9 @@
 # Capturas del modelo 3D
 
+## V7 en curso · estudio de formas
+
+[Ver la malla refinada con material neutro](rostro_v7/estudio_formas/README.md)
+
 ## Rostro v6 · última revisión
 
 [Ver la revisión de formas: frente, perfil, tres cuartos y comparación con la v5](rostro_v6/README.md)
