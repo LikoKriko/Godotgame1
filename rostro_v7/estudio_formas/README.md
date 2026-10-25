@@ -1,25 +1,31 @@
-# V7 en curso: estudio de formas
+# V7: estudio de formas con material neutro
 
-Estas vistas usan material neutro para evaluar la geometría del rostro. Es una revisión de trabajo; todavía no se declara alcanzado el objetivo del 80 % de semejanza y acabado.
-
-Se ha aumentado la resolución de la cabeza, corregido su continuidad y revisado pómulos, mandíbula, mentón, labios, nariz y la abertura de los ojos. La malla anatómica tiene 139.987 vértices; el cuerpo por debajo de la cabeza mantiene su geometría anterior. La reducción de polígonos queda para una fase posterior.
+Vistas del modelo real para evaluar los volúmenes del rostro y del cuello. La anatomía maestra tiene 157.928 vértices y conserva una superficie cerrada, sin caras degeneradas. La forma sigue siendo una interpretación aproximada de las cuatro referencias del usuario.
 
 ## Frente
 
-[![Estudio frontal actual](01_forma_frente.png)](01_forma_frente.png)
+[![Forma frontal v7](01_forma_frente.png)](01_forma_frente.png)
 
 ## Tres cuartos
 
-[![Estudio actual en tres cuartos](02_forma_tres_cuartos.png)](02_forma_tres_cuartos.png)
+[![Forma en tres cuartos v7](02_forma_tres_cuartos.png)](02_forma_tres_cuartos.png)
 
 ## Perfil
 
-[![Estudio actual de perfil](03_forma_perfil.png)](03_forma_perfil.png)
+[![Forma lateral v7](03_forma_perfil.png)](03_forma_perfil.png)
 
-## Comparación de geometría con la v6
+## Encuadre de la cuarta referencia
 
-Misma cámara e iluminación, con material neutro en la piel.
+Perspectiva e inclinación aproximadas para estudiar los volúmenes.
 
-| V6 | V7 en curso |
+[![Cuarto encuadre de formas](04_forma_cuarto_referencia.png)](04_forma_cuarto_referencia.png)
+
+## Comparación frontal de geometría
+
+Misma cámara e iluminación de estudio, con material neutro en la piel.
+
+| V6 | V7 |
 | --- | --- |
-| [![Forma anterior](antes_forma_v6.png)](antes_forma_v6.png) | [![Forma actual](01_forma_frente.png)](01_forma_frente.png) |
+| [![Forma anterior v6](antes_forma_v6.png)](antes_forma_v6.png) | [![Forma actual v7](01_forma_frente.png)](01_forma_frente.png) |
+
+[Volver a las capturas con color](../README.md)
