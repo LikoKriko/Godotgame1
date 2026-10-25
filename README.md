@@ -1,6 +1,10 @@
 # Capturas del modelo 3D
 
-## Rostro v3 · última revisión
+## Rostro v5 · última revisión
+
+[Ver las capturas actuales de frente, tres cuartos y perfil, y la comparación con la v4](rostro_v5/README.md)
+
+## Rostro v3 · revisión anterior
 
 [Ver las nuevas capturas de frente, tres cuartos y perfil, y la comparación antes/después](rostro_v3/README.md)
 
