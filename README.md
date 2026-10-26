@@ -1,6 +1,10 @@
 # Capturas del modelo 3D
 
-## Rostro v12 · última revisión
+## Rostro v13 · última revisión
+
+[Ver forma facial y rasgos revisados, con comparaciones frente a v12](rostro_v13/README.md)
+
+## Rostro v12 · revisión anterior
 
 [Ver base nasal, comisuras y lagrimales revisados y comparaciones con v11](rostro_v12/README.md)
 
