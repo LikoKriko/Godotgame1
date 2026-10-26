@@ -1,6 +1,10 @@
 # Capturas del modelo 3D
 
-## Rostro v10 · última revisión
+## Rostro v11 · última revisión
+
+[Ver párpados, nariz, labios y cuello revisados y comparaciones con v10](rostro_v11/README.md)
+
+## Rostro v10 · revisión anterior
 
 [Ver ojos, nariz y boca revisados y las comparaciones con v9](rostro_v10/README.md)
 
