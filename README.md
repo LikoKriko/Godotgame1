@@ -1,6 +1,10 @@
 # Capturas del modelo 3D
 
-## Rostro v14 · última revisión
+## Rostro v15 · última revisión
+
+[Ver proporciones, peinado y cuello revisados, con comparaciones completas frente a v14](rostro_v15/README.md)
+
+## Rostro v14 · revisión anterior
 
 [Ver detalle facial y pintura revisados, con comparaciones frente a v13](rostro_v14/README.md)
 
