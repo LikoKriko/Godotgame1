@@ -1,6 +1,10 @@
 # Capturas del modelo 3D
 
-## Rostro v17 · última revisión
+## Rostro v18 · última revisión
+
+[Ver contorno facial, perfil y ambos tres cuartos; comparación neutra incluida](rostro_v18/README.md)
+
+## Rostro v17 · revisión anterior
 
 [Ver análisis previo y correcciones comparadas con v16](rostro_v17/README.md)
 
